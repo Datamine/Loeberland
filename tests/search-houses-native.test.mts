@@ -68,10 +68,16 @@ test('all eight homes have connected doorways, walkable interiors and reachable 
     assert.ok(house?.inside != null, 'Missing test fixture: house.inside');
     assert.ok(world.pathTo(house.inside.x, house.inside.y, house.entry), home.id + ' door');
     assert.ok(world.pathTo(site.entry.x, site.entry.y, house.inside), home.id + ' storage');
-    assert.equal(world.placeAt(site.entry.x, site.entry.y), house);
+    const dogHouse = home.search.container === 'doghouse';
+    assert.equal(world.placeAt(site.entry.x, site.entry.y), dogHouse ? null : house);
+    if (dogHouse) {
+      assert.equal(world.placeAt(home.target.x - 0.5, home.target.z - 0.5), null);
+      assert.ok(world.landClearAt(site.entry.x, site.entry.y));
+    }
     assert.ok(site?.base != null, 'Missing test fixture: site.base');
     assert.ok(
-      Math.abs(world.characterGround(site.entry.x + 0.5, site.entry.y + 0.5) - site.base) < 0.1,
+      Math.abs(world.characterGround(site.entry.x + 0.5, site.entry.y + 0.5) - site.base) <
+        (dogHouse ? 1.2 : 0.1),
     );
     const c = Math.cos(requiredFixture(house.rotation)),
       s = Math.sin(requiredFixture(house.rotation)),

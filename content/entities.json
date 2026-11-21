@@ -2909,6 +2909,7 @@
         "npc.talk",
         "npc.examine",
         "trade:fish-sale",
+        "trade:rolling-pin",
         "service.chef.buyTinfoil:[]"
       ]
     },
@@ -3767,11 +3768,11 @@
       "name": "Dog house",
       "category": "object",
       "kind": "house-storage",
-      "description": "A familiar bit of household storage, worn smooth by years of use.",
+      "description": "A little roofed dog house beside the front path.",
       "menus": [
         {
           "id": "sight:house-search-2.menu-1",
-          "states": ["New visitor", "Inside this building"],
+          "states": ["New visitor", "In the yard"],
           "placements": ["sight:house-search-2"],
           "actions": [
             {
@@ -5575,6 +5576,11 @@
           "placements": ["actor:tam-furniture-maker"],
           "actions": [
             {
+              "id": "npc.talk",
+              "action": "npc.talk",
+              "label": "Talk-To {name}"
+            },
+            {
               "id": "npc.walk",
               "action": "npc.walk",
               "label": "Walk here {name}"
@@ -5593,7 +5599,7 @@
         }
       ],
       "dialogues": [],
-      "capabilities": ["npc.walk", "npc.attack", "npc.examine"]
+      "capabilities": ["npc.talk", "npc.walk", "npc.attack", "npc.examine"]
     },
     "sight:golden": {
       "id": "sight:golden",
@@ -6471,10 +6477,20 @@
             "path": "inventory.economy.ownedEquipment",
             "contains": "ball-chair"
           }
+        },
+        {
+          "id": "place:explorable-home-1.menu-4",
+          "states": ["Climbable house"],
+          "placements": [
+            "place:explorable-home-1",
+            "place:explorable-home-4",
+            "place:explorable-home-6"
+          ],
+          "actions": [{ "id": "house.climb", "action": "house.climb", "label": "Climb house" }]
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.14", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.14", "examine", "interaction.38", "house.climb"]
     },
     "sight:whale-0": {
       "id": "sight:whale-0",
@@ -7347,7 +7363,7 @@
       "name": "Landshark",
       "category": "npc",
       "kind": "landshark",
-      "description": "dont let him ride",
+      "description": "don't let him ride",
       "menus": [
         {
           "id": "actor:ocean-beach-landshark.menu-1",
@@ -9286,7 +9302,8 @@
         "npc.talk",
         "npc.examine",
         "service.wizard.buyTablet:[\"downtown\"]",
-        "service.wizard.buyTablet:[\"tahoe\"]"
+        "service.wizard.buyTablet:[\"tahoe\"]",
+        "service.wizard.buyTablet:[\"cupertino\"]"
       ]
     },
     "place:orin-house": {
@@ -13668,6 +13685,11 @@
           ],
           "actions": [
             {
+              "id": "taxi.kick",
+              "action": "taxi.kick",
+              "label": "Kick {name}"
+            },
+            {
               "id": "walk",
               "action": "walk",
               "label": "Walk here"
@@ -13688,6 +13710,11 @@
             "sight:tesla-robotaxi-3"
           ],
           "actions": [
+            {
+              "id": "taxi.kick",
+              "action": "taxi.kick",
+              "label": "Kick {name}"
+            },
             {
               "id": "walk",
               "action": "walk",
@@ -13711,7 +13738,7 @@
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["taxi.kick", "walk", "examine", "interaction.38"]
     },
     "actor:robotaxi-sales": {
       "id": "actor:robotaxi-sales",
@@ -15387,6 +15414,11 @@
           "placements": ["sight:waymo-1", "sight:waymo-2", "sight:waymo-3", "sight:waymo-4"],
           "actions": [
             {
+              "id": "taxi.kick",
+              "action": "taxi.kick",
+              "label": "Kick {name}"
+            },
+            {
               "id": "walk",
               "action": "walk",
               "label": "Walk here"
@@ -15403,6 +15435,11 @@
           "states": ["Equipment and rentals available"],
           "placements": ["sight:waymo-1", "sight:waymo-2", "sight:waymo-3", "sight:waymo-4"],
           "actions": [
+            {
+              "id": "taxi.kick",
+              "action": "taxi.kick",
+              "label": "Kick {name}"
+            },
             {
               "id": "walk",
               "action": "walk",
@@ -15426,7 +15463,7 @@
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["taxi.kick", "walk", "examine", "interaction.38"]
     },
     "actor:coit-parrot-0": {
       "id": "actor:coit-parrot-0",

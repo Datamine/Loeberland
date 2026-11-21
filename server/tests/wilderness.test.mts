@@ -88,11 +88,13 @@ test('the authoritative server accepts five-tile shots on Tahoe slopes and tree 
     a.p.x = giant.x + 5.02;
     a.p.y = tahoeHeight(a.p.x, a.p.z);
     a.p.shotAt = 0;
+    const hpAtEdge = giant.hp;
     assert.equal(
       requiredFixture(await act(game, a, 'attack', { id: giant.id, weapon: 'railgun' })).ok,
-      false,
-      'five-tile range is still enforced',
+      true,
+      'an attack just outside five tiles starts an approach',
     );
+    assert.equal(giant.hp, hpAtEdge, 'five-tile range is still enforced before walking');
     const tree = TAHOE_TREES.find(
       (p) => Math.abs(p.x - TAHOE.base.x + 13) < 0.1 && Math.abs(p.z - TAHOE.base.z + 7) < 0.1,
     );
@@ -349,8 +351,8 @@ test('saved landsharks adopt level-ten stats and the smaller territory without r
   try {
     const actor = game.shared.wilderness.actors[0];
     assert.equal(actor.level, 10);
-    assert.equal(actor.hp, 45);
-    assert.equal(actor.max, 45);
+    assert.equal(actor.hp, 50);
+    assert.equal(actor.max, 50);
     assert.deepEqual({ x: actor.x, z: actor.z }, actor.home);
     actor.hp = 0;
     actor.respawn = 4;

@@ -20,9 +20,6 @@ export function actorLevel(
   if (actor.alienId || actor.combatKind === 'spectre') return 6;
   const kind = actor.combatKind || actor.kind || '';
   if (MONSTER_STATS[kind]) return MONSTER_STATS[kind].level;
-  if (kind === 'kraken') return 20;
-  if (kind === 'raptor') return 8;
-  if (kind === 'cow') return 2;
   if (kind === 'tiger' || actor.tiger || actor.police || actor.label === 'Police') return 10;
   if (actor.researcher || actor.kind === 'tax') return 3;
   if (actor.expeditionRole === 'ahab') return 6;

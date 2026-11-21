@@ -28,7 +28,11 @@ interface TabletOptions {
 }
 import { isRecord } from './types/json.ts';
 import { serverCommand, serverConnected } from './server-connection.ts';
-export const TABLET_PLACES = Object.freeze(['downtown', 'tahoe'] satisfies [string, string]),
+export const TABLET_PLACES = Object.freeze(['downtown', 'tahoe', 'cupertino'] satisfies [
+    string,
+    string,
+    string,
+  ]),
   TABLET_TELEPORT_SECONDS = 2.8;
 const teleportEase = (t: number) => {
   t = Math.max(0, Math.min(1, t));

@@ -1,3 +1,4 @@
+import { rollEnemyDamage } from '../../src/combat.ts';
 import { storedWorldFixture, fixtureGeometry, player, latestResult } from './fixtures.mts';
 import type { TestGame, TestPlayer } from './fixtures.mts';
 import { requiredFixture } from '../../tests/helpers/required.mts';
@@ -86,11 +87,11 @@ test('B-2 blasts damage cows, bears and both giant species, with normal shared d
   const [bear, snow, ice, outside] = game.shared.wilderness.actors;
   assert.equal(cow.hp, 0);
   assert.equal(bear.hp, 0);
-  assert.equal(snow.hp, 40);
-  assert.equal(ice.hp, 80);
-  assert.equal(outside.hp, 180);
+  assert.equal(snow.hp, MONSTER_STATS['snow-giant'].hp - 100);
+  assert.equal(ice.hp, MONSTER_STATS['ice-giant'].hp - 100);
+  assert.equal(outside.hp, MONSTER_STATS['ice-giant'].hp);
   assert.equal(observer.p.hp, hp);
-  assert.equal(game.shared.raptor.hp, 50);
+  assert.equal(game.shared.raptor.hp, MONSTER_STATS.raptor.hp);
   assert.equal(requiredFixture(game.shared.npcById.get('spectre')).hp, 36);
   assert.equal(requiredFixture(game.shared.npcById.get('professor')).hp, 30);
   assert.equal(game.shared.loot.size, 2);
@@ -102,7 +103,7 @@ test('B-2 blasts damage cows, bears and both giant species, with normal shared d
         m.weapon === 'bomb' &&
         m.target === ice.id &&
         m.damage === 100 &&
-        m.hp === 80,
+        m.hp === MONSTER_STATS['ice-giant'].hp - 100,
     ),
   );
   game.shared.bombCreatures(bomb);
@@ -119,9 +120,9 @@ test('B-2 blasts damage cows, bears and both giant species, with normal shared d
     0,
   );
   game.shared.wilderness.update(MONSTER_STATS['ice-giant'].respawn, []);
-  assert.equal(ice.hp, 180);
-  assert.equal(bear.hp, 20);
-  assert.equal(snow.hp, 140);
+  assert.equal(ice.hp, MONSTER_STATS['ice-giant'].hp);
+  assert.equal(bear.hp, MONSTER_STATS.bear.hp);
+  assert.equal(snow.hp, MONSTER_STATS['snow-giant'].hp);
 });
 
 test('owned, equipped ice armor consistently reduces spectre and kraken hits; cosmetic flags alone give no bonus', async (t) => {
@@ -171,7 +172,7 @@ test('owned, equipped ice armor consistently reduces spectre and kraken hits; co
     assert.equal(a.p.hp, 30 - (5 - c.blocked));
     // Stop melee; the same owned armor must work in a personal boss instance.
     a.p.personalBattle = null;
-    a.p.hp = 30;
+    a.p.hp = a.p.max = 120;
     const r = game.personal.runtime(a.p);
     r.battle = null;
     r.expeditions.setHarbor({ x: a.p.x, z: a.p.z });
@@ -180,7 +181,11 @@ test('owned, equipped ice armor consistently reduces spectre and kraken hits; co
     a.p.instance = { id: 'kraken:' + a.p.owner, kind: 'kraken', layer: -2 };
     a.p.mode = 'hidden';
     game.personal.tick(3.5);
-    assert.equal(a.p.hp, 30 - (11 - c.blocked), 'kraken armor: ' + JSON.stringify(c));
+    assert.equal(
+      a.p.hp,
+      120 - rollEnemyDamage(MONSTER_STATS.kraken.damage, 1, () => 0.5, c.blocked),
+      'kraken armor: ' + JSON.stringify(c),
+    );
   }
 });
 
@@ -192,11 +197,11 @@ test('actual B-2 commands apply creature damage only on impact and require the f
   assert.equal(requiredFixture(await act(game, a, 'bomberBomb')).ok, true);
   advance(BOMB_FALL_MS - 1);
   game.tick(0.05);
-  assert.equal(game.shared.wilderness.actors[0].hp, 20);
+  assert.equal(game.shared.wilderness.actors[0].hp, MONSTER_STATS.bear.hp);
   advance(1);
   game.tick(0.05);
   assert.equal(game.shared.wilderness.actors[0].hp, 0);
-  assert.equal(game.shared.wilderness.actors[2].hp, 80);
+  assert.equal(game.shared.wilderness.actors[2].hp, MONSTER_STATS['ice-giant'].hp - 100);
   assert.equal(requiredFixture(await act(game, a, 'bomberBomb')).ok, false);
   advance(BOMB_COOLDOWN_MS - BOMB_FALL_MS);
   assert.equal(requiredFixture(await act(game, a, 'bomberBomb')).ok, true);

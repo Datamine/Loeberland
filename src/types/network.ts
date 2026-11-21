@@ -77,7 +77,12 @@ export interface CommandResult extends ActionReceipt {
   request?: number;
   action?: string;
 }
+export interface NetworkTraffic extends WorldPoint {
+  id: string;
+  angle: number;
+}
 export interface NetworkCreature extends WorldPoint {
+  combatKind?: string;
   id: string;
   hp: number;
   max: number;
@@ -121,6 +126,7 @@ export interface SharedSnapshot {
   npcs?: NetworkNPC[];
   cows?: NetworkCreature[];
   wilderness?: NetworkCreature[];
+  traffic?: NetworkTraffic[];
   loot?: import('./expeditions.ts').ExpeditionLoot[];
   raptor?:
     (NetworkCreature & { phase: string; release: number; preyId: number | string | null }) | null;

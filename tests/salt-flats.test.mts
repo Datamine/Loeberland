@@ -31,7 +31,7 @@ test('conservation letters pay exactly fifty on delivery, one at a time, with at
     mail = createSaltMail(e);
   assert.equal(mail.deliver().ok, false);
   assert.equal(e.state.coins, 25);
-  assert.equal(mail.entries().length, 0);
+  assert.equal(mail.entries()[0].stage, 'not-started');
   assert.equal(mail.collect().ok, true);
   assert.equal(e.state.coins, 25);
   assert.equal(mail.carrying, true);

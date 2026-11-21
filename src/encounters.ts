@@ -3,6 +3,8 @@ import type { RouteTo, NearestPoint } from './types/controllers.ts';
 import type { Point } from './types/geometry.ts';
 import type { Mesh } from './geometry.ts';
 import { marinElevation } from './geography.ts';
+export const POLICE_PURSUIT_SECONDS = 10;
+
 interface PoliceOfficer extends Point {
   path: Point[];
   angle: number;
@@ -53,6 +55,7 @@ export function createPoliceChase({
   }
   function update(dt: number, speed: number) {
     if (!state.wanted || state.jailed) return;
+    dt = Math.min(dt, Math.max(0, POLICE_PURSUIT_SECONDS - state.elapsed));
     state.elapsed += dt;
     for (const officer of state.officers) {
       officer.repath -= dt;
@@ -85,9 +88,14 @@ export function createPoliceChase({
       ) {
         state.jailed = true;
         state.wanted = false;
+        state.officers.length = 0;
         onArrest();
         return;
       }
+    }
+    if (state.elapsed + 1e-8 >= POLICE_PURSUIT_SECONDS) {
+      state.wanted = false;
+      state.officers.length = 0;
     }
   }
   return { state, start, update };

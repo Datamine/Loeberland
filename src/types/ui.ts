@@ -153,6 +153,7 @@ export interface GameElements {
   'sf-strength-text': HTMLElementTagNameMap['span'];
   'sf-sunglasses-hint': HTMLElementTagNameMap['small'];
   'sf-tablet-downtown': HTMLElementTagNameMap['button'];
+  'sf-tablet-cupertino': HTMLElementTagNameMap['button'];
   'sf-tablet-tahoe': HTMLElementTagNameMap['button'];
   'sf-toggle': HTMLElementTagNameMap['button'];
   'sf-toggle-label': HTMLElementTagNameMap['span'];

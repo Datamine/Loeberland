@@ -41,11 +41,9 @@ const mobileActionKinds = new Set([
 ]);
 export function actionTargetKind(target: ActionTarget = {}) {
   applyEntityEdits(target, target.editorKey || 'sight:' + target.id);
+  if (target.kind === 'sunglasses') return 'personal-item';
   if (target.editorCategory) return target.editorCategory;
-  if (
-    (['loot', 'sunglasses', 'sand'] satisfies [string, string, string]).includes(target.kind || '')
-  )
-    return 'item';
+  if ((['loot', 'sand'] satisfies [string, string]).includes(target.kind || '')) return 'item';
   return target.mobile || mobileActionKinds.has(target.kind || '') ? 'npc' : 'object';
 }
 

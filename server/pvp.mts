@@ -35,6 +35,8 @@ export function createPvpCombat({
     !p.respawnAllowed &&
     !p.personalJailed &&
     !p.grappling &&
+    p.mode !== 'roof' &&
+    p.mode !== 'atv' &&
     (p.instance?.kind || 'world') === 'world' &&
     !(
       ['hidden', 'rocket', 'gondola', 'climb', 'bomber', 'parachute', 'teleport'] satisfies [
@@ -78,6 +80,7 @@ export function createPvpCombat({
       railgun: railgunUnlocked(gear) && gear.equipped,
       bayonet: quest.theyLive?.bayonet,
       battleaxe: equipmentOwned(p.inventory.economy.state, 'battleaxe'),
+      'rolling-pin': equipmentOwned(p.inventory.economy.state, 'rolling-pin'),
       akibo: equipmentOwned(p.inventory.economy.state, 'akibo'),
     });
   }

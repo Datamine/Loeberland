@@ -45,7 +45,13 @@ test('snow and ice giants acquire players within five tiles and attack without a
       assert.ok(a.messages.some((m) => m.type === 'damage' && m.attacker === giant.id));
       a.p.x = giant.home.x + 13;
       game.tick(0.05);
-      assert.equal(giant.enemy, null, 'running beyond the home leash releases aggression');
+      assert.equal(giant.enemy, a.p.id);
+      for (let i = 1; i < 60; i++) game.tick(0.05);
+      assert.equal(
+        giant.enemy,
+        null,
+        'running beyond the home leash releases aggression after three seconds',
+      );
     } finally {
       await game.close();
     }
@@ -76,6 +82,8 @@ test('server-driven aggression selects nearby eligible players and causes shared
     assert.equal(b.p.hp, 30);
     a.p.x = outlaw.home.x + 30;
     game.tick(0.7);
+    assert.equal(outlaw.enemy, a.p.id);
+    game.tick(2.3);
     assert.equal(outlaw.enemy, null);
   } finally {
     await game.close();
@@ -191,7 +199,7 @@ test('Landshark combat, Stetson and peptide loot are shared, authoritative, coll
       b = await player(game, 757),
       shark = game.shared.wilderness.actors[0];
     assert.equal(shark.level, 10);
-    assert.equal(shark.hp, 45);
+    assert.equal(shark.hp, 50);
     game.receive(a.p, {
       type: 'checkpoint',
       inventoryEpoch: a.p.inventory.meta.epoch,
@@ -249,7 +257,7 @@ test('Landshark combat, Stetson and peptide loot are shared, authoritative, coll
     assert.equal(returning.p.inventory.meta.peptides, 1);
     assert.equal(game.shared.wilderness.actors[0].hp, 0);
     game.tick(10);
-    assert.equal(game.shared.wilderness.actors[0].hp, 45);
+    assert.equal(game.shared.wilderness.actors[0].hp, 50);
   } finally {
     await game.close();
   }

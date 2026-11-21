@@ -1,3 +1,4 @@
+import { MONSTER_STATS } from './monster-drops.ts';
 import type { RemoteActor, Actor, LocalPlayer, SignAtlas } from './types/world.ts';
 import type {
   SharedSnapshot,
@@ -49,6 +50,7 @@ interface WorldMultiplayerOptions {
   onPrivateAward: (award: PendingAward) => void;
   lives: Parameters<typeof createNPCPresentation<Actor>>[0]['lives'];
   wilderness?: { actors: Actor[] } | null;
+  onTraffic?: (traffic: NonNullable<SharedSnapshot['traffic']>, sampleTime: number) => void;
   applyInventory: (snapshot: InventorySnapshot) => void;
   controllers: MultiplayerActionsOptions['controllers'];
   applyPlayerState: MultiplayerActionsOptions['onState'];
@@ -200,6 +202,7 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
   const pursuits = createPursuitPresentation({ zoo, raptor: expeditions.raptor });
   const followState = { target: null as number | null, attack: false };
   let followGround: number | null = null,
+    selfMode = 'walk',
     followRequest = 0;
   function stopFollowing(move = true, remote = false) {
     const had = followState.target !== null;
@@ -278,7 +281,34 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
       grapplingGround = null;
     }
     if (state.cows) cowPresentation.sync(state.cows, sampleTime);
-    if (state.wilderness) creaturePresentation.sync(state.wilderness, sampleTime);
+    if (state.traffic) api.onTraffic?.(state.traffic, sampleTime);
+    if (state.wilderness && api.wilderness) {
+      const responders = new Set(
+        state.wilderness.filter((n) => n.combatKind === 'robocop').map((n) => n.id),
+      );
+      const actors = api.wilderness.actors;
+      for (let i = actors.length - 1; i >= 0; i--) {
+        if (actors[i].combatKind === 'robocop' && !responders.has(String(actors[i].id))) {
+          creaturePresentation.remove(actors[i].id);
+          actors.splice(i, 1);
+        }
+      }
+      for (const record of state.wilderness) {
+        if (!responders.has(record.id) || actors.some((n) => n.id === record.id)) continue;
+        const stats = MONSTER_STATS.robocop;
+        const actor: Actor = {
+          ...record,
+          phase: typeof record.phase === 'number' ? record.phase : 0,
+          label: stats.name,
+          description: stats.description,
+          height: stats.height,
+          wilderness: true,
+        };
+        actors.push(actor);
+        creaturePresentation.add(actor);
+      }
+      creaturePresentation.sync(state.wilderness, sampleTime);
+    }
     pursuits.syncWorld(state, sampleTime);
     if (state.raptor)
       expeditions.raptor.prey = { isPlayer: state.raptor.preyId === client.state.id };
@@ -499,6 +529,7 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
     const authoritative = client.selfPose();
     if (authoritative) {
       followGround = authoritative.y;
+      selfMode = authoritative.mode;
       api.applyServerPose(authoritative);
     }
   }
@@ -609,6 +640,9 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
     },
     get followingGround() {
       return followGround;
+    },
+    get selfMode() {
+      return selfMode;
     },
     get serverWalking() {
       return true;

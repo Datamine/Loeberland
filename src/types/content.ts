@@ -329,5 +329,4 @@ export interface PlayerDocument {
   progress: { houseSearches: string[] };
   rewards: { pending: PendingAward[]; serial: number };
   equipment: { decorativeRocket: { readyAt: number; burnUntil: number; hopAt: number } };
-  migration: { legacyKeys: string[]; unknownPrivateState: Record<string, unknown> };
 }

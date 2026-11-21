@@ -873,6 +873,9 @@ body.sf-mode .sf-toggle {
 #sf-world .sf-action-target[data-kind='item'] {
   color: #ffa99b;
 }
+#sf-world .sf-action-target[data-kind='personal-item'] {
+  color: #8ecbff;
+}
 #sf-world .sf-action-target[data-kind='object'] {
   color: #49c3bf;
 }

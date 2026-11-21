@@ -326,7 +326,7 @@ test('bombs land after a fall, damage creatures inside 3×3 tiles, and enforce a
   game.tick(0.05);
   assert.ok(affected.every((c) => c.hp === 0));
   assert.equal(b.p.hp, 30);
-  assert.equal(game.shared.raptor.hp, 50);
+  assert.equal(game.shared.raptor.hp, game.shared.raptor.max);
   assert.equal(requiredFixture(game.shared.npcById.get('test-spectre')).hp, 36);
   assert.equal(
     requiredFixture(
@@ -381,13 +381,21 @@ test('Ahab sails to the kraken and returns to the saved beach with only authorit
   };
   assert.equal(state.ship.phase, 'fighting');
   assert.equal(state.kraken.visible, true);
-  assert.equal(state.kraken.hp, 600);
+  assert.equal(state.kraken.hp, 1200);
   assert.equal(
     a.p.x,
     requiredFixture(requiredFixture(geometry.expeditions).ship.home).x - PEQUOD.travel,
   );
   assert.equal(a.p.y, PEQUOD.deck);
   assert.equal(a.p.mode, 'hidden');
+  a.p.x += 2;
+  assert.equal(
+    requiredFixture(await act(game, a, 'playerAction', { verb: 'attackKraken', weapon: 'railgun' }))
+      .ok,
+    true,
+    'the attack uses the deck position rather than a stale player coordinate',
+  );
+  assert.equal(a.p.inventory.meta.railgunCharge, 24);
   assert.equal(
     requiredFixture(await act(game, a, 'playerAction', { verb: 'returnShip' })).ok,
     true,

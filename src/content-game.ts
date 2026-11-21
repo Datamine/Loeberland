@@ -281,12 +281,15 @@ export function compileEntityDialogue<T extends RuntimeDialogue>(
         if (choice.next) compiled.next = node(choice.next);
         if (choice.shared) {
           compiled.ambientConversation = true;
-          const ids = Object.keys(CONTENT.dialogues.shared);
-          compiled.next = compileSharedConversation(
-            ids[Math.floor(Math.random() * ids.length)],
-            person,
-            state,
-          )!;
+          compiled.next = {
+            name: def.name,
+            intro:
+              binding?.next?.intro ||
+              field(source.intro, runtime, 'intro', id) ||
+              resolveContentText(def.description, { state }),
+            repeat: false,
+            choices: [],
+          };
         }
         return compiled;
       });

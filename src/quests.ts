@@ -10,6 +10,8 @@ export const MONKEY_QUEST = Object.freeze({
   id: 'monkey-business',
   title: 'Monkey Business',
   professor: 'Professor Ada Meridian',
+  startLocation:
+    'the California Institute for Consciousness Research (speak to Professor Ada Meridian)',
   reward: 25,
 });
 const questStages: readonly string[] = [
@@ -112,10 +114,7 @@ export function createQuestLog(
     recover,
     complete,
     entry,
-    entries: (): QuestJournalEntry[] => [
-      ...(theyLive.state.started ? [theyLive.entry()] : []),
-      entry(),
-    ],
+    entries: (): QuestJournalEntry[] => [theyLive.entry(), entry()],
     get carrying() {
       return state.monkey === 'carrying';
     },

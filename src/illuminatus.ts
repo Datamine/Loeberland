@@ -31,6 +31,7 @@ export function illuminatusQuestEntry({
   return {
     id: 'illuminatus',
     title: 'Illuminatus',
+    startLocation: 'the Freemasons’ Guild (speak to Ray)',
     stage,
     status: bomberOwned ? 'Complete' : started ? 'In progress' : 'Not started',
     description,

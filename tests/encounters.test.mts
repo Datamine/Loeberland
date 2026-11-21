@@ -26,7 +26,7 @@ test('police match a moving player, then catch a player who stops', () => {
   chase.start();
   assert.equal(chase.state.officers.length, 3);
   const initial = chase.state.officers.map((o) => player.x - o.x);
-  for (let i = 0; i < 600; i++) {
+  for (let i = 0; i < 360; i++) {
     player.x += speed * dt;
     chase.update(dt, speed);
   }
@@ -36,6 +36,7 @@ test('police match a moving player, then catch a player who stops', () => {
   assert.equal(arrests(), 1);
   assert.equal(chase.state.jailed, true);
   assert.equal(chase.state.wanted, false);
+  assert.equal(chase.state.officers.length, 0);
   const stopped = chase.state.officers.map((o) => [o.x, o.y]);
   chase.start();
   chase.update(20, speed);
@@ -172,4 +173,15 @@ test('police finish the shore crossing instead of doubling back during replannin
   const inward = s.pursuitRoute({ x: 28.7, y: 9 }, { x: 30, y: 12 }, services);
   assert.deepEqual(requiredFixture(inward)[0], s.state.shore);
   assert.deepEqual(requiredFixture(inward).at(-1), { x: 30, y: 12 });
+});
+
+test('officers give up after ten seconds without a capture', () => {
+  const { chase, arrests } = pursuit({ canCapture: () => false });
+  chase.start();
+  chase.update(9.99, 4.6);
+  assert.equal(chase.state.wanted, true);
+  chase.update(0.01, 4.6);
+  assert.equal(chase.state.wanted, false);
+  assert.equal(chase.state.officers.length, 0);
+  assert.equal(arrests(), 0);
 });

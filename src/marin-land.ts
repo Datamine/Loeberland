@@ -4,10 +4,11 @@ interface MarinPickGroup {
   hi: number[];
   faces: number[];
 }
-import { drawBolinas, bolinasBlocks } from './bolinas.ts';
+import { drawBolinas, bolinasBlocks, BOLINAS_PATH } from './bolinas.ts';
 import { drawGoblinTown, goblinHutBlocks } from './goblin-town.ts';
+import { ATV_JUMP_LANE, ATV_RENTAL } from './atv.ts';
 import { createNavigationGrid } from './navigation.ts';
-import { Mesh, unit, rayTriangle, rayBox } from './geometry.ts';
+import { Mesh, unit, rayTriangle, rayBox, rand } from './geometry.ts';
 
 const marinInside = (x: number, z: number, poly: number[][]) => {
   let inside = false;
@@ -27,13 +28,14 @@ function drawMarinSurface(
 ) {
   const marinHeight = height,
     mapPosition = (v: number) => v * scale,
-    MARIN = polygon;
+    MARIN = polygon,
+    fineNorth = mapPosition(-40);
   // Clip boundary cells to the actual headland polygon, keeping the shore
   // continuous rather than exposing a checkerboard of whole terrain cells.
   // Distant northern ridges use a coarse mesh; the visible headlands keep
   // finer contours without a rectangular land edge behind them.
   for (let z = mapPosition(-65); z < mapPosition(3.2);) {
-    const step = z < mapPosition(-22) ? 2.4 : 0.6;
+    const step = z < fineNorth ? 2.4 : 0.6;
     for (let x = mapPosition(-20); x < mapPosition(65); x += step) {
       const points = [],
         insideCell = (p: number[]) =>
@@ -49,7 +51,7 @@ function drawMarinSurface(
       ])
         if (marinInside(...p, MARIN)) points.push(p);
       // Match the fine row's vertices at the terrain LOD seam.
-      if (step > 1 && z + step >= mapPosition(-22))
+      if (step > 1 && z + step >= fineNorth)
         for (let dx = 0.6; dx < step - 0.01; dx += 0.6) {
           const p = [x + dx, z + step] satisfies [number, number];
           if (marinInside(...p, MARIN)) points.push(p);
@@ -97,12 +99,13 @@ function drawMarinSurface(
               marinHeight(center[0] + 0.2, center[1]) - h,
               marinHeight(center[0], center[1] + 0.2) - h,
             ) / 0.2;
+        const exposed = slope > 0.53 + 0.1 * Math.sin(center[0] * 0.71 + center[1] * 0.52);
         m.tri(
           [center[0], h, center[1]],
           [b[0], marinHeight(b[0], b[1]), b[1]],
           [a[0], marinHeight(a[0], a[1]), a[1]],
           '#899775',
-          'grass',
+          exposed ? 'marinRock' : 'marinScrub',
         );
         for (let v = start; v < m.data.length; v += 11) {
           const x = m.data[v],
@@ -112,18 +115,23 @@ function drawMarinSurface(
               1,
               -(marinHeight(x, z + 0.1) - marinHeight(x, z - 0.1)) / 0.2,
             ] satisfies [number, number, number]),
-            dry = 0.5 + 0.3 * Math.sin(x * 0.28 + z * 0.11) + 0.2 * Math.sin(z * 0.57 - x * 0.19),
-            rock = Math.min(0.65, Math.max(0, slope - 0.6) * 0.5),
-            grass = [0.46 + dry * 0.13, 0.53 + dry * 0.065, 0.36 + dry * 0.07] satisfies [
-              number,
-              number,
-              number,
-            ];
+            dry =
+              0.5 +
+              0.27 * Math.sin(x * 0.22 + z * 0.1) +
+              0.15 * Math.sin(z * 0.53 - x * 0.19) +
+              0.08 * Math.sin(x * 1.21 - z * 0.72),
+            coastal = Math.min(1, Math.max(0, (-x + 12) / 29)),
+            rock = exposed ? Math.min(0.92, 0.48 + 0.6 * (slope - 0.45)) : 0,
+            grass = [
+              0.4 + dry * 0.25 + coastal * 0.035,
+              0.48 + dry * 0.12,
+              0.31 + dry * 0.11 + coastal * 0.028,
+            ] satisfies [number, number, number];
           for (let k = 0; k < 3; k++) {
             m.data[v + 3 + k] = n[k];
             m.data[v + 6 + k] =
               grass[k] * (1 - rock) +
-              ([0.62, 0.6, 0.49] satisfies [number, number, number])[k] * rock;
+              ([0.67, 0.62, 0.53] satisfies [number, number, number])[k] * rock;
           }
         }
       }
@@ -225,13 +233,124 @@ export function createMarinLand({
       });
     return found ? logical(found) : null;
   }
-  let surface: Mesh | null = null;
+  let surface: Mesh | null = null,
+    pickLength = 0;
   function surfaceMesh() {
     if (!surface) {
       surface = new Mesh();
       drawMarinSurface(surface, polygon, scale, ground);
       drawGoblinTown(surface, ground);
       drawBolinas(surface, ground);
+      // Shrubs and canopies are visual scenery. Walking clicks project to
+      // the terrain underneath them.
+      pickLength = surface.data.length;
+      for (const patch of [
+        { x: 30, z: -24, width: 31, depth: 29, count: 400, coastal: false },
+        { x: -7, z: -47, width: 28, depth: 29, count: 390, coastal: true },
+        { x: 38, z: -5, width: 39, depth: 17, count: 145, coastal: false },
+      ]) {
+        for (let i = 0; i < patch.count; i++) {
+          const seed = i * 9 + (patch.coastal ? 4180 : 1610 + patch.x * 29),
+            x = patch.x + (rand(seed, 73) - 0.5) * patch.width,
+            z = patch.z + (rand(seed + 1, 73) - 0.5) * patch.depth;
+          if (
+            !freeWorld(x, z) ||
+            !freeWorld(x + 0.36, z - 0.35) ||
+            !freeWorld(x - 0.36, z + 0.35) ||
+            (Math.abs(x - ATV_JUMP_LANE.x) < 1.84 &&
+              z > ATV_JUMP_LANE.start - 1 &&
+              z < ATV_JUMP_LANE.end + 2.3) ||
+            Math.hypot(x - ATV_RENTAL.parking.x, z - ATV_RENTAL.parking.z) < 2.4 ||
+            BOLINAS_PATH.slice(1).some(([bx, bz], j) => {
+              const [ax, az] = BOLINAS_PATH[j],
+                dx = bx - ax,
+                dz = bz - az,
+                t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz)));
+              return Math.hypot(x - ax - dx * t, z - az - dz * t) < 1.48;
+            }) ||
+            (!patch.coastal &&
+              ((Math.abs(x - 30) < 1.8 && z > -29.4 && z < -16.3) ||
+                (Math.abs(x - 33.7) < 1.55 && z > -17 && z < -8))) ||
+            (patch.coastal && x > -10.5 && x < -2 && z > -58 && z < -43)
+          )
+            continue;
+          const y = ground(x, z),
+            size = 0.17 + 0.39 * rand(seed + 2, 73),
+            palette = patch.coastal
+              ? ['#657b59', '#a5a26d', '#6f8763']
+              : ['#445e42', '#687647', '#809059'],
+            color = palette[Math.floor(rand(seed + 3, 73) * palette.length)];
+          if (i % 23 === 0) {
+            drawMarinTree(surface, x, y, z, size, patch.coastal, color, seed);
+          } else if (i % 13 === 0) {
+            surface.sphere(
+              x,
+              y + size * 0.08,
+              z,
+              size * 1.28,
+              size * 0.49,
+              size * 0.78,
+              i % 2 ? '#99927f' : '#817f70',
+              7,
+              4,
+              'marinRock',
+            );
+            surface.sphere(
+              x + size * 0.48,
+              y + size * 0.12,
+              z - size * 0.12,
+              size * 0.39,
+              size * 0.29,
+              size * 0.42,
+              '#bab09b',
+              7,
+              4,
+              'marinRock',
+            );
+          } else {
+            for (let stem = 0; stem < 3; stem++) {
+              const a = rand(seed + stem + 5, 73) * Math.PI * 2,
+                dx = Math.cos(a) * size * 0.53,
+                dz = Math.sin(a) * size * 0.53;
+              surface.sphere(
+                x + dx,
+                y + size * 0.32,
+                z + dz,
+                size * 0.62,
+                size * (0.49 + 0.13 * stem),
+                size * 0.6,
+                stem === 1 ? palette[1] : color,
+                7,
+                4,
+              );
+              if (patch.coastal && i % 11 === 0)
+                surface.sphere(
+                  x + dx,
+                  y + size * 0.98,
+                  z + dz,
+                  0.035,
+                  0.041,
+                  0.035,
+                  '#d9b466',
+                  6,
+                  4,
+                );
+            }
+            if (i % 4 === 0)
+              for (let blade = 0; blade < 5; blade++) {
+                const a = blade * Math.PI * 0.4;
+                const dx = Math.cos(a) * size * 0.34,
+                  dz = Math.sin(a) * size * 0.34;
+                surface.tri(
+                  [x - 0.035, y, z],
+                  [x + 0.035, y, z + 0.027],
+                  [x + dx, y + size * (0.52 + blade * 0.12), z + dz],
+                  blade % 2 ? '#9a915d' : '#d0b87a',
+                );
+              }
+          }
+        }
+      }
     }
     return surface;
   }
@@ -242,7 +361,7 @@ export function createMarinLand({
     const data = surfaceMesh().data;
     if (!pickGroups) {
       const bins = new Map<string, MarinPickGroup>();
-      for (let i = 0; i < data.length; i += 33) {
+      for (let i = 0; i < pickLength; i += 33) {
         const key = Math.floor(data[i] / 8) + ',' + Math.floor(data[i + 2] / 8);
         let b = bins.get(key);
         if (!b) {
@@ -294,4 +413,45 @@ export function createMarinLand({
       for (const v of surfaceMesh().data) m.data.push(v);
     },
   };
+}
+
+function drawMarinTree(
+  m: Mesh,
+  x: number,
+  y: number,
+  z: number,
+  size: number,
+  coastal: boolean,
+  color: string,
+  seed: number,
+) {
+  const height = 0.8 + size * (coastal ? 2.6 : 1.7);
+  const bend = coastal ? size * 0.85 : (rand(seed + 4, 73) - 0.5) * 0.56;
+  const trunk = coastal ? '#5a5545' : '#854c38';
+  m.rod(
+    [x, y - 0.08, z],
+    [x + bend * 0.28, y + height * 0.54, z],
+    size * 0.16,
+    trunk,
+    8,
+    'marinTimber',
+  );
+  for (let branch = 0; branch < 4; branch++) {
+    const a = branch * Math.PI * 0.5 + rand(seed + 7, 73);
+    const ox = x + bend + Math.cos(a) * size * 0.74,
+      oz = z + Math.sin(a) * size * 0.65;
+    const top = y + height * (0.7 + branch * 0.09);
+    m.rod([x + bend * 0.26, y + height * 0.48, z], [ox, top, oz], size * 0.075, trunk, 6);
+    m.sphere(
+      ox,
+      top,
+      oz,
+      size * (coastal ? 1.5 : 0.92),
+      size * (coastal ? 0.55 : 0.8),
+      size * 0.94,
+      branch % 2 ? color : coastal ? '#526849' : '#6b8253',
+      9,
+      5,
+    );
+  }
 }

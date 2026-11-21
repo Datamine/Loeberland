@@ -27,13 +27,20 @@ export function createResidentialSearch({
       !(['walk', 'sit', 'bench'] satisfies [string, string, string]).includes(p.mode)
     )
       return { ok: false, message: 'Stand beside the container first.' };
+    const outdoors = definition.container === 'doghouse',
+      room = geometry.placeAt?.(p.x - 0.5, p.z - 0.5);
     if (
       Math.hypot(p.x - site.x, p.z - site.z) > 2.2 ||
       Math.abs(p.y - site.base) > 1.2 ||
-      geometry.placeAt?.(p.x - 0.5, p.z - 0.5)?.id !== site.houseId ||
+      (outdoors ? !!room : room?.id !== site.houseId) ||
       !geometry.canTravel?.(p.x - 0.5, p.z - 0.5, site.entry.x, site.entry.y, true)
     )
-      return { ok: false, message: 'Stand beside the container inside the house first.' };
+      return {
+        ok: false,
+        message: outdoors
+          ? 'Stand by the dog house in the yard first.'
+          : 'Stand beside the container inside the house first.',
+      };
     const claimed = (p.profile.houseSearches ??= []);
     if (claimed.includes(id))
       return {

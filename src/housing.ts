@@ -20,7 +20,7 @@ import { SOUTHERN_PALETTES } from './neighborhood-palette.ts';
 import { drawSouthernHouseDetails } from './southern-house-details.ts';
 import type { Mesh } from './geometry.ts';
 import { rand, tint, pose } from './geometry.ts';
-import { marketSide } from './downtown.ts';
+import { marketSide, SOMA_ZOMBIE_SPAWNS } from './downtown.ts';
 import { windowAppearance } from './materials.ts';
 import { drawFacadeWindow } from './windows.ts';
 import { drawCommercialRoof } from './rooftops.ts';
@@ -683,6 +683,10 @@ export function createHousing({
             ])
       )[Math.floor(seed * 4)];
     const center = point(0, (face + back) / 2);
+    const boarded =
+      (kind === 'soma' || kind === 'warehouse') &&
+      SOMA_ZOMBIE_SPAWNS.some((zombie) => Math.hypot(cx - zombie.x, cz - zombie.z) < 4.5) &&
+      seed < 0.72;
     cutHousePlot({
       cx: center[0],
       cz: center[1],
@@ -706,6 +710,29 @@ export function createHousing({
             windowH = level ? 0.72 : 1.12;
           for (const side of [-1, 1] satisfies [number, number]) {
             const plane = side < 0 ? back : face;
+            if (boarded && level === 0 && side === 1 && (column + Math.floor(seed * 7)) % 3 !== 0) {
+              m.box(u - windowW / 2, yy, plane + 0.008, windowW, windowH, 0.04, '#333a37');
+              for (let plank = 0; plank < 5; plank++)
+                m.box(
+                  u - windowW / 2 - 0.025,
+                  yy + plank * 0.21,
+                  plane + 0.047,
+                  windowW + 0.05,
+                  0.17,
+                  0.032,
+                  plank % 2 ? '#756954' : '#8b806b',
+                  'cedar',
+                );
+              m.rod(
+                [u - windowW / 2, yy + 0.1, plane + 0.092],
+                [u + windowW / 2, yy + windowH - 0.07, plane + 0.092],
+                0.041,
+                '#635645',
+                5,
+                'wood',
+              );
+              continue;
+            }
             drawFacadeWindow(m, {
               plane,
               along: u - windowW / 2,
@@ -731,7 +758,7 @@ export function createHousing({
             '#bdbfae',
             'stone',
           );
-      if (kind === 'soma' || kind === 'mission') {
+      if (!boarded && (kind === 'soma' || kind === 'mission')) {
         const awning = (
           ['#548e83', '#a86c61', '#687ca0', '#b38c4c'] satisfies [string, string, string, string]
         )[Math.floor(seed * 4) % 4];

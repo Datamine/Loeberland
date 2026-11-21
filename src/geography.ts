@@ -310,7 +310,12 @@ export function marinElevation(x: number, z: number) {
     7 * bell(x, z, 15, -54, 25, 15);
   const valleys = 3.6 * bell(x, z, 7.2, -6.5, 3.6, 2.3) + 3.6 * bell(x, z, 17, -10, 3.3, 2.5);
   const folds = 0.3 * Math.sin(x * 1.4 + z * 0.8) * Math.sin(z * 0.7 - x * 0.25);
-  let h = 0.42 + 9.2 * Math.tanh(Math.max(0, ridges - valleys + folds) / 9.2);
+  const tam = bell(x, z, 20, -15.7, 8, 6),
+    bolinas = bell(x, z, -4.7, -32.5, 8, 6),
+    localHills =
+      tam * (1.15 + 0.85 * Math.sin(x * 0.83 + z * 0.52)) +
+      bolinas * (0.92 + 0.73 * Math.cos(x * 0.91 - z * 0.69));
+  let h = 0.42 + 9.2 * Math.tanh(Math.max(0, ridges - valleys + folds) / 9.2) + localHills;
   // Bluffs give way to sloping coves instead of a single vertical shelf.
   let coast = Infinity;
   for (let i = 3; i < MARIN_OUTLINE.length - 1; i++) {

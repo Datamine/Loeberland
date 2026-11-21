@@ -30,8 +30,13 @@ test('both hostiles acquire the nearest player within five tiles, pursue, attack
     for (let i = 0; i < 80; i++) game.update(0.05, [close]);
     assert.ok(harm > 0);
     close.x = 30;
-    game.update(0.7, [close]);
+    game.update(2.99, [close]);
+    assert.equal(actor.enemy, close.id);
+    game.update(0.01, [close]);
     assert.equal(actor.enemy, null);
+    assert.equal(actor.returning, true);
+    game.update(5, [close]);
+    assert.ok(Math.hypot(actor.x - actor.home.x, actor.z - actor.home.z) < 0.05);
     const blocked = createWilderness({
       spawns: [{ id: kind, combatKind: kind, x: 0, z: 0 }],
       canTravel: () => false,

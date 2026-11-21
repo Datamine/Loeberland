@@ -433,22 +433,6 @@
       },
       "required": ["decorativeRocket"],
       "additionalProperties": true
-    },
-    "migration": {
-      "type": "object",
-      "properties": {
-        "legacyKeys": {
-          "type": "array"
-        },
-        "unknownPrivateState": {
-          "type": "object",
-          "properties": {},
-          "required": [],
-          "additionalProperties": true
-        }
-      },
-      "required": ["legacyKeys", "unknownPrivateState"],
-      "additionalProperties": true
     }
   },
   "required": [
@@ -467,8 +451,7 @@
     "social",
     "progress",
     "rewards",
-    "equipment",
-    "migration"
+    "equipment"
   ],
   "additionalProperties": false,
   "$schema": "http://json-schema.org/draft-07/schema#",

@@ -252,6 +252,13 @@
           },
           "action": "buyTinfoil",
           "id": "service.chef.root.choices.1"
+        },
+        {
+          "label": {
+            "text": "service.chef.root.choices.2.label"
+          },
+          "trade": "rolling-pin",
+          "id": "service.chef.root.choices.2"
         }
       ],
       "id": "service.chef.root"
@@ -357,6 +364,12 @@
           "action": "buyTablet",
           "args": ["tahoe"],
           "id": "service.wizard.root.choices.1"
+        },
+        {
+          "label": { "text": "service.wizard.root.choices.2.label" },
+          "action": "buyTablet",
+          "args": ["cupertino"],
+          "id": "service.wizard.root.choices.2"
         }
       ],
       "id": "service.wizard.root"
@@ -3850,6 +3863,14 @@
                 "text": "service.chef.root.choices.1.label"
               },
               "action": "service.chef.buyTinfoil:[]"
+            },
+            {
+              "id": "service.chef.root.choices.2",
+              "label": {
+                "text": "service.chef.root.choices.2.label"
+              },
+              "action": "trade:rolling-pin",
+              "trade": "rolling-pin"
             },
             {
               "id": "dialogues.ambient.withAmbientConversation.node-15",
@@ -9039,6 +9060,11 @@
                 "text": "service.wizard.root.choices.1.label"
               },
               "action": "service.wizard.buyTablet:[\"tahoe\"]"
+            },
+            {
+              "id": "service.wizard.root.choices.2",
+              "label": { "text": "service.wizard.root.choices.2.label" },
+              "action": "service.wizard.buyTablet:[\"cupertino\"]"
             },
             {
               "id": "dialogues.ambient.withAmbientConversation.node-15",

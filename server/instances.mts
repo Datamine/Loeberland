@@ -131,8 +131,8 @@ export function createServerInstances({
       };
     }
     if (action === 'instanceEnter') {
-      if (!alive(p) || kind(p) !== 'world' || p.bomberActive)
-        return { ok: false, message: 'Finish your current journey first.' };
+      if (kind(p) !== 'world' && kind(p) === args.kind) return { ok: true };
+      if (!alive(p) || kind(p) !== 'world' || p.bomberActive) return { ok: false };
       if (args.kind === 'illuminati') {
         if (
           !p.profile.illuminati ||

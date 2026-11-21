@@ -35,6 +35,18 @@ import { SURF_TRICKS } from '../surfing.ts';
 /** Hud services for the browser scene.
  * Dependencies are explicit live scene bindings, preserving initialization
  * order without globals. This module only reads bindings when a method runs. */
+function skillProgressText(skill: ReturnType<typeof skillStatus>) {
+  const xp = Math.floor(skill.xp).toLocaleString('en-US');
+  return (
+    'Level ' +
+    skill.level +
+    ' · ' +
+    (skill.nextXP === null
+      ? xp + ' XP'
+      : xp + ' / ' + skill.nextXP.toLocaleString('en-US') + ' XP for level ' + skill.next)
+  );
+}
+
 export function createHud(context: WorldContext) {
   const lookup = context.headless ? null : createDOMView(document);
   function $<K extends keyof GameElements>(id: K): GameElements[K];
@@ -197,7 +209,7 @@ export function createHud(context: WorldContext) {
       const b = $('sf-tablet-' + id) as HTMLButtonElement;
       b.hidden = !tablets[id];
       b.disabled = !!context.tabletService?.state.active || !context.canUseTablet();
-      b.textContent = (id === 'tahoe' ? 'Tahoe' : 'Downtown') + ' tablet · ' + (tablets[id] || 0);
+      b.textContent = ITEM_STATS[id + '-tablet'].name + ' · ' + (tablets[id] || 0);
       b.title = 'Break a ' + id + ' teleportation tablet';
     }
     const coffee = context.bankService?.snapshot().coffee || 0;
@@ -388,8 +400,7 @@ export function createHud(context: WorldContext) {
         (context.expeditions.state.target?.max ? context.expeditions.state.target : null);
     if ($('sf-hitpoints-text').textContent !== hpText) $('sf-hitpoints-text').textContent = hpText;
     const hps = skillStatus(context.health.state.xp);
-    $('sf-hp-level').textContent =
-      'Hitpoints Level ' + hps.level + ' · ' + Math.floor(hps.xp).toLocaleString('en-US') + ' XP';
+    $('sf-hp-level').textContent = 'Hitpoints ' + skillProgressText(hps);
     $('sf-enemy-health').hidden = !enemy;
     if (enemy)
       $('sf-enemy-health').textContent =
@@ -432,7 +443,7 @@ export function createHud(context: WorldContext) {
     if ($('sf-guild-status').textContent !== guildText)
       $('sf-guild-status').textContent = guildText;
     const s = context.strength.status,
-      text = 'Strength Level ' + s.level + ' · ' + Math.floor(s.xp).toLocaleString('en-US') + ' XP';
+      text = 'Strength ' + skillProgressText(s);
     if ($('sf-strength-text').textContent !== text) $('sf-strength-text').textContent = text;
     updateSurfButton();
     $('sf-fuel-card').hidden = !context.ferrari?.state.riding;

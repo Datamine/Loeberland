@@ -127,7 +127,7 @@ test('the landshark, woodland outlaw, secluded pirate beach and wreck have nativ
   assert.equal(world.landClearAt(x - 0.5, z - 0.5), false, 'the stranded hull is solid');
 });
 
-test('Mount Tam goblins, the lost goblin and waterfront seagulls have connected combat approaches', () => {
+test('Mount Tam goblins, the lost goblin and all waterfront and Presidio seagulls have connected combat approaches', () => {
   const town = world.sights.find((s) => s.id === 'mount-tam-goblins');
   assert.ok(town != null, 'Missing test fixture: town');
   assert.ok(world.pathTo(town.entry.x, town.entry.y, world.spawn));
@@ -141,7 +141,8 @@ test('Mount Tam goblins, the lost goblin and waterfront seagulls have connected 
       ]
     ).includes(a.combatKind),
   );
-  assert.equal(creatures.length, 9);
+  assert.equal(creatures.length, 12);
+  assert.equal(creatures.filter((actor) => actor.id.startsWith('presidio-seagull-')).length, 3);
   for (const actor of creatures) {
     assert.ok(world.landClearAt(actor.x - 0.5, actor.z - 0.5), actor.id);
     const approach = world.approaches.combat(actor, 'unarmed', world.spawn);
@@ -2611,7 +2612,10 @@ test('Marin hills have connected native walking routes, matching terrain picks a
       dir: [0, -1, 0] satisfies [number, number, number],
     });
     assert.ok(hit);
-    assert.ok(Math.abs(hit.point[1] - world.terrainHeight(x, z)) < 0.25);
+    assert.ok(
+      Math.abs(hit.point[1] - world.terrainHeight(x, z)) < 0.25,
+      `Marin walking pick at ${x}, ${z} should reach the terrain`,
+    );
     assert.ok(world.minimapTarget(to.x, to.y, world.spawn));
   }
   const cell = world.detention;

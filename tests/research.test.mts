@@ -73,6 +73,7 @@ test('six different researchers retain their individual conversations and indivi
       assert.ok(choice.label);
       assert.equal(choice.trade, undefined);
       assert.equal(choice.accept, undefined);
+      if (choice.ambientConversation) continue;
       if (choice.next) {
         branches++;
         assert.ok(choice.next.intro);

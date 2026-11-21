@@ -199,6 +199,27 @@ export const MATERIAL_CATALOG = Object.freeze(
       usage:
         'Striped market awnings and neighborhood shade sails; fine warp, weft and stitched seams.',
     },
+    {
+      name: 'marinScrub',
+      slot: 27,
+      source: 'marin-scrub.svg',
+      label: 'Marin hillside scrub',
+      usage: 'Native bunchgrass, low sage, exposed soil and dry coastal meadow.',
+    },
+    {
+      name: 'marinRock',
+      slot: 28,
+      source: 'marin-rock.svg',
+      label: 'Marin coastal rock',
+      usage: 'Weathered headland outcrops, pale veins and fine fracture lines.',
+    },
+    {
+      name: 'marinTimber',
+      slot: 29,
+      source: 'marin-timber.svg',
+      label: 'Marine-weathered timber',
+      usage: 'Salt-bleached plank siding, porch floors and ramp decks.',
+    },
   ].map((material) => Object.freeze(material)),
 );
 

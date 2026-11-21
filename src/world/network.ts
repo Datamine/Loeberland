@@ -135,6 +135,7 @@ export function createNetwork(context: WorldContext) {
       rope: context.rope,
       expeditions: context.expeditions,
       wilderness: context.wilderness,
+      onTraffic: (records, time) => context.streetTraffic.sync(records, time),
       zoo: context.zoo,
       merchants: [
         ...context.merchants,

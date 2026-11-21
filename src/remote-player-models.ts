@@ -4,6 +4,7 @@ import type { PoseCoordinates, NetworkPose } from './types/network.ts';
 import type { SignAtlas } from './types/world.ts';
 import type { Appearance } from './types/content.ts';
 import { drawBallChair } from './goblin-town.ts';
+import { drawATVRider } from './atv-model.ts';
 import { drawCharacter } from './characters.ts';
 import { drawBicycle } from './bicycle-model.ts';
 import { drawMotorcycle } from './motorcycle.ts';
@@ -76,6 +77,7 @@ export function drawRemotePlayer(
       railgun: false,
       akibo: false,
       battleaxe: false,
+      rollingPin: false,
       bayonet: false,
       phone: false,
     });
@@ -92,6 +94,7 @@ export function drawRemotePlayer(
       time,
       outfit,
     );
+  else if (p.mode === 'atv') drawATVRider(m, p.x, p.y, p.z, p.angle, p.phase, outfit);
   else if (p.mode === 'surf') {
     if (p.gesture === 'paddle' || p.gesture === 'surfboard')
       drawWaveSurfer(

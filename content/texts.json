@@ -356,7 +356,7 @@
       "template": "Landshark"
     },
     "config.monster-drops.module.description-22": {
-      "template": "dont let him ride"
+      "template": "don't let him ride"
     },
     "config.monster-drops.module.name-23": {
       "template": "Outlaw"
@@ -2072,7 +2072,7 @@
       "template": "Private Jet Terminal"
     },
     "world.generation.setupAirshipTerminal.description-26": {
-      "template": "The private jet terminal occupies the building east of the runway. Its passenger entrance faces the airship mooring to the north. Click Rent airship or press A nearby; click the ground or minimap to fly, and A returns to the mooring."
+      "template": "The private jet terminal occupies the building east of the runway. Its passenger entrance faces the airship mooring to the north. Choose Rent airship at the terminal. Click the ground or minimap to fly, and choose Return to terminal from the airship menu."
     },
     "world.generation.setupAirshipTerminal.label-27": {
       "template": "Startup HQ"
@@ -2869,6 +2869,9 @@
     "service.chef.root.choices.1.label": {
       "template": "Buy a tinfoil suit · 20 coins"
     },
+    "service.chef.root.choices.2.label": {
+      "template": "Buy a metal rolling pin · 20 coins"
+    },
     "service.gpu-buyer.root.intro": {
       "template": "We turn sand into GPUs. There are a few steps in the middle, but procurement asked me to keep this simple. I pay {sandPrice} coins per sack."
     },
@@ -2913,6 +2916,9 @@
     },
     "service.wizard.root.choices.0.label": {
       "template": "Buy downtown tablet · {tabletPrice} coins"
+    },
+    "service.wizard.root.choices.2.label": {
+      "template": "Buy Cupertino teletab · {tabletPrice} coins"
     },
     "service.wizard.root.choices.1.label": {
       "template": "Buy Tahoe tablet · {tabletPrice} coins"

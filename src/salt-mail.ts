@@ -27,13 +27,18 @@ export function createSaltMail(economy: Economy) {
     }));
   }
   function entries() {
-    if (!carrying() && !economy.state.saltLettersDelivered) return [];
+    const started = carrying() || economy.state.saltLettersDelivered > 0;
     return [
       {
         id: 'salt-conservation-mail',
         title: 'Letters for the Salt Flats',
-        stage: carrying() ? 'carrying' : 'accepted',
-        status: carrying() ? 'Letter ready to deliver' : 'Repeatable work',
+        startLocation: 'the Salt Flats (speak to the salt-conservation activist)',
+        stage: !started ? 'not-started' : carrying() ? 'carrying' : 'accepted',
+        status: !started
+          ? 'Not started'
+          : carrying()
+            ? 'Letter ready to deliver'
+            : 'Repeatable work',
         rewardLabel: '50 coins per letter',
         description: contentText('salt-mail.entries.description-1', {
           v0: carrying()

@@ -24,6 +24,12 @@ export function createNPCPresentation<T extends PresentationActor>({
     npc.networked = true;
     npc.networkVisible = false;
   }
+  function add(npc: T) {
+    byId.set(npc.id, npc);
+  }
+  function remove(id: string | number) {
+    byId.delete(id);
+  }
   function sync<R extends { id: string | number }>(records: readonly R[], time = now()) {
     const visible = new Set(records.map((n) => n.id));
     for (const npc of npcs) npc.networkVisible = visible.has(npc.id);
@@ -41,5 +47,5 @@ export function createNPCPresentation<T extends PresentationActor>({
     if (connected)
       for (const npc of npcs) if (npc.networkVisible) npc.moving = (npc.motion || 0) > 0.01;
   }
-  return { sync, update, clear: () => motion.clear() };
+  return { add, remove, sync, update, clear: () => motion.clear() };
 }

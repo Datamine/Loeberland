@@ -54,6 +54,7 @@
       }
       input,
       button,
+      select,
       textarea {
         font: inherit;
       }
@@ -115,8 +116,45 @@
         overflow-wrap: anywhere;
         font-size: 12px;
       }
+      .record-fields {
+        display: flex;
+        align-items: flex-start;
+        flex: 1;
+        min-height: 0;
+        gap: 16px;
+      }
+      #equipment {
+        flex: 0 1 230px;
+        padding: 14px;
+        border: 1px solid #dce0e6;
+        border-radius: 6px;
+        background: #fff;
+        max-height: 100%;
+        overflow: auto;
+      }
+      #equipment-hint {
+        color: #647085;
+        font-size: 13px;
+      }
+      #equipment-fields label {
+        display: block;
+        margin-top: 10px;
+        font-size: 13px;
+      }
+      #equipment-fields select {
+        display: block;
+        width: 100%;
+        margin-top: 3px;
+        padding: 6px;
+        border: 1px solid #b9c2cf;
+        border-radius: 6px;
+        background: #fff;
+        color: inherit;
+      }
       textarea {
         flex: 1;
+        align-self: stretch;
+        min-width: 0;
         min-height: 260px;
         resize: vertical;
         padding: 16px;
@@ -149,6 +187,7 @@
       }
       button:focus-visible,
       input:focus-visible,
+      select:focus-visible,
       textarea:focus-visible {
         outline: 3px solid #7aa2ff;
         outline-offset: 2px;
@@ -169,6 +208,20 @@
         header,
         .notice {
           padding: 14px 16px;
+        }
+      }
+      @media (max-width: 900px) {
+        .record-fields {
+          flex-direction: column-reverse;
+        }
+        #equipment {
+          flex: 0 0 auto;
+          align-self: stretch;
+        }
+        #equipment-fields:not([hidden]) {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+          gap: 0 12px;
         }
       }
     </style>
@@ -197,12 +250,19 @@
           <span id="dirty"></span>
         </div>
         <label for="editor">Record value (JSON)</label>
-        <textarea
-          id="editor"
-          spellcheck="false"
-          disabled
-          placeholder="The selected record will appear here."
-        ></textarea>
+        <div class="record-fields">
+          <textarea
+            id="editor"
+            spellcheck="false"
+            disabled
+            placeholder="The selected record will appear here."
+          ></textarea>
+          <section id="equipment" aria-labelledby="equipment-title" hidden>
+            <h2 id="equipment-title">Equipment</h2>
+            <p id="equipment-hint"></p>
+            <div id="equipment-fields"></div>
+          </section>
+        </div>
         <div id="status" role="status" aria-live="polite"></div>
       </main>
     </div>

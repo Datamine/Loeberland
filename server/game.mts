@@ -34,7 +34,12 @@ import { guildStatusFor, guildAction } from './guild.mts';
 import { createServerInstances } from './instances.mts';
 import { PUBLIC_INSTANCE } from '../src/map-instances.ts';
 import { bankSnapshotFor, bankAction } from './banking.mts';
-import { equipmentOwned, railgunUnlocked } from '../src/item-stats.ts';
+import {
+  equipmentOwned,
+  railgunUnlocked,
+  isOwnedWeapon,
+  PLAYER_WEAPONS,
+} from '../src/item-stats.ts';
 import { createServerTablets } from './teleport-tablets.mts';
 import { createServerFollowing } from './following.mts';
 import { createServerMovement } from './movement.mts';
@@ -82,17 +87,7 @@ function appearance(input: unknown = {}) {
     boots: value.boots === true,
     iceTop: value.iceTop === true,
     icePants: value.icePants === true,
-    weapon: (
-      ['unarmed', 'bayonet', 'battleaxe', 'railgun', 'akibo'] satisfies [
-        string,
-        string,
-        string,
-        string,
-        string,
-      ]
-    ).includes(String(value.weapon))
-      ? String(value.weapon)
-      : 'unarmed',
+    weapon: PLAYER_WEAPONS.find((weapon) => weapon === value.weapon) || 'unarmed',
     sunglasses: value.sunglasses === true,
     hat: typeof value.hat === 'string' ? value.hat.slice(0, 48) : 'none',
   };
@@ -208,6 +203,10 @@ export async function createGame({
     random,
     now,
     saved: saved.shared,
+    movement: {
+      approachCombat: (...args) => movement.approachCombat(...args),
+      stopCombatRoute: (p) => movement.stopCombatRoute(p),
+    },
     onAirshipReset: (p: ServerPlayer) => {
       following.stop(p);
       movement.clear(p);
@@ -285,8 +284,7 @@ export async function createGame({
         : 0;
     if (!p.inventory.economy.state.ownedHats.includes(look.hat)) look.hat = 'none';
     if (
-      ((['akibo', 'battleaxe'] satisfies [string, string]).includes(look.weapon) &&
-        !equipmentOwned(p.inventory.economy.state, look.weapon)) ||
+      (isOwnedWeapon(look.weapon) && !equipmentOwned(p.inventory.economy.state, look.weapon)) ||
       (look.weapon === 'railgun' &&
         !railgunUnlocked(parse(p.profile.privateState['sf-expeditions-v1']))) ||
       (look.weapon === 'bayonet' &&
@@ -706,7 +704,8 @@ export async function createGame({
     if (
       p.tabletTeleport &&
       !(
-        ['stopAttack', 'rename', 'personalTransit', 'teleport'] satisfies [
+        ['stopAttack', 'rename', 'personalTransit', 'teleport', 'moveTo'] satisfies [
+          string,
           string,
           string,
           string,
@@ -803,6 +802,16 @@ export async function createGame({
         ]
       ).includes(action)
     ) {
+      const travel = movement.state(p);
+      if (
+        (travel.atv || travel.houseClimb) &&
+        action !== 'teleport' &&
+        action !== 'respawn' &&
+        action !== 'personalTransit'
+      ) {
+        send(p, { type: 'result', request: message.request, action, ok: false });
+        return;
+      }
       movement.clear(p);
       p.personalBattle = null;
     }
@@ -833,6 +842,7 @@ export async function createGame({
       // Walking is an explicit disengagement, including when the new
       // destination is blocked. Do not depend on a second client packet
       // to stop shared monsters, private encounters or PvP combat.
+      movement.stopCombatRoute(p);
       p.attack = null;
       p.personalBattle = null;
       pvp.stop(p);

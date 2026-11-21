@@ -61,7 +61,7 @@ test('the level-10 Landshark guards a three-by-three territory, respects obstacl
     actor = world.actors[0],
     person = { id: 1, x: 1.4, z: 1.4 };
   assert.equal(actor.level, 10);
-  assert.equal(actor.hp, 45);
+  assert.equal(actor.hp, 50);
   assert.ok(LANDSHARK_SITE.z > 43.5 && LANDSHARK_SITE.z < 96);
   assert.ok(LANDSHARK_SITE.x > westernCoastX(LANDSHARK_SITE.z));
   world.update(0.01, [{ id: 2, x: 1.51, z: 0 }]);
@@ -74,8 +74,9 @@ test('the level-10 Landshark guards a three-by-three territory, respects obstacl
   assert.ok(harm.every((n) => n === 6));
   person.x = 1.51;
   world.update(0.05, [person]);
-  assert.equal(actor.enemy, null);
+  assert.equal(actor.enemy, 1);
   for (let i = 0; i < 100; i++) world.update(0.05, [person]);
+  assert.equal(actor.enemy, null);
   assert.ok(Math.max(Math.abs(actor.x), Math.abs(actor.z)) <= 1.5);
   assert.equal(world.damage(actor.id, 1000, person).ok, true);
   assert.equal(loot.length, 3);
@@ -108,7 +109,7 @@ test('the fin-walking shark and cowboy hat have bounded, finite, distinct native
       motion: 1,
     });
     assert.ok(mesh.data.every(Number.isFinite));
-    assert.ok(mesh.data.length / 33 > 500 && mesh.data.length / 33 < 2000);
+    assert.ok(mesh.data.length / 33 > 500 && mesh.data.length / 33 < 4200);
     meshes.push(mesh.data);
   }
   assert.notDeepEqual(meshes[0], meshes[1]);

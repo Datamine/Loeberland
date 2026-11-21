@@ -57,6 +57,9 @@ import { HABERDASHER_SIGNS, drawHaberdasherShop } from '../haberdasher-shop.ts';
 import { SALT_FLATS_SIGNS, drawSaltFlats } from '../salt-flats.ts';
 import { planBlockStreetLights, houseDoorPositions } from '../street-light-layout.ts';
 
+import { drawDogHouse } from '../search-house-models.ts';
+import { FURNITURE_FACTORY } from '../goblin-town.ts';
+import { ATV_RENTAL } from '../atv.ts';
 import { Mesh, rand, tint } from '../geometry.ts';
 import { gradeStreetHeightField } from '../street-ground.ts';
 import {
@@ -140,7 +143,7 @@ import {
   createResearcherNPCs,
 } from '../research-campuses.ts';
 import { SUNGLASSES_BEACH_TARGET, beachSunglassesSite } from '../sunglasses.ts';
-import { SEARCH_HOMES, searchHomeContaining } from '../search-houses.ts';
+import { SEARCH_HOMES, houseClimb, searchHomeContaining } from '../search-houses.ts';
 import { createLoreBookTarget } from '../world-lore.ts';
 import { TERMINATOR_FACTORY } from '../encounter-layout.ts';
 import { drawAbandonedFactory } from '../encounter-buildings.ts';
@@ -589,11 +592,23 @@ export function createGeneration(context: WorldContext) {
   }
 
   function drawWildernessSigns() {
+    const factory = FURNITURE_FACTORY;
+    drawPlaque(
+      context.sceneMesh,
+      context.signs,
+      factory.name,
+      factory.x,
+      characterGround(factory.x, factory.z) + 2.02,
+      factory.z + factory.depth / 2 + 0.11,
+      3.65,
+      0.34,
+      true,
+    );
+
     for (const [text, x, z] of [
       ['BOLINAS', -7, -42.5] satisfies [string, number, number],
       ['COASTAL GROCER', -3, -45.7] satisfies [string, number, number],
       ['MOUNT TAM GOBLINS', 30, -17.2] satisfies [string, number, number],
-      ['TAM MODERN FURNITURE', 29.5, -29.1] satisfies [string, number, number],
       ['FOG JAR CO-OP', 26.5, -20.1] satisfies [string, number, number],
     ]) {
       const base = characterGround(x, z);
@@ -682,6 +697,26 @@ export function createGeneration(context: WorldContext) {
         entry: { x: 29.5, y: -17.5 },
         description: contentText('world.generation.setupWilderness.description-24', {}),
       });
+    if (!context.merchants.some((npc) => npc.id === ATV_RENTAL.npcId)) {
+      const { x, z } = ATV_RENTAL.npc;
+      context.merchants.push({
+        id: ATV_RENTAL.npcId,
+        name: 'Industrious Goblin',
+        label: 'Industrious Goblin',
+        kind: 'atv-rental',
+        x,
+        z,
+        base: characterGround(x, z),
+        stationary: true,
+        regional: true,
+        height: 1.35,
+        skin: '#769453',
+        shirt: '#ad7837',
+        hair: '#303630',
+        description:
+          'An ATV mechanic with oil-stained overalls and a habit of grading roofs by their launch angle.',
+      });
+    }
     const spawns = wildernessSpawns({ marin: context.goldenGate.gate('marin'), tahoe: TAHOE.base });
     const bison = requiredValue(
         spawns.find((n) => n.combatKind === 'bison'),
@@ -703,7 +738,9 @@ export function createGeneration(context: WorldContext) {
       );
     if (!grass) throw Error('The park bison needs a clear grass meadow');
     Object.assign(bison, { x: grass.x + 0.5, z: grass.y + 0.5 });
-    for (const p of spawns.filter((p) => p.combatKind === 'seagull')) {
+    for (const p of spawns.filter(
+      (p) => p.combatKind === 'seagull' || p.combatKind === 'soma-zombie',
+    )) {
       const clear = context.nearestNavigation(p.x - 0.5, p.z - 0.5, 6, (x: number, y: number) =>
         context.landClearAt(x, y),
       );
@@ -1383,13 +1420,38 @@ export function createGeneration(context: WorldContext) {
       });
       planningPlaces().push(house);
       const object = context.makeBuilding(house, true),
-        range = requiredValue(house.searchContainer, 'Search container geometry'),
-        lo = [Infinity, Infinity, Infinity] satisfies [number, number, number],
+        outside = home.search.container === 'doghouse',
+        mesh = outside ? context.sceneMesh : object.mesh,
+        base = outside
+          ? terrainHeight(home.target.x, home.target.z) + 0.02
+          : requiredValue(object.base, 'House ground');
+      const climb = houseClimb(home.id);
+      if (climb) {
+        const floor = requiredValue(object.base, 'House floor');
+        const top = floor + house.worldHeight! + 0.74;
+        const along = (x: number, z: number, d: number) =>
+          [x - Math.sin(climb.angle) * d, z + Math.cos(climb.angle) * d] as const;
+        const [lx, lz] = along(climb.ladder.x, climb.ladder.z, -0.19);
+        const [rx, rz] = along(climb.ladder.x, climb.ladder.z, 0.19);
+        for (const [x, z] of [
+          [lx, lz],
+          [rx, rz],
+        ])
+          context.sceneMesh.rod([x, terrainHeight(x, z), z], [x, top, z], 0.036, '#544c3d', 7);
+        for (let y = floor + 0.18; y < top; y += 0.25)
+          context.sceneMesh.rod([lx, y, lz], [rx, y, rz], 0.024, '#817052', 7);
+      }
+      const outdoorStart = mesh.data.length;
+      if (outside) drawDogHouse(mesh, home.target.x, base, home.target.z);
+      const range = outside
+        ? { start: outdoorStart, count: mesh.data.length - outdoorStart }
+        : requiredValue(house.searchContainer, 'Search container geometry');
+      const lo = [Infinity, Infinity, Infinity] satisfies [number, number, number],
         hi = [-Infinity, -Infinity, -Infinity] satisfies [number, number, number];
       for (let j = range.start; j < range.start + range.count; j += 11)
         for (let k = 0; k < 3; k++) {
-          lo[k] = Math.min(lo[k], object.mesh.data[j + k]);
-          hi[k] = Math.max(hi[k], object.mesh.data[j + k]);
+          lo[k] = Math.min(lo[k], mesh.data[j + k]);
+          hi[k] = Math.max(hi[k], mesh.data[j + k]);
         }
       const site: Site = {
         id: home.search.id,
@@ -1399,14 +1461,14 @@ export function createGeneration(context: WorldContext) {
         entry: { ...home.approach },
         x: home.target.x,
         z: home.target.z,
-        base: object.base,
+        base,
         description: contentText('world.generation.setupSearchHomes.description-48', {}),
       };
       const target = {
         sight: site,
-        interior: house,
+        ...(outside ? {} : { interior: house }),
         detailTarget: true,
-        mesh: object.mesh,
+        mesh,
         start: range.start / 11,
         count: range.count / 11,
         lo,
@@ -2292,7 +2354,12 @@ export function createGeneration(context: WorldContext) {
     context.merchants.push(context.tabletWizard);
     const downtown = placedBuilding('links').entry,
       tahoePoint = { x: TAHOE.base.x + 2.5, z: TAHOE.base.z + 3.5 };
+    const cupertino = requiredValue(
+      context.sightById('cupertino-orchard-gardens'),
+      'Cupertino gardens',
+    ).entry;
     context.tabletDestinations = {
+      cupertino: { x: cupertino.x + 0.5, z: cupertino.y + 0.5, label: 'at the Cupertino gardens' },
       downtown: {
         x: downtown.x + 0.5,
         z: downtown.y + 0.5,
@@ -3685,6 +3752,7 @@ export function createGeneration(context: WorldContext) {
       'Golden Gate Park',
       'The Panhandle',
       'Presidio',
+      FURNITURE_FACTORY.name,
       'Mazarine Coffee',
       'City Lights',
       'FERRY BUILDING',

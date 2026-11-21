@@ -15,6 +15,7 @@ export const WORLD_FIELDS = Object.freeze({
     'level',
     'showStartedAt',
   ] as const,
+  traffic: ['x', 'z', 'angle'] as const,
   cows: ['x', 'z', 'base', 'angle', 'hp', 'max', 'respawn', 'phase', 'motion'] as const,
   wilderness: [
     'x',
@@ -29,6 +30,7 @@ export const WORLD_FIELDS = Object.freeze({
     'enemy',
     'affection',
     'level',
+    'combatKind',
   ] as const,
   loot: [
     'kind',
@@ -51,6 +53,7 @@ export type WorldKind = keyof typeof WORLD_FIELDS;
 export const WORLD_KINDS = Object.keys(WORLD_FIELDS) as WorldKind[];
 export interface WorldCollections {
   npcs: import('./types/network.ts').NetworkNPC;
+  traffic: import('./types/network.ts').NetworkTraffic;
   cows: import('./types/network.ts').NetworkCreature;
   wilderness: import('./types/network.ts').NetworkCreature;
   loot: import('./types/expeditions.ts').ExpeditionLoot;

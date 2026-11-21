@@ -164,8 +164,15 @@ export function createTheyLiveQuest(
     return {
       id: 'they-live',
       title: 'They Live',
+      startLocation: 'Ocean Beach (pick up the sunglasses)',
       stage,
-      status: state.completed ? 'Complete' : clear() ? 'Ready for reward' : 'In progress',
+      status: !state.started
+        ? 'Not started'
+        : state.completed
+          ? 'Complete'
+          : clear()
+            ? 'Ready for reward'
+            : 'In progress',
       description,
       rewardLabel: 'Skateboard · keep the sunglasses',
       targets: state.permit

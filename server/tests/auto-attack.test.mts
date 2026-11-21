@@ -92,6 +92,32 @@ test('wilderness engagements pause for range or cover and resume without another
   }
 });
 
+test('one attack click walks around cover and follows a moving target into range', async (t) => {
+  const geometry = fixtureGeometry();
+  geometry.lineClear = (from) => from.x >= 94;
+  const game = await createGame({ geometry, store: createMemoryStore(), random: () => 0.5 }),
+    a = await player(game, 8112, gear),
+    cow = game.shared.cows[0];
+  t.after(() => game.close());
+  Object.assign(cow, { x: 99, z: 120, hp: 1000, max: 1000 });
+  await command(game, a.p, 'attack', { id: cow.id, weapon: 'railgun' });
+  assert.equal(requiredResult(a.messages).ok, true);
+  assert.equal(hits(a, cow.id).length, 0);
+  tick(game, 0.25);
+  cow.x = 102;
+  tick(game, 2.5);
+  assert.ok(a.p.x >= 97, 'the server follows the moved cow into range');
+  assert.ok(hits(a, cow.id).length > 0, 'the attack fires after approaching');
+  assert.equal(a.p.moving, false, 'the player stops as soon as the shot is clear');
+  cow.x = 111;
+  tick(game, 0.5);
+  assert.equal(a.p.moving, true);
+  await command(game, a.p, 'stopAttack');
+  const stoppedAt = a.p.x;
+  tick(game, 1);
+  assert.equal(a.p.x, stoppedAt, 'canceling the attack also cancels its movement');
+});
+
 test('clicking a walk destination cancels attacks before moving and they never resume merely by returning to range', async () => {
   const geometry = fixtureGeometry(),
     game = await createGame({ geometry, store: createMemoryStore(), random: () => 0.5 }),

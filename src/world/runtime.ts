@@ -7,6 +7,7 @@ import { createUIJob } from '../ui/scheduler.ts';
 import { characterPickMesh } from '../rendering/character-frame.ts';
 import { serverConnected } from '../server-connection.ts';
 import '../item-stats.ts';
+import { WATER_LEVEL } from '../water-tiles.ts';
 import { GLASS_UV } from '../glazing.ts';
 import {
   sub,
@@ -255,7 +256,8 @@ export function createRuntime(context: WorldContext) {
     }
 
     const jailed = context.chase?.state.jailed;
-    context.streetTraffic?.update(dt);
+    if (context.multiplayer?.state.connected) context.streetTraffic?.updatePresentation();
+    else context.streetTraffic?.update(dt);
     context.slowBus?.update(dt);
     const blocked =
       !!context.duelMenu?.active ||
@@ -368,7 +370,10 @@ export function createRuntime(context: WorldContext) {
         context.announce('You leave ' + previous.sight.label + ' and return to the campus.', 'You');
     }
     const interior =
-      jailed || context.surf.state.riding || context.flying()
+      jailed ||
+      context.surf.state.riding ||
+      context.flying() ||
+      ['climb', 'roof'].includes(context.multiplayerWorld?.selfMode ?? '')
         ? null
         : context.placeAt(context.player.x, context.player.y);
     if (interior !== context.currentInterior) {
@@ -710,28 +715,40 @@ export function createRuntime(context: WorldContext) {
           ]
         ).includes(o.sight?.kind || '')
       ) {
-        const anchor = [
-            (o.lo[0] + o.hi[0]) / 2,
-            (o.lo[1] + o.hi[1]) / 2,
-            (o.lo[2] + o.hi[2]) / 2,
-          ] satisfies [number, number, number],
-          at = project(...anchor),
-          distance = Math.hypot(sx - at.x, sy - at.y);
-        if (
-          at.distance <= 0 ||
-          distance >
-            Math.max(
-              (['fishing', 'airship-rope'] satisfies [string, string]).includes(o.sight?.kind || '')
-                ? 28
-                : 9,
-              (project(o.hi[0], anchor[1], o.hi[2]).x - at.x) * 1.3,
-            ) ||
-          distance >= score ||
-          pick(at.x, at.y) !== o
-        )
-          continue;
-        item = o.sight;
-        score = distance;
+        const fishing = o.sight?.kind === 'fishing' ? context.fishingSite : null;
+        const anchors = fishing
+          ? ([
+              [
+                fishing.entry.x + 0.25,
+                requiredValue(fishing.base, 'Fishing spot elevation') + 0.16,
+                fishing.entry.y + 0.75,
+              ],
+              [fishing.water.x, WATER_LEVEL + 0.07, fishing.water.z],
+            ] as const)
+          : ([
+              [(o.lo[0] + o.hi[0]) / 2, (o.lo[1] + o.hi[1]) / 2, (o.lo[2] + o.hi[2]) / 2],
+            ] as const);
+        for (const anchor of anchors) {
+          const at = project(...anchor),
+            dx = Math.abs(sx - at.x),
+            dy = Math.abs(sy - at.y),
+            distance = Math.hypot(dx, dy);
+          if (
+            at.distance <= 0 ||
+            (fishing
+              ? Math.max(dx, dy) > 45
+              : distance >
+                Math.max(
+                  o.sight?.kind === 'airship-rope' ? 28 : 9,
+                  (project(o.hi[0], anchor[1], o.hi[2]).x - at.x) * 1.3,
+                )) ||
+            distance >= score ||
+            pick(at.x, at.y) !== o
+          )
+            continue;
+          item = o.sight;
+          score = distance;
+        }
       }
     if (item) return item;
     if (hit || context.secretWorld?.kind !== 'world') return null;

@@ -238,7 +238,6 @@ import '../gpu-layout.ts';
 import '../gpu-factory.ts';
 import '../characters.ts';
 import { normalizeCharacter, drawCharacterPreview } from '../character-config.ts';
-import { inNightlife } from '../nightlife.ts';
 import { createCaptureAnimation } from '../capture-animation.ts';
 import '../zoo-animals.ts';
 
@@ -868,6 +867,9 @@ export function createSFWorld({
     },
     get hitPlace() {
       return hitPlace;
+    },
+    get pick() {
+      return pick;
     },
     get hitSight() {
       return hitSight;
@@ -1878,7 +1880,6 @@ export function createSFWorld({
     respawnAtHospital,
     airshipUnavailable,
     walkInBasket,
-    useAirship,
     useTahoeActivity,
     releaseNPC,
     parkMotorcycle,
@@ -1894,13 +1895,13 @@ export function createSFWorld({
     descendSutro,
     climbSutro,
     goToSight,
+    walkAtSight,
     orderDoorDash,
     eatSandwich,
     parkBike,
     useBike,
     useSkateboard,
     performSkateTrick,
-    usePacificaSurf,
     catchPacificaWave,
     performSurfTrick,
     useSurf,
@@ -3668,7 +3669,9 @@ export function createSFWorld({
     npc.wilderness
       ? npc.combatKind === 'bear'
         ? 'pet'
-        : 'attack'
+        : npc.combatKind === 'goblin-maker'
+          ? 'talk'
+          : 'attack'
       : npc.police
         ? 'examine'
         : npc.networkPlayer
@@ -4245,6 +4248,8 @@ export function createSFWorld({
       if (selectedPlayer?.networkPlayer) return walkToActor(selectedPlayer);
       if (selectedPlayer?.police) return examine(selectedPlayer);
       if (secretWorld?.bomber.state.active) return walkTo(tile.x, tile.y);
+      if (multiplayerWorld?.selfMode === 'atv' || multiplayerWorld?.selfMode === 'roof')
+        return walkTo(tile.x, tile.y);
       const selectedItem = hitSight(e.clientX, e.clientY);
       if (selectedItem?.kind === 'loot') return collectExpeditionLoot(selectedItem);
       if (chase?.state.jailed) {
@@ -4273,27 +4278,15 @@ export function createSFWorld({
       }
       const npc = p.npc || hitCitizen(e.clientX, e.clientY);
       if (npc) return interactCitizen(npc, npcPrimary(npc));
+      if (selectedItem?.kind === 'waymo' || selectedItem?.kind === 'robotaxi')
+        return goToSight(selectedItem);
       const roadTarget =
         goldenGate?.targetAt(tile.x + 0.5, tile.y + 0.5) ||
         regionalRoad?.targetAt(tile.x + 0.5, tile.y + 0.5);
       if (roadTarget) return walkTo(roadTarget.x, roadTarget.y);
       const place = hitPlace(e.clientX, e.clientY),
         sight = hitSight(e.clientX, e.clientY);
-      if (sight?.enterableInstitute) {
-        if (activeInstituteRoom()?.id === sight.id && clearAt(tile.x, tile.y))
-          return walkTo(tile.x, tile.y);
-        if (pick(e.clientX, e.clientY)?.researchRoom) return goToSight(sight);
-        if (clearAt(tile.x, tile.y)) return walkTo(tile.x, tile.y);
-      }
-      if (
-        (sight?.kind === 'times-square' ||
-          sight?.kind === 'research-institute' ||
-          sight?.kind === 'park' ||
-          sight?.kind === 'neighborhood-garden') &&
-        clearAt(tile.x, tile.y)
-      )
-        return walkTo(tile.x, tile.y);
-      if (sight?.kind === 'nightlife' && inNightlife(player.x + 0.5, player.y + 0.5))
+      if (walkAtSight(sight, tile, !!pick(e.clientX, e.clientY)?.researchRoom))
         return walkTo(tile.x, tile.y);
       if (sight?.id === 'sutro') return climbSutro();
       if (sight) goToSight(sight);
@@ -4485,26 +4478,20 @@ export function createSFWorld({
         secretAction(secretWorld.dropBomb());
         return;
       }
-      if (
-        (
-          ['a', 'b', 'f', 'e', 'r', 'm', 'k', 'v', 'd', 'u', 'g'] satisfies [
-            string,
-            string,
-            string,
-            string,
-            string,
-            string,
-            string,
-            string,
-            string,
-            string,
-            string,
-          ]
-        ).includes(key)
-      ) {
+      if ((['b', 'f', 'e', 'r', 'm', 'k', 'v', 'd', 'g'] satisfies string[]).includes(key)) {
         e.preventDefault();
         return;
       }
+    }
+    if (multiplayerWorld?.selfMode === 'atv') {
+      if (!e.repeat && (key === 'r' || key === 't')) {
+        e.preventDefault();
+        multiplayerWorld.command('travel', {
+          kind: 'atvTrick',
+          trick: key === 'r' ? 'roll' : 'spin',
+        });
+      }
+      return;
     }
     if (
       !e.repeat &&
@@ -4539,14 +4526,9 @@ export function createSFWorld({
       return;
     }
     if (e.repeat) return;
-    if (key === 'g') {
+    if (key === 'g' && !$('sf-railgun-button').hidden) {
       e.preventDefault();
       toggleRailgun();
-      return;
-    }
-    if (key === 'u') {
-      e.preventDefault();
-      usePacificaSurf();
       return;
     }
     if (key === 'q') {
@@ -4564,17 +4546,17 @@ export function createSFWorld({
       useTahoeActivity();
       return;
     }
-    if (key === 'm') {
+    if (key === 'm' && !$('sf-motorcycle-button').hidden) {
       e.preventDefault();
       useMotorcycle();
       return;
     }
-    if (key === 'k') {
+    if (key === 'k' && !$('sf-skateboard-button').hidden && !$('sf-skateboard-button').disabled) {
       e.preventDefault();
       useSkateboard();
       return;
     }
-    if (key === 'r') {
+    if (key === 'r' && ferrari?.state.riding) {
       e.preventDefault();
       useFerrari();
       return;
@@ -4604,16 +4586,11 @@ export function createSFWorld({
       sayPhrase('yo');
       return;
     }
-    if (key === 'a') {
-      e.preventDefault();
-      useAirship();
-      return;
-    }
-    if (key === 'b') {
+    if (key === 'b' && !$('sf-bike-button').hidden) {
       e.preventDefault();
       useBike();
     }
-    if (key === 'f') {
+    if (key === 'f' && surf.state.riding) {
       e.preventDefault();
       useSurf();
     }

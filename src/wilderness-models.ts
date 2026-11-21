@@ -1,5 +1,7 @@
 import { requiredValue } from './types/assert.ts';
 interface MonsterPose {
+  id?: string | number;
+  modelVariant?: 'mechanic';
   combatKind: string;
   x: number;
   z: number;
@@ -82,10 +84,20 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0) {
   if (stats.model === 'goblin') {
     pose(m, actor.x, actor.base, actor.z, actor.angle - Math.PI / 2, () => {
       const green = '#6f9554',
-        cloth = actor.combatKind === 'goblin-maker' ? '#805069' : '#83634a',
+        cloth =
+          actor.modelVariant === 'mechanic'
+            ? '#a47738'
+            : actor.combatKind === 'goblin-maker'
+              ? '#805069'
+              : '#83634a',
         step = Math.sin(actor.phase || 0) * (actor.motion || 0) * 0.12;
       m.sphere(0, 0.67, 0, 0.25, 0.28, 0.17, cloth, 14, 8);
+      m.sphere(0, 0.89, -0.028, 0.171, 0.08, 0.155, '#c4a170', 13, 7);
+      m.sphere(0, 0.585, 0, 0.247, 0.063, 0.174, '#423c2b', 14, 7, 'canvasWeave');
+      m.box(-0.05, 0.561, 0.168, 0.1, 0.053, 0.04, '#b79b58', { metal: 0.55 });
       m.sphere(0, 1.03, 0.03, 0.24, 0.23, 0.19, green, 16, 10);
+      m.sphere(0, 0.95, 0.156, 0.15, 0.103, 0.104, '#77934d', 13, 8);
+      m.rod([-0.088, 0.94, 0.238], [0.088, 0.94, 0.238], 0.012, '#443f2e', 7);
       m.sphere(0, 0.99, 0.23, 0.085, 0.075, 0.1, green, 10, 6);
       for (const s of [-1, 1] satisfies [number, number]) {
         m.tri(
@@ -100,6 +112,9 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0) {
           [s * 0.18, 1.12, 0] satisfies [number, number, number],
           green,
         );
+        m.sphere(s * 0.175, 1.01, 0.141, 0.073, 0.075, 0.053, '#8aa45e', 10, 7);
+        m.rod([s * 0.064, 0.928, 0.247], [s * 0.081, 0.973, 0.244], 0.014, '#ddd0a2', 7);
+        m.rod([s * 0.052, 1.12, 0.211], [s * 0.152, 1.138, 0.179], 0.022, '#4c603b', 7);
         m.sphere(s * 0.1, 1.08, 0.192, 0.04, 0.025, 0.015, '#e9c96e', 10, 6);
         m.sphere(s * 0.1, 1.08, 0.206, 0.013, 0.021, 0.009, '#242b24', 8, 4);
         m.rod(
@@ -116,13 +131,23 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0) {
           '#3d4636',
           8,
         );
-        m.box(s * 0.14 - 0.09, 0.03, s * step - 0.09, 0.18, 0.25, 0.29, '#1a1c21');
+        m.sphere(s * 0.34, 0.428, s * step, 0.082, 0.086, 0.065, '#8ca968', 10, 7);
+        m.rod([s * 0.142, 0.08, s * step], [s * 0.14, 0.265, s * step], 0.091, '#313433', 10);
+        m.sphere(s * 0.14, 0.094, s * step + 0.062, 0.095, 0.082, 0.152, '#2a2b2b', 12, 7);
         for (const y of [0.12, 0.22] satisfies [number, number])
           m.box(s * 0.14 - 0.055, y, s * step + 0.195, 0.11, 0.035, 0.018, '#c4ced1', {
             metal: 0.8,
           });
       }
+      if (actor.modelVariant === 'mechanic') {
+        m.sphere(0, 1.185, 0.014, 0.255, 0.14, 0.216, '#a57832', 14, 7);
+        m.box(-0.182, 1.165, 0.09, 0.364, 0.045, 0.2, '#776441');
+        for (const side of [-1, 1])
+          m.rod([side * 0.17, 0.5, 0.174], [side * 0.123, 0.84, 0.13], 0.021, '#443f35', 6);
+      }
       if (actor.combatKind === 'goblin-maker') {
+        m.box(-0.149, 0.45, 0.134, 0.298, 0.36, 0.047, '#b7814e', 'canvasWeave');
+        m.box(-0.11, 0.469, 0.186, 0.22, 0.123, 0.025, '#90623f', 'wood');
         m.rod(
           [0.33, 0.44, 0.05] satisfies [number, number, number],
           [0.33, 0.76, 0.05] satisfies [number, number, number],
@@ -141,6 +166,40 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0) {
   }
   if (stats.model === 'shark') {
     drawLandshark(m, actor);
+    return;
+  }
+  if (stats.model === 'robocop') {
+    drawHumanNPC(m, actor, time, {
+      x: actor.x,
+      z: actor.z,
+      base: actor.base,
+      angle: actor.angle,
+      phase: actor.phase || 0,
+      seated: false,
+      skin: '#8c8476',
+      shirt: '#86999d',
+      appearance: { pants: '#3b4c57', boots: true, uniform: true, hair: '#34464b' },
+      reduced: false,
+    });
+    pose(m, actor.x, actor.base, actor.z, actor.angle - Math.PI / 2, () => {
+      const steel = { metal: 0.85 };
+      m.sphere(0, 1.64, 0, 0.17, 0.17, 0.15, '#a1b7bf', 12, 8, steel);
+      m.box(-0.136, 1.588, 0.08, 0.272, 0.064, 0.074, '#253a42', steel);
+      m.box(-0.113, 1.623, 0.155, 0.226, 0.014, 0.012, '#e26c64', { emissive: 0.8 });
+      for (const side of [-1, 1]) {
+        m.sphere(side * 0.23, 1.31, 0, 0.115, 0.1, 0.14, '#687e87', 10, 6, steel);
+        m.box(
+          side * 0.108 - 0.047,
+          1.13,
+          0.143,
+          0.094,
+          0.057,
+          0.026,
+          side === 1 ? '#577fb6' : '#bd5752',
+          { emissive: 0.4 },
+        );
+      }
+    });
     return;
   }
   if (stats.model === 'terminator') {
@@ -175,6 +234,8 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0) {
       stats.appearance,
       'Human monster appearance is missing: ' + actor.combatKind,
     );
+    const zombie = actor.combatKind === 'soma-zombie';
+    const second = zombie && actor.id === 'soma-zombie-2';
     drawHumanNPC(m, actor, time, {
       x: actor.x,
       z: actor.z,
@@ -182,10 +243,12 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0) {
       angle: actor.angle,
       phase: actor.phase || 0,
       seated: false,
-      skin: look.skin,
-      shirt: look.shirt,
+      skin: second ? '#829460' : look.skin,
+      shirt: second ? '#77794d' : look.shirt,
       appearance: {
         ...look,
+        ...(zombie && { action: 'zombie', actionT: 0.5 }),
+        ...(second && { female: true, hairstyle: 'bob', pants: '#695952' }),
         backpack: false,
         motion: actor.motion || 0,
         time: time * 0.001,
@@ -435,23 +498,28 @@ function drawLandshark(m: Mesh, actor: MonsterPose) {
     for (const s of [-1, 1] satisfies [number, number]) {
       const step = Math.sin(phase + (s * Math.PI) / 2) * motion;
       for (const end of [-1, 1] satisfies [number, number]) {
-        const stride = step * end * 0.18,
-          x = end * 0.5;
-        m.rod(
-          [x, 0.43 + bob, s * 0.23] satisfies [number, number, number],
-          [x + stride, 0.2, s * 0.32] satisfies [number, number, number],
-          0.085,
-          side,
-          10,
-        );
-        m.rod(
-          [x + stride, 0.2, s * 0.32] satisfies [number, number, number],
-          [x + stride * 1.4, 0.075, s * 0.35] satisfies [number, number, number],
-          0.065,
-          back,
-          10,
-        );
-        m.box(x + stride * 1.4 - 0.05, 0.015, s * 0.35 - 0.07, 0.24, 0.085, 0.14, dark);
+        const stride = step * end * 0.2,
+          x = end * 0.49;
+        const lift = Math.max(0, -step * end) * 0.09;
+        const knee = [x + 0.1 + stride * 0.34, 0.25 + lift + bob, s * 0.36];
+        const ankle = [x + stride, 0.08 + lift, s * 0.39];
+        m.sphere(x, 0.405 + bob, s * 0.25, 0.13, 0.144, 0.115, side, 8, 5);
+        m.rod([x, 0.41 + bob, s * 0.24], knee, 0.102, side, 10);
+        m.sphere(knee[0], knee[1], knee[2], 0.098, 0.094, 0.093, back, 8, 5);
+        m.rod(knee, ankle, 0.064, back, 10);
+        m.sphere(ankle[0] + 0.038, 0.068 + lift, ankle[2], 0.146, 0.062, 0.093, dark, 9, 6);
+        for (let toe = -1; toe <= 1; toe++)
+          m.sphere(
+            ankle[0] + 0.13,
+            0.049 + lift,
+            ankle[2] + toe * 0.05,
+            0.083 - Math.abs(toe) * 0.015,
+            0.034,
+            0.027,
+            side,
+            6,
+            4,
+          );
       }
       fin(
         [0.25, 0.44, s * 0.29] satisfies [number, number, number],

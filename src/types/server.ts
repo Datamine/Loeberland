@@ -22,7 +22,7 @@ export type ServerGeometry = Pick<
     >
   > & {
     streetTraffic?: Pick<WorldModel['streetTraffic'], 'nodes' | 'edges'> &
-      Partial<Pick<WorldModel['streetTraffic'], 'cars'>>;
+      Partial<Pick<WorldModel['streetTraffic'], 'cars' | 'update'>>;
     placeAt?: (x: number, y: number) => Pick<import('./world.ts').Place, 'id'> | null;
     wilderness?: { actors: import('./monsters.ts').WildernessSpawn[] };
     expeditions?: { ship: { home: WorldPoint | null } } & Partial<

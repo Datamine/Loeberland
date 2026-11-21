@@ -102,7 +102,7 @@ export function createAmbientDialogue<T extends RuntimeDialogue>(
   );
 }
 
-/** Preserve useful service/quest choices while offering the same casual pool. */
+/** Keep the casual branch in the voice of the existing speaker. */
 export function withAmbientConversation<T extends RuntimeDialogue>(person: T): T & RuntimeDialogue {
   if (person.ambientConversation || person.parrot || person.dog === true || person.baby)
     return person;
@@ -116,7 +116,15 @@ export function withAmbientConversation<T extends RuntimeDialogue>(person: T): T
         label: contentText('dialogues.ambient.withAmbientConversation.label-16', {}),
         ambientConversation: true,
         actionId: 'ambient.chat',
-        next: createAmbientDialogue(person),
+        next: {
+          name: person.name || person.named || person.label,
+          intro:
+            person.id === 'tablet-wizard'
+              ? 'I used to walk to Cupertino. These days I only do it when I need to think. That is how I got the idea for the tablet.'
+              : person.intro,
+          repeat: false,
+          choices: [],
+        },
         contentNodeId: 'dialogues.ambient.withAmbientConversation.node-15',
         labelTextId: 'dialogues.ambient.withAmbientConversation.label-16',
         labelTextValues: {},

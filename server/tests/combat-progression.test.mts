@@ -88,12 +88,13 @@ test('Akibo is server-owned, fires at seven tiles with railgun damage and has a 
     );
     await command(f.game, a.p, 'attack', { id: t.id, weapon: 'akibo' });
     assert.equal(requiredResult(a.messages).ok, true);
-    assert.equal(t.hp, 252);
+    assert.equal(t.hp, t.max - 8);
     assert.equal(a.p.hitpointsXP, 40);
     a.p.x = t.x - 7.02;
     a.p.shotAt = 0;
     await command(f.game, a.p, 'attack', { id: t.id, weapon: 'akibo' });
-    assert.equal(requiredResult(a.messages).ok, false);
+    assert.equal(requiredResult(a.messages).ok, true);
+    assert.equal(t.hp, t.max - 8, 'the approach starts without firing outside seven tiles');
     assert.ok(a.p.inventory.snapshot().collection.includes('akibo'));
     await f.game.flush();
     assert.ok(

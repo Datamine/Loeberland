@@ -17,6 +17,7 @@ import { createQuestLog, monkeyQuestDialogue } from '../../src/quests.ts';
 import { theyLiveDialogue, ALIEN_TARGETS } from '../../src/they-live.ts';
 import { createExpeditions, scientistDialogue, ahabDialogue } from '../../src/jurassic.ts';
 import { createSecretAdventures } from '../../src/secret-adventures.ts';
+import { hitpointMaximum, SKILL_THRESHOLDS } from '../../src/progression.ts';
 import { PEQUOD } from '../../src/jurassic-layout.ts';
 import { configuredDialogue } from '../../src/dialogue-config.ts';
 import { createSaltMail, saltActivistDialogue, saltClerkDialogue } from '../../src/salt-mail.ts';
@@ -26,6 +27,9 @@ import { guildDialogue } from '../../src/guild.ts';
 import { guildStatusFor } from '../guild.mts';
 import { ILLUMINATI_CAVE } from '../../src/map-instances.ts';
 import { SF_SPACEPORT } from '../../src/southern-district.ts';
+import { ATV_RENTAL, ATV_SPEED } from '../../src/atv.ts';
+import { houseClimb, SEARCH_HOMES } from '../../src/search-houses.ts';
+import { ITEM_STATS } from '../../src/item-stats.ts';
 import type { Actor } from '../../src/types/world.ts';
 import type { Point } from '../../src/types/geometry.ts';
 import type { ServerPlayer } from '../../src/types/server.ts';
@@ -102,6 +106,115 @@ function tick(seconds: number) {
     game.tick(0.05);
   }
 }
+
+test('three climbable houses have reachable ladders and return the player to the front door', async () => {
+  const climbable = SEARCH_HOMES.filter((home) => houseClimb(home.id));
+  assert.equal(climbable.length, 3);
+  const a = await visitor();
+  try {
+    const plain = requiredFixture(SEARCH_HOMES.find((home) => !houseClimb(home.id)));
+    stand(a, plain.entry);
+    assert.equal((await act(a, 'travel', { kind: 'houseRoof', id: plain.id })).ok, false);
+    for (const house of climbable) {
+      stand(a, house.entry);
+      const foot = a.p.y;
+      assert.equal((await act(a, 'travel', { kind: 'houseRoof', id: house.id })).ok, true);
+      tick(0.5);
+      assert.equal(a.p.mode, 'climb');
+      assert.ok(a.p.y > foot, 'climbing raises the server pose');
+      tick(2);
+      assert.equal(a.p.mode, 'roof');
+      assert.ok(a.p.y > foot + 2.5, 'arrival is on the roof');
+      assert.equal((await act(a, 'travel', { kind: 'houseRoof' })).ok, true);
+      tick(2.5);
+      assert.equal(a.p.mode, 'walk');
+      assert.equal(a.p.x, house.entry.x + 0.5);
+      assert.equal(a.p.y, foot);
+    }
+  } finally {
+    stop(a);
+  }
+});
+
+test('the Industrious Goblin rents an ATV at both rates and the village roof supports air tricks', async () => {
+  const a = await visitor();
+  try {
+    assert.equal((await act(a, 'travel', { kind: 'atvRent', minutes: 1 })).ok, false);
+    atNPC(
+      a,
+      npc((n) => n.id === ATV_RENTAL.npcId),
+    );
+    assert.equal((await act(a, 'travel', { kind: 'atvRent', minutes: 1 })).ok, true);
+    assert.equal(a.p.inventory.economy.state.coins, 999950);
+    assert.equal(a.p.profile.playerState.activities.atvRentalUntil, time + 60_000);
+    assert.equal((await act(a, 'travel', { kind: 'atvTrick', trick: 'roll' })).ok, false);
+    const x = a.p.x;
+    assert.equal((await act(a, 'moveTo', { x: x + 1.5, z: a.p.z })).ok, true);
+    tick(0.1);
+    assert.ok(Math.abs(a.p.x - x - ATV_SPEED * 0.1) < 1e-7, 'ATV uses exactly 150% of walk speed');
+    const beforeDonut = { x: a.p.x, z: a.p.z };
+    assert.equal((await act(a, 'travel', { kind: 'atvDonut' })).ok, true);
+    tick(0.55);
+    assert.ok(
+      Math.hypot(a.p.x - beforeDonut.x, a.p.z - beforeDonut.z) > 1.4,
+      'donut traces a circle',
+    );
+    tick(0.65);
+    assert.ok(
+      Math.hypot(a.p.x - beforeDonut.x, a.p.z - beforeDonut.z) < 1e-7,
+      'the donut completes',
+    );
+    assert.equal((await act(a, 'travel', { kind: 'atvJump' })).ok, true);
+    for (let i = 0; i < 160 && !game.movement.state(a.p).atv?.air; i++) tick(0.05);
+    assert.ok(game.movement.state(a.p).atv?.air, 'the actual village roof launches the ATV');
+    assert.equal((await act(a, 'travel', { kind: 'atvTrick', trick: 'roll' })).ok, true);
+    tick(0.15);
+    assert.ok(a.p.phase > 0.5, 'an air roll changes the replicated ATV pose');
+    tick(1.2);
+    assert.equal(game.movement.state(a.p).atv?.air, null);
+    time += 60_000;
+    tick(0.05);
+    assert.equal(a.p.mode, 'walk');
+    atNPC(
+      a,
+      npc((n) => n.id === ATV_RENTAL.npcId),
+    );
+    assert.equal((await act(a, 'travel', { kind: 'atvRent', minutes: 10 })).ok, true);
+    assert.equal(a.p.inventory.economy.state.coins, 999450);
+    assert.equal(a.p.profile.playerState.activities.atvRentalUntil, time + 600_000);
+  } finally {
+    stop(a);
+  }
+});
+
+test('Cotogna sells an equippable metal rolling pin and SoMa has two aggressive level-five zombies', async () => {
+  const a = await visitor();
+  try {
+    const chef = npc((n) => n.id === 'cotogna-chef');
+    assert.equal((await act(a, 'inventory', { op: 'trade', kind: 'rolling-pin' })).ok, false);
+    atNPC(a, chef);
+    await choose(a, configuredDialogue('chef', chef, { buyTinfoil: () => undefined }), [
+      'Buy a metal rolling pin · 20 coins',
+    ]);
+    assert.equal(a.p.inventory.economy.state.coins, 999980);
+    assert.equal((await act(a, 'equipAppearance', { look: { weapon: 'rolling-pin' } })).ok, true);
+    assert.equal(a.p.appearance.weapon, 'rolling-pin');
+    assert.ok(ITEM_STATS['rolling-pin'].max > ITEM_STATS.unarmed.max, 'it hits harder than a fist');
+    const zombies = game.shared.wilderness.actors.filter((n) => n.combatKind === 'soma-zombie');
+    assert.equal(zombies.length, 2);
+    for (const zombie of zombies) {
+      assert.equal(zombie.level, 5);
+      assert.equal(zombie.max, 25);
+    }
+    const target = zombies[0];
+    stand(a, { x: target.x - 0.5, y: target.z - 0.5 });
+    tick(0.1);
+    assert.equal(target.enemy, a.p.id);
+  } finally {
+    stop(a);
+  }
+});
+
 async function choose(
   a: TestPlayer,
   person: import('../../src/types/world.ts').RuntimeDialogue,
@@ -500,11 +613,13 @@ test('Ahab’s menu boards a private hunt, arrives at the boss, collects the cap
       'Missing test fixture: geometry.expeditions.ship.home',
     );
     assert.equal(a.p.x, geometry.expeditions.ship.home.x - PEQUOD.travel);
+    a.p.hitpointsXP = SKILL_THRESHOLDS.at(-1)!;
+    a.p.max = a.p.hp = hitpointMaximum(a.p.hitpointsXP);
     assert.equal(
       requiredFixture(await act(a, 'playerAction', { verb: 'attackKraken', weapon: 'railgun' })).ok,
       true,
     );
-    for (let i = 0; i < 1500 && r.expeditions.kraken.hp > 0; i++) {
+    for (let i = 0; i < 3500 && r.expeditions.kraken.hp > 0; i++) {
       a.p.hp = a.p.max;
       if (!a.p.inventory.meta.railgunCharge) {
         a.p.inventory.meta.railgunBatteries = 1;
@@ -728,5 +843,84 @@ test('every placed bench accepts Sit from its visible approach and releases the 
     t.diagnostic(`${benches.length} bench menus and exits`);
   } finally {
     stop(a);
+  }
+});
+
+test('Bolinas grocer calls officers from connected Marin ground for attacks and theft', async () => {
+  const grocer = npc((n) => n.id === 'bolinas-grocer');
+  for (const steal of [false, true]) {
+    const a = await visitor(requiredFixture(grocer.approach));
+    try {
+      assert.equal(
+        (
+          await act(a, 'playerAction', {
+            verb: 'attackPersonal',
+            id: grocer.id,
+            weapon: 'unarmed',
+            steal,
+          })
+        ).ok,
+        true,
+      );
+      const { police } = game.personal.runtime(a.p);
+      assert.ok(police.state.officers.length);
+      assert.ok(
+        police.state.officers.every((officer) =>
+          geometry.marinLand.contains(officer.x + 0.5, officer.y + 0.5),
+        ),
+      );
+      tick(3);
+      assert.equal(a.p.personalJailed, true);
+      assert.equal(police.state.officers.length, 0);
+    } finally {
+      stop(a);
+    }
+  }
+});
+
+test('the factory sells all three chairs and a Noe Valley stroller parent buys them back', async () => {
+  const maker = requiredFixture(
+    game.shared.wilderness.actors.find((n) => n.combatKind === 'goblin-maker'),
+  );
+  const parent = requiredFixture([...game.shared.npcById.values()].find((n) => n.stroller));
+  const a = await visitor({ x: maker.x - 0.5, y: maker.z - 0.5 });
+  const trade = (item: string, transaction: 'buy' | 'sell') =>
+    act(a, 'playerAction', { verb: 'tradeFactoryChair', item, trade: transaction });
+  try {
+    const chairs = ['ball-chair', 'eames-chair', 'bertoia-chair'];
+    for (const chair of chairs) assert.equal((await trade(chair, 'buy')).ok, true);
+    assert.equal((await trade(chairs[0], 'buy')).ok, false);
+    assert.equal((await trade(chairs[0], 'sell')).ok, false);
+    assert.equal(a.p.inventory.economy.state.coins, 999400);
+    stand(a, { x: parent.x - 0.5, y: parent.z - 0.5 });
+    for (const chair of chairs) assert.equal((await trade(chair, 'sell')).ok, true);
+    assert.equal((await trade(chairs[0], 'sell')).ok, false);
+    assert.equal(a.p.inventory.economy.state.coins, 1000060);
+  } finally {
+    stop(a);
+  }
+});
+
+test('either taxi dispatches a level-five Robocop that expires after a minute out of combat', async () => {
+  for (const tesla of [false, true]) {
+    const car = requiredFixture(geometry.streetTraffic.cars.find((n) => n.tesla === tesla));
+    const a = await visitor({ x: car.x - 0.5, y: car.z - 0.5 });
+    try {
+      const result = await act(a, 'kickTaxi', { id: car.id });
+      assert.equal(result.ok, true, result.message);
+      const responder = requiredFixture(
+        game.shared.wilderness.actors.find((n) => n.dispatchedFor === a.p.id),
+      );
+      assert.equal(responder.level, 5);
+      assert.equal(responder.enemy, a.p.id);
+      assert.equal((await act(a, 'kickTaxi', { id: car.id })).ok, false);
+      stand(a, geometry.spawn);
+      game.shared.wilderness.update(59.9, []);
+      assert.ok(game.shared.wilderness.actors.includes(responder));
+      game.shared.wilderness.update(0.11, []);
+      assert.ok(!game.shared.wilderness.actors.includes(responder));
+    } finally {
+      stop(a);
+    }
   }
 });

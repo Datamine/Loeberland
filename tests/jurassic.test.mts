@@ -108,7 +108,7 @@ test('the scientist grants a railgun, visibly releases the raptor, and accepts i
   assert.equal(g.startQuest().ok, false);
   g.update(1);
   assert.equal(g.raptor.phase, 'loose');
-  for (let i = 0; i < 5; i++) assert.equal(shoot(g, g.raptor).damage, 10);
+  for (let i = 0; i < 4; i++) assert.equal(shoot(g, g.raptor).damage, 10);
   assert.equal(g.raptor.phase, 'dead');
   const body = g.state.loot.find((l) => l.lootKind === 'raptor');
   assert.ok(body);
@@ -232,7 +232,7 @@ test('cows drop stored food and respawn after ten simulation seconds', () => {
   assert.equal(deli.state.sandwiches, 2);
   assert.equal(health.state.hp, 23);
 });
-test('Ahab requires a railgun; sixty boss hits deplete 600 HP and yield one 100-coin reward and a persistent cape', () => {
+test('Ahab requires a railgun; 120 boss hits deplete 1,200 HP and yield one 100-coin reward and a persistent cape', () => {
   const { game: g, p, health, economy, saved } = setup();
   assert.equal(g.board().ok, false);
   g.startQuest();
@@ -246,10 +246,10 @@ test('Ahab requires a railgun; sixty boss hits deplete 600 HP and yield one 100-
   assert.equal(g.ship.phase, 'fighting');
   assert.equal(g.kraken.visible, true);
   g.update(3.5);
-  assert.equal(health.state.hp, 19);
+  assert.equal(health.state.hp, 0);
   g.state.target = null;
-  assert.equal(g.kraken.max, 600);
-  for (let i = 0; i < 59; i++) {
+  assert.equal(g.kraken.max, 1200);
+  for (let i = 0; i < 119; i++) {
     g.state.cooldown = 0;
     assert.equal(g.shoot(g.kraken, p).damage, 10);
     assert.equal(g.ship.phase, 'fighting');
@@ -277,7 +277,7 @@ test('Ahab requires a railgun; sixty boss hits deplete 600 HP and yield one 100-
   assert.match(ahabDialogue({ name: 'Ahab' }, setup().game).intro, /railgun/);
   assert.match(KRAKEN_CAPE_TEXT, /I killed the kraken/);
 });
-test('automatic ranged attacks remain frame-rate independent against the 600 HP kraken', () => {
+test('automatic ranged attacks remain frame-rate independent against the level-60 kraken', () => {
   const run = (step: number) => {
     const { game: g, p, health } = setup();
     g.startQuest();
@@ -287,6 +287,7 @@ test('automatic ranged attacks remain frame-rate independent against the 600 HP 
     p.x = g.ship.x;
     p.z = g.ship.z;
     p.eligible = true;
+    health.state.hp = health.state.max = 250;
     g.attack(g.kraken);
     for (let t = 0; t < 8 - 1e-8; t += step) g.update(Math.min(step, 8 - t));
     return { hp: health.state.hp, boss: g.kraken.hp, phase: g.ship.phase };
@@ -294,7 +295,7 @@ test('automatic ranged attacks remain frame-rate independent against the 600 HP 
   const small = run(1 / 60),
     large = run(0.2);
   assert.deepEqual(small, large);
-  assert.equal(small.boss, 490);
+  assert.equal(small.boss, 1090);
   assert.ok(small.hp > 0);
   assert.equal(small.phase, 'fighting');
 });

@@ -1,10 +1,19 @@
 import { build } from 'esbuild';
 import { readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import type { ContentBundle } from '../src/types/content.ts';
 
 /** Authored browser code is TypeScript; these JavaScript files/HTML are outputs. */
 export async function buildAuxiliary(): Promise<void> {
   const root = new URL('../', import.meta.url);
+  const { texts } = JSON.parse(
+    await readFile(new URL('content/texts.json', root), 'utf8'),
+  ) as ContentBundle['texts'];
+  const equipmentText = Object.fromEntries(
+    Object.entries(texts)
+      .filter(([id]) => /^config\.(item-stats|hats)\./.test(id))
+      .map(([id, { template }]) => [id, template]),
+  );
   const admin = await build({
     entryPoints: [fileURLToPath(new URL('server/admin-ui.ts', root))],
     bundle: true,
@@ -12,6 +21,21 @@ export async function buildAuxiliary(): Promise<void> {
     format: 'iife',
     target: 'es2022',
     minify: false,
+    plugins: [
+      {
+        name: 'admin-equipment-text',
+        setup(build) {
+          // The selector only needs the static text used by the two equipment catalogs.
+          build.onLoad({ filter: /\/content-runtime\.ts$/ }, () => ({
+            contents: `const texts = ${JSON.stringify(equipmentText)};
+              export function contentText(id) {
+                if (!Object.hasOwn(texts, id)) throw new Error('Missing equipment text: ' + id);
+                return texts[id];
+              }`,
+          }));
+        },
+      },
+    ],
   });
   const template = await readFile(new URL('server/admin.template.html', root), 'utf8');
   await writeFile(

@@ -153,6 +153,30 @@ test('jail, private instances, vehicles and spoofed teleport poses cannot bypass
     await game.close();
   }
 });
+
+test('the last walk click during a tablet flight starts from the arrival point', async (t) => {
+  const { game, advance } = await setup();
+  t.after(() => game.close());
+  const a = await player(game, 823, { 'sf-purse-v1': '{"coins":45}' });
+  assert.equal(
+    requiredFixture(await act(game, a, 'buyTablet', { destination: 'downtown' })).ok,
+    true,
+  );
+  assert.equal(
+    requiredFixture(await act(game, a, 'useTablet', { destination: 'downtown' })).ok,
+    true,
+  );
+  for (const x of [73, 77]) {
+    const result = requiredFixture(await act(game, a, 'moveTo', { x, z: 40 }));
+    assert.equal(result.ok, true);
+    assert.equal(result.message, undefined);
+  }
+  advance(2900);
+  game.tick(0.05);
+  assert.equal(a.p.x, 75, 'the teleport finishes at its authoritative destination');
+  for (let i = 0; i < 20; i++) game.tick(0.05);
+  assert.equal(a.p.x, 77, 'the latest click runs after arrival');
+});
 test('disconnect during teleport saves a safe arrival and does not refund the consumed tablet', async () => {
   const { game, store } = await setup(),
     a = await player(game, 822);

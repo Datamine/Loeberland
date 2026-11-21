@@ -11,13 +11,30 @@ export function searchHousePoint(p: Readonly<Parcel>, u: number, v: number) {
     s = Math.sin(p.rotation || 0);
   return { x: p.x + u * c - v * s, z: p.z + u * s + v * c };
 }
+const CLIMBABLE_HOUSES = new Set(['explorable-home-1', 'explorable-home-4', 'explorable-home-6']);
+export function houseClimb(id: string) {
+  if (!CLIMBABLE_HOUSES.has(id)) return null;
+  const house = SEARCH_HOMES.find((home) => home.id === id)!;
+  const p = house.parcel;
+  return {
+    ladder: searchHousePoint(p, 0.64, p.d / 2 + 0.17),
+    perch: searchHousePoint(p, 0, p.d / 2 - 0.52),
+    angle: (p.rotation || 0) - Math.PI / 2,
+  };
+}
 export const SEARCH_HOMES = Object.freeze(
   SEARCH_HOUSE_PARCELS.map((p, i) => {
     const search = HOUSE_SEARCHES[i],
       inside = searchHousePoint(p, 0, p.d / 2 - 0.7),
       entry = searchHousePoint(p, 0, p.d / 2 + 0.45),
-      target = searchHousePoint(p, -p.w / 2 + 0.65, -p.d / 2 + 0.65),
-      approach = searchHousePoint(p, -p.w / 2 + 0.95, -p.d / 2 + 1.3);
+      target =
+        search.container === 'doghouse'
+          ? searchHousePoint(p, -p.w / 2 + 0.48, p.d / 2 + 0.5)
+          : searchHousePoint(p, -p.w / 2 + 0.65, -p.d / 2 + 0.65),
+      approach =
+        search.container === 'doghouse'
+          ? entry
+          : searchHousePoint(p, -p.w / 2 + 0.95, -p.d / 2 + 1.3);
     return Object.freeze({
       id: 'explorable-home-' + (i + 1),
       parcel: p,

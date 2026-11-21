@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <title>Marin coastal rock</title>
+  <desc>Weathered outcrops with fine fractures and pale mineral veins.</desc>
+  <defs>
+    <pattern id="marinRock" width="128" height="128" patternUnits="userSpaceOnUse">
+      <rect width="128" height="128" fill="#c5bcb0"/>
+      <path fill="#b0a49a" d="M0 24L24 19 48 24 73 16 108 23 128 24V49L101 44 70 54 34 41 0 49ZM0 105L18 104 43 91 56 100 89 91 111 100 128 105V121L104 117 81 124 56 113 24 124 0 121Z"/>
+      <g fill="none" stroke-linejoin="round">
+        <path stroke="#e6d8bf" stroke-width="2.2" d="M0 24l24-5 24 5 25-8 35 7 20 1M0 84l33-12 27 5 28-11 22 7 18 11M0 121l24 3 32-11 25 11 23-7 24 4"/>
+        <path stroke="#8d8378" stroke-width="1.2" d="M22 0l5 18-4 9 12 16 6 13-6 15M70 17l-5 12 3 10-14 16 7 22M109 23l-9 19 4 9-7 17m-62 6l9 14-2 7m45-28l-3 11 5 14-10 17 2 16"/>
+        <path stroke="#f2e7d2" opacity=".6" stroke-width="1" d="M9 46l19-4m20-11l17-2m24 11l12-3m-89 65l23-6m24-5l21-5m22 21l14 3M18 17l8-4m59 6l10-3"/>
+      </g>
+    </pattern>
+  </defs>
+  <rect width="256" height="256" fill="url(#marinRock)"/>
+</svg>

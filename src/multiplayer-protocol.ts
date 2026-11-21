@@ -30,6 +30,8 @@ export const MP_MODES = Object.freeze([
   'sit',
   'bench',
   'gondola',
+  'atv',
+  'roof',
 ]);
 export const MP_GESTURES = Object.freeze([
   '',

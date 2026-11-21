@@ -1,7 +1,17 @@
-import type { Point } from './geometry.ts';
+import type { Point, WorldPoint } from './geometry.ts';
 import type { NetworkPosition } from './server.ts';
 export interface MovementRuntime {
   route: Point[];
+  combatTarget?: WorldPoint;
+  queuedWalk?: WorldPoint;
+  atv?: import('../atv.ts').ATVState;
+  houseClimb?: {
+    id: string;
+    from: NetworkPosition;
+    to: NetworkPosition;
+    elapsed: number;
+    descending: boolean;
+  };
   mode: string;
   speed: number;
   boost: boolean;

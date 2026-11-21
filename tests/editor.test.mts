@@ -209,7 +209,7 @@ test('editor captures the real gym menu order and conditional training options',
     };
   world.sights = [gym];
   const r = await inspectTarget(world, record(gym, false));
-  assert.match(r.actions[0].actions[0].label, /^Walk here/);
+  assert.match(r.actions[0].actions[0].label, /^Perform /);
   assert.equal(r.actions[0].actions.filter((a) => a.label.startsWith('Perform ')).length, 4);
   assert.ok(!r.actions[0].actions.some((a) => a.label === 'Stop training'));
   assert.ok(

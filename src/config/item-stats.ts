@@ -49,6 +49,15 @@ export const ITEM_STATS = defineItems({
     defense: 2,
     description: contentText('config.item-stats.module.description-6', {}),
   },
+  'eames-chair': {
+    name: 'Eames Chair',
+    description:
+      'A walnut lounge chair with dark leather cushions from the Goblin Furniture Factory.',
+  },
+  'bertoia-chair': {
+    name: 'Bertoia Chair',
+    description: 'A wire-frame chair from the Goblin Furniture Factory.',
+  },
   'ball-chair': {
     name: contentText('config.item-stats.module.name-7', {}),
     description: contentText('config.item-stats.module.description-8', {}),
@@ -65,6 +74,22 @@ export const ITEM_STATS = defineItems({
     accuracy: 0.65,
     accuracyPerLevel: 0.02,
     accuracyCap: 0.9,
+  },
+  'rolling-pin': {
+    name: 'Metal rolling pin',
+    slot: 'weapon',
+    price: 20,
+    range: 1.4,
+    interval: 1,
+    min: 2,
+    max: 5,
+    minPerLevel: 0.15,
+    maxPerLevel: 0.8,
+    accuracy: 0.78,
+    accuracyPerLevel: 0.012,
+    accuracyCap: 0.94,
+    description:
+      'A stainless-steel rolling pin from Cotogna, with a solid barrel and worn wooden handles.',
   },
   bayonet: {
     name: contentText('config.item-stats.module.name-10', {}),
@@ -154,6 +179,10 @@ export const ITEM_STATS = defineItems({
     price: 20,
     description: contentText('config.item-stats.module.description-27', {}),
   },
+  'cupertino-tablet': {
+    name: 'Cupertino teletab',
+    price: 20,
+  },
   'tahoe-tablet': {
     name: contentText('config.item-stats.module.name-28', {}),
     price: 20,
@@ -224,7 +253,10 @@ export const EQUIPMENT_IDS = Object.freeze([
   'railgun-upgrade',
   'combat-boots',
   'ball-chair',
+  'eames-chair',
+  'bertoia-chair',
   'battleaxe',
+  'rolling-pin',
   'ice-top',
   'ice-pants',
   'akibo',
@@ -233,18 +265,4 @@ export const EQUIPMENT_IDS = Object.freeze([
   'clock-amulet',
   'black-cloak-top',
   'black-cloak-bottom',
-] satisfies [
-  string,
-  string,
-  string,
-  string,
-  string,
-  string,
-  string,
-  string,
-  string,
-  string,
-  string,
-  string,
-  string,
-]);
+] satisfies string[]);

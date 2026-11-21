@@ -2,6 +2,7 @@ export interface QuestJournalEntry {
   id: string;
   title: string;
   stage: string;
+  startLocation?: string;
   status: string;
   description: string;
   rewardLabel?: string;
@@ -30,7 +31,7 @@ export function createQuestMenu({
   beforeOpen,
 }: QuestMenuOptions) {
   function render() {
-    const entries = quests.entries().filter((q) => q.stage !== 'not-started');
+    const entries = quests.entries();
     content.replaceChildren();
     for (const q of entries) {
       const card = document.createElement('article');
@@ -46,7 +47,13 @@ export function createQuestMenu({
       const reward = document.createElement('p');
       reward.className = 'sf-quest-reward';
       reward.textContent = 'Reward: ' + (q.rewardLabel || q.reward + ' coins');
-      card.append(status, title, description);
+      const start = document.createElement('p');
+      card.append(status, title);
+      if (q.startLocation) {
+        start.textContent = 'Starts at ' + q.startLocation;
+        card.append(start);
+      }
+      if (q.stage !== 'not-started') card.append(description);
       const completedTargets = q.targets?.filter((target) => target.done);
       if (completedTargets?.length) {
         const list = document.createElement('ul');

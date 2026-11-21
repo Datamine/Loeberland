@@ -21,6 +21,7 @@ import { drawTabletTeleport } from '../teleport-models.ts';
 import { DOG_SURFING, drawDogSurfingCompetition } from '../dog-surfing.ts';
 import { westernCoastX } from '../coastline.ts';
 import { drawBallChair } from '../goblin-town.ts';
+import { drawATVRider } from '../atv-model.ts';
 import { drawWildMonster } from '../wilderness-models.ts';
 import { packStaticMesh, batchInFrustum } from '../static-batches.ts';
 import { GLASS_UV, meshGlassTriangles } from '../glazing.ts';
@@ -926,7 +927,17 @@ export function createRendering(context: WorldContext) {
       !context.rocket.state.active &&
       context.tahoe.state.mode === 'ground'
     );
-    if (context.training)
+    if (context.multiplayerWorld?.selfMode === 'atv')
+      drawATVRider(
+        m,
+        context.player.x + 0.5,
+        context.playerGround(),
+        context.player.y + 0.5,
+        context.player.angle,
+        context.reduced ? 0 : phase,
+        characterAppearance(context.playerLook),
+      );
+    else if (context.training)
       drawGymExercise(m, context.gymSelection, t, characterAppearance(context.playerLook), {
         reduced: context.reduced,
       });
@@ -1023,7 +1034,8 @@ export function createRendering(context: WorldContext) {
       const riderStart = m.data.length,
         rocketPose = context.rocket.state.active ? context.rocket.state.pose : null,
         onSutro = context.sutroClimb.state.active,
-        networkClimb = !!context.multiplayerWorld?.traversing,
+        networkClimb =
+          !!context.multiplayerWorld?.traversing || context.multiplayerWorld?.selfMode === 'climb',
         climbing =
           networkClimb ||
           (onSutro && context.sutroClimb.state.phase !== 'top') ||
@@ -2088,7 +2100,20 @@ export function createRendering(context: WorldContext) {
       const start = m.data.length,
         g = npc.gesture,
         gt = g ? (t - g.started) / g.duration : 1;
-      if (context.npcRevealed(npc)) drawSpectre(m, npc, t);
+      if (npc.kind === 'atv-rental')
+        drawWildMonster(
+          m,
+          {
+            ...npc,
+            combatKind: 'goblin',
+            modelVariant: 'mechanic',
+            base: requiredValue(npc.base, 'NPC elevation'),
+            angle: npc.angle || 0,
+            phase: typeof npc.phase === 'number' ? npc.phase : 0,
+          },
+          t,
+        );
+      else if (context.npcRevealed(npc)) drawSpectre(m, npc, t);
       else
         drawHumanNPC(m, npc, t, {
           x: npc.x,
@@ -2202,38 +2227,16 @@ export function createRendering(context: WorldContext) {
       }
       addTarget(start, { npc });
     }
-    const detained = context.chase.state.jailed && !context.capture.state.active;
-    const officers = detained
-      ? [
-          {
-            x: context.detention.x - 3.5,
-            y: context.detention.z + 2.8,
-            angle: -Math.PI / 2,
-            index: 0,
-            phase: 0,
-          },
-          {
-            x: context.detention.x + 3,
-            y: context.detention.z + 2.8,
-            angle: -Math.PI / 2,
-            index: 1,
-            phase: 0,
-          },
-        ]
-      : context.chase.state.officers;
-    for (const o of officers) {
+    if (!context.chase.state.officers.length) context.policeActors.clear();
+    for (const o of context.chase.state.officers) {
       if (Math.hypot(o.x - context.player.x, o.y - context.player.y) > 27) continue;
       const start = m.data.length,
         water = context.surf.water(o.x + 0.5, o.y + 0.5),
-        base = water
-          ? 0.06
-          : detained
-            ? context.detention.terrain(o.x + 0.5, o.y + 0.5) + 0.07
-            : context.characterGround(o.x + 0.5, o.y + 0.5) + 0.025;
+        base = water ? 0.06 : context.characterGround(o.x + 0.5, o.y + 0.5) + 0.025;
       if (water)
         drawWindsurfer(m, o.x + 0.5, o.y + 0.5, base, o.angle, t, {
           police: true,
-          moving: !detained,
+          moving: true,
           reduced: context.reduced,
         });
       else
@@ -2252,12 +2255,10 @@ export function createRendering(context: WorldContext) {
             uniform: true,
             backpack: false,
             mode: 'move',
-            motion: context.reduced || detained ? 0 : 1,
+            motion: context.reduced ? 0 : 1,
             run: 1,
             time: context.reduced ? 0 : t * 0.001,
-            ground: detained
-              ? (x: number, z: number) => context.detention.terrain(x, z) + 0.01
-              : context.characterGround,
+            ground: context.characterGround,
           },
           reduced: context.reduced,
           draw: context.human,
@@ -2285,7 +2286,7 @@ export function createRendering(context: WorldContext) {
         ],
         speaking = Math.floor(context.chase.state.elapsed / 2.8) % 3 === o.index,
         speech =
-          !detained && speaking && context.chase.state.elapsed % 2.8 < 2.25
+          speaking && context.chase.state.elapsed % 2.8 < 2.25
             ? phrases[Math.floor(context.chase.state.elapsed / 2.8) % phrases.length]
             : '';
       context.actorTags.push({
@@ -2295,7 +2296,7 @@ export function createRendering(context: WorldContext) {
         height: water ? 3.3 : 1.95,
         label: contentText('world.rendering.makeActors.label-4', {}),
         police: true,
-        chasing: context.chase.state.wanted && !detained && !context.capture.state.active,
+        chasing: context.chase.state.wanted && !context.capture.state.active,
         speech,
         speechUntil: Infinity,
       });

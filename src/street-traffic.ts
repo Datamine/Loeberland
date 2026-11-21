@@ -1,3 +1,5 @@
+import { createActorMotionGroup } from './snapshot-motion.ts';
+import type { NetworkTraffic } from './types/network.ts';
 import { isFiniteNumber } from './types/json.ts';
 import type { WorldPoint } from './types/geometry.ts';
 import type { Street } from './types/world.ts';
@@ -290,7 +292,18 @@ export function createStreetTraffic({
     elapsed += stepTime;
   }
   update(0);
+  const presentation = createActorMotionGroup();
   return {
+    sync(records: readonly NetworkTraffic[], time: number) {
+      for (const car of cars) {
+        const record = records.find((n) => n.id === car.id);
+        if (record) presentation.accept(car.id, car, record, time);
+      }
+      presentation.retain(new Set(records.map((n) => n.id)));
+    },
+    updatePresentation() {
+      presentation.update(true);
+    },
     nodes,
     edges,
     components,

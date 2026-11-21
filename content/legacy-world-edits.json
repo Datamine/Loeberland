@@ -1,5 +1,0 @@
-{
-  "schema": 1,
-  "entities": { "sight:tiger": { "sourceName": "Tiger", "group": "npc" } },
-  "conversations": {}
-}

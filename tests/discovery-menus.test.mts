@@ -5,7 +5,7 @@ import { createCollectionMenu } from '../src/collection-menu.ts';
 import { dialogueFixture } from './helpers/dialogue-fixture.mts';
 import { createExpeditions } from '../src/jurassic.ts';
 
-test('quest journal hides undiscovered adventures, future steps and unearned rewards, including its accessible label', () => {
+test('quest journal lists the names and starting places of unstarted quests and keeps future steps hidden', () => {
   const fixture = dialogueFixture();
   try {
     const make = () => fixture.doc.createElement('div');
@@ -17,7 +17,8 @@ test('quest journal hides undiscovered adventures, future steps and unearned rew
         title: 'Hidden adventure',
         stage: 'not-started',
         status: 'Not started',
-        description: 'Secret starting place',
+        startLocation: 'The docks',
+        description: 'Secret future objective',
       },
     ];
     const menu = createQuestMenu({
@@ -30,11 +31,10 @@ test('quest journal hides undiscovered adventures, future steps and unearned rew
       quests: { entries: () => entries },
       beforeOpen() {},
     });
-    assert.match(content.textContent, /No adventures recorded/);
-    assert.doesNotMatch(
-      content.textContent + button.getAttribute('aria-label'),
-      /Hidden adventure|Secret starting place/,
-    );
+    assert.match(content.textContent, /Hidden adventure/);
+    assert.match(content.textContent, /Starts at The docks/);
+    assert.match(button.getAttribute('aria-label') || '', /Hidden adventure, Not started/);
+    assert.doesNotMatch(content.textContent, /Secret future objective/);
     entries.push({
       id: 'discovered',
       title: 'An adventure',
@@ -49,7 +49,10 @@ test('quest journal hides undiscovered adventures, future steps and unearned rew
     });
     menu.render();
     assert.match(content.textContent, /Letter received/);
-    assert.doesNotMatch(content.textContent, /Secret reward|Hidden destination|Hidden adventure/);
+    assert.doesNotMatch(
+      content.textContent,
+      /Secret reward|Hidden destination|Secret future objective/,
+    );
     entries[1].stage = 'completed';
     menu.render();
     assert.match(content.textContent, /Reward: Secret reward/);
@@ -98,7 +101,7 @@ test('the kraken adventure is discovered by boarding and remains recorded after 
       saved = state;
     },
   });
-  assert.ok(!game.entries().some((q) => q.id === 'pequod-kraken'));
+  assert.equal(game.entries().find((q) => q.id === 'pequod-kraken')?.stage, 'not-started');
   assert.equal(game.board().ok, true);
   game.abandonShip();
   assert.ok(game.entries().some((q) => q.id === 'pequod-kraken'));

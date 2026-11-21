@@ -72,6 +72,11 @@ export interface WildernessActor extends Actor {
   repath: number;
   attackAt: number;
   affection: number;
+  chaseUntil: number;
+  enemyPosition?: WorldPoint;
+  returning: boolean;
+  dispatchedFor?: string | number;
+  lastCombatAt?: number;
   description: string;
 }
 export interface WildernessDrop extends WorldPoint {

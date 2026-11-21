@@ -144,13 +144,16 @@ test('service menus keep their actions but casual chat never executes or inherit
     f.dialogue.open(person);
     f.advance();
     f.click('Let’s just talk.');
-    f.advance();
-    assert.ok(person?.choices != null, 'Missing test fixture: person.choices');
-    const chat = requiredFixture(person.choices.find((c) => c.ambientConversation)).next;
-    for (const choice of paths(chat)[0]) {
-      f.click(choice.label);
-      if (choice.next) f.advance();
-    }
+    const chat = requiredFixture(
+      requiredFixture(person.choices).find((c) => c.ambientConversation),
+    ).next;
+    assert.equal(chat?.name, 'Seller');
+    assert.equal(chat?.intro, 'Shop');
+    assert.equal(chat?.conversationId, undefined);
+    assert.deepEqual(
+      f.buttons().map((button) => button.textContent),
+      ['OK'],
+    );
     f.advance();
     assert.equal(purchases, 0);
     assert.equal(f.dialogue.active, false);

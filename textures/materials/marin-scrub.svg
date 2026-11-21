@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <title>Marin hillside scrub</title>
+  <desc>Low native brush, dry bunchgrass, and gravel on the Marin hills.</desc>
+  <defs>
+    <pattern id="marinScrub" width="128" height="128" patternUnits="userSpaceOnUse">
+      <rect width="128" height="128" fill="#d5d4ad"/>
+      <g fill="#a4ad88" opacity=".48">
+        <path d="M4 30q6-9 14-6t13 4q8 7-4 10t-19 0q-7-1-4-8ZM42 48q3-10 13-9l11 5q7 8-9 9t-15-5ZM70 60q9-10 20-4t10 8q-4 7-15 4t-15-8ZM93 26q6-12 18-10t10 9q-3 7-17 6t-11-5ZM8 87q7-8 16-4t12 9q-4 6-18 5t-10-10ZM61 104q1-10 10-11t10 6q2 8-7 10t-13-5ZM99 92q8-9 17-6t8 8q-3 7-14 5t-11-7Z"/>
+      </g>
+      <g fill="#eee3b9" opacity=".52">
+        <path d="M35 11q6-6 13-4t5 7q-4 4-12 3t-6-6ZM8 54q4-4 10-2t8 5q-2 6-10 4t-8-7ZM49 75q6-7 14-4t7 6q-2 5-12 6t-9-8ZM108 56q3-6 11-5t8 3q-1 6-10 7t-9-5ZM31 113q7-5 14-4t5 7q-4 4-13 4t-6-7ZM83 118q4-7 10-6l5 5q-1 5-8 4t-7-3Z"/>
+      </g>
+      <g fill="none" stroke-linecap="round" stroke-width="1.15" opacity=".65">
+        <path stroke="#8e997e" d="M15 31l-4-7m4 7l3-9m-3 9l7-4M32 49l-5-7m5 7l1-12m-1 12l8-6m18-7l-6-9m6 9l3-10m-3 10l8-4M79 47l-7-8m7 8l5-12m3 35l-5-8m5 8l3-12M116 51l-6-8m6 8v-11m-1 45l-4-9m4 9l5-8M40 89l-4-7m4 7l5-10M11 115l-5-8m5 8l4-8"/>
+        <path stroke="#f2e4bc" d="M19 17l-1-6m7 13l5-5m8 18l-1-7m29 8l7-6m12 21l1-6m13 3l4-9m13 9l3-5M17 69l4-7m16 14l4-5m12 24l4-8m19 15l-3-7m30 2l5-6m-7 27l3-4m13-45l4-7"/>
+      </g>
+      <g fill="#a89472" opacity=".64">
+        <circle cx="11" cy="83" r="2"/><circle cx="53" cy="71" r="1.8"/>
+        <circle cx="71" cy="78" r="2.3"/><circle cx="98" cy="18" r="2.2"/>
+        <circle cx="111" cy="111" r="1.9"/><circle cx="35" cy="119" r="2.1"/>
+        <circle cx="105" cy="72" r="1.8"/><circle cx="7" cy="57" r="1.2"/>
+      </g>
+    </pattern>
+  </defs>
+  <rect width="256" height="256" fill="url(#marinScrub)"/>
+</svg>

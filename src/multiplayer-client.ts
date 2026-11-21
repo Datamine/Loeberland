@@ -79,7 +79,7 @@ export function interpolateNetworkPose(
   // Gait distance, roll progress and vehicle banking are different clocks.
   // Never interpolate a fresh roll from the previous walking stride count.
   result.phase = a.mode === b.mode ? a.phase + (b.phase - a.phase) * t : b.phase;
-  if (a.mode === b.mode && (['ski', 'surf'] satisfies [string, string]).includes(b.mode))
+  if (a.mode === b.mode && (['ski', 'surf', 'atv'] satisfies string[]).includes(b.mode))
     result.phase =
       a.phase + Math.atan2(Math.sin(b.phase - a.phase), Math.cos(b.phase - a.phase)) * t;
   if (a.mode !== b.mode && b.mode === 'roll') result.phase = b.phase * t;

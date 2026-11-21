@@ -31,7 +31,7 @@ async function setup() {
   }));
   geometry.placeAt = (x: number, y: number) => {
     const s = requiredFixture(geometry.searchSites).find(
-      (s) => Math.hypot(x - s.entry.x, y - s.entry.y) < 0.4,
+      (s) => s.id !== 'house-search-2' && Math.hypot(x - s.entry.x, y - s.entry.y) < 0.4,
     );
     return s ? { id: requiredFixture(s.houseId) } : null;
   };

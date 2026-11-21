@@ -15,6 +15,7 @@ export function npcOffersAttack(npc: ActorMetadata = {}) {
     npc.dogSurfJudge ||
     npc.neighborhoodService ||
     npc.police ||
+    npc.kind === 'atv-rental' ||
     npc.keeper ||
     npc.parrot ||
     npc.rehabilitation ||
@@ -86,7 +87,11 @@ export function npcContextActions(
   if (npc.police) actions = [];
   else if (npc.wilderness)
     actions =
-      npc.combatKind === 'bear' ? (['pet', 'attack'] satisfies [string, string]) : ['attack'];
+      npc.combatKind === 'bear'
+        ? ['pet', 'attack']
+        : npc.combatKind === 'goblin-maker'
+          ? ['talk', 'attack']
+          : ['attack'];
   else if (
     (['raptor', 'cow', 'kraken'] satisfies [string, string, string]).includes(npc.combatKind || '')
   )

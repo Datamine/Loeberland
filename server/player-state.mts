@@ -7,6 +7,7 @@ import { consumeWeaponShot, combatSupplyAction } from './combat-supplies.mts';
 import { createPlayerComponents } from './player-components.mts';
 import { PROGRESSION } from '../src/config/progression.ts';
 import { skillStatus, hitpointMaximum } from '../src/progression.ts';
+import { FACTORY_CHAIRS, FACTORY_CHAIR_BUY, FACTORY_CHAIR_SELL } from '../src/goblin-town.ts';
 import { GAMEPLAY } from '../src/config/gameplay.ts';
 import { createStrength } from '../src/strength.ts';
 import { createQuestLog } from '../src/quests.ts';
@@ -30,6 +31,7 @@ import {
   sandwichCapacity,
   railgunUnlocked,
   weaponAttackInterval,
+  isOwnedWeapon,
 } from '../src/item-stats.ts';
 import { nearbyServiceNPC, fuelCarInRange } from '../src/interaction-access.ts';
 import { NEIGHBORHOOD_SERVICES } from '../src/config/neighborhood-services.ts';
@@ -87,6 +89,8 @@ export function createPlayerState({
     !p.grappling &&
     !p.airship &&
     !p.tabletTeleport &&
+    p.mode !== 'roof' &&
+    p.mode !== 'atv' &&
     !(
       ['hidden', 'climb', 'gondola', 'rocket', 'parachute'] satisfies [
         string,
@@ -294,7 +298,9 @@ export function createPlayerState({
         r: number | undefined,
         test: ((x: number, y: number) => boolean) | undefined,
       ) =>
-        geometry.nearestNavigation?.(x, y, r, test) ||
+        (geometry.marinLand?.contains(p.x, p.z)
+          ? geometry.marinLand.nearest(x, y, r, test)
+          : geometry.nearestNavigation?.(x, y, r, test)) ||
         geometry.airship?.nearest(x, y, r, test) ||
         null,
       canCapture: (a: { x: number; y: number }, b: { x: number; y: number }) =>
@@ -365,6 +371,7 @@ export function createPlayerState({
           }),
       });
     police.state.jailed = !!p.personalJailed;
+    if (!police.state.wanted || police.state.jailed) police.state.officers.length = 0;
     if (quests.carrying) keeper.start();
     strength.save();
     save('sf-quests-v1')(quests.state);
@@ -410,7 +417,7 @@ export function createPlayerState({
       !eligible(p) &&
       !(['eat', 'equipPhone', 'chargeRailgun'] satisfies [string, string, string]).includes(op)
     )
-      return deny('Finish your current journey first.');
+      return deny('Visit the merchant on foot to make that purchase.');
     const r = runtime(p);
     r.deli.state.sandwiches = p.inventory.meta.sandwiches;
     let result;
@@ -467,6 +474,11 @@ export function createPlayerState({
     if (typeof kind !== 'string') return deny('Choose a trade first.');
     const r = runtime(p),
       economy = p.inventory.economy;
+    if (kind === 'rolling-pin') {
+      if (!npc(p, (actor) => actor.id === 'cotogna-chef'))
+        return deny('Visit the Cotogna counter.');
+      return economy.buyEquipment(kind);
+    }
     const merchants: Record<string, string> = {
       equity: 'founder',
       secondary: 'secondary',
@@ -774,6 +786,34 @@ export function createPlayerState({
     } else if (verb === 'interviewCancel') {
       r.interview.cancel();
       result = { ok: true };
+    } else if (verb === 'tradeFactoryChair') {
+      const chair = FACTORY_CHAIRS.find((item) => item.id === args.item);
+      if (!chair || (args.trade !== 'buy' && args.trade !== 'sell')) return deny('Choose a chair.');
+      const purse = p.inventory.economy.state;
+      if (args.trade === 'buy') {
+        const maker = shared.wilderness.actors.find((actor) => actor.combatKind === 'goblin-maker');
+        if (!maker?.hp || maker.enemy !== null || !near(p, maker))
+          return deny(
+            'Visit the furniture maker at the Goblin Furniture Factory when the shop is open.',
+          );
+        if (purse.coins < FACTORY_CHAIR_BUY) return deny('A chair costs 200 coins.');
+        if (purse.ownedEquipment.includes(chair.id)) return deny('You already own this chair.');
+        purse.coins -= FACTORY_CHAIR_BUY;
+        purse.ownedEquipment.push(chair.id);
+        result = { ok: true, message: 'You buy the ' + chair.name + ' for 200 coins.' };
+      } else {
+        if (
+          !npc(p, (actor) => actor.stroller === true && String(actor.id).startsWith('noe-parent-'))
+        )
+          return deny('Find a parent pushing a stroller in Noe Valley.');
+        const index = purse.ownedEquipment.indexOf(chair.id);
+        if (index < 0) return deny('You do not own this chair.');
+        if (!Number.isSafeInteger(purse.coins + FACTORY_CHAIR_SELL))
+          return deny('Your coin purse is full.');
+        purse.ownedEquipment.splice(index, 1);
+        purse.coins += FACTORY_CHAIR_SELL;
+        result = { ok: true, message: 'You sell the ' + chair.name + ' for 220 coins.' };
+      }
     } else if (verb === 'attackPersonal') {
       const target =
         shared.npcById.get(typeof args.id === 'string' ? args.id : '') ||
@@ -784,12 +824,9 @@ export function createPlayerState({
       if (args.weapon === 'bayonet' && !r.quests.theyLive.state.bayonet)
         return deny('Obtain a bayonet first.');
       if (
-        (['battleaxe', 'akibo'] satisfies [string, string]).includes(
-          typeof args.weapon === 'string' ? args.weapon : '',
-        ) &&
-        !p.inventory.economy.state.ownedEquipment.includes(
-          typeof args.weapon === 'string' ? args.weapon : '',
-        )
+        typeof args.weapon === 'string' &&
+        isOwnedWeapon(args.weapon) &&
+        !p.inventory.economy.state.ownedEquipment.includes(args.weapon)
       )
         return deny('Obtain that weapon first.');
       if (target.alienId && r.sunglasses.state.owned && p.appearance.sunglasses) {
@@ -861,6 +898,7 @@ export function createPlayerState({
     } else return deny('Unknown player action.');
     if (result.ok) {
       commit(p, r);
+      if (verb === 'tradeFactoryChair') return { ...result, inventory: p.inventory.snapshot() };
       if (verb === 'tailorCloak' && 'inventory' in result)
         result.inventory = p.inventory.snapshot();
     }

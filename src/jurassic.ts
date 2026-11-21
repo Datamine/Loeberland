@@ -19,7 +19,7 @@ import type {
 // CONTENT-BINDINGS-MIGRATED
 import { contentText } from './content-runtime.ts';
 import { MONSTER_STATS, rollMonsterDrops } from './monster-drops.ts';
-import { ITEM_STATS, weaponAttackInterval } from './item-stats.ts';
+import { ITEM_STATS, isOwnedWeapon, weaponAttackInterval } from './item-stats.ts';
 import { JURASSIC, cowSpawns, PEQUOD, KRAKEN_CAPE_TEXT } from './jurassic-layout.ts';
 import { rollWeaponDamage, rollEnemyDamage } from './combat.ts';
 import type { ActionReceipt, Actor, RuntimeDialogue } from './types/world.ts';
@@ -338,8 +338,7 @@ export function createExpeditions({
       return { ok: false, message: 'That weapon is unavailable.' };
     if (
       (weapon === 'railgun' && (!state.railgun || !state.equipped)) ||
-      ((['battleaxe', 'akibo'] satisfies [string, string]).includes(weapon) &&
-        !economy!.state.ownedEquipment.includes(weapon)) ||
+      (isOwnedWeapon(weapon) && !economy!.state.ownedEquipment.includes(weapon)) ||
       (weapon === 'bayonet' && !hasBayonet())
     )
       return {
@@ -347,6 +346,14 @@ export function createExpeditions({
         message: 'You do not have a suitable weapon equipped.',
       };
     if (state.cooldown > 1e-8) return { ok: false, cooldown: true };
+    if (target?.combatKind === 'kraken') {
+      if (!ship.aboard || ship.phase !== 'fighting')
+        return { ok: false, message: 'There is no active target.' };
+      if (weapon !== 'railgun' && weapon !== 'akibo')
+        return { ok: false, message: 'Equip your railgun to fight the kraken.' };
+      // Shoot from the deck even during the tick that moves the ship into range.
+      origin = { ...origin, x: ship.x, z: ship.z, base: PEQUOD.deck };
+    }
     if (
       !target ||
       target.hp === 0 ||
@@ -354,17 +361,15 @@ export function createExpeditions({
       distance(origin, target) > (ITEM_STATS[weapon]?.range || 0) + 0.001 ||
       !lineClear(origin, target)
     )
-      return { ok: false, message: 'Move within weapon range with a clear line of attack.' };
-    if (
-      (target.combatKind === 'raptor' && raptor.phase !== 'loose') ||
-      (target.combatKind === 'kraken' && (!ship.aboard || ship.phase !== 'fighting'))
-    )
+      return { ok: false };
+    if (target.combatKind === 'raptor' && raptor.phase !== 'loose')
       return { ok: false, message: 'There is no active target.' };
     const supply = consumeShot(weapon);
     if (!supply.ok) {
       state.target = null;
       return supply;
     }
+    state.weapon = weapon;
     state.cooldown = weaponAttackInterval(weapon, economy!.state) + Math.min(0, state.cooldown);
     const kind = target.combatKind || 'pedestrian',
       damage = (['spectre', 'pedestrian'] satisfies [string, string]).includes(kind)
@@ -421,9 +426,12 @@ export function createExpeditions({
     return { ok: true, damage };
   }
   function attack(target: Actor | null, weapon = 'railgun') {
-    state.target = target;
-    state.weapon = weapon;
-    return shoot(target, player(), weapon);
+    const result = shoot(target, player(), weapon);
+    if (result.ok || result.cooldown) {
+      state.target = target?.hp ? target : null;
+      state.weapon = weapon;
+    }
+    return result;
   }
   function damagePlayer(amount: number, source: string, target: Actor) {
     const damage = health!.damage(rollEnemyDamage(amount, level(), random, defense()));
@@ -517,8 +525,8 @@ export function createExpeditions({
         !(['cow', 'raptor'] satisfies [string, string]).includes(state.target.combatKind || ''))
     ) {
       if (
-        distance(p, state.target) <=
-        (ITEM_STATS[state.weapon || 'railgun']?.range || 0) + 0.001
+        state.target.combatKind === 'kraken' ||
+        distance(p, state.target) <= (ITEM_STATS[state.weapon || 'railgun']?.range || 0) + 0.001
       ) {
         const result = shoot(state.target, p);
         if (!result.ok && !result.cooldown) state.target = null;
@@ -603,7 +611,7 @@ export function createExpeditions({
       prey.expeditionDead
     )
       return;
-    raptor.attackIn = 1.5;
+    raptor.attackIn = MONSTER_STATS.raptor.interval;
     if (prey === p || prey.isPlayer) {
       if (p.eligible && !ship.aboard && distance(raptor, p) < 1.3)
         damagePlayer(MONSTER_STATS.raptor.damage, 'The velociraptor', raptor);
@@ -640,6 +648,7 @@ export function createExpeditions({
       {
         id: 'jurassic-recovery',
         title: 'Jurassic Biosciences: Emergency Recovery',
+        startLocation: 'Jurassic Biosciences (speak to the scientist)',
         stage: state.raptor === 'escaped' ? 'accepted' : state.raptor,
         status:
           state.raptor === 'not-started'
@@ -660,15 +669,15 @@ export function createExpeditions({
         rewardLabel: 'Railgun',
       },
     ];
-    if (state.krakenStarted)
-      result.push({
-        id: 'pequod-kraken',
-        title: 'Ahab’s Rather Easier Hunt',
-        stage: state.krakenReward ? 'completed' : 'accepted',
-        status: state.krakenReward ? 'Complete' : 'In progress',
-        description: state.krakenReward ? KRAKEN_CAPE_TEXT : 'You have joined Captain Ahab’s hunt.',
-        rewardLabel: '100 coins · commemorative cape',
-      });
+    result.push({
+      id: 'pequod-kraken',
+      title: 'Ahab’s Rather Easier Hunt',
+      startLocation: 'the Pequod off Ocean Beach (speak to Captain Ahab)',
+      stage: state.krakenReward ? 'completed' : state.krakenStarted ? 'accepted' : 'not-started',
+      status: state.krakenReward ? 'Complete' : state.krakenStarted ? 'In progress' : 'Not started',
+      description: state.krakenReward ? KRAKEN_CAPE_TEXT : 'You have joined Captain Ahab’s hunt.',
+      rewardLabel: '100 coins · commemorative cape',
+    });
     return result;
   }
   return {

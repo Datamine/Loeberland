@@ -1,4 +1,4 @@
-import { ITEM_STATS } from './item-stats.ts';
+import { ITEM_STATS, PLAYER_WEAPONS } from './item-stats.ts';
 import { HAT_CATALOG } from './hat-catalog.ts';
 /** Wardrobe choices expose owned finds, never an unavailable-item checklist. */
 export function equipmentOptions(
@@ -17,7 +17,7 @@ export function equipmentOptions(
     ],
     weapon: [
       option('unarmed', 'Fist'),
-      ...(['bayonet', 'battleaxe', 'railgun', 'akibo'] satisfies [string, string, string, string])
+      ...PLAYER_WEAPONS.filter((id) => id !== 'unarmed')
         .filter((id) =>
           id === 'bayonet' ? progress.bayonet : id === 'railgun' ? progress.railgun : owns(id),
         )

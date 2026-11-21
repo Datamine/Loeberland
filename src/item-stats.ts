@@ -3,6 +3,18 @@ import { isOneOf } from './types/json.ts';
 import { ITEM_STATS, EQUIPMENT_IDS } from './config/item-stats.ts';
 
 export { ITEM_STATS, EQUIPMENT_IDS };
+export const OWNED_WEAPONS = ['rolling-pin', 'battleaxe', 'akibo'] as const;
+export const PLAYER_WEAPONS = [
+  'unarmed',
+  'rolling-pin',
+  'bayonet',
+  'battleaxe',
+  'railgun',
+  'akibo',
+] as const;
+export function isOwnedWeapon(id: string) {
+  return isOneOf(OWNED_WEAPONS, id);
+}
 
 /** Runtime inventory helpers; editable definitions live in config/item-stats.js. */
 export function itemById(id: PropertyKey) {
@@ -13,13 +25,16 @@ export function equipmentOwned(purse: { ownedEquipment: string | string[] }, id:
 }
 export function selectedWeapon(
   preference: string = 'unarmed',
-  { bayonet = false, railgun = false, battleaxe = false, akibo = false } = {},
+  {
+    bayonet = false,
+    railgun = false,
+    battleaxe = false,
+    akibo = false,
+    'rolling-pin': rollingPin = false,
+  } = {},
 ) {
-  const owned = { unarmed: true, bayonet, railgun, battleaxe, akibo };
-  return isOneOf(['unarmed', 'bayonet', 'railgun', 'battleaxe', 'akibo'] as const, preference) &&
-    owned[preference]
-    ? preference
-    : 'unarmed';
+  const owned = { unarmed: true, bayonet, railgun, battleaxe, akibo, 'rolling-pin': rollingPin };
+  return isOneOf(PLAYER_WEAPONS, preference) && owned[preference] ? preference : 'unarmed';
 }
 export function equipmentDefense(look: Appearance = {}) {
   return (

@@ -37,6 +37,10 @@ export const DOWNTOWN = Object.freeze({
 export function marketSide(x: number, z: number | undefined) {
   return x + Number(z) - marketEnd[0] - marketEnd[1];
 }
+export const SOMA_ZOMBIE_SPAWNS = Object.freeze([
+  { id: 'soma-zombie-1', combatKind: 'soma-zombie', x: 49.5, z: 35.5 },
+  { id: 'soma-zombie-2', combatKind: 'soma-zombie', x: 54, z: 38.2 },
+]);
 
 function arch(m: Mesh, x: number, y: number, z: number, w: number, h: number, color: string) {
   const r = w / 2,

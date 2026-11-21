@@ -24,6 +24,7 @@ export function skillStatus(value: unknown) {
     level,
     xp,
     percent: level === PROGRESSION.maxLevel ? 100 : (100 * (xp - low)) / (high - low),
+    nextXP: level === PROGRESSION.maxLevel ? null : high,
     next: level === PROGRESSION.maxLevel ? null : level + 1,
     contentNodeId: 'progression.skillStatus.node-1',
   };

@@ -25,6 +25,7 @@ type WalkingMonster = MonsterStats & {
 };
 import { EMF_WARRIOR } from './bolinas.ts';
 import { GOBLIN_SPAWNS } from './goblin-town.ts';
+import { SOMA_ZOMBIE_SPAWNS } from './downtown.ts';
 import { ITEM_STATS } from './item-stats.ts';
 import { MONSTER_STATS, rollMonsterDrops } from './monster-drops.ts';
 import { rollWeaponDamage } from './combat.ts';
@@ -96,7 +97,14 @@ export function wildernessSpawns({ marin, tahoe }: { marin: Point; tahoe: WorldP
     { ...TERMINATOR_SITE },
     { ...BISON_SITE },
     ...GOBLIN_SPAWNS,
+    ...SOMA_ZOMBIE_SPAWNS.map((spawn) => ({ ...spawn })),
     { ...EMF_WARRIOR },
+    ...[[22, 18.5] as const, [20.5, 21.5] as const, [20.5, 25.5] as const].map(([x, z], i) => ({
+      id: 'presidio-seagull-' + i,
+      combatKind: 'seagull',
+      x,
+      z,
+    })),
     ...[
       [43.5, 17.25] satisfies [number, number],
       [40.5, 18.5] satisfies [number, number],
@@ -135,7 +143,7 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
     statsByKind.set(kind, walking);
     return walking;
   }
-  const actors: WildernessActor[] = spawns.map((p, i) => {
+  function makeActor(p: WildernessSpawn, i: number): WildernessActor {
     const s = walkingStats(p.combatKind);
     return {
       ...p,
@@ -156,6 +164,8 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
       repath: 0,
       attackAt: 0,
       affection: 0,
+      chaseUntil: 0,
+      returning: false,
       description:
         s.description ||
         (p.combatKind === 'bear'
@@ -164,7 +174,17 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
             ? 'An ancient snowdrift with fists. Its scarf is a small avalanche.'
             : 'A glacier has stood up, and it is not pleased about your carbon footprint.'),
     };
-  });
+  }
+  const actors = spawns.map(makeActor);
+  function dispatch(spawn: WildernessSpawn, person: P) {
+    const actor = makeActor(spawn, actors.length);
+    actor.enemy = actor.dispatchedFor = person.id;
+    actor.enemyPosition = { x: person.x, z: person.z };
+    actor.lastCombatAt = clock;
+    actors.push(actor);
+    return actor;
+  }
+
   function strike(id: string, attacker: WildernessPerson) {
     const actor = actors.find((n) => n.id === id),
       weapon = ITEM_STATS[attacker.weapon || 'unarmed'] || ITEM_STATS.unarmed;
@@ -189,7 +209,13 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
       return { ok: false, message: 'A wall of static forces you back.' };
     const hit = Math.min(actor.hp, Math.floor(amount));
     actor.hp -= hit;
+    if (retaliate && actor.enemy !== attacker.id) {
+      actor.chaseUntil = 0;
+      actor.enemyPosition = { x: attacker.x, z: attacker.z };
+    }
     actor.enemy = retaliate ? attacker.id : null;
+    actor.returning = false;
+    if (actor.dispatchedFor !== undefined) actor.lastCombatAt = clock;
     actor.affection = 0;
     actor.repath = 0;
     actor.attackAt = Math.max(actor.attackAt, clock + 0.6);
@@ -228,6 +254,12 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
     if (!isFiniteNumber(dt) || dt <= 0) return;
     clock += dt;
     const byId = new Map(people.map((p) => [p.id, p]));
+    // Remove expired responses before iterating the active roster.
+    for (let i = actors.length - 1; i >= 0; i--) {
+      const actor = actors[i];
+      if (actor.lastCombatAt !== undefined && (!actor.hp || clock - actor.lastCombatAt >= 60))
+        actors.splice(i, 1);
+    }
     for (const [i, actor] of actors.entries()) {
       const stats = walkingStats(actor.combatKind),
         inTerritory = (p: WorldPoint) =>
@@ -244,20 +276,36 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
             z: actor.home.z,
             base: ground(actor.home.x, actor.home.z),
             enemy: null,
+            chaseUntil: 0,
+            returning: false,
+            enemyPosition: undefined,
             path: [],
           });
         continue;
       }
       let enemy: P | null = (actor.enemy === null ? undefined : byId.get(actor.enemy)) || null;
-      if (
-        (enemy && Math.hypot(enemy.x - actor.home.x, enemy.z - actor.home.z) > stats.leash) ||
-        (enemy && !inTerritory(enemy))
-      ) {
-        actor.enemy = null;
-        enemy = null;
+      const canPursue = (person: WorldPoint) =>
+        Math.hypot(person.x - actor.home.x, person.z - actor.home.z) <= stats.leash &&
+        inTerritory(person);
+      if (enemy) {
+        const distance = Math.hypot(enemy.x - actor.x, enemy.z - actor.z),
+          previous = actor.enemyPosition,
+          movingAway =
+            previous && distance > Math.hypot(previous.x - actor.x, previous.z - actor.z) + 0.00001,
+          canReach = canPursue(enemy);
+        actor.enemyPosition = { x: enemy.x, z: enemy.z };
+        if (canReach && distance < 1.6) actor.chaseUntil = 0;
+        else if (!actor.chaseUntil && (movingAway || !canReach)) actor.chaseUntil = clock - dt + 3;
+        if (actor.chaseUntil && clock + 1e-8 >= actor.chaseUntil) enemy = null;
       }
-      if (!enemy) actor.enemy = null;
-      if (!enemy && stats.aggression) {
+      if (!enemy && actor.enemy !== null) {
+        actor.enemy = null;
+        actor.chaseUntil = 0;
+        actor.enemyPosition = undefined;
+        actor.returning = true;
+        actor.repath = 0;
+      }
+      if (!enemy && !actor.returning && stats.aggression) {
         let closest = stats.aggression + 0.000001;
         for (const person of people) {
           const distance = stats.territoryHalfWidth
@@ -274,9 +322,14 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
         }
         if (enemy) {
           actor.enemy = enemy.id;
+          actor.enemyPosition = { x: enemy.x, z: enemy.z };
           actor.repath = 0;
           actor.attackAt = Math.max(actor.attackAt, clock + 0.6);
         }
+      }
+      if (actor.returning && Math.hypot(actor.x - actor.home.x, actor.z - actor.home.z) < 0.05) {
+        actor.returning = false;
+        actor.repath = 0;
       }
       if (actor.affection && !enemy) {
         actor.path = [];
@@ -300,8 +353,9 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
         actor.repath = enemy ? 0.6 : 1.5;
         const goal = enemy
           ? { x: enemy.x, z: enemy.z }
-          : Math.hypot(actor.x - actor.home.x, actor.z - actor.home.z) >
-              (stats.roamRadius || 1) + 0.25
+          : actor.returning ||
+              Math.hypot(actor.x - actor.home.x, actor.z - actor.home.z) >
+                (stats.roamRadius || 1) + 0.25
             ? actor.home
             : {
                 x: actor.home.x + Math.sin(clock * 0.17 + i) * (stats.roamRadius || 0.24),
@@ -309,11 +363,14 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
                   actor.home.z +
                   Math.cos(clock * 0.2 + i) * (stats.roamRadius ? stats.roamRadius * 0.7 : 0.65),
               };
+        // Territory-bound creatures can follow to the boundary while their timer runs.
         actor.path = direct ? [] : route(actor, goal) || [];
       }
       const distance = enemy ? Math.hypot(enemy.x - actor.x, enemy.z - actor.z) : Infinity;
       let budget =
-        enemy && distance < 1.35 ? 0 : dt * (enemy ? stats.speed : stats.roamSpeed || 0.45);
+        enemy && distance < 1.35
+          ? 0
+          : dt * (enemy || actor.returning ? stats.speed : stats.roamSpeed || 0.45);
       actor.motion = 0;
       // Giants pursue in short direct steps rather than finding a route
       // around every obstacle. Their broader bodies stop beside trunks;
@@ -341,6 +398,7 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
       actor.base = ground(actor.x, actor.z);
       if (
         enemy &&
+        canPursue(enemy) &&
         (stats.territoryHalfWidth
           ? inTerritory(enemy)
           : Math.hypot(enemy.x - actor.x, enemy.z - actor.z) < 1.6) &&
@@ -348,6 +406,7 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
         clear(actor, enemy)
       ) {
         actor.attackAt = clock + stats.interval;
+        if (actor.dispatchedFor !== undefined) actor.lastCombatAt = clock;
         onDamage(enemy, stats.damage, actor);
       }
     }
@@ -360,6 +419,7 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
   }
   return {
     actors,
+    dispatch,
     strike,
     damage,
     pet,

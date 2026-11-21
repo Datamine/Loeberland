@@ -1,5 +1,8 @@
 import { requiredElement } from '../src/types/ui.ts';
 import { errorMessage, isRecord } from '../src/types/json.ts';
+import { equipmentOptions, fillEquipmentSelect } from '../src/equipment-options.ts';
+import { clothingSelection } from '../src/clothing.ts';
+import { railgunUnlocked } from '../src/item-stats.ts';
 interface AdminRow {
   kind: string;
   key: string;
@@ -27,6 +30,9 @@ interface AdminElements {
   source: HTMLParagraphElement;
   title: HTMLHeadingElement;
   key: HTMLParagraphElement;
+  equipment: HTMLElement;
+  'equipment-fields': HTMLDivElement;
+  'equipment-hint': HTMLParagraphElement;
 }
 declare const __ADMIN_READ_ONLY__: boolean;
 const token = '__ADMIN_TOKEN__';
@@ -37,6 +43,104 @@ let records: AdminRow[] = [],
   original = '',
   baseline = '',
   busy = false;
+const slots = {
+  torso: 'Top',
+  legs: 'Bottom',
+  boots: 'Footwear',
+  hat: 'Hat',
+  back: 'Back',
+  neck: 'Neck',
+  weapon: 'Weapon',
+  sunglasses: 'Eyewear',
+} as const;
+type EquipmentSlot = keyof typeof slots;
+const equipmentFields = new Map<EquipmentSlot, HTMLSelectElement>();
+for (const [key, caption] of Object.entries(slots) as [EquipmentSlot, string][]) {
+  const label = document.createElement('label');
+  const select = document.createElement('select');
+  label.append(caption, select);
+  $('equipment-fields').append(label);
+  equipmentFields.set(key, select);
+}
+function playerDraft() {
+  try {
+    const record: unknown = JSON.parse($('editor').value);
+    if (!isRecord(record)) return null;
+    const player = isRecord(record.playerState) ? record.playerState : record;
+    if (!isRecord(player.inventory) || !isRecord(player.quests)) return null;
+    return { record, player, inventory: player.inventory, quests: player.quests };
+  } catch {
+    return null;
+  }
+}
+const strings = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+function renderEquipment() {
+  $('equipment').hidden = selected?.kind !== 'state' || !selected.key.startsWith('player:');
+  if ($('equipment').hidden) return;
+  const draft = playerDraft();
+  $('equipment-hint').textContent = draft
+    ? 'Choose from this player’s unlocked gear.'
+    : 'Enter a valid player record to use the selectors.';
+  $('equipment-fields').hidden = !draft;
+  if (!draft) return;
+  const { player, inventory, quests } = draft;
+  const economy = isRecord(inventory.economy) ? inventory.economy : {};
+  const expeditions = isRecord(quests.expeditions) ? quests.expeditions : {};
+  const options = {
+    ...equipmentOptions(
+      {
+        ownedEquipment: strings(economy.ownedEquipment),
+        ownedHats: strings(economy.ownedHats),
+      },
+      {
+        bayonet: isRecord(quests.theyLive) && quests.theyLive.bayonet === true,
+        railgun: railgunUnlocked(expeditions),
+        cape: expeditions.cape === true,
+      },
+    ),
+    sunglasses: [{ value: 'false', label: 'No eyewear' }],
+  };
+  if (isRecord(inventory.sunglasses) && inventory.sunglasses.owned === true)
+    options.sunglasses.push({ value: 'true', label: 'Sunglasses' });
+  const appearance = isRecord(player.appearance) ? player.appearance : {};
+  const look: Record<string, unknown> = { ...appearance, ...clothingSelection(appearance) };
+  for (const [key, select] of equipmentFields) {
+    const current = look[key];
+    const value =
+      typeof current === 'string' || typeof current === 'boolean'
+        ? current
+        : key === 'back' && appearance.cape === true
+          ? 'cape'
+          : options[key][0].value;
+    fillEquipmentSelect(select, options[key], value);
+    // An invalid saved selection should still be clear in a read-only inspection.
+    if (!options[key].some((item) => item.value === String(value))) {
+      const unavailable = new Option('Unavailable · ' + value, String(value));
+      unavailable.disabled = true;
+      select.add(unavailable);
+      select.value = unavailable.value;
+    }
+    select.disabled = readOnly || busy;
+    select.onchange = () => {
+      if (readOnly || busy) return;
+      const current = playerDraft();
+      if (!current) return;
+      const appearance = isRecord(current.player.appearance)
+        ? { ...current.player.appearance }
+        : {};
+      appearance[key] =
+        key === 'boots' || key === 'sunglasses' ? select.value === 'true' : select.value;
+      if (key === 'torso' || key === 'legs')
+        Object.assign(appearance, clothingSelection(appearance));
+      if (key === 'back') appearance.cape = select.value === 'cape';
+      current.player.appearance = appearance;
+      const editor = $('editor');
+      editor.value = JSON.stringify(current.record, null, 2);
+      controls();
+    };
+  }
+}
 function status(message: string | null, type = '') {
   $('status').textContent = message;
   $('status').className = type;
@@ -52,6 +156,7 @@ function controls() {
   $('editor').disabled = busy || !selected;
   $('refresh').disabled = busy;
   $('dirty').textContent = changed() ? 'Unsaved changes' : '';
+  renderEquipment();
 }
 function api(path: 'records', options?: RequestInit): Promise<AdminList>;
 function api(path: string, options?: RequestInit): Promise<AdminRecord>;

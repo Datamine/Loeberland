@@ -6,7 +6,9 @@ import { hatById } from './hat-catalog.ts';
 import { Mesh } from './geometry.ts';
 import { drawCharacter } from './characters.ts';
 import { drawKrakenCape } from './jurassic-models.ts';
+import { drawWildMonster } from './wilderness-models.ts';
 import { HAIRSTYLES } from './config/hairstyles.ts';
+import { PLAYER_WEAPONS } from './item-stats.ts';
 
 export const CHARACTER_DEFAULTS = Object.freeze({
   gender: 'man',
@@ -66,18 +68,7 @@ export function normalizeCharacter(input: unknown = {}): CharacterSettings {
     ? Math.max(0, value.rocketBurnUntil)
     : 0;
   result.hat = hatById(typeof value.hat === 'string' ? value.hat : undefined)?.id || 'none';
-  result.weapon = isOneOf(
-    ['unarmed', 'bayonet', 'battleaxe', 'railgun', 'akibo'] satisfies [
-      string,
-      string,
-      string,
-      string,
-      string,
-    ],
-    value.weapon,
-  )
-    ? value.weapon
-    : 'unarmed';
+  result.weapon = isOneOf(PLAYER_WEAPONS, value.weapon) ? value.weapon : 'unarmed';
   result.boots = value?.boots === true;
   result.iceTop = value?.iceTop === true;
   result.icePants = value?.icePants === true;
@@ -89,6 +80,7 @@ export function characterAppearance(settings: CharacterSettings & { phone?: bool
     ...settings,
     railgun: settings.weapon === 'railgun',
     battleaxe: settings.weapon === 'battleaxe',
+    rollingPin: settings.weapon === 'rolling-pin',
     akibo: settings.weapon === 'akibo',
     female,
     longHair: female && settings.hairstyle === 'long',
@@ -151,7 +143,10 @@ export function drawCharacterPreview(
   }
 }
 
-export function drawChatHead(canvas: HTMLCanvasElement, person: CharacterAppearance) {
+export function drawChatHead(
+  canvas: HTMLCanvasElement,
+  person: CharacterAppearance & { combatKind?: string; kind?: string },
+) {
   const ctx = canvas.getContext?.('2d');
   if (!ctx) return;
   const settings = normalizeCharacter({
@@ -160,27 +155,49 @@ export function drawChatHead(canvas: HTMLCanvasElement, person: CharacterAppeara
       back: 'none',
     }),
     m = new Mesh();
-  drawCharacter(m, 0, 0, 0, Math.PI / 2 + 0.16, 0, false, settings.skin, settings.shirt, {
-    ...person,
-    ...characterAppearance(settings),
-    backpack: false,
-    railgun: false,
-    bayonet: false,
-    battleaxe: false,
-    akibo: false,
-    motion: 0,
-  });
+  const mechanic = person.kind === 'atv-rental';
+  const goblin = mechanic || person.combatKind === 'goblin-maker',
+    headBottom = goblin ? 0.88 : 1.43;
+  if (goblin) {
+    drawWildMonster(m, {
+      combatKind: mechanic ? 'goblin' : 'goblin-maker',
+      modelVariant: mechanic ? 'mechanic' : undefined,
+      x: 0,
+      z: 0,
+      base: 0,
+      angle: Math.PI / 2 + 0.16,
+    });
+  } else {
+    drawCharacter(m, 0, 0, 0, Math.PI / 2 + 0.16, 0, false, settings.skin, settings.shirt, {
+      ...person,
+      ...characterAppearance(settings),
+      height: 1,
+      mode: 'idle',
+      backpack: false,
+      railgun: false,
+      bayonet: false,
+      battleaxe: false,
+      rollingPin: false,
+      akibo: false,
+      motion: 0,
+    });
+  }
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  let headTop = goblin ? 1.24 : 1.82;
+  for (let i = 1; i < m.data.length; i += 11) headTop = Math.max(headTop, m.data[i]);
   const triangles = [],
-    scale = canvas.width / 0.64;
+    scale = Math.min(
+      canvas.width / (goblin ? 1.12 : 0.48),
+      (canvas.height * 0.84) / (headTop - headBottom),
+    );
   for (let i = 0; i < m.data.length; i += 33) {
-    if (Math.max(m.data[i + 1], m.data[i + 12], m.data[i + 23]) < 1.25) continue;
+    if (Math.max(m.data[i + 1], m.data[i + 12], m.data[i + 23]) < headBottom) continue;
     const points = ([0, 11, 22] satisfies [number, number, number]).map(
       (k) =>
         [
           canvas.width / 2 + m.data[i + k] * scale,
-          canvas.height * 0.1 +
-            (1.86 - m.data[i + k + 1]) * scale -
+          canvas.height * 0.08 +
+            (headTop - m.data[i + k + 1]) * scale -
             m.data[i + k + 2] * scale * 0.08,
         ] satisfies [number, number],
     );

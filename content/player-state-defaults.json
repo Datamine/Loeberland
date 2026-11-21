@@ -115,9 +115,5 @@
       "burnUntil": 0,
       "hopAt": 0
     }
-  },
-  "migration": {
-    "legacyKeys": [],
-    "unknownPrivateState": {}
   }
 }

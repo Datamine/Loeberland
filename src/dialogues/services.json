@@ -200,6 +200,11 @@
           "label": "Buy Tahoe tablet · {tabletPrice} coins",
           "action": "buyTablet",
           "args": ["tahoe"]
+        },
+        {
+          "label": "Buy Cupertino teletab · {tabletPrice} coins",
+          "action": "buyTablet",
+          "args": ["cupertino"]
         }
       ]
     },

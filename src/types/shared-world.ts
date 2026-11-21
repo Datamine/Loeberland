@@ -61,6 +61,7 @@ export type SharedWorldOptions = Pick<
   'geometry' | 'players' | 'send' | 'dirty'
 > &
   Partial<Pick<SimulationServices, 'routes' | 'random' | 'now'>> & {
+    movement?: Pick<SimulationServices['movement'], 'approachCombat' | 'stopCombatRoute'>;
     saved?: SharedSavedState;
     onAirshipReset?: (player: ServerPlayer) => void;
     onCombatDamage?: (player: ServerPlayer, damage: number) => void;

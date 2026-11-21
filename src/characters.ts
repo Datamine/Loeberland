@@ -44,6 +44,7 @@ export interface CharacterAppearance extends Appearance {
   alien?: boolean;
   bayonet?: boolean;
   battleaxe?: boolean;
+  rollingPin?: boolean;
   trim?: string;
   bag?: string;
   gilded?: boolean;
@@ -466,6 +467,10 @@ export function sampleCharacterPose(
     lean += run * motion * 0.14;
   }
   lean += 0.009 * Math.sin(time * 1.7) * (1 - motion);
+  if (gesture === 'zombie') {
+    lean += 0.13;
+    roll += 0.055 * Math.sin(phase);
+  }
   if (rollTuck) {
     hip -= 0.24 * rollTuck;
     lean += 0.65 * rollTuck;
@@ -571,6 +576,8 @@ export function sampleCharacterPose(
     let wrist: number[] | null = null,
       pole: number[] | null = null;
     if (options.waiting) wrist = side ? options.waiting.rightWrist : options.waiting.leftWrist;
+    else if (gesture === 'zombie')
+      wrist = [sign * 0.26, (side ? 1.16 : 1.04) + Math.sin(phase + sign) * 0.035, 0.36];
     else if (rollTuck)
       wrist = [sign * 0.17, charMix(0.77, 0.61, rollTuck), 0.33 * rollTuck] satisfies [
         number,
@@ -959,6 +966,7 @@ function charBuildMesh({
   alien,
   bayonet,
   battleaxe,
+  rollingPin,
   akibo,
   boots,
   iceTop,
@@ -1076,19 +1084,66 @@ function charBuildMesh({
     if (boots) {
       m.loft(
         [
-          [x, 0.12, 0, 0.08, 0.09],
-          [x, 0.38, 0, 0.091, 0.1],
-          [x, 0.49, 0, 0.09, 0.1],
+          [x, 0.1, 0.015, 0.084, 0.104],
+          [x, 0.19, -0.005, 0.086, 0.094],
+          [x, 0.34, -0.012, 0.098, 0.105],
+          [x, 0.51, 0.001, 0.105, 0.118],
+          [x, 0.6, 0.006, 0.106, 0.118],
+          [x, 0.63, 0.007, 0.103, 0.113],
         ],
         S.shoe,
-        shin,
-        8,
+        legRig,
+        12,
       );
-      for (const y of [0.23, 0.34, 0.43] satisfies [number, number, number]) {
-        m.box(x - 0.095, y, -0.08, 0.19, 0.025, 0.17, S.belt, shin);
-        m.box(x - 0.05, y - 0.005, 0.095, 0.065, 0.04, 0.018, S.metal, shin);
+      m.loft(
+        [
+          [x, 0.565, 0.003, 0.109, 0.12],
+          [x, 0.61, 0.008, 0.109, 0.121],
+          [x, 0.636, 0.008, 0.104, 0.115],
+        ],
+        S.belt,
+        legRig,
+        12,
+      );
+      for (let row = 0; row < 6; row++) {
+        const y = 0.195 + row * 0.06,
+          front = 0.092 + row * 0.005;
+        for (const side of [-1, 1]) {
+          const eye = x + side * 0.043;
+          m.box(eye - 0.009, y - 0.008, front, 0.018, 0.017, 0.014, S.metal, legRig);
+          if (row < 5)
+            m.quad(
+              [eye, y - 0.004, front + 0.016],
+              [eye, y + 0.004, front + 0.016],
+              [x - side * 0.043, y + 0.064, front + 0.021],
+              [x - side * 0.043, y + 0.056, front + 0.021],
+              S.trim,
+              legRig,
+            );
+        }
       }
-      m.box(x - 0.072, 0.04, 0.13, 0.144, 0.045, 0.065, S.metal, foot);
+      m.loft(
+        [
+          [x, 0.009, 0.063, 0.088, 0.155],
+          [x, 0.044, 0.065, 0.089, 0.157],
+          [x, 0.065, 0.066, 0.08, 0.153],
+        ],
+        S.belt,
+        foot,
+        12,
+      );
+      for (let lug = 0; lug < 5; lug++)
+        for (const side of [-1, 1])
+          m.box(
+            x + side * 0.072 - 0.016,
+            0.008,
+            -0.05 + lug * 0.054,
+            0.032,
+            0.028,
+            0.032,
+            S.belt,
+            foot,
+          );
     }
     // A beveled, forward-facing shoe with a distinct heel and toe.
     m.loft(
@@ -1571,6 +1626,37 @@ function charBuildMesh({
       m.box(x - 0.025, 0.365, -0.02, 0.05, 0.028, 0.07, S.eye, hand);
       m.box(x - 0.012, 0.36, 0.057, 0.024, 0.04, 0.01, S.white, hand);
     }
+  if (rollingPin) {
+    m.loft(
+      [
+        [0.245, 0.355, 0.005, 0.022, 0.022],
+        [0.245, 0.61, 0.005, 0.025, 0.025],
+      ],
+      S.bag,
+      9,
+      12,
+    );
+    m.loft(
+      [
+        [0.245, 0.59, 0.005, 0.029, 0.029],
+        [0.245, 0.635, 0.005, 0.075, 0.075],
+        [0.245, 0.962, 0.005, 0.075, 0.075],
+        [0.245, 1.005, 0.005, 0.03, 0.03],
+      ],
+      S.metal,
+      9,
+      16,
+    );
+    m.loft(
+      [
+        [0.245, 1.002, 0.005, 0.021, 0.021],
+        [0.245, 1.095, 0.005, 0.021, 0.021],
+      ],
+      S.bag,
+      9,
+      12,
+    );
+  }
   if (battleaxe) {
     m.box(0.224, 0.48, -0.022, 0.044, 0.83, 0.045, S.bag, 9);
     m.loft(
@@ -1629,22 +1715,45 @@ function charBuildMesh({
   if (tinfoil) {
     m.loft(
       [
-        [0, 1.77, 0, 0.16, 0.15] satisfies [number, number, number, number, number],
-        [0, 1.92, 0, 0.15, 0.14] satisfies [number, number, number, number, number],
-        [0, 2.12, 0, 0.008, 0.008] satisfies [number, number, number, number, number],
+        [0.015, 1.72, 0.012, 0.158, 0.138],
+        [-0.018, 1.84, -0.016, 0.158, 0.135],
+        [0.032, 1.94, 0.008, 0.102, 0.094],
+        [-0.032, 2.055, 0.015, 0.012, 0.012],
       ],
-      S.shirt,
+      S.metal,
       3,
-      8,
+      7,
     );
-    for (const y of [1, 1.12, 1.24] satisfies [number, number, number])
-      m.tri(
-        [-0.13, y, 0.155] satisfies [number, number, number],
-        [0.13, y + 0.02, 0.155] satisfies [number, number, number],
-        [0, y + 0.08, 0.17] satisfies [number, number, number],
-        S.trim,
-        2,
-      );
+    for (const side of [-1, 1]) {
+      const arm = side > 0 ? 7 : 4,
+        thigh = side > 0 ? 13 : 10;
+      for (let i = 0; i < 4; i++) {
+        const y = 0.92 + i * 0.115,
+          xx = side * (0.17 + i * 0.019);
+        m.tri(
+          [0, y - 0.035, 0.151],
+          [xx, y + 0.04, 0.122],
+          [xx * 0.54, y + 0.119, 0.167],
+          i % 2 ? S.trim : S.metal,
+          charTorsoRig,
+          0.94,
+        );
+        m.tri(
+          [side * 0.23, y - 0.02, 0.079],
+          [side * 0.332, y + 0.05, 0.062],
+          [side * 0.26, y + 0.08, 0.1],
+          S.metal,
+          arm,
+        );
+        m.tri(
+          [side * 0.046, y - 0.53, 0.092],
+          [side * 0.199, y - 0.48, 0.095],
+          [side * 0.143, y - 0.412, 0.117],
+          i % 2 ? S.trim : S.metal,
+          (p) => charBlend(thigh, thigh + 1, (0.55 - p[1]) / 0.15),
+        );
+      }
+    }
   }
   if (iceTop) {
     m.loft(
@@ -1734,6 +1843,7 @@ export function getCharacterMesh(appearance: CharacterAppearance = {}) {
     alien: !!appearance.alien,
     bayonet: !!appearance.bayonet,
     battleaxe: !!appearance.battleaxe,
+    rollingPin: !!appearance.rollingPin,
     akibo: !!appearance.akibo,
     boots: !!appearance.boots,
     iceTop: !!appearance.iceTop,
@@ -1879,6 +1989,7 @@ export function drawCharacter(
       railgun: false,
       akibo: false,
       battleaxe: false,
+      rollingPin: false,
       bayonet: false,
       phone: false,
     };

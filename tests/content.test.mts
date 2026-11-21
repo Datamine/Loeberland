@@ -118,9 +118,8 @@ test('legacy player data migrates every module and profile flag into one seriali
   assert.equal(saved.playerState.quests.theyLive.evidence, true);
   assert.equal(saved.playerState.quests.illuminatus.initiated, true);
   assert.equal(saved.playerState.inventory.economy.coins, 123);
-  assert.deepEqual(saved.playerState.migration.unknownPrivateState['old-plugin-v1'], {
-    flag: true,
-  });
+  assert.equal(Object.hasOwn(saved.playerState, 'migration'), false);
+  assert.equal(Object.hasOwn(hydratePlayerProfile(profile).privateState, 'old-plugin-v1'), false);
   for (const key of Object.keys(bindings.profile))
     assert.equal(Object.hasOwn(saved, key), false, key);
   assert.equal(Object.hasOwn(saved, 'privateState'), false);

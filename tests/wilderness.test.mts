@@ -49,9 +49,9 @@ test('weapon/food stats live in the item catalog and the axe fills the damage ga
   };
   assert.ok(average('bayonet') < average('battleaxe'));
   assert.ok(average('battleaxe') < average('railgun'));
-  assert.equal(MONSTER_STATS.kraken.hp, 600);
+  assert.equal(MONSTER_STATS.kraken.hp, 1200);
   assert.equal(MONSTER_STATS.bear.level, 10);
-  assert.equal(MONSTER_STATS.bear.hp, 20);
+  assert.equal(MONSTER_STATS.bear.hp, 50);
   assert.equal(selectedWeapon('battleaxe', {}), 'unarmed');
   assert.equal(selectedWeapon('battleaxe', { battleaxe: true }), 'battleaxe');
   assert.ok(ITEM_STATS.sandwich.inNOutPrice < ITEM_STATS.sandwich.pickupPrice);
@@ -101,7 +101,7 @@ test('a friendly bear never attacks unprovoked; petting makes peace and death ro
   assert.equal(drops[0].lootKind, 'peptides');
   assert.equal(game.strike('bear', p).ok, false);
   game.update(MONSTER_STATS.bear.respawn, [p]);
-  assert.equal(game.actors[0].hp, 20);
+  assert.equal(game.actors[0].hp, MONSTER_STATS.bear.hp);
   assert.equal(game.actors[0].enemy, null);
 });
 test('petting requires a neighboring tile, a reachable approach and clearance to the bear', () => {
@@ -176,6 +176,8 @@ test('giants require many hits, retaliate, leash to their home and respawn', () 
     assert.equal(game.actors[0].hp, MONSTER_STATS[kind].hp);
     game.strike(kind, p);
     game.update(1, [{ ...p, x: 100 }]);
+    assert.equal(game.actors[0].enemy, p.id);
+    game.update(2, [{ ...p, x: 100 }]);
     assert.equal(game.actors[0].enemy, null);
   }
 });

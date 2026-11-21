@@ -49,7 +49,7 @@ test('ice defense requires ownership and equipment, stacks and never turns a hit
   battle.update(1.25);
   assert.equal(health.state.hp, 24);
 });
-test('the 600-HP kraken enrages once at half health, accelerates its attacks and hits harder', () => {
+test('the level-60 kraken enrages once at half health, accelerates its attacks and hits harder', () => {
   const p = { x: 0, z: 0, eligible: false },
     events: import('../src/types/expeditions.ts').ExpeditionEvent[] = [],
     health = {
@@ -76,7 +76,8 @@ test('the 600-HP kraken enrages once at half health, accelerates its attacks and
   g.update(6);
   p.x = g.ship.x;
   p.eligible = true;
-  assert.equal(g.kraken.max, 600);
+  assert.equal(MONSTER_STATS.kraken.level, 60);
+  assert.equal(g.kraken.max, 1200);
   g.ship.attackIn = 0.05;
   g.update(0.05);
   const normal = requiredFixture(
@@ -99,5 +100,5 @@ test('the 600-HP kraken enrages once at half health, accelerates its attacks and
   g.abandonShip();
   g.board();
   assert.equal(g.kraken.enraged, false);
-  assert.equal(g.kraken.hp, 600);
+  assert.equal(g.kraken.hp, MONSTER_STATS.kraken.hp);
 });

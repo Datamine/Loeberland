@@ -54,6 +54,7 @@
       }
       input,
       button,
+      select,
       textarea {
         font: inherit;
       }
@@ -115,8 +116,45 @@
         overflow-wrap: anywhere;
         font-size: 12px;
       }
+      .record-fields {
+        display: flex;
+        align-items: flex-start;
+        flex: 1;
+        min-height: 0;
+        gap: 16px;
+      }
+      #equipment {
+        flex: 0 1 230px;
+        padding: 14px;
+        border: 1px solid #dce0e6;
+        border-radius: 6px;
+        background: #fff;
+        max-height: 100%;
+        overflow: auto;
+      }
+      #equipment-hint {
+        color: #647085;
+        font-size: 13px;
+      }
+      #equipment-fields label {
+        display: block;
+        margin-top: 10px;
+        font-size: 13px;
+      }
+      #equipment-fields select {
+        display: block;
+        width: 100%;
+        margin-top: 3px;
+        padding: 6px;
+        border: 1px solid #b9c2cf;
+        border-radius: 6px;
+        background: #fff;
+        color: inherit;
+      }
       textarea {
         flex: 1;
+        align-self: stretch;
+        min-width: 0;
         min-height: 260px;
         resize: vertical;
         padding: 16px;
@@ -149,6 +187,7 @@
       }
       button:focus-visible,
       input:focus-visible,
+      select:focus-visible,
       textarea:focus-visible {
         outline: 3px solid #7aa2ff;
         outline-offset: 2px;
@@ -169,6 +208,20 @@
         header,
         .notice {
           padding: 14px 16px;
+        }
+      }
+      @media (max-width: 900px) {
+        .record-fields {
+          flex-direction: column-reverse;
+        }
+        #equipment {
+          flex: 0 0 auto;
+          align-self: stretch;
+        }
+        #equipment-fields:not([hidden]) {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+          gap: 0 12px;
         }
       }
     </style>
@@ -197,12 +250,19 @@
           <span id="dirty"></span>
         </div>
         <label for="editor">Record value (JSON)</label>
-        <textarea
-          id="editor"
-          spellcheck="false"
-          disabled
-          placeholder="The selected record will appear here."
-        ></textarea>
+        <div class="record-fields">
+          <textarea
+            id="editor"
+            spellcheck="false"
+            disabled
+            placeholder="The selected record will appear here."
+          ></textarea>
+          <section id="equipment" aria-labelledby="equipment-title" hidden>
+            <h2 id="equipment-title">Equipment</h2>
+            <p id="equipment-hint"></p>
+            <div id="equipment-fields"></div>
+          </section>
+        </div>
         <div id="status" role="status" aria-live="polite"></div>
       </main>
     </div>
@@ -223,6 +283,437 @@
   function errorMessage(error) {
     return error instanceof Error ? error.message : String(error);
   }
+  function isOneOf(values, value) {
+    return values.includes(value);
+  }
+
+  // src/content-runtime.ts
+  var texts = { "config.hats.module.name-1": "Folded paper hat", "config.hats.module.name-2": "Dockside beanie", "config.hats.module.name-3": "Panama", "config.hats.module.name-4": "Velvet beret", "config.hats.module.name-5": "Silk top hat", "config.hats.module.name-6": "Plumed cavalier", "config.hats.module.name-7": "Astronomer\u2019s hat", "config.hats.module.name-8": "Golden laurel", "config.hats.module.name-9": "Stone of Jordan", "config.hats.module.name-10": "Santa Hat", "config.hats.module.name-11": "Blue Partyhat", "config.hats.module.name-12": "Stetson", "config.hats.module.name-13": "Pirate's hat", "config.item-stats.module.name-1": "Tinfoil suit", "config.item-stats.module.description-2": "A crinkling silver suit, folded with restaurant precision.", "config.item-stats.module.name-3": "Railgun accelerator", "config.item-stats.module.description-4": "An electromagnetic accelerator. Railgun fire rate increases by 10% while owned.", "config.item-stats.module.name-5": "Combat boots", "config.item-stats.module.description-6": "Tall black leather boots with chrome buckles, steel toe caps, and heavy soles. Block 2 damage from each incoming combat hit.", "config.item-stats.module.name-7": "Ball chair", "config.item-stats.module.description-8": "A sculptural white sphere with red upholstery and a chrome pedestal. Sit (chair) to settle inside.", "config.item-stats.module.name-9": "Fist", "config.item-stats.module.name-10": "Bayonet", "config.item-stats.module.name-11": "Battleaxe", "config.item-stats.module.name-12": "Railgun", "config.item-stats.module.name-13": "Akibo", "config.item-stats.module.name-14": "New Year\u2019s rocket", "config.item-stats.module.description-15": "An oversized decorative rocket. Light it for ten seconds, once a minute. Press Space while it burns to hop about a character-height into the air.", "config.item-stats.module.name-16": "Clock amulet", "config.item-stats.module.description-17": "A tiny clock on a chain. It keeps its own appointments.", "config.item-stats.module.name-18": "Hiking backpack", "config.item-stats.module.description-19": "A sturdy hiking pack with room for twenty sandwiches.", "config.item-stats.module.name-20": "Bison hide", "config.item-stats.module.description-21": "A heavy, shaggy hide. Yohji could make something remarkable from this.", "config.item-stats.module.name-22": "Black cloak top", "config.item-stats.module.description-23": "An oversized black top with dropped shoulders, generous sleeves and a long, loose hem.", "config.item-stats.module.name-24": "Black cloak bottom", "config.item-stats.module.description-25": "A sweeping black skirt. Enough fabric to consider the wind a collaborator.", "config.item-stats.module.name-26": "Downtown teleportation tablet", "config.item-stats.module.description-27": "A small purple tablet. Break it to return to downtown San Francisco.", "config.item-stats.module.name-28": "Tahoe teleportation tablet", "config.item-stats.module.description-29": "A snowy sigil in purple stone. Break it to appear beside the Tahoe gondola.", "config.item-stats.module.name-30": "Ice top", "config.item-stats.module.description-31": "A crystalline cuirass. While equipped, blocks 2 damage from each incoming combat hit.", "config.item-stats.module.name-32": "Ice pants", "config.item-stats.module.description-33": "Frosted greaves. While equipped, block 2 damage from each incoming combat hit.", "config.item-stats.module.name-34": "Sandwich", "config.item-stats.module.description-35": "A sandwich. Store it in your food bag and eat it to recover hitpoints.", "config.item-stats.module.name-36": "Peptides", "config.item-stats.module.description-37": "A tiny vial with a very large social network. Ray accepts these at the Freemasons\u2019 Guild.", "config.item-stats.module.name-38": "Coins", "config.item-stats.module.description-39": "Loose coins, awaiting a less theoretical owner.", "config.item-stats.module.name-40": "Goose Corp membership card", "config.item-stats.module.description-41": "A very official-looking card. The fine print seems to be turning to dust.", "config.item-stats.module.name-42": "Stetson", "config.item-stats.module.description-43": "A sand-dusted cowboy hat. The shark was keeping it under its hat.", "config.item-stats.module.name-44": "Pirate's hat", "config.item-stats.module.description-45": "A salt-stained tricorn. The previous owner had an unusually flexible interpretation of navigation.", "config.item-stats.module.name-46": "Velociraptor remains", "config.item-stats.module.description-47": "The emergency recovery protocol is now considerably less mobile.", "config.item-stats.module.name-48": "Kraken spoils", "config.item-stats.module.description-49": "The spoils of an extremely unwise maritime expedition." };
+  function contentText(id) {
+    if (!Object.hasOwn(texts, id)) throw new Error("Missing equipment text: " + id);
+    return texts[id];
+  }
+
+  // src/config/item-stats.ts
+  function defineItems(items) {
+    return Object.freeze(items);
+  }
+  var ITEM_STATS = defineItems({
+    "tinfoil-suit": {
+      name: contentText("config.item-stats.module.name-1", {}),
+      slot: "top",
+      description: contentText("config.item-stats.module.description-2", {})
+    },
+    "railgun-upgrade": {
+      name: contentText("config.item-stats.module.name-3", {}),
+      description: contentText("config.item-stats.module.description-4", {})
+    },
+    "combat-boots": {
+      name: contentText("config.item-stats.module.name-5", {}),
+      slot: "feet",
+      defense: 2,
+      description: contentText("config.item-stats.module.description-6", {})
+    },
+    "eames-chair": {
+      name: "Eames Chair",
+      description: "A walnut lounge chair with dark leather cushions from the Goblin Furniture Factory."
+    },
+    "bertoia-chair": {
+      name: "Bertoia Chair",
+      description: "A wire-frame chair from the Goblin Furniture Factory."
+    },
+    "ball-chair": {
+      name: contentText("config.item-stats.module.name-7", {}),
+      description: contentText("config.item-stats.module.description-8", {})
+    },
+    unarmed: {
+      name: contentText("config.item-stats.module.name-9", {}),
+      slot: "weapon",
+      range: 1.35,
+      interval: 1.05,
+      min: 1,
+      max: 2,
+      minPerLevel: 0,
+      maxPerLevel: 0.8,
+      accuracy: 0.65,
+      accuracyPerLevel: 0.02,
+      accuracyCap: 0.9
+    },
+    "rolling-pin": {
+      name: "Metal rolling pin",
+      slot: "weapon",
+      price: 20,
+      range: 1.4,
+      interval: 1,
+      min: 2,
+      max: 5,
+      minPerLevel: 0.15,
+      maxPerLevel: 0.8,
+      accuracy: 0.78,
+      accuracyPerLevel: 0.012,
+      accuracyCap: 0.94,
+      description: "A stainless-steel rolling pin from Cotogna, with a solid barrel and worn wooden handles."
+    },
+    bayonet: {
+      name: contentText("config.item-stats.module.name-10", {}),
+      slot: "weapon",
+      range: 1.35,
+      interval: 1.05,
+      min: 4,
+      max: 11,
+      minPerLevel: 0.4,
+      maxPerLevel: 1,
+      accuracy: 0.92,
+      accuracyPerLevel: 6e-3,
+      accuracyCap: 0.98
+    },
+    battleaxe: {
+      name: contentText("config.item-stats.module.name-11", {}),
+      slot: "weapon",
+      price: 50,
+      range: 1.5,
+      interval: 1.05,
+      min: 6,
+      max: 11.5,
+      minPerLevel: 0.35,
+      maxPerLevel: 0.85,
+      accuracy: 0.935,
+      accuracyPerLevel: 5e-3,
+      accuracyCap: 0.985
+    },
+    railgun: {
+      name: contentText("config.item-stats.module.name-12", {}),
+      slot: "weapon",
+      range: 5,
+      interval: 0.8,
+      min: 8,
+      max: 12,
+      minPerLevel: 0.3,
+      maxPerLevel: 0.7,
+      accuracy: 0.95,
+      accuracyPerLevel: 4e-3,
+      accuracyCap: 0.99
+    },
+    akibo: {
+      name: contentText("config.item-stats.module.name-13", {}),
+      slot: "weapon",
+      range: 7,
+      interval: 0.8,
+      min: 8,
+      max: 12,
+      minPerLevel: 0.3,
+      maxPerLevel: 0.7,
+      accuracy: 0.95,
+      accuracyPerLevel: 4e-3,
+      accuracyCap: 0.99
+    },
+    "new-year-rocket": {
+      name: contentText("config.item-stats.module.name-14", {}),
+      slot: "back",
+      description: contentText("config.item-stats.module.description-15", {})
+    },
+    "clock-amulet": {
+      name: contentText("config.item-stats.module.name-16", {}),
+      slot: "neck",
+      description: contentText("config.item-stats.module.description-17", {})
+    },
+    backpack: {
+      name: contentText("config.item-stats.module.name-18", {}),
+      slot: "back",
+      price: 100,
+      description: contentText("config.item-stats.module.description-19", {})
+    },
+    "bison-hide": {
+      name: contentText("config.item-stats.module.name-20", {}),
+      description: contentText("config.item-stats.module.description-21", {})
+    },
+    "black-cloak-top": {
+      name: contentText("config.item-stats.module.name-22", {}),
+      slot: "top",
+      description: contentText("config.item-stats.module.description-23", {})
+    },
+    "black-cloak-bottom": {
+      name: contentText("config.item-stats.module.name-24", {}),
+      slot: "legs",
+      description: contentText("config.item-stats.module.description-25", {})
+    },
+    "downtown-tablet": {
+      name: contentText("config.item-stats.module.name-26", {}),
+      price: 20,
+      description: contentText("config.item-stats.module.description-27", {})
+    },
+    "cupertino-tablet": {
+      name: "Cupertino teletab",
+      price: 20
+    },
+    "tahoe-tablet": {
+      name: contentText("config.item-stats.module.name-28", {}),
+      price: 20,
+      description: contentText("config.item-stats.module.description-29", {})
+    },
+    "ice-top": {
+      name: contentText("config.item-stats.module.name-30", {}),
+      slot: "top",
+      defense: 2,
+      color: "#92d9ed",
+      trim: "#e1faff",
+      description: contentText("config.item-stats.module.description-31", {})
+    },
+    "ice-pants": {
+      name: contentText("config.item-stats.module.name-32", {}),
+      slot: "legs",
+      defense: 2,
+      color: "#78bde5",
+      trim: "#d1f4ff",
+      description: contentText("config.item-stats.module.description-33", {})
+    },
+    sandwich: {
+      name: contentText("config.item-stats.module.name-34", {}),
+      healing: 15,
+      pickupPrice: 3,
+      deliveryPrice: 4,
+      inNOutPrice: 2,
+      description: contentText("config.item-stats.module.description-35", {})
+    },
+    peptides: {
+      name: contentText("config.item-stats.module.name-36", {}),
+      description: contentText("config.item-stats.module.description-37", {})
+    },
+    coins: {
+      name: contentText("config.item-stats.module.name-38", {}),
+      description: contentText("config.item-stats.module.description-39", {})
+    },
+    "goose-membership-card": {
+      name: contentText("config.item-stats.module.name-40", {}),
+      description: contentText("config.item-stats.module.description-41", {}),
+      pickup: "disintegrate",
+      pickupMessage: "The Goose Corp membership card disintegrates in your hands."
+    },
+    "stetson-hat": {
+      name: contentText("config.item-stats.module.name-42", {}),
+      slot: "hat",
+      hatId: "stetson",
+      description: contentText("config.item-stats.module.description-43", {})
+    },
+    "pirate-hat": {
+      name: contentText("config.item-stats.module.name-44", {}),
+      slot: "hat",
+      hatId: "pirate",
+      description: contentText("config.item-stats.module.description-45", {})
+    },
+    raptor: {
+      name: contentText("config.item-stats.module.name-46", {}),
+      description: contentText("config.item-stats.module.description-47", {})
+    },
+    kraken: {
+      name: contentText("config.item-stats.module.name-48", {}),
+      coins: 100,
+      description: contentText("config.item-stats.module.description-49", {})
+    }
+  });
+  var EQUIPMENT_IDS = Object.freeze([
+    "tinfoil-suit",
+    "railgun-upgrade",
+    "combat-boots",
+    "ball-chair",
+    "eames-chair",
+    "bertoia-chair",
+    "battleaxe",
+    "rolling-pin",
+    "ice-top",
+    "ice-pants",
+    "akibo",
+    "backpack",
+    "new-year-rocket",
+    "clock-amulet",
+    "black-cloak-top",
+    "black-cloak-bottom"
+  ]);
+
+  // src/item-stats.ts
+  var PLAYER_WEAPONS = [
+    "unarmed",
+    "rolling-pin",
+    "bayonet",
+    "battleaxe",
+    "railgun",
+    "akibo"
+  ];
+  function railgunUnlocked(progress = {}) {
+    return progress.railgun === true && ["escaped", "carrying", "completed"].includes(
+      progress.raptor || ""
+    );
+  }
+
+  // src/config/hats.ts
+  var HAT_CATALOG = Object.freeze(
+    [
+      {
+        id: "paper",
+        name: contentText("config.hats.module.name-1", {}),
+        price: 1,
+        colors: ["#e6dfc7", "#aaa38e", "#5a6359"]
+      },
+      {
+        id: "beanie",
+        name: contentText("config.hats.module.name-2", {}),
+        price: 10,
+        colors: ["#657d7c", "#9eae9b", "#c9b783"]
+      },
+      {
+        id: "panama",
+        name: contentText("config.hats.module.name-3", {}),
+        price: 50,
+        colors: ["#dfcda0", "#526c60", "#ccb16e"]
+      },
+      {
+        id: "beret",
+        name: contentText("config.hats.module.name-4", {}),
+        price: 250,
+        colors: ["#823f57", "#b77b82", "#d3b476"]
+      },
+      {
+        id: "top-hat",
+        name: contentText("config.hats.module.name-5", {}),
+        price: 1e3,
+        colors: ["#363e43", "#9b737c", "#d5b878"]
+      },
+      {
+        id: "cavalier",
+        name: contentText("config.hats.module.name-6", {}),
+        price: 5e3,
+        colors: ["#4f5b65", "#c3a367", "#e4d8b8"],
+        trimMetal: true
+      },
+      {
+        id: "wizard",
+        name: contentText("config.hats.module.name-7", {}),
+        price: 1e4,
+        colors: ["#545179", "#c8ae65", "#c8d6df"],
+        trimMetal: true
+      },
+      {
+        id: "laurel",
+        name: contentText("config.hats.module.name-8", {}),
+        price: 25e3,
+        colors: ["#d9ba63", "#e6d194", "#8fb9a3"],
+        metal: true,
+        trimMetal: true
+      },
+      {
+        id: "stone-of-jordan",
+        name: contentText("config.hats.module.name-9", {}),
+        price: 5e4,
+        colors: ["#777e82", "#b2b6b3", "#7b77a4"]
+      },
+      {
+        id: "santa",
+        name: contentText("config.hats.module.name-10", {}),
+        price: 75e3,
+        colors: ["#ba3c49", "#eee8d6", "#84323b"]
+      },
+      // Keep the old top-tier inventory ID so owners retain their purchase.
+      {
+        id: "crown",
+        name: contentText("config.hats.module.name-11", {}),
+        price: 1e5,
+        colors: ["#3568d1", "#78a3ef", "#23478f"]
+      },
+      {
+        id: "stetson",
+        name: contentText("config.hats.module.name-12", {}),
+        dropOnly: true,
+        colors: ["#b68a57", "#614431", "#dfbd82"]
+      },
+      {
+        id: "pirate",
+        name: contentText("config.hats.module.name-13", {}),
+        dropOnly: true,
+        colors: ["#30383d", "#c6a76b", "#e7e0c9"]
+      }
+    ].map((h) => Object.freeze({ ...h, colors: Object.freeze(h.colors) }))
+  );
+
+  // src/equipment-options.ts
+  function equipmentOptions({
+    ownedEquipment = [],
+    ownedHats = []
+  } = {}, progress = {}) {
+    const owns = (id) => ownedEquipment.includes(id), option = (value, label) => ({ value, label });
+    return {
+      hat: [
+        option("none", "No hat"),
+        ...HAT_CATALOG.filter((h) => ownedHats.includes(h.id)).map((h) => option(h.id, h.name))
+      ],
+      weapon: [
+        option("unarmed", "Fist"),
+        ...PLAYER_WEAPONS.filter((id) => id !== "unarmed").filter(
+          (id) => id === "bayonet" ? progress.bayonet : id === "railgun" ? progress.railgun : owns(id)
+        ).map((id) => option(id, ITEM_STATS[id].name))
+      ],
+      back: [
+        option("none", "Nothing on back"),
+        ...["backpack", "new-year-rocket"].filter(owns).map((id) => option(id, ITEM_STATS[id].name)),
+        ...progress.cape ? [option("cape", "Kraken cape")] : []
+      ],
+      neck: [
+        option("none", "No necklace"),
+        ...owns("clock-amulet") ? [option("clock-amulet", ITEM_STATS["clock-amulet"].name)] : []
+      ],
+      torso: [
+        option("shirt", "Regular shirt"),
+        ...["ice-top", "black-cloak-top", "tinfoil-suit"].filter(owns).map((id) => option(id, ITEM_STATS[id].name))
+      ],
+      legs: [
+        option("trousers", "Regular trousers"),
+        ...["ice-pants", "black-cloak-bottom"].filter(owns).map((id) => option(id, ITEM_STATS[id].name))
+      ],
+      boots: [
+        option("false", "Regular shoes"),
+        ...owns("combat-boots") ? [option("true", "Combat boots")] : []
+      ],
+      iceTop: [
+        option("false", "Regular shirt"),
+        ...owns("ice-top") ? [option("true", ITEM_STATS["ice-top"].name)] : []
+      ],
+      icePants: [
+        option("false", "Regular trousers"),
+        ...owns("ice-pants") ? [option("true", ITEM_STATS["ice-pants"].name)] : []
+      ]
+    };
+  }
+  function fillEquipmentSelect(field, options, value) {
+    field.replaceChildren();
+    for (const choice of options) {
+      const option = document.createElement("option");
+      option.value = choice.value;
+      option.textContent = choice.label;
+      field.append(option);
+    }
+    field.value = options.some((o) => o.value === String(value)) ? String(value) : options[0].value;
+  }
+
+  // src/clothing.ts
+  function clothingSelection(input = {}) {
+    const value = isRecord(input) ? input : {};
+    const torso = isOneOf(
+      ["shirt", "ice-top", "black-cloak-top", "tinfoil-suit"],
+      value.torso
+    ) ? value.torso : value.iceTop === true ? "ice-top" : value.cloakTop === true ? "black-cloak-top" : "shirt";
+    const legs = isOneOf(
+      ["trousers", "ice-pants", "black-cloak-bottom"],
+      value.legs
+    ) ? value.legs : value.icePants === true ? "ice-pants" : value.cloakBottom === true ? "black-cloak-bottom" : "trousers";
+    return {
+      torso,
+      legs,
+      tinfoil: torso === "tinfoil-suit",
+      iceTop: torso === "ice-top",
+      icePants: legs === "ice-pants",
+      cloakTop: torso === "black-cloak-top",
+      cloakBottom: legs === "black-cloak-bottom"
+    };
+  }
 
   // server/admin-ui.ts
   var token = "__ADMIN_TOKEN__";
@@ -233,6 +724,91 @@
   var original = "";
   var baseline = "";
   var busy = false;
+  var slots = {
+    torso: "Top",
+    legs: "Bottom",
+    boots: "Footwear",
+    hat: "Hat",
+    back: "Back",
+    neck: "Neck",
+    weapon: "Weapon",
+    sunglasses: "Eyewear"
+  };
+  var equipmentFields = /* @__PURE__ */ new Map();
+  for (const [key, caption] of Object.entries(slots)) {
+    const label = document.createElement("label");
+    const select = document.createElement("select");
+    label.append(caption, select);
+    $("equipment-fields").append(label);
+    equipmentFields.set(key, select);
+  }
+  function playerDraft() {
+    try {
+      const record = JSON.parse($("editor").value);
+      if (!isRecord(record)) return null;
+      const player = isRecord(record.playerState) ? record.playerState : record;
+      if (!isRecord(player.inventory) || !isRecord(player.quests)) return null;
+      return { record, player, inventory: player.inventory, quests: player.quests };
+    } catch {
+      return null;
+    }
+  }
+  var strings = (value) => Array.isArray(value) ? value.filter((item) => typeof item === "string") : [];
+  function renderEquipment() {
+    $("equipment").hidden = selected?.kind !== "state" || !selected.key.startsWith("player:");
+    if ($("equipment").hidden) return;
+    const draft = playerDraft();
+    $("equipment-hint").textContent = draft ? "Choose from this player\u2019s unlocked gear." : "Enter a valid player record to use the selectors.";
+    $("equipment-fields").hidden = !draft;
+    if (!draft) return;
+    const { player, inventory, quests } = draft;
+    const economy = isRecord(inventory.economy) ? inventory.economy : {};
+    const expeditions = isRecord(quests.expeditions) ? quests.expeditions : {};
+    const options = {
+      ...equipmentOptions(
+        {
+          ownedEquipment: strings(economy.ownedEquipment),
+          ownedHats: strings(economy.ownedHats)
+        },
+        {
+          bayonet: isRecord(quests.theyLive) && quests.theyLive.bayonet === true,
+          railgun: railgunUnlocked(expeditions),
+          cape: expeditions.cape === true
+        }
+      ),
+      sunglasses: [{ value: "false", label: "No eyewear" }]
+    };
+    if (isRecord(inventory.sunglasses) && inventory.sunglasses.owned === true)
+      options.sunglasses.push({ value: "true", label: "Sunglasses" });
+    const appearance = isRecord(player.appearance) ? player.appearance : {};
+    const look = { ...appearance, ...clothingSelection(appearance) };
+    for (const [key, select] of equipmentFields) {
+      const current = look[key];
+      const value = typeof current === "string" || typeof current === "boolean" ? current : key === "back" && appearance.cape === true ? "cape" : options[key][0].value;
+      fillEquipmentSelect(select, options[key], value);
+      if (!options[key].some((item) => item.value === String(value))) {
+        const unavailable = new Option("Unavailable \xB7 " + value, String(value));
+        unavailable.disabled = true;
+        select.add(unavailable);
+        select.value = unavailable.value;
+      }
+      select.disabled = readOnly || busy;
+      select.onchange = () => {
+        if (readOnly || busy) return;
+        const current2 = playerDraft();
+        if (!current2) return;
+        const appearance2 = isRecord(current2.player.appearance) ? { ...current2.player.appearance } : {};
+        appearance2[key] = key === "boots" || key === "sunglasses" ? select.value === "true" : select.value;
+        if (key === "torso" || key === "legs")
+          Object.assign(appearance2, clothingSelection(appearance2));
+        if (key === "back") appearance2.cape = select.value === "cape";
+        current2.player.appearance = appearance2;
+        const editor = $("editor");
+        editor.value = JSON.stringify(current2.record, null, 2);
+        controls();
+      };
+    }
+  }
   function status(message, type = "") {
     $("status").textContent = message;
     $("status").className = type;
@@ -248,6 +824,7 @@
     $("editor").disabled = busy || !selected;
     $("refresh").disabled = busy;
     $("dirty").textContent = changed() ? "Unsaved changes" : "";
+    renderEquipment();
   }
   async function api(path, options = {}) {
     const response = await fetch("/api/" + path, {

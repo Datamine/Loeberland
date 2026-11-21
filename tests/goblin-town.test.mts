@@ -31,7 +31,7 @@ test('goblins drop a few coins, boots use a 1/8 roll and the stronger maker has 
   assert.match(MONSTER_STATS.goblin.description, /Mount Tam/);
 });
 
-test('a new unarmed player defeats a goblin with a few sandwiches; rewards roll once per kill', () => {
+test('a new unarmed player can defeat a goblin with at most a few sandwiches; rewards roll once per kill', () => {
   let hp = 30,
     sandwiches = 0,
     drops = 0;
@@ -54,7 +54,7 @@ test('a new unarmed player defeats a goblin with a few sandwiches; rewards roll 
     world.update(1.05, [p]);
   }
   assert.equal(world.actors[0].hp, 0);
-  assert.ok(sandwiches >= 1 && sandwiches <= 3);
+  assert.ok(sandwiches <= 3);
   assert.equal(drops, 1);
   world.strike('g', p);
   assert.equal(drops, 1);

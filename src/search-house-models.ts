@@ -42,26 +42,8 @@ export function drawSearchHouseInterior(m: Mesh, b: InteriorBuilding, base: numb
     start = m.data.length;
   const wood = '#936b48',
     trim = '#c8aa72';
-  if (type === 'doghouse') {
-    m.box(cx - 0.35, base, cz - 0.3, 0.7, 0.48, 0.6, '#ad7e5e', 'clapboard');
-    m.quad(
-      [cx - 0.4, base + 0.48, cz - 0.35] satisfies [number, number, number],
-      [cx - 0.4, base + 0.48, cz + 0.35],
-      [cx, base + 0.79, cz + 0.35],
-      [cx, base + 0.79, cz - 0.35],
-      '#70827c',
-      'roof',
-    );
-    m.quad(
-      [cx, base + 0.79, cz - 0.35],
-      [cx, base + 0.79, cz + 0.35],
-      [cx + 0.4, base + 0.48, cz + 0.35],
-      [cx + 0.4, base + 0.48, cz - 0.35],
-      '#58706b',
-      'roof',
-    );
-    m.box(cx - 0.13, base + 0.02, cz + 0.305, 0.26, 0.32, 0.015, '#34423c');
-  } else if (type === 'laundry') {
+  if (type === 'doghouse') return;
+  if (type === 'laundry') {
     m.cylinder(cx, base, cz, 0.32, 0.48, '#b3986b', 18, 0.38);
     for (let i = 0; i < 4; i++)
       m.sphere(
@@ -135,4 +117,25 @@ export function drawSearchHouseInterior(m: Mesh, b: InteriorBuilding, base: numb
       requiredValue(b.searchIndex, 'Search house index') % 3
     ],
   );
+}
+
+export function drawDogHouse(m: Mesh, cx: number, base: number, cz: number) {
+  m.box(cx - 0.35, base, cz - 0.3, 0.7, 0.48, 0.6, '#ad7e5e', 'clapboard');
+  m.quad(
+    [cx - 0.4, base + 0.48, cz - 0.35] satisfies [number, number, number],
+    [cx - 0.4, base + 0.48, cz + 0.35],
+    [cx, base + 0.79, cz + 0.35],
+    [cx, base + 0.79, cz - 0.35],
+    '#70827c',
+    'roof',
+  );
+  m.quad(
+    [cx, base + 0.79, cz - 0.35],
+    [cx, base + 0.79, cz + 0.35],
+    [cx + 0.4, base + 0.48, cz + 0.35],
+    [cx + 0.4, base + 0.48, cz - 0.35],
+    '#58706b',
+    'roof',
+  );
+  m.box(cx - 0.13, base + 0.02, cz + 0.305, 0.26, 0.32, 0.015, '#34423c');
 }

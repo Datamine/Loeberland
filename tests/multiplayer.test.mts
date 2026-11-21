@@ -28,6 +28,29 @@ test('bomber bank and successive barrel rolls interpolate through full turns ove
   assert.ok(Math.abs(interpolateNetworkPose(pose, decoded, 0.5).phase - Math.PI * 2.5) < 1e-6);
 });
 
+test('ATV and rooftop poses round-trip and a finished ATV roll keeps its orientation', () => {
+  const roll = {
+    id: 7,
+    x: 26.5,
+    y: 4,
+    z: -20,
+    angle: 0,
+    phase: 2 * Math.PI,
+    motion: 1,
+    mode: 'atv',
+  };
+  const roof = { ...roll, id: 8, phase: 0, motion: 0, mode: 'roof' };
+  const decoded = requiredFixture(decodePlayerFrame(encodePlayerFrame([roll, roof], 1, 100)));
+  assert.deepEqual(
+    decoded.players.map((p) => p.mode),
+    ['atv', 'roof'],
+  );
+  const landing = { ...roll, phase: 0 };
+  assert.ok(
+    Math.abs(interpolateNetworkPose(decoded.players[0], landing, 0.5).phase - roll.phase) < 1e-5,
+  );
+});
+
 test('connection settings accept local sockets and require TLS from an HTTPS page', () => {
   assert.equal(
     multiplayerEndpoint('/ws', 'http://localhost:8787/explore.html'),

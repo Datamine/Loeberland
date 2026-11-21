@@ -46,14 +46,39 @@ test('legacy quest markers survive migration, welcome snapshots, checkpoints and
     validatePlayerDocument(persisted.playerState);
     assert.equal(Object.hasOwn(persisted, 'privateState'), false);
     assert.equal(Object.hasOwn(persisted, 'illuminati'), false);
+    await store.batch([
+      [
+        'player:' + a.p.owner,
+        {
+          ...persisted,
+          playerState: {
+            ...persisted.playerState,
+            migration: {
+              legacyKeys: ['old-plugin-v1'],
+              unknownPrivateState: { 'old-plugin-v1': { flag: true } },
+            },
+          },
+        },
+      ],
+    ]);
     game = await createGame({ geometry: fixtureGeometry(), store });
     const b = await player(game, 987001);
+    const reconnected = requiredFixture(b.messages.find((m) => m.type === 'welcome'));
+    assert.equal(
+      Object.hasOwn(validatePlayerDocument(reconnected.playerState), 'migration'),
+      false,
+    );
+    assert.equal(Object.hasOwn(reconnected.privateState, 'old-plugin-v1'), false);
+    assert.equal(JSON.parse(reconnected.privateState['sf-quests-v1']).monkey, 'carrying');
     const q = b.p.profile.playerState.quests;
     assert.equal(q.monkey.stage, 'carrying');
     assert.deepEqual(q.theyLive.defeated, ['alien-civic']);
     assert.equal(q.theyLive.permit, true);
     assert.equal(q.expeditions.krakenReward, true);
     assert.equal(q.illuminatus.initiated, true);
+    await game.flush();
+    const resaved = await storedPlayerFixture(store, 'player:' + b.p.owner);
+    assert.equal(Object.hasOwn(resaved.playerState, 'migration'), false);
   } finally {
     await game.close();
   }

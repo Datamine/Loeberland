@@ -164,7 +164,7 @@ test('shop, quest and finance actions accept the same arrival points used by the
   assert.equal(requiredFixture(result).ok, true, requiredFixture(result).message);
 });
 
-test('both wizard dialogue choices purchase tablets from the authored house approach', async () => {
+test('all wizard dialogue choices purchase tablets from the authored house approach', async () => {
   const wizard = geometry.tabletWizard,
     house = geometry.places.find((p) => p.id === 'orin-house'),
     point = arrival(wizard);
@@ -186,7 +186,7 @@ test('both wizard dialogue choices purchase tablets from the authored house appr
     dialogue = configuredDialogue('wizard', wizard, { buyTablet: (id: string) => tablets.buy(id) });
   assert.ok(dialogue?.choices != null, 'Missing test fixture: dialogue.choices');
   const purchases = dialogue.choices.filter((choice) => typeof choice.accept === 'function');
-  assert.equal(purchases.length, 2);
+  assert.equal(purchases.length, 3);
 
   assert.ok(dialogue.choices.some((choice) => choice.ambientConversation));
   for (const choice of purchases) {
@@ -194,14 +194,14 @@ test('both wizard dialogue choices purchase tablets from the authored house appr
     const result = await choice.accept();
     assert.equal(requiredFixture(await result).ok, true, requiredFixture(await result).message);
   }
-  assert.deepEqual(tablets.inventory(), { downtown: 1, tahoe: 1 });
-  assert.equal(a.p.inventory.economy.state.coins, before - 40);
+  assert.deepEqual(tablets.inventory(), { downtown: 1, tahoe: 1, cupertino: 1 });
+  assert.equal(a.p.inventory.economy.state.coins, before - 60);
   const poor = await visitor(point, { 'sf-purse-v1': '{"coins":19}' }),
     denied = await act(poor, 'buyTablet', { destination: 'tahoe' });
   assert.equal(requiredFixture(denied).ok, false);
   assert.match(requiredFixture(requiredFixture(denied).message), /20 coins/);
   assert.equal(poor.p.inventory.economy.state.coins, 19);
-  assert.deepEqual(poor.p.inventory.snapshot().tablets, { downtown: 0, tahoe: 0 });
+  assert.deepEqual(poor.p.inventory.snapshot().tablets, { downtown: 0, tahoe: 0, cupertino: 0 });
 });
 
 test('roaming rocket attendants accept direct conversation positions as well as their walking approaches', async () => {

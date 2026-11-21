@@ -129,6 +129,7 @@ export function sightPrimaryVerb(
     activityBuilding?: boolean;
   },
 ) {
+  if (sight.kind === 'waymo' || sight.kind === 'robotaxi') return 'Kick';
   if (sight.kind === 'gym') return 'Perform exercises at';
   if (sight.kind === 'airship-rope') return 'Climb';
   if (sight.kind === 'lore-book') return 'Read';

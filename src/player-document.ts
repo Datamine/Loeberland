@@ -9,6 +9,8 @@ import { stateValue } from './content-conditions.ts';
 import { dogSurfingRound } from './dog-surfing.ts';
 
 const attached = new WeakSet();
+const modulePaths = new Map(Object.entries(bindings.modules));
+const moduleKeys = [...modulePaths.keys()];
 const clone = <T>(value: T) => (value == null ? value : structuredClone(value));
 const parse = (value: string) => {
   try {
@@ -48,14 +50,12 @@ function merge<T>(base: T, input: unknown): T {
   }
   return base;
 }
-function moduleValue(document: PlayerDocument, key: string) {
-  const path = (bindings.modules as Record<string, string>)[key];
+function moduleValue(document: PlayerDocument, path: string) {
   return path === '$quests'
     ? { monkey: document.quests.monkey.stage, theyLive: document.quests.theyLive }
     : stateValue(document, path);
 }
-function setModule(document: PlayerDocument, key: string, value: unknown) {
-  const path = (bindings.modules as Record<string, string>)[key];
+function setModule(document: PlayerDocument, path: string, value: unknown) {
   if (path === '$quests') {
     if (isRecord(value)) {
       document.quests.monkey.stage =
@@ -65,7 +65,7 @@ function setModule(document: PlayerDocument, key: string, value: unknown) {
         value.theyLive,
       );
     }
-  } else if (path) {
+  } else {
     const initial = stateValue(defaults, path);
     set(
       document,
@@ -74,12 +74,12 @@ function setModule(document: PlayerDocument, key: string, value: unknown) {
         ? merge(clone(initial), value)
         : value,
     );
-  } else document.migration.unknownPrivateState[key] = value;
-  if (!document.migration.legacyKeys.includes(key)) document.migration.legacyKeys.push(key);
+  }
 }
 
 export function createPlayerDocument(input: unknown = {}): PlayerDocument {
-  const result = merge(clone(validatePlayerDocument(defaults)), input);
+  const { migration: _migration, ...state } = isRecord(input) ? input : {};
+  const result = merge(clone(validatePlayerDocument(defaults)), state);
   result.schema = 2;
   return result;
 }
@@ -97,8 +97,10 @@ export function hydratePlayerProfile<T extends object>(input: T): T & PlayerProf
     ][])
       if (Object.hasOwn(profile, key)) set(document, path, clone(profile[key]));
     for (const [key, value] of Object.entries(legacy)) {
+      const path = modulePaths.get(key);
+      if (!path) continue;
       const decoded = typeof value === 'string' ? parse(value) : value;
-      if (decoded !== undefined) setModule(document, key, decoded);
+      if (decoded !== undefined) setModule(document, path, decoded);
     }
   }
   profile.playerState = document;
@@ -125,24 +127,21 @@ export function hydratePlayerProfile<T extends object>(input: T): T & PlayerProf
   const privateState = new Proxy(
     {},
     {
-      ownKeys: () => [...profile.playerState.migration.legacyKeys],
-      getOwnPropertyDescriptor: (_, key: string) =>
-        typeof key === 'string' && profile.playerState.migration.legacyKeys.includes(key)
+      ownKeys: () => moduleKeys,
+      getOwnPropertyDescriptor: (_, key) =>
+        typeof key === 'string' && modulePaths.has(key)
           ? { enumerable: true, configurable: true }
           : undefined,
-      get: (_, key: string) => {
-        if (typeof key !== 'string' || !profile.playerState.migration.legacyKeys.includes(key))
-          return undefined;
-        return JSON.stringify(
-          (bindings.modules as Record<string, string>)[key]
-            ? moduleValue(profile.playerState, key)
-            : profile.playerState.migration.unknownPrivateState[key],
-        );
+      get: (_, key) => {
+        const path = typeof key === 'string' && modulePaths.get(key);
+        if (path) return JSON.stringify(moduleValue(profile.playerState, path));
       },
-      set: (_, key: string, value) => {
+      set: (_, key, value) => {
+        const path = typeof key === 'string' && modulePaths.get(key);
+        if (!path) return true;
         const decoded = typeof value === 'string' ? parse(value) : undefined;
-        if (decoded !== undefined && typeof key === 'string') {
-          setModule(profile.playerState, key, decoded);
+        if (decoded !== undefined) {
+          setModule(profile.playerState, path, decoded);
           profile.stateRevision++;
         }
         return true;

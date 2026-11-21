@@ -35,6 +35,7 @@ import {
   weaponAttackInterval,
   itemLoot,
   equipmentOwned,
+  isOwnedWeapon,
   ownedEquipmentDefense,
   railgunUnlocked,
 } from '../src/item-stats.ts';
@@ -50,6 +51,7 @@ export function createSharedWorld({
   random = Math.random,
   now = Date.now,
   saved = {},
+  movement,
   onAirshipReset = () => {},
   onCombatDamage = () => {},
 }: SharedWorldOptions) {
@@ -59,6 +61,8 @@ export function createSharedWorld({
       geometry.airship ||
       createAirship({ groundHeight: (x: number, z: number) => geometry.characterGround(x, z) }),
     passengers = new Set<number>();
+  let robocopSerial = 0;
+  const approachAt = new WeakMap<ServerPlayer, number>();
   let captain: number | null = null,
     clock = Number(saved.clock) || 0,
     lootSerial = Number(saved.lootSerial) || 0,
@@ -133,7 +137,13 @@ export function createSharedWorld({
       });
     }
   }
-  if (saved.raptor) Object.assign(raptor, saved.raptor, { path: [], prey: null, repath: 0 });
+  if (saved.raptor)
+    Object.assign(raptor, saved.raptor, {
+      hp: Math.min(saved.raptor.hp ?? raptor.hp, MONSTER_STATS.raptor.hp),
+      path: [],
+      prey: null,
+      repath: 0,
+    });
   // Saved animation positions belong to a particular authored patrol. A map
   // edit must not leave a relocated researcher walking back across the city.
   const npcLayouts = new Map(
@@ -235,6 +245,8 @@ export function createSharedWorld({
     !p.personalJailed &&
     !p.detainAt &&
     !p.grappling &&
+    p.mode !== 'roof' &&
+    p.mode !== 'atv' &&
     !passengers.has(p.id) &&
     !(
       [
@@ -257,8 +269,7 @@ export function createSharedWorld({
     weapon === 'unarmed' ||
     (weapon === 'railgun' && ownsRailgun(p)) ||
     (weapon === 'bayonet' && p.profile.playerState.quests.theyLive.bayonet) ||
-    ((['battleaxe', 'akibo'] satisfies [string, string]).includes(weapon) &&
-      equipmentOwned(p.inventory.economy.state, weapon));
+    (isOwnedWeapon(weapon) && equipmentOwned(p.inventory.economy.state, weapon));
   const creatureSegment = (a: { x: number; z: number }, b: { x: number; z: number }) =>
     geometry.canTravel!(a.x - 0.5, a.z - 0.5, b.x - 0.5, b.z - 0.5, true);
   const wilderness = createWilderness<ServerPlayer>({
@@ -309,6 +320,9 @@ export function createSharedWorld({
         max: actor.max,
         hp: isFiniteNumber(n.hp) ? Math.max(0, Math.min(actor.max, n.hp)) : actor.hp,
         enemy: null,
+        enemyPosition: undefined,
+        returning: false,
+        chaseUntil: 0,
         ...(moved || outside
           ? { x: actor.x, z: actor.z, base: actor.base, home: { ...actor.home } }
           : {}),
@@ -426,24 +440,12 @@ export function createSharedWorld({
   }
   function shoot(
     p: ServerPlayer,
-    target: SharedCow | SharedRaptor | WildernessActor | null | undefined,
-    weapon = 'railgun',
+    target: SharedCow | SharedRaptor | WildernessActor,
+    weapon: string,
   ): CommandResult & { cooldown?: boolean; damage?: number } {
-    if (!eligible(p) || !ownsWeapon(p, weapon))
-      return { ok: false, message: 'You need to own that weapon and have both feet available.' };
-    if (!target || !target.hp || (target === raptor && raptor.phase !== 'loose'))
-      return { ok: false, message: 'That target is unavailable.' };
-    if (!clearShot(p, target, ITEM_STATS[weapon]?.range ?? ITEM_STATS.unarmed.range))
-      return { ok: false, message: 'Move within weapon range with a clear line of attack.' };
     if (p.shotAt > clock + 1e-8) return { ok: false, cooldown: true };
-    if (
-      ('combatKind' in target ? target.combatKind : undefined) === 'emf-warrior' &&
-      !(p.appearance.tinfoil && equipmentOwned(p.inventory.economy.state, 'tinfoil-suit'))
-    )
-      return { ok: false, message: 'A wall of static forces you back.' };
     const supply = consumeWeaponShot(p, weapon);
     if (!supply.ok) {
-      if (p.attack) send(p, { type: 'notice', message: supply.message });
       p.attack = null;
       return supply;
     }
@@ -486,6 +488,9 @@ export function createSharedWorld({
     }
     return { ok: true, damage };
   }
+  const blockedByStatic = (p: ServerPlayer, target: Actor) =>
+    target.combatKind === 'emf-warrior' &&
+    !(p.appearance.tinfoil && equipmentOwned(p.inventory.economy.state, 'tinfoil-suit'));
   function leave(p: ServerPlayer) {
     passengers.delete(p.id);
     p.grappling = null;
@@ -581,6 +586,7 @@ export function createSharedWorld({
     airshipRental.tick();
     if (action === 'stopAttack') {
       p.attack = null;
+      movement?.stopCombatRoute(p);
       return { ok: true };
     }
     if (!publicPlayer(p))
@@ -593,12 +599,54 @@ export function createSharedWorld({
     if (action === 'attack') {
       const target = [...cows, raptor, ...wilderness.actors].find((n) => n.id === args.id),
         weapon = typeof args.weapon === 'string' ? args.weapon : 'railgun';
+      if (!eligible(p) || !ownsWeapon(p, weapon))
+        return { ok: false, message: 'You need to own that weapon and have both feet available.' };
+      if (!target?.hp || (target === raptor && raptor.phase !== 'loose'))
+        return { ok: false, message: 'That target is unavailable.' };
+      if (blockedByStatic(p, target))
+        return { ok: false, message: 'A wall of static forces you back.' };
+      const range = ITEM_STATS[weapon].range ?? ITEM_STATS.unarmed.range!;
+      if (!clearShot(p, target, range)) {
+        if (!movement?.approachCombat(p, { x: target.x, z: target.z }, range))
+          return { ok: false, message: 'There is no reachable attack position.' };
+        p.attack = target.id;
+        p.attackWeapon = weapon;
+        approachAt.set(p, clock + 0.35);
+        return { ok: true };
+      }
       const result = shoot(p, target, weapon);
-      if (target && (result.ok || result.cooldown)) {
+      if (result.ok || result.cooldown) {
         p.attack = target.hp > 0 ? target.id : null;
         p.attackWeapon = weapon;
       }
       return result;
+    }
+    if (action === 'kickTaxi') {
+      const car = geometry.streetTraffic?.cars?.find((vehicle) => vehicle.id === args.id);
+      if (!eligible(p) || !car || near(p, car) > 2.1 || !creatureSegment(p, car))
+        return { ok: false, message: 'Stand beside the vehicle to kick it.' };
+      if (wilderness.actors.some((actor) => actor.hp > 0 && actor.dispatchedFor === p.id))
+        return { ok: false, message: 'Robocop is already responding.' };
+      const spawn = geometry.nearestNavigation?.(
+        car.x - 0.5,
+        car.z - 0.5,
+        3,
+        (x, z) =>
+          Math.hypot(x + 0.5 - p.x, z + 0.5 - p.z) >= 1.35 &&
+          creatureSegment(p, { x: x + 0.5, z: z + 0.5 }),
+      );
+      wilderness.dispatch(
+        {
+          id: 'robocop-' + ++robocopSerial,
+          combatKind: 'robocop',
+          x: spawn ? spawn.x + 0.5 : car.x,
+          z: spawn ? spawn.y + 0.5 : car.z,
+        },
+        p,
+      );
+      p.gesture = 'attack';
+      p.gestureUntil = now() + 450;
+      return { ok: true, message: 'The taxi calls Robocop.' };
     }
     if (action === 'petBear') {
       if (!eligible(p)) return { ok: false, message: 'Find your feet before petting the bear.' };
@@ -844,6 +892,7 @@ export function createSharedWorld({
   }
   function tick(dt: number) {
     clock += dt;
+    geometry.streetTraffic?.update?.(dt);
     airshipRental.tick();
     const points = geometry.peptideSpawns || [];
     if (points.length && now() >= nextPeptideAt) {
@@ -892,14 +941,23 @@ export function createSharedWorld({
         p.attack = null;
         continue;
       }
-      // One accepted Attack establishes an engagement. A moving monster
-      // or temporary cover pauses swings without forgetting the target.
-      // Only successful swings consume the weapon's normal cooldown.
-      if (
-        p.shotAt <= clock + 1e-8 &&
-        near(p, target) <= (ITEM_STATS[weapon]?.range ?? ITEM_STATS.unarmed.range) + 0.001
-      )
-        shoot(p, target, weapon);
+      if (blockedByStatic(p, target)) {
+        send(p, { type: 'notice', message: 'A wall of static forces you back.' });
+        p.attack = null;
+        movement?.stopCombatRoute(p);
+        continue;
+      }
+      const range = ITEM_STATS[weapon].range ?? ITEM_STATS.unarmed.range!;
+      if (clearShot(p, target, range)) {
+        movement?.stopCombatRoute(p);
+        if (p.shotAt <= clock + 1e-8) {
+          const result = shoot(p, target, weapon);
+          if (!result.ok && result.message) send(p, { type: 'notice', message: result.message });
+        }
+      } else if ((approachAt.get(p) ?? 0) <= clock) {
+        approachAt.set(p, clock + 0.35);
+        movement?.approachCombat(p, { x: target.x, z: target.z }, range);
+      }
     }
     const event = airship.update(dt),
       ship = airship.state.position || shipHome;
@@ -1066,7 +1124,7 @@ export function createSharedWorld({
       }
       const prey = raptor.prey;
       if (prey && near(raptor, prey) < 1.15 && raptor.attackIn <= 0) {
-        raptor.attackIn = 1.5;
+        raptor.attackIn = MONSTER_STATS.raptor.interval;
         const playerPrey = typeof prey.id === 'number' ? players.get(prey.id) : undefined;
         if (playerPrey) hitPlayer(playerPrey, MONSTER_STATS.raptor.damage, 'velociraptor', raptor);
         else {
@@ -1166,12 +1224,18 @@ export function createSharedWorld({
       peptideSpawnAt: nextPeptideAt,
       wilderness: wilderness.snapshot().filter((n) => !observer || near(observer, n) < 45),
       cows: cows.map((c) => ({ ...c })),
+      traffic: (geometry.streetTraffic?.cars || []).map(({ id, x, z, angle }) => ({
+        id,
+        x,
+        z,
+        angle,
+      })),
       raptor: {
         id: raptor.id,
         x: raptor.x,
         z: raptor.z,
         hp: raptor.hp,
-        max: 50,
+        max: MONSTER_STATS.raptor.hp,
         phase: raptor.phase,
         angle: raptor.angle,
         release: raptor.release,
@@ -1229,7 +1293,7 @@ export function createSharedWorld({
     persist: () => ({
       clock,
       lootSerial,
-      wilderness: wilderness.snapshot(),
+      wilderness: wilderness.snapshot().filter((n) => n.dispatchedFor === undefined),
       nextPeptideAt,
       tiger: tiger.snapshot(),
       airship: { ...airship.state },
@@ -1255,6 +1319,12 @@ export function createSharedWorld({
       })),
       loot: [...loot.values()],
       cows: cows.map((c) => ({ ...c })),
+      traffic: (geometry.streetTraffic?.cars || []).map(({ id, x, z, angle }) => ({
+        id,
+        x,
+        z,
+        angle,
+      })),
       raptor: {
         x: raptor.x,
         z: raptor.z,
