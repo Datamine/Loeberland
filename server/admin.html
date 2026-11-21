@@ -715,6 +715,77 @@
     };
   }
 
+  // server/admin-equipment.ts
+  var strings = (value) => Array.isArray(value) ? value.filter((item) => typeof item === "string") : [];
+  var object = (value) => isRecord(value) ? value : {};
+  var eyewear = [
+    { value: "false", label: "No eyewear" },
+    { value: "true", label: "Sunglasses" }
+  ];
+  var adminEquipmentOptions = {
+    ...equipmentOptions(
+      { ownedEquipment: [...EQUIPMENT_IDS], ownedHats: HAT_CATALOG.map((hat) => hat.id) },
+      { bayonet: true, railgun: true, cape: true }
+    ),
+    sunglasses: eyewear
+  };
+  function unlockedEquipment({ inventory, quests }) {
+    const economy = object(inventory.economy);
+    const aliens = object(quests.theyLive);
+    const expeditions = object(quests.expeditions);
+    return {
+      ...equipmentOptions(
+        {
+          ownedEquipment: strings(economy.ownedEquipment),
+          ownedHats: strings(economy.ownedHats)
+        },
+        {
+          bayonet: [aliens.started, aliens.evidence, aliens.permit, aliens.bayonet].every(
+            (flag) => flag === true
+          ),
+          railgun: railgunUnlocked(expeditions),
+          cape: expeditions.cape === true
+        }
+      ),
+      sunglasses: object(inventory.sunglasses).owned === true ? eyewear : eyewear.slice(0, 1)
+    };
+  }
+  function grantAndEquip({ player, inventory, quests }, slot, value) {
+    const choices = adminEquipmentOptions[slot];
+    if (!choices.some((item) => item.value === value)) return false;
+    if (value !== choices[0].value) {
+      if (slot === "sunglasses") {
+        inventory.sunglasses = { ...object(inventory.sunglasses), owned: true };
+      } else if (slot === "back" && value === "cape") {
+        quests.expeditions = { ...object(quests.expeditions), cape: true };
+      } else if (slot === "weapon" && value === "bayonet") {
+        quests.theyLive = {
+          ...object(quests.theyLive),
+          started: true,
+          evidence: true,
+          permit: true,
+          bayonet: true
+        };
+      } else if (slot === "weapon" && value === "railgun") {
+        const expedition = { ...object(quests.expeditions), railgun: true, equipped: true };
+        if (!railgunUnlocked(expedition)) Object.assign(expedition, { raptor: "escaped" });
+        quests.expeditions = expedition;
+      } else {
+        const economy = object(inventory.economy);
+        const list = slot === "hat" ? "ownedHats" : "ownedEquipment";
+        const item = slot === "boots" ? "combat-boots" : value;
+        const owned = strings(economy[list]);
+        if (!owned.includes(item)) inventory.economy = { ...economy, [list]: [...owned, item] };
+      }
+    }
+    const appearance = { ...object(player.appearance) };
+    appearance[slot] = slot === "boots" || slot === "sunglasses" ? value === "true" : value;
+    if (slot === "torso" || slot === "legs") Object.assign(appearance, clothingSelection(appearance));
+    if (slot === "back") appearance.cape = value === "cape";
+    player.appearance = appearance;
+    return true;
+  }
+
   // server/admin-ui.ts
   var token = "__ADMIN_TOKEN__";
   var readOnly = __ADMIN_READ_ONLY__;
@@ -753,56 +824,39 @@
       return null;
     }
   }
-  var strings = (value) => Array.isArray(value) ? value.filter((item) => typeof item === "string") : [];
   function renderEquipment() {
     $("equipment").hidden = selected?.kind !== "state" || !selected.key.startsWith("player:");
     if ($("equipment").hidden) return;
     const draft = playerDraft();
-    $("equipment-hint").textContent = draft ? "Choose from this player\u2019s unlocked gear." : "Enter a valid player record to use the selectors.";
+    $("equipment-hint").textContent = draft ? readOnly ? "Locked items are marked in the list." : "Choosing a locked item unlocks and equips it when you save." : "Enter a valid player record to use the selectors.";
     $("equipment-fields").hidden = !draft;
     if (!draft) return;
-    const { player, inventory, quests } = draft;
-    const economy = isRecord(inventory.economy) ? inventory.economy : {};
-    const expeditions = isRecord(quests.expeditions) ? quests.expeditions : {};
-    const options = {
-      ...equipmentOptions(
-        {
-          ownedEquipment: strings(economy.ownedEquipment),
-          ownedHats: strings(economy.ownedHats)
-        },
-        {
-          bayonet: isRecord(quests.theyLive) && quests.theyLive.bayonet === true,
-          railgun: railgunUnlocked(expeditions),
-          cape: expeditions.cape === true
-        }
-      ),
-      sunglasses: [{ value: "false", label: "No eyewear" }]
-    };
-    if (isRecord(inventory.sunglasses) && inventory.sunglasses.owned === true)
-      options.sunglasses.push({ value: "true", label: "Sunglasses" });
-    const appearance = isRecord(player.appearance) ? player.appearance : {};
+    const unlocked = unlockedEquipment(draft);
+    const appearance = isRecord(draft.player.appearance) ? draft.player.appearance : {};
     const look = { ...appearance, ...clothingSelection(appearance) };
     for (const [key, select] of equipmentFields) {
+      const owned = new Set(unlocked[key].map((item) => item.value));
+      const options = adminEquipmentOptions[key].map(
+        (item) => owned.has(item.value) ? item : { ...item, label: item.label + " \xB7 Locked" }
+      );
       const current = look[key];
-      const value = typeof current === "string" || typeof current === "boolean" ? current : key === "back" && appearance.cape === true ? "cape" : options[key][0].value;
-      fillEquipmentSelect(select, options[key], value);
-      if (!options[key].some((item) => item.value === String(value))) {
-        const unavailable = new Option("Unavailable \xB7 " + value, String(value));
-        unavailable.disabled = true;
-        select.add(unavailable);
-        select.value = unavailable.value;
+      const value = typeof current === "string" || typeof current === "boolean" ? current : key === "back" && appearance.cape === true ? "cape" : options[0].value;
+      fillEquipmentSelect(select, options, value);
+      const saved = options.find((item) => item.value === String(value));
+      if (!saved || !readOnly && !owned.has(String(value))) {
+        const placeholder = new Option(
+          saved ? saved.label + " (saved)" : "Unavailable \xB7 " + value,
+          ""
+        );
+        placeholder.disabled = true;
+        select.add(placeholder);
+        select.value = "";
       }
       select.disabled = readOnly || busy;
       select.onchange = () => {
         if (readOnly || busy) return;
         const current2 = playerDraft();
-        if (!current2) return;
-        const appearance2 = isRecord(current2.player.appearance) ? { ...current2.player.appearance } : {};
-        appearance2[key] = key === "boots" || key === "sunglasses" ? select.value === "true" : select.value;
-        if (key === "torso" || key === "legs")
-          Object.assign(appearance2, clothingSelection(appearance2));
-        if (key === "back") appearance2.cape = select.value === "cape";
-        current2.player.appearance = appearance2;
+        if (!current2 || !grantAndEquip(current2, key, select.value)) return;
         const editor = $("editor");
         editor.value = JSON.stringify(current2.record, null, 2);
         controls();
