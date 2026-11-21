@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" /><title>SF animation review</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      background: #26342e;
+      color: #f0ebdc;
+      font: 15px system-ui;
+    }
+    header {
+      height: 64px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 12px 24px;
+    }
+    button,
+    select,
+    input {
+      font: inherit;
+    }
+    canvas {
+      width: 100vw;
+      height: calc(100vh - 64px);
+      display: block;
+    }
+    #labels {
+      position: absolute;
+      inset: 64px 0 0;
+      pointer-events: none;
+      display: grid;
+      grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+    }
+    #labels div {
+      padding: 10px 20px;
+      border: 1px solid #ffffff14;
+    }
+    small {
+      color: #bacbbd;
+    }
+    #time {
+      width: 170px;
+    }
+  </style>
+  <header>
+    <strong>Native animation review</strong
+    ><select id="page"></select
+    ><select id="clothes">
+      <option value="regular">Regular clothes</option>
+      <option value="cloak">Black cloak</option>
+      <option value="top">Cloak top</option>
+      <option value="bottom">Cloak bottom</option></select
+    ><button id="pause">Pause</button
+    ><input id="time" type="range" min="0" max="6" step=".01" value="0" /><small id="status"
+      >Loading meshes…</small
+    >
+  </header>
+  <canvas></canvas>
+  <div id="labels"></div>
+  <script type="module" src="./animation-audit.js"></script>
+</html>

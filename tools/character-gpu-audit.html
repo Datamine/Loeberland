@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" /><title>Character GPU parity and cache audit</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      background: #26342e;
+      color: #f0ebdc;
+      font: 15px system-ui;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      padding: 12px 20px;
+    }
+    button,
+    select {
+      font: inherit;
+    }
+    canvas {
+      display: block;
+      width: 100vw;
+      height: calc(100vh - 100px);
+    }
+    p {
+      margin: 0;
+      padding: 8px 20px;
+      font: 13px monospace;
+      white-space: pre-wrap;
+    }
+  </style>
+  <header>
+    <strong>CPU reference / GPU cached rig</strong
+    ><select id="mode"></select
+    ><select id="wardrobe">
+      <option>Regular</option>
+      <option>Cloak & rocket</option>
+      <option>Ice armor</option></select
+    ><button id="pause">Pause</button><button id="benchmark">Benchmark 32 characters</button>
+  </header>
+  <canvas></canvas>
+  <p id="stats"></p>
+  <script type="module" src="./character-gpu-audit.js"></script>
+</html>
