@@ -1,26 +1,42 @@
 # Loeberland
 
-A multiplayer San Francisco game with a WebGL client, a Node.js server, and a JSON content editor.
+A multiplayer San Francisco game with a WebGL client, a Node.js server, a game content editor, and a game state editor.
 
 ## Run locally
 
-Use Node.js 22.16 or later. From this directory:
+### Game server
+
+Use Node.js 22.16 or later. With Redis running locally on port 6379, run these commands from the repository root:
 
 ```sh
 npm run setup
 npm run build
-npm --prefix server start
+REDIS_URL=redis://127.0.0.1:6379 npm --prefix server start
 ```
 
-The game server runs at **http://127.0.0.1:8787/**. Local player saves stay in `server/data/world.sqlite`.
+Open **http://127.0.0.1:8787/** to play. The server saves world and player checkpoints to Redis when `REDIS_URL` is set. With `REDIS_URL` unset, `npm --prefix server start` uses SQLite at `server/data/world.sqlite` by default. Existing saves stay in their original backend when you switch. Docker Compose configures Redis by default. [Docker Compose setup](server/README.md#run-locally)
 
-For development, keep the backend running and start the source preview in another terminal:
+### Game editor (authored content)
+
+Run the development server from the repository root:
 
 ```sh
 npm run dev
 ```
 
-Open **http://127.0.0.1:8080/?server=ws://127.0.0.1:8787/ws** for the game, or **http://127.0.0.1:8080/editor.html** for the editor. Editor saves write directly to `content/`. Use `/?built` to preview the generated client.
+Open **http://127.0.0.1:8080/editor.html** to edit authored content such as dialogue, NPC definitions, and interaction menus. Saving writes directly to `content/`.
+
+With the game server running, open **http://127.0.0.1:8080/?server=ws://127.0.0.1:8787/ws** to play using the source client. Use `/?built` to preview the generated client.
+
+### Game state editor (saved world and players)
+
+Copy `server/.env.example` to `server/.env` if it does not exist, then set `ADMIN_USERNAME` and `ADMIN_PASSWORD`. To inspect saved world records, player progress, and username reservations while the game is running, use the same Redis URL as the game server:
+
+```sh
+REDIS_URL=redis://127.0.0.1:6379 ADMIN_READ_ONLY=1 npm --prefix server run admin
+```
+
+Open **http://127.0.0.1:8788/** and sign in with the admin credentials. To edit records, stop the game server, relaunch the editor without `ADMIN_READ_ONLY=1`, then restart the game server after saving. If the game uses SQLite, leave `REDIS_URL` unset for the editor too and use the same `STATE_FILE` if you set one. [Docker Compose and state editor instructions](server/README.md#simple-database-editor)
 
 ## Project layout
 
