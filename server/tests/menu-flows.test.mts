@@ -33,6 +33,7 @@ import { WAYMO_RENTAL } from '../../src/waymo-rental.ts';
 import { marketStreetcarPose, marketStreetcarRider } from '../../src/market-streetcar.ts';
 import { CONSTRUCTION_SITE } from '../../src/construction-layout.ts';
 import { AI_LAB_PAY_INTERVAL } from '../../src/ai-lab.ts';
+import { FISHING_COOLDOWN_MS, FISHING_DURATION } from '../../src/fishing.ts';
 import { FIGHTER_LEVELS, FIGHTER_YARD, isYardFighter } from '../../src/fighter-yard-layout.ts';
 import { GIRARD_HOME, SCAPEGOAT } from '../../src/girard-layout.ts';
 import { POINT_REYES, POINT_REYES_URCHINS } from '../../src/point-reyes.ts';
@@ -406,7 +407,8 @@ test('Burning Man requires water, a DJ and a rocket lit on the straw before awar
 });
 
 test('the mud bath pays only seated bathers and the chief engineer exchanges mud for stackable fish', async () => {
-  const a = await visitor();
+  const accountId = ++serial;
+  let a = await player(game, accountId);
   const { p } = a;
   const purse = p.inventory.economy.state;
   const engineer = npc((n) => n.id === GOBLIN_SPACE_PROGRAM.engineer.id);
@@ -447,6 +449,25 @@ test('the mud bath pays only seated bathers and the chief engineer exchanges mud
     assert.equal((await trade()).ok, false);
     assert.equal(purse.fish, 15);
     assert.equal(JSON.parse(p.profile.privateState['sf-purse-v1']!).fish, 15);
+
+    const wharf = requiredFixture(geometry.fishingSite).entry;
+    const cast = () => act(a, 'playerAction', { verb: 'fish' });
+    stand(a, wharf);
+    assert.equal((await cast()).ok, true);
+    tick(FISHING_DURATION);
+    assert.equal(purse.fish, 16);
+    assert.equal(JSON.parse(p.profile.privateState['sf-purse-v1']!).fish, 16);
+    assert.match((await cast()).message || '', /again in 60s/);
+
+    await game.disconnect(a.p);
+    a = await player(game, accountId);
+    stand(a, wharf);
+    time += FISHING_COOLDOWN_MS - 1;
+    assert.equal((await cast()).ok, false);
+    time++;
+    assert.equal((await cast()).ok, true);
+    tick(FISHING_DURATION);
+    assert.equal(a.p.inventory.economy.state.fish, 17);
   } finally {
     stop(a);
   }
@@ -704,6 +725,11 @@ test('the Goblin Founder hands out a fish for 10 coins which conveys no startup 
     assert.equal(purse.coins, 0);
     assert.equal(purse.equity, 0);
     assert.equal(purse.fish, 1);
+    purse.coins = 10;
+    assert.equal((await buy()).ok, true);
+    assert.equal(purse.coins, 0);
+    assert.equal(purse.equity, 0);
+    assert.equal(purse.fish, 2);
     assert.equal((await act(a, 'inventory', { op: 'trade', kind: 'secondary' })).ok, false);
     atNPC(a, cityFounder);
     purse.coins = 10;
@@ -1293,17 +1319,32 @@ test('Jurassic dialogue actually issues a railgun, accepts shared remains and co
     );
     assert.equal(r.expeditions.state.railgun, true);
     assert.ok(a.p.inventory.snapshot().purse.ownedEquipment.includes('railgun'));
-    assert.equal(a.p.appearance.weapon, 'railgun');
+    assert.equal(a.p.appearance.weapon, 'unarmed');
+    assert.equal(a.p.inventory.meta.railgunCharge, 25);
     Object.assign(expeditions.state, r.expeditions.state);
     await choose(a, scientistDialogue(scientist, expeditions), ['Check the cage'], {
       message: /already out/,
     });
     const target = game.shared.raptor;
-    Object.assign(target, { phase: 'loose', hp: 1, x: a.p.x + 0.5, z: a.p.z, path: [] });
+    assert.equal(target.hp, 72);
+    const blocked = await act(a, 'attack', { id: game.shared.cows[0].id, weapon: 'railgun' });
+    assert.equal(blocked.ok, false);
+    assert.match(blocked.message || '', /on loan.*Switch weapons/);
+    assert.equal(a.p.inventory.meta.railgunCharge, 25);
+    tick(3);
+    assert.equal(target.phase, 'loose');
+    assert.ok(target.z > 100);
+    Object.assign(target, { hp: 12, x: a.p.x + 0.5, z: a.p.z, path: [], prey: null, repath: 2 });
     assert.equal(
       requiredFixture(await act(a, 'attack', { id: target.id, weapon: 'railgun' })).ok,
       true,
     );
+    assert.equal(target.hp, 2);
+    assert.equal(a.p.inventory.meta.railgunCharge, 24);
+    assert.equal(r.expeditions.state.raptorDefeated, false);
+    tick(0.85);
+    assert.equal(r.expeditions.state.raptorDefeated, true);
+    assert.equal(a.p.inventory.meta.railgunCharge, 23);
     const remains = [...game.shared.loot.values()].find((l) => l.lootKind === 'raptor');
     assert.ok(remains);
     assert.equal(requiredFixture(await act(a, 'collect', { id: remains.id })).ok, true);
@@ -1316,6 +1357,41 @@ test('Jurassic dialogue actually issues a railgun, accepts shared remains and co
       { message: /good test/ },
     );
     assert.equal(r.expeditions.state.raptor, 'completed');
+  } finally {
+    stop(a);
+  }
+});
+
+test('the Bolinas Cultist attacks after Talk and their cottage wardrobe grants the Goose Costume once', async () => {
+  const a = await visitor();
+  try {
+    const cultist = requiredFixture(
+      game.shared.wilderness.actors.find((n) => n.id === 'bolinas-cultist'),
+    );
+    assert.equal(cultist.level, 6);
+    assert.ok(npcContextActions(cultist).includes('talk'));
+    const talk = () => act(a, 'talkCultist', { id: cultist.id });
+    assert.equal((await talk()).ok, false);
+    stand(a, { x: cultist.x - 0.5, y: cultist.z });
+    const answer = await talk();
+    assert.equal(answer.ok, true);
+    assert.match(answer.message || '', /nothing to tell you/);
+    assert.equal(cultist.enemy, a.p.id);
+    tick(0.8);
+    assert.ok(a.p.hp < a.p.max);
+
+    const cottage = requiredFixture(
+      geometry.places.find((p) => p.id === 'bolinas-cultist-cottage'),
+    );
+    const wardrobe = requiredFixture(geometry.searchSites.find((s) => s.houseId === cottage.id));
+    const search = () => act(a, 'searchHouse', { id: wardrobe.id });
+    stand(a, cottage.entry);
+    assert.equal((await search()).ok, false);
+    assert.ok(geometry.pathTo(wardrobe.entry.x, wardrobe.entry.y, cottage.entry)?.length);
+    stand(a, wardrobe.entry);
+    assert.equal((await search()).ok, true);
+    assert.ok(a.p.inventory.economy.state.ownedEquipment.includes('goose-costume'));
+    assert.equal((await search()).ok, false);
   } finally {
     stop(a);
   }
@@ -1696,7 +1772,9 @@ test('SF Fitness retains the cumulative session limit and cooldown when reconnec
   const { SF_FITNESS } = await import('../../src/fitness-layout.ts');
   const account = ++serial;
   const start = (a: TestPlayer) => act(a, 'playerAction', { verb: 'train', exercise: 'bench' });
-  let a = await player(game, account);
+  let a = await player(game, account, {
+    'sf-strength-v1': JSON.stringify({ xp: requiredFixture(SKILL_THRESHOLDS.at(-1)) - 20 }),
+  });
   stand(a, SF_FITNESS.entry);
   a.p.profile.playerState.activities.gym.workedSeconds = 1799;
   assert.equal((await start(a)).ok, true);
@@ -1712,6 +1790,9 @@ test('SF Fitness retains the cumulative session limit and cooldown when reconnec
   assert.equal((await start(a)).ok, false);
   time = ready;
   assert.equal((await start(a)).ok, true);
+  game.personal.tick(1);
+  assert.equal(a.p.training, false, 'training stops at the Strength cap');
+  assert.equal(a.p.level, 25);
   await game.disconnect(a.p);
 });
 

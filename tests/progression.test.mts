@@ -1,7 +1,7 @@
 import { requiredFixture } from './helpers/required.mts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { SKILL_THRESHOLDS, skillStatus, hitpointMaximum } from '../src/progression.ts';
+import { SKILL_THRESHOLDS, skillStatus, hitpointMaximum, playerLevel } from '../src/progression.ts';
 import { strengthStatus, createStrength } from '../src/strength.ts';
 import { weaponDamageRange } from '../src/combat.ts';
 import { TERMINATOR_FACTORY } from '../src/encounter-layout.ts';
@@ -35,6 +35,14 @@ test('both skills share a monotonic fifty-level curve, retaining level ten at tw
   assert.ok(gym.state.xp > 12000);
   gym.gain(1e9);
   assert.equal(gym.status.level, 50);
+});
+test('player level gives Strength and Hitpoints equal weight and rounds down', () => {
+  assert.equal(playerLevel(1, 1), 1);
+  assert.equal(playerLevel(10, 1), 5);
+  assert.equal(playerLevel(1, 10), 5);
+  assert.equal(playerLevel(10, 2), 6);
+  assert.equal(playerLevel(50, 49), 49);
+  assert.equal(playerLevel(50, 50), 50);
 });
 test('Akibo has railgun damage and attack speed at every level, with seven-tile range and a one-in-twenty drop', () => {
   for (let level = 1; level <= 50; level++)

@@ -3,12 +3,28 @@ import { Mesh } from './geometry.ts';
 import { rigidCharacterMesh } from './rendering/character-gpu.ts';
 
 let heldRailgunMesh: number[] | null = null,
+  gooseCostumeMesh: { body: number[]; hood: number[] } | null = null,
   decorativeRocketMesh: number[] | null = null,
   clockSecond: number | null = null,
   clockData: number[] | null = null,
   flameFrame: number | null = null,
   flameData: number[] | null = null;
 const wearablePalette = new Float32Array(17 * 4);
+
+function gooseCostume() {
+  if (gooseCostumeMesh) return gooseCostumeMesh;
+  const body = new Mesh(),
+    hood = new Mesh();
+  body.sphere(0, 1.07, 0.02, 0.33, 0.36, 0.25, '#f2eee4', 18, 12);
+  body.sphere(0, 1.03, -0.23, 0.18, 0.14, 0.24, '#ebe6d8', 14, 8);
+  for (const side of [-1, 1])
+    body.sphere(side * 0.27, 1.1, -0.03, 0.11, 0.24, 0.19, '#fffdf5', 12, 8);
+  hood.sphere(0, 1.74, -0.02, 0.169, 0.21, 0.161, '#fffdf5', 18, 12);
+  hood.sphere(0, 1.7, 0.15, 0.093, 0.044, 0.125, '#ed913e', 14, 8);
+  for (const side of [-1, 1])
+    hood.sphere(side * 0.107, 1.8, 0.101, 0.023, 0.026, 0.021, '#383233', 10, 6);
+  return (gooseCostumeMesh = { body: body.data, hood: hood.data });
+}
 
 function railgunMesh() {
   if (heldRailgunMesh) return heldRailgunMesh;
@@ -211,9 +227,11 @@ export function drawWearableAccessories(
   },
 ) {
   const armor = look.torso === 'iron-armor' || look.torso === 'gold-trimmed-iron-armor';
+  const goose = look.torso === 'goose-costume';
   if (
     look.headOnly ||
     (!armor &&
+      !goose &&
       !look.railgun &&
       look.weapon !== 'missile-launcher' &&
       look.back !== 'new-year-rocket' &&
@@ -304,6 +322,11 @@ export function drawWearableAccessories(
     }
   }
   if (armor) attach(ironArmor(look.torso === 'gold-trimmed-iron-armor'), 2, look.torso!);
+  if (goose) {
+    const { body, hood } = gooseCostume();
+    attach(body, 2, 'wearable-goose-body');
+    attach(hood, 3, 'wearable-goose-hood');
+  }
   if (look.neck === 'recoil-amulet') attach(recoilAmulet(), 2, 'wearable-recoil');
   if (look.weapon === 'missile-launcher') attach(missileLauncher(), 2, 'wearable-launcher');
   if (look.neck === 'clock-amulet')

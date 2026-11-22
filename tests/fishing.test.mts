@@ -5,6 +5,7 @@ import { Mesh } from '../src/geometry.ts';
 import { createEconomy, TRADE_PRICES } from '../src/economy.ts';
 import {
   createFishing,
+  FISHING_COOLDOWN_MS,
   FISHING_DURATION,
   drawFishingSpot,
   drawFishingRod,
@@ -14,10 +15,11 @@ import { configuredDialogue } from '../src/dialogue-config.ts';
 import { drawCharacter, sampleCharacterPose } from '../src/characters.ts';
 
 const site = { entry: { x: 2, y: 3 }, water: { x: 2.5, z: 1.5 }, base: 1 };
-test('a timed catch fills exactly one live-fish slot, survives reload, and sells for five coins', () => {
+test('timed catches stack with a one-minute cooldown and sell for five coins each', () => {
   let saved;
+  let now = 0;
   const purse = createEconomy({}, (s) => (saved = s)),
-    fishing = createFishing(purse);
+    fishing = createFishing(purse, { now: () => now });
   assert.equal(purse.state.fish, 0);
   assert.ok(fishing.start(site).ok);
   assert.equal(fishing.start(site).ok, false);
@@ -27,29 +29,31 @@ test('a timed catch fills exactly one live-fish slot, survives reload, and sells
   assert.equal(purse.state.fish, 1);
   assert.equal(fishing.state.active, false);
   assert.equal(fishing.update(100), null);
-  assert.equal(purse.trade('catch-fish').ok, false);
   assert.equal(fishing.start(site).ok, false);
+  now += FISHING_COOLDOWN_MS - 1;
+  assert.equal(fishing.start(site).ok, false);
+  now++;
+  assert.ok(fishing.start(site).ok);
+  assert.equal(fishing.update(FISHING_DURATION - 0.01), null);
   assert.equal(purse.state.fish, 1);
+  assert.ok(requiredFixture(fishing.update(0.01)).ok);
+  assert.equal(purse.state.fish, 2);
   const restored = createEconomy(saved),
     chef = configuredDialogue(
       'chef',
       {},
       { buyTinfoil: () => assert.fail('Selling fish must not buy tinfoil') },
     );
-  assert.equal(restored.state.fish, 1);
+  assert.equal(restored.state.fish, 2);
   assert.equal(TRADE_PRICES.fish, 5);
   assert.ok(chef?.choices != null, 'Missing test fixture: chef.choices');
-  assert.ok(restored.trade(requiredFixture(chef.choices[0].trade)).ok);
+  const sale = requiredFixture(chef.choices[0].trade);
+  assert.ok(restored.trade(sale).ok);
+  assert.equal(restored.state.fish, 1);
+  assert.equal(restored.state.coins, 30);
+  assert.ok(restored.trade(sale).ok);
   assert.equal(restored.state.fish, 0);
-  assert.equal(restored.state.coins, 30);
-
-  assert.equal(restored.trade(requiredFixture(chef.choices[0].trade)).ok, false);
-  assert.equal(restored.state.coins, 30);
-  const again = createFishing(restored);
-  assert.ok(again.start(site).ok);
-  assert.ok(requiredFixture(again.update(FISHING_DURATION)).ok);
-
-  assert.ok(restored.trade(requiredFixture(chef.choices[0].trade)).ok);
+  assert.equal(restored.trade(sale).ok, false);
   assert.equal(restored.state.coins, 35);
 });
 test('paused and cancelled casts grant nothing, old saves start empty, and taxes keep the live fish', () => {
@@ -79,11 +83,7 @@ test('paused and cancelled casts grant nothing, old saves start empty, and taxes
     string,
   ])
     assert.equal(createEconomy({ fish }).state.fish, 0);
-  assert.equal(
-    createEconomy({ fish: 7 }).state.fish,
-    1,
-    'even a corrupted save cannot carry more than one fish',
-  );
+  assert.equal(createEconomy({ fish: 7 }).state.fish, 7);
 });
 test('the chef, fishing pose, rod, live fish and carrying bucket have finite small meshes', () => {
   for (const progress of [0, 0.2, 0.5, 0.8, 1] satisfies [number, number, number, number, number]) {

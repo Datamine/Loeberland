@@ -15,7 +15,7 @@ const hits = (person: TestPlayer, id: string) =>
 const gear = {
   'sf-purse-v1': '{"coins":25,"ownedEquipment":["battleaxe"]}',
   'sf-quests-v1': '{"theyLive":{"started":true,"evidence":true,"permit":true,"bayonet":true}}',
-  'sf-expeditions-v1': '{"raptor":"escaped","railgun":true,"equipped":true}',
+  'sf-expeditions-v1': '{"raptor":"completed","railgun":true,"equipped":true}',
 };
 const tick = (game: TestGame, seconds: number) => {
   for (let i = 0; i < Math.round(seconds * 20); i++) game.tick(0.05);

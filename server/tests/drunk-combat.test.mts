@@ -7,7 +7,7 @@ import { createMemoryStore } from '../store.mts';
 import { fixtureGeometry, player, latestResult } from './fixtures.mts';
 
 const gear = {
-  'sf-expeditions-v1': '{"raptor":"escaped","railgun":true,"equipped":true}',
+  'sf-expeditions-v1': '{"raptor":"completed","railgun":true,"equipped":true}',
   'sf-character-v1': '{"weapon":"railgun"}',
   'sf-inebriation-v1': '100',
 };

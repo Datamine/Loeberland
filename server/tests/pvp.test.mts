@@ -30,7 +30,7 @@ async function act(
 }
 const gear = {
   'sf-character-v1': '{"weapon":"railgun"}',
-  'sf-expeditions-v1': '{"raptor":"escaped","railgun":true,"equipped":true}',
+  'sf-expeditions-v1': '{"raptor":"completed","railgun":true,"equipped":true}',
 };
 async function enable(
   game: import('./fixtures.mts').TestGame,
@@ -86,10 +86,17 @@ test('both players must opt in and disabling has a persisted 30-second cooldown'
   assert.equal(game.pvp.status(a.p).enabled, false);
   await game.close();
 });
-test('PvP rolls damage on server time, enforces range/line of sight and publishes true strength levels', async () => {
-  const { game, advance } = await fixture(),
+test('PvP uses Strength for damage and publishes the composite player level', async () => {
+  let time = 1_000_000;
+  const game = await createGame({
+      geometry: fixtureGeometry(),
+      store: createMemoryStore(),
+      now: () => time,
+      random: () => 0,
+    }),
     a = await player(game, 203, { 'sf-strength-v1': '{"xp":12000}', ...gear }),
     b = await player(game, 204);
+  assert.equal(requiredFixture(a.messages.find((m) => m.type === 'welcome')).level, 5);
   await enable(game, a, b);
   a.p.x = b.p.x + 8;
   await act(game, a.p, 'pvpAttack', { id: b.p.id });
@@ -98,13 +105,13 @@ test('PvP rolls damage on server time, enforces range/line of sight and publishe
   await act(game, a.p, 'pvpAttack', { id: b.p.id });
   assert.equal(requiredResult(a.messages).ok, true);
   game.tick(0.05);
-  assert.ok(b.p.hp < 30);
+  assert.equal(b.p.hp, 20, 'Strength 10 deals 10 damage on the minimum railgun roll');
   const after = b.p.hp;
   game.tick(0.05);
   assert.equal(b.p.hp, after, 'render/tick frequency cannot bypass attack cooldown');
-  advance(800);
+  time += 800;
   game.tick(0.05);
-  assert.ok(b.p.hp < after);
+  assert.equal(b.p.hp, 10);
   game.broadcast();
   const frame = decodePlayerFrame(
     requiredFixture(b.messages.filter((m) => m instanceof ArrayBuffer).at(-1)),
@@ -112,7 +119,7 @@ test('PvP rolls damage on server time, enforces range/line of sight and publishe
   assert.ok(frame != null, 'Missing test fixture: frame');
   const remote = frame.players.find((p) => p.id === a.p.id);
   assert.ok(remote != null, 'Missing test fixture: remote');
-  assert.equal(remote.level, 10);
+  assert.equal(remote.level, 6, 'Hitpoints reached level 2 while Strength stayed at 10');
 
   assert.equal(remote.pvp, true);
   await game.close();

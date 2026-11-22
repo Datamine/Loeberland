@@ -26,7 +26,7 @@ import { ownedHat } from '../hat-catalog.ts';
 import { KRAKEN_CAPE_TEXT } from '../jurassic-layout.ts';
 import { equipmentOptions, fillEquipmentSelect } from '../equipment-options.ts';
 import { PROOF_ITEM } from '../stochastic-parrot.ts';
-import { skillStatus } from '../progression.ts';
+import { playerLevel, skillStatus } from '../progression.ts';
 import { TAHOE, nearTahoe } from '../tahoe.ts';
 import { HAIRSTYLES } from '../config/hairstyles.ts';
 import { TAHOE_PELTS } from '../config/tahoe-pelts.ts';
@@ -500,7 +500,7 @@ export function createHud(context: WorldContext) {
     const s = context.strength.status,
       text = 'Strength ' + skillProgressText(s);
     if ($('sf-strength-text').textContent !== text) $('sf-strength-text').textContent = text;
-    const characterLevel = 'Level ' + s.level;
+    const characterLevel = 'Level ' + playerLevel(s.level, hps.level);
     if ($('sf-character-level').textContent !== characterLevel)
       $('sf-character-level').textContent = characterLevel;
     updateSurfButton();

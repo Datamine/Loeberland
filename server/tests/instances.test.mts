@@ -49,7 +49,7 @@ async function act(
 async function member(game: TestGame, id: number, coins = 250100) {
   const a = await player(game, id, {
     'sf-purse-v1': JSON.stringify({ coins }),
-    'sf-expeditions-v1': '{"raptor":"escaped","railgun":true,"equipped":true}',
+    'sf-expeditions-v1': '{"raptor":"completed","railgun":true,"equipped":true}',
   });
   a.p.profile.guild = { version: 2, visits: 24, member: true, lastVisitAt: 1 };
   return a;
@@ -384,7 +384,7 @@ test('Ahab sails to the kraken and returns to the saved beach with only authorit
   };
   assert.equal(state.ship.phase, 'fighting');
   assert.equal(state.kraken.visible, true);
-  assert.equal(state.kraken.hp, 1200);
+  assert.equal(state.kraken.hp, 1400);
   assert.equal(
     a.p.x,
     requiredFixture(requiredFixture(geometry.expeditions).ship.home).x - PEQUOD.travel,
@@ -421,7 +421,7 @@ test('Ahab rejects completed hunts before entering an instance instead of silent
   const { game } = await fixture();
   t.after(() => game.close());
   const a = await player(game, 516, {
-      'sf-expeditions-v1': '{"raptor":"escaped","railgun":true,"krakenReward":true}',
+      'sf-expeditions-v1': '{"raptor":"completed","railgun":true,"krakenReward":true}',
     }),
     shore = { x: a.p.x, z: a.p.z };
   const result = await act(game, a, 'instanceEnter', { kind: 'kraken' });

@@ -43,6 +43,7 @@ export function equipmentOptions(
           'decorative-robe-top',
           'cashmere-turtleneck',
           'goose-corp-shirt',
+          'goose-costume',
           'iron-armor',
           'gold-trimmed-iron-armor',
         ] as const

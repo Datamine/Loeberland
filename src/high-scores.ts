@@ -24,7 +24,7 @@ export function bindHighScores(
       ? data.coins.map((row) => [row.name, coins.format(row.coins) + ' coins'])
       : data.strength.map((row) => [
           row.name,
-          'Level ' + row.level + ' · ' + xp.format(row.xp) + ' XP',
+          'Strength Level ' + row.level + ' · ' + xp.format(row.xp) + ' XP',
         ]);
     for (const [name, score] of rows) {
       const li = document.createElement('li');

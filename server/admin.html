@@ -341,7 +341,7 @@
   var hitpointMaximum = (xp) => PROGRESSION.baseHitpoints + (skillStatus(xp).level - 1) * PROGRESSION.hitpointsPerLevel;
 
   // src/content-runtime.ts
-  var texts = { "config.hats.module.name-1": "Folded paper hat", "config.hats.module.name-2": "Dockside beanie", "config.hats.module.name-3": "Panama", "config.hats.module.name-4": "Velvet beret", "config.hats.module.name-5": "Silk top hat", "config.hats.module.name-6": "Plumed cavalier", "config.hats.module.name-7": "Astronomer\u2019s hat", "config.hats.module.name-8": "Golden laurel", "config.hats.module.name-9": "Stone of Jordan", "config.hats.module.name-10": "Santa Hat", "config.hats.module.name-11": "Blue Partyhat", "config.hats.module.name-12": "Stetson", "config.hats.module.name-13": "Pirate's hat", "config.item-stats.module.name-1": "Tinfoil suit", "config.item-stats.module.description-2": "A crinkling silver suit, folded with restaurant precision.", "config.item-stats.module.name-3": "Weaponry upgrade kit", "config.item-stats.module.description-4": "Increases the fire rate of your railgun and Akimbos by 10% while owned.", "config.item-stats.module.name-5": "Combat boots", "config.item-stats.module.description-6": "Tall black leather boots with chrome buckles, steel toe caps, and heavy soles. Block 2 damage from each incoming combat hit.", "config.item-stats.module.name-7": "Ball chair", "config.item-stats.module.description-8": "A sculptural white sphere with red upholstery and a chrome pedestal. Sit (chair) to settle inside.", "config.item-stats.module.name-9": "Fist", "config.item-stats.module.name-10": "Bayonet", "config.item-stats.module.name-11": "Battleaxe", "config.item-stats.module.name-12": "Railgun", "config.item-stats.module.name-13": "Akimbos", "config.item-stats.module.name-14": "New Year\u2019s rocket", "config.item-stats.module.description-15": "An oversized decorative rocket. Light it for ten seconds, once a minute. Press Space while it burns to hop about a character-height into the air.", "config.item-stats.module.name-16": "Clock amulet", "config.item-stats.module.description-17": "A tiny clock on a chain. It keeps its own appointments.", "config.item-stats.module.name-18": "Hiking backpack", "config.item-stats.module.description-19": "A sturdy hiking pack with room for twenty sandwiches.", "config.item-stats.module.name-20": "Bison hide", "config.item-stats.module.description-21": "A heavy, shaggy hide. Yohji could make something remarkable from this.", "config.item-stats.module.name-22": "Black cloak top", "config.item-stats.module.description-23": "An oversized black top with dropped shoulders, generous sleeves and a long, loose hem.", "config.item-stats.module.name-24": "Black cloak bottom", "config.item-stats.module.description-25": "A sweeping black skirt. Enough fabric to consider the wind a collaborator.", "config.item-stats.module.name-26": "Downtown Teleport", "config.item-stats.module.description-27": "A small purple tablet. Break it to return to downtown San Francisco.", "config.item-stats.module.name-28": "Tahoe Teleport", "config.item-stats.module.description-29": "A snowy sigil in purple stone. Break it to appear beside the Tahoe gondola.", "config.item-stats.module.name-30": "Ice top", "config.item-stats.module.description-31": "A crystalline cuirass. While equipped, blocks 2 damage from each incoming combat hit.", "config.item-stats.module.name-32": "Ice pants", "config.item-stats.module.description-33": "Frosted greaves. While equipped, block 2 damage from each incoming combat hit.", "config.item-stats.module.name-34": "Sandwich", "config.item-stats.module.description-35": "A sandwich. Store it in your food bag and eat it to recover hitpoints.", "config.item-stats.module.name-36": "Peptides", "config.item-stats.module.description-37": "A tiny vial with a very large social network. Ray accepts these at the Freemasons\u2019 Guild.", "config.item-stats.module.name-38": "Coins", "config.item-stats.module.description-39": "Loose coins, awaiting a less theoretical owner.", "config.item-stats.module.name-40": "Goose Corp membership card", "config.item-stats.module.description-41": "A very official-looking card. The fine print seems to be turning to dust.", "config.item-stats.module.name-42": "Stetson", "config.item-stats.module.description-43": "A sand-dusted cowboy hat. The shark was keeping it under its hat.", "config.item-stats.module.name-44": "Pirate's hat", "config.item-stats.module.description-45": "A salt-stained tricorn. The previous owner had an unusually flexible interpretation of navigation.", "config.item-stats.module.name-46": "Velociraptor remains", "config.item-stats.module.description-47": "The emergency recovery protocol is now considerably less mobile.", "config.item-stats.module.name-48": "Kraken spoils", "config.item-stats.module.description-49": "The spoils of an extremely unwise maritime expedition.", "config.monster-drops.module.name-1": "Goblin", "config.monster-drops.module.description-2": "A Mount Tam goblin in heavy boots. The morning fog followed him down from the mountain.", "config.monster-drops.module.name-3": "EMF warrior", "config.monster-drops.module.description-4": "A coastal campaigner surrounded by an agitated chorus of radios.", "config.monster-drops.module.name-5": "Lost Goblin", "config.monster-drops.module.description-6": "A Mount Tam resident who took a wrong turn at the redwoods. He blames the trail signs.", "config.monster-drops.module.name-7": "Goblin furniture maker", "config.monster-drops.module.description-8": "Mount Tam\u2019s most temperamental modernist. His ball chairs are round; his customer service is pointed.", "config.monster-drops.module.name-9": "Seagull", "config.monster-drops.module.description-10": "A waterfront regular with strong opinions about unattended sandwiches.", "config.monster-drops.module.name-11": "Cow", "config.monster-drops.module.name-12": "Velociraptor", "config.monster-drops.module.name-13": "Kraken", "config.monster-drops.module.name-14": "Friendly bear", "config.monster-drops.module.name-15": "Bison", "config.monster-drops.module.description-16": "An enormous, shaggy park resident. The haircut is self-maintained.", "config.monster-drops.module.name-17": "Snow giant", "config.monster-drops.module.name-18": "Ice giant", "config.monster-drops.module.name-19": "Terminator", "config.monster-drops.module.description-20": "An abandoned building, a red eye, and a very persistent tenant.", "config.monster-drops.module.name-21": "Landshark", "config.monster-drops.module.description-22": "don't let him ride", "config.monster-drops.module.name-23": "Outlaw", "config.monster-drops.module.description-24": "A woodland entrepreneur whose entire business model is your pockets.", "config.monster-drops.module.name-25": "Lost Pirate", "config.monster-drops.module.description-26": "He followed the treasure map exactly. Unfortunately, it was a restaurant menu." };
+  var texts = { "config.hats.module.name-1": "Folded paper hat", "config.hats.module.name-2": "Dockside beanie", "config.hats.module.name-3": "Panama", "config.hats.module.name-4": "Velvet beret", "config.hats.module.name-5": "Silk top hat", "config.hats.module.name-6": "Plumed cavalier", "config.hats.module.name-7": "Astronomer\u2019s hat", "config.hats.module.name-8": "Golden laurel", "config.hats.module.name-9": "Stone of Jordan", "config.hats.module.name-10": "Santa Hat", "config.hats.module.name-11": "Blue Partyhat", "config.hats.module.name-12": "Stetson", "config.hats.module.name-13": "Pirate's hat", "config.item-stats.module.name-1": "Tinfoil suit", "config.item-stats.module.description-2": "A crinkling silver suit, folded with restaurant precision.", "config.item-stats.module.name-3": "Weaponry upgrade kit", "config.item-stats.module.description-4": "Increases the fire rate of your railgun and Akimbos by 10% while owned.", "config.item-stats.module.name-5": "Combat boots", "config.item-stats.module.description-6": "Tall black leather boots with chrome buckles, steel toe caps, and heavy soles. Block 2 damage from each incoming combat hit.", "config.item-stats.module.name-7": "Ball chair", "config.item-stats.module.description-8": "A sculptural white sphere with red upholstery and a chrome pedestal. Sit (chair) to settle inside.", "config.item-stats.module.name-9": "Fist", "config.item-stats.module.name-10": "Bayonet", "config.item-stats.module.name-11": "Battleaxe", "config.item-stats.module.name-12": "Railgun", "config.item-stats.module.name-13": "Akimbos", "config.item-stats.module.name-14": "New Year\u2019s rocket", "config.item-stats.module.description-15": "An oversized decorative rocket. Light it for ten seconds, once a minute. Press Space while it burns to hop about a character-height into the air.", "config.item-stats.module.name-16": "Clock amulet", "config.item-stats.module.description-17": "A tiny clock on a chain. It keeps its own appointments.", "config.item-stats.module.name-18": "Hiking backpack", "config.item-stats.module.description-19": "A sturdy hiking pack with room for twenty sandwiches.", "config.item-stats.module.name-20": "Bison hide", "config.item-stats.module.description-21": "A heavy, shaggy hide. Yohji could make something remarkable from this.", "config.item-stats.module.name-22": "Black cloak top", "config.item-stats.module.description-23": "An oversized black top with dropped shoulders, generous sleeves and a long, loose hem.", "config.item-stats.module.name-24": "Black cloak bottom", "config.item-stats.module.description-25": "A sweeping black skirt. Enough fabric to consider the wind a collaborator.", "config.item-stats.module.name-26": "Downtown Teleport", "config.item-stats.module.description-27": "A small purple tablet. Break it to return to downtown San Francisco.", "config.item-stats.module.name-28": "Tahoe Teleport", "config.item-stats.module.description-29": "A snowy sigil in purple stone. Break it to appear beside the Tahoe gondola.", "config.item-stats.module.name-30": "Ice top", "config.item-stats.module.description-31": "A crystalline cuirass. While equipped, blocks up to 5 damage per incoming combat hit.", "config.item-stats.module.name-32": "Ice pants", "config.item-stats.module.description-33": "Frosted greaves. While equipped, block up to 5 damage per incoming combat hit.", "config.item-stats.module.name-34": "Sandwich", "config.item-stats.module.description-35": "A sandwich. Store it in your food bag and eat it to recover hitpoints.", "config.item-stats.module.name-36": "Peptides", "config.item-stats.module.description-37": "A tiny vial with a very large social network. Ray accepts these at the Freemasons\u2019 Guild.", "config.item-stats.module.name-38": "Coins", "config.item-stats.module.description-39": "Loose coins, awaiting a less theoretical owner.", "config.item-stats.module.name-40": "Goose Corp membership card", "config.item-stats.module.description-41": "A very official-looking card. The fine print seems to be turning to dust.", "config.item-stats.module.name-42": "Stetson", "config.item-stats.module.description-43": "A sand-dusted cowboy hat. The shark was keeping it under its hat.", "config.item-stats.module.name-44": "Pirate's hat", "config.item-stats.module.description-45": "A salt-stained tricorn. The previous owner had an unusually flexible interpretation of navigation.", "config.item-stats.module.name-46": "Velociraptor remains", "config.item-stats.module.description-47": "The emergency recovery protocol is now considerably less mobile.", "config.item-stats.module.name-48": "Kraken spoils", "config.item-stats.module.description-49": "The spoils of an extremely unwise maritime expedition.", "config.monster-drops.module.name-1": "Goblin", "config.monster-drops.module.description-2": "A Mount Tam goblin in heavy boots. The morning fog followed him down from the mountain.", "config.monster-drops.module.name-3": "EMF warrior", "config.monster-drops.module.description-4": "A coastal campaigner surrounded by an agitated chorus of radios.", "config.monster-drops.module.name-5": "Lost Goblin", "config.monster-drops.module.description-6": "A Mount Tam resident who took a wrong turn at the redwoods. He blames the trail signs.", "config.monster-drops.module.name-7": "Goblin furniture maker", "config.monster-drops.module.description-8": "Mount Tam\u2019s most temperamental modernist. His ball chairs are round; his customer service is pointed.", "config.monster-drops.module.name-9": "Seagull", "config.monster-drops.module.description-10": "A waterfront regular with strong opinions about unattended sandwiches.", "config.monster-drops.module.name-11": "Cow", "config.monster-drops.module.name-12": "Velociraptor", "config.monster-drops.module.name-13": "Kraken", "config.monster-drops.module.name-14": "Friendly bear", "config.monster-drops.module.name-15": "Bison", "config.monster-drops.module.description-16": "An enormous, shaggy park resident. The haircut is self-maintained.", "config.monster-drops.module.name-17": "Snow giant", "config.monster-drops.module.name-18": "Ice giant", "config.monster-drops.module.name-19": "Terminator", "config.monster-drops.module.description-20": "An abandoned building, a red eye, and a very persistent tenant.", "config.monster-drops.module.name-21": "Landshark", "config.monster-drops.module.description-22": "don't let him ride", "config.monster-drops.module.name-23": "Outlaw", "config.monster-drops.module.description-24": "A woodland entrepreneur whose entire business model is your pockets.", "config.monster-drops.module.name-25": "Lost Pirate", "config.monster-drops.module.description-26": "He followed the treasure map exactly. Unfortunately, it was a restaurant menu." };
   function contentText(id) {
     if (!Object.hasOwn(texts, id)) throw new Error("Missing admin catalog text: " + id);
     return texts[id];
@@ -561,6 +561,11 @@
       description: "A charcoal T-shirt with a white goose logo on the chest.",
       slot: "top"
     },
+    "goose-costume": {
+      name: "Goose Costume",
+      slot: "torso",
+      description: "A padded white goose costume with an orange bill."
+    },
     "decorative-robe-bottom": {
       name: "Decorative robe bottom",
       slot: "legs",
@@ -598,7 +603,7 @@
     "ice-top": {
       name: contentText("config.item-stats.module.name-30", {}),
       slot: "top",
-      defense: 2,
+      defense: 5,
       color: "#92d9ed",
       trim: "#e1faff",
       description: contentText("config.item-stats.module.description-31", {})
@@ -606,7 +611,7 @@
     "ice-pants": {
       name: contentText("config.item-stats.module.name-32", {}),
       slot: "legs",
-      defense: 2,
+      defense: 5,
       color: "#78bde5",
       trim: "#d1f4ff",
       description: contentText("config.item-stats.module.description-33", {})
@@ -682,6 +687,7 @@
     "decorative-robe-top",
     "cashmere-turtleneck",
     "goose-corp-shirt",
+    "goose-costume",
     "decorative-robe-bottom",
     "goblin-phone",
     "fighter-yard-pass"
@@ -938,7 +944,10 @@
     ),
     "emf-warrior": {
       name: contentText("config.monster-drops.module.name-3", {}),
-      ...monsterCombat(16, 1.8),
+      level: 44,
+      hp: 115,
+      damage: 42,
+      interval: 1.45,
       respawn: 45,
       speed: 2.3,
       leash: 8,
@@ -955,6 +964,33 @@
         tinfoil: true
       },
       description: contentText("config.monster-drops.module.description-4", {})
+    },
+    "emf-disciple": {
+      name: "EMF Disciple",
+      level: 20,
+      hp: 50,
+      damage: 25,
+      interval: 1.6,
+      respawn: 25,
+      speed: 2.1,
+      leash: 5,
+      roamRadius: 0.8,
+      model: "human",
+      height: 1.9,
+      appearance: { shirt: "#7a8290", pants: "#454959", hair: "#493e38", tinfoil: true },
+      description: "Static crackles around the disciple\u2019s foil suit."
+    },
+    "bolinas-cultist": {
+      name: "Cultist",
+      ...monsterCombat(6, 1.75),
+      respawn: 25,
+      speed: 2,
+      leash: 5,
+      roamRadius: 0.4,
+      model: "human",
+      height: 1.85,
+      appearance: { shirt: "#513b58", pants: "#342d42", hair: "#3e312c" },
+      description: "A Goose Corp devotee guarding a cottage in Bolinas."
     },
     goblin,
     "goblin-guard": {
@@ -983,6 +1019,8 @@
     "sea-urchin": {
       name: "Sea urchin",
       ...monsterCombat(28, 1.85),
+      hp: 340,
+      damage: 26,
       respawn: COMMON_RESPAWN_SECONDS,
       speed: 1.05,
       leash: 4,
@@ -1068,6 +1106,8 @@
     "securities-investigator": {
       name: "Securities Investigator",
       ...monsterCombat(40, 1.85),
+      hp: 500,
+      damage: 35,
       speed: 2.2,
       leash: 18,
       respawn: COMMON_RESPAWN_SECONDS,
@@ -1080,6 +1120,8 @@
     "mad-scientist": {
       name: "Mad Scientist",
       ...monsterCombat(45, 1.85),
+      hp: 575,
+      damage: 37,
       speed: 1.7,
       leash: 4,
       roamRadius: 0.8,
@@ -1094,6 +1136,8 @@
     "madder-scientist": {
       name: "Madder Scientist",
       ...monsterCombat(55, 1.75),
+      hp: 700,
+      damage: 45,
       speed: 1.8,
       leash: 6,
       roamRadius: 1.3,
@@ -1108,6 +1152,8 @@
     "mad-cultist": {
       name: "Mad Cultist",
       ...monsterCombat(40, 1.9),
+      hp: 520,
+      damage: 33,
       speed: 1.7,
       leash: 5,
       aggression: 2.6,
@@ -1126,13 +1172,15 @@
     raptor: {
       name: contentText("config.monster-drops.module.name-12", {}),
       quest: true,
-      ...monsterCombat(8, 1.5),
+      ...monsterCombat(12, 1.5),
       respawn: 45
     },
     kraken: {
       name: contentText("config.monster-drops.module.name-13", {}),
       quest: true,
       ...monsterCombat(60, 2.4, { boss: true }),
+      hp: 1400,
+      damage: 45,
       enrageAt: 0.5,
       enrageDamageBonus: 6,
       enrageInterval: 1.8
@@ -1209,6 +1257,8 @@
     terminator: {
       name: contentText("config.monster-drops.module.name-19", {}),
       ...monsterCombat(40, 1.3),
+      hp: 520,
+      damage: 31,
       respawn: 30,
       speed: 2.4,
       leash: 7,
@@ -1629,6 +1679,7 @@
           "decorative-robe-top",
           "cashmere-turtleneck",
           "goose-corp-shirt",
+          "goose-costume",
           "iron-armor",
           "gold-trimmed-iron-armor"
         ].filter(owns).map((id) => option(id, ITEM_STATS[id].name))
@@ -1675,6 +1726,7 @@
         "decorative-robe-top",
         "cashmere-turtleneck",
         "goose-corp-shirt",
+        "goose-costume",
         "iron-armor",
         "gold-trimmed-iron-armor"
       ],

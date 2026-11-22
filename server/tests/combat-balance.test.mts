@@ -142,11 +142,13 @@ test('owned, equipped ice armor consistently reduces spectre and kraken hits; co
   t.after(() => game.close());
   const cases = [
     { owned: [], look: {}, blocked: 0 },
-    { owned: ['ice-top'], look: { iceTop: true }, blocked: 2 },
+    { owned: ['iron-armor'], look: { torso: 'iron-armor' }, blocked: 3 },
+    { owned: ['ice-top'], look: { iceTop: true }, blocked: 5 },
+    { owned: ['ice-pants'], look: { icePants: true }, blocked: 5 },
     {
       owned: ['ice-top', 'ice-pants'] satisfies [string, string],
       look: { iceTop: true, icePants: true },
-      blocked: 4,
+      blocked: 10,
     },
     { owned: ['ice-top', 'ice-pants'] satisfies [string, string], look: {}, blocked: 0 },
     { owned: [], look: { iceTop: true, icePants: true }, blocked: 0 },
@@ -169,7 +171,7 @@ test('owned, equipped ice armor consistently reduces spectre and kraken hits; co
       true,
     );
     game.personal.tick(0.9);
-    assert.equal(a.p.hp, 30 - (5 - c.blocked));
+    assert.equal(a.p.hp, 30 - Math.max(0, 5 - c.blocked));
     // Stop melee; the same owned armor must work in a personal boss instance.
     a.p.personalBattle = null;
     a.p.hp = a.p.max = 120;

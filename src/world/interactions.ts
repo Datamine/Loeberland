@@ -2514,13 +2514,6 @@ export function createInteractions(context: WorldContext) {
       context.tahoe.state.mode !== 'ground'
     )
       return false;
-    if (context.economy.state.fish) {
-      announce(
-        contentText('world-message.src.world.interactions.you-can-only-carry-one-live-fish'),
-        'Fishing',
-      );
-      return false;
-    }
     const begin = () => {
       if (context.bike.riding) parkBike();
       parkMotorcycle(false);
@@ -3340,6 +3333,12 @@ export function createInteractions(context: WorldContext) {
               : 'Welcome to the party. Matilda’s hosting. If you came in fancy dress, congratulations. If you didn’t, we’ll assume it’s very subtle.',
         }),
       );
+    if (npc.combatKind === 'bolinas-cultist' && verb === 'talk')
+      return approachNPC(npc, () => {
+        closeMenu();
+        releaseNPC();
+        context.multiplayerWorld.command('talkCultist', { id: npc.id });
+      });
     if (npc.wilderness)
       return verb === 'pet'
         ? petBear(npc)

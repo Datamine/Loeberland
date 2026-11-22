@@ -65,5 +65,6 @@ export type SharedWorldOptions = Pick<
     saved?: SharedSavedState;
     onAirshipReset?: (player: ServerPlayer) => void;
     onCombatDamage?: (player: ServerPlayer, damage: number) => void;
+    onRaptorDefeated?: (player: ServerPlayer) => void;
     onBind?: (player: ServerPlayer) => void;
   };

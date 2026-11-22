@@ -51,11 +51,11 @@ const shoot = (
   target: NonNullable<Parameters<ReturnType<typeof createExpeditions>['shoot']>[0]>,
 ) => {
   g.state.cooldown = 0;
-  return g.shoot(target, { x: target.x + 4, z: target.z, base: 0 });
+  return g.shoot(target, { x: target.x + 4, z: target.z, base: 0 }, 'railgun');
 };
 
 test('kraken spoils remain within reach on open deck and can be picked past the ship’s mast', () => {
-  const { game } = setup({ saved: { railgun: true, krakenDefeated: true } });
+  const { game } = setup({ saved: { raptor: 'completed', railgun: true, krakenDefeated: true } });
   game.board();
   game.update(6.1);
   const loot = game.state.loot.find((l) => l.lootKind === 'kraken');
@@ -111,7 +111,13 @@ test('the scientist grants a railgun, visibly releases the raptor, and accepts i
   assert.equal(g.startQuest().ok, false);
   g.update(1);
   assert.equal(g.raptor.phase, 'loose');
-  for (let i = 0; i < 4; i++) assert.equal(shoot(g, g.raptor).damage, 10);
+  assert.match(shoot(g, g.cows[0]).message || '', /on loan/);
+  assert.equal(g.raptor.max, 72);
+  for (let i = 0; i < 7; i++) assert.equal(shoot(g, g.raptor).damage, 10);
+  assert.equal(g.state.raptorDefeated, false);
+  assert.equal(shoot(g, g.raptor).damage, 2);
+  assert.equal(g.state.raptorDefeated, true);
+  assert.equal(shoot(g, g.cows[0]).ok, true);
   assert.equal(g.raptor.phase, 'dead');
   const body = g.state.loot.find((l) => l.lootKind === 'raptor');
   assert.ok(body);
@@ -128,8 +134,7 @@ test('the scientist grants a railgun, visibly releases the raptor, and accepts i
   assert.equal(createExpeditions({ saved: saved.at(-1) }).state.raptor, 'completed');
 });
 test('railgun range, cooldown, collision and immunity cannot be bypassed; shooting a civilian raises the alarm', () => {
-  const { game: g, events } = setup();
-  g.startQuest();
+  const { game: g, events } = setup({ saved: { raptor: 'completed', railgun: true } });
   g.update(1);
   const cow = g.cows[0];
   assert.equal(g.shoot(cow, { x: cow.x + 5.01, z: cow.z }).ok, false);
@@ -144,57 +149,41 @@ test('railgun range, cooldown, collision and immunity cannot be bypassed; shooti
   const citizen = { id: 'test-man', label: 'Man', x: 0, z: 0 };
   assert.equal(g.shoot(citizen, { x: 0, z: 4 }).ok, true);
   assert.equal(events.filter((e) => e.type === 'illegal').length, 1);
-  const blocked = setup({ lineClear: () => false }).game;
-  blocked.startQuest();
+  const blocked = setup({
+    lineClear: () => false,
+    saved: { raptor: 'completed', railgun: true },
+  }).game;
   assert.equal(shoot(blocked, blocked.cows[0]).ok, false);
   assert.equal(blocked.cows[0].hp, 20);
 });
-test('raptor versus citizen resolves independent fifty-percent outcomes and drops collectible coins', () => {
-  for (const [killCitizen, killRaptor] of [
-    [false, false] satisfies [boolean, boolean],
-    [false, true] satisfies [boolean, boolean],
-    [true, false] satisfies [boolean, boolean],
-    [true, true] satisfies [boolean, boolean],
-  ]) {
-    const rolls = [killCitizen ? 0.1 : 0.9, killRaptor ? 0.1 : 0.9, 0.4],
-      npc: import('../src/types/world.ts').Actor = {
-        id: 'civilian',
-        label: 'Woman',
-        x: JURASSIC.exit.x,
-        z: JURASSIC.exit.z,
-      };
-    const {
-      game: g,
-      p,
-      economy,
-    } = setup({ pedestrians: () => [npc], random: () => rolls.shift() ?? 0.9 });
-    p.eligible = false;
-    g.startQuest();
-    g.update(2.1);
-    assert.equal(!!npc.expeditionDead, killCitizen);
-    assert.equal(g.raptor.phase === 'dead', killRaptor);
-    const coins = g.state.loot.find((l) => l.lootKind === 'coins');
-    assert.equal(!!coins, killCitizen);
-    if (coins) {
-      const before = economy.state.coins;
-      assert.equal(g.collect(coins).ok, true);
-      assert.ok(economy.state.coins > before);
-      assert.equal(g.collect(coins).ok, false);
-    }
-    if (killRaptor)
-      assert.equal(
-        g.collect(requiredFixture(g.state.loot.find((l) => l.lootKind === 'raptor'))).ok,
-        true,
-        'citizen victories cannot strand the quest',
-      );
-  }
+test('the raptor flees, kills a pedestrian, and leaves coins before the pedestrian respawns', () => {
+  const npc: import('../src/types/world.ts').Actor = {
+    id: 'civilian',
+    label: 'Woman',
+    x: JURASSIC.runout.x,
+    z: JURASSIC.runout.z,
+  };
+  const { game: g, p, economy } = setup({ pedestrians: () => [npc], random: () => 0.9 });
+  p.eligible = false;
+  g.startQuest();
+  g.update(2);
+  assert.ok(g.raptor.z > JURASSIC.exit.z);
+  g.update(2);
+  assert.equal(npc.expeditionDead, true);
+  assert.equal(g.raptor.phase, 'loose');
+  const coins = requiredFixture(g.state.loot.find((l) => l.lootKind === 'coins'));
+  const before = economy.state.coins;
+  assert.equal(g.collect(coins).ok, true);
+  assert.equal(economy.state.coins, before + 7);
+  g.update(35);
+  assert.equal(npc.expeditionDead, false);
 });
 test('raptors damage nearby players and never travel through blocked terrain', () => {
   const { game: g, p, health } = setup();
-  p.x = JURASSIC.exit.x;
-  p.z = JURASSIC.exit.z;
+  p.x = JURASSIC.runout.x;
+  p.z = JURASSIC.runout.z;
   g.startQuest();
-  g.update(2.1);
+  g.update(6);
   assert.ok(health.state.hp < 30);
   const b = setup({ canTravel: () => false });
   b.game.startQuest();
@@ -204,9 +193,8 @@ test('raptors damage nearby players and never travel through blocked terrain', (
   assert.deepEqual({ x: b.game.raptor.x, z: b.game.raptor.z }, before);
 });
 test('cows drop stored food and respawn after ten simulation seconds', () => {
-  const { game: g, p, food } = setup();
+  const { game: g, p, food } = setup({ saved: { raptor: 'completed', railgun: true } });
   p.eligible = false;
-  g.startQuest();
   const c = g.cows[0];
   shoot(g, c);
   shoot(g, c);
@@ -235,10 +223,15 @@ test('cows drop stored food and respawn after ten simulation seconds', () => {
   assert.equal(deli.state.sandwiches, 2);
   assert.equal(health.state.hp, 23);
 });
-test('Ahab requires a railgun; 120 boss hits deplete 1,200 HP and yield one 100-coin reward and a persistent cape', () => {
-  const { game: g, p, health, economy, saved } = setup();
-  assert.equal(g.board().ok, false);
-  g.startQuest();
+test('Ahab requires an unlocked railgun; 140 boss hits deplete 1,400 HP and yield one 100-coin reward and a persistent cape', () => {
+  assert.equal(setup().game.board().ok, false);
+  const {
+    game: g,
+    p,
+    health,
+    economy,
+    saved,
+  } = setup({ saved: { raptor: 'completed', railgun: true } });
   assert.equal(g.board().ok, true);
   p.eligible = false;
   g.update(6);
@@ -251,8 +244,8 @@ test('Ahab requires a railgun; 120 boss hits deplete 1,200 HP and yield one 100-
   g.update(3.5);
   assert.equal(health.state.hp, 0);
   g.state.target = null;
-  assert.equal(g.kraken.max, 1200);
-  for (let i = 0; i < 119; i++) {
+  assert.equal(g.kraken.max, 1400);
+  for (let i = 0; i < 139; i++) {
     g.state.cooldown = 0;
     assert.equal(g.shoot(g.kraken, p).damage, 10);
     assert.equal(g.ship.phase, 'fighting');
@@ -282,8 +275,7 @@ test('Ahab requires a railgun; 120 boss hits deplete 1,200 HP and yield one 100-
 });
 test('automatic ranged attacks remain frame-rate independent against the level-60 kraken', () => {
   const run = (step: number) => {
-    const { game: g, p, health } = setup();
-    g.startQuest();
+    const { game: g, p, health } = setup({ saved: { raptor: 'completed', railgun: true } });
     g.board();
     p.eligible = false;
     g.update(6);
@@ -298,7 +290,7 @@ test('automatic ranged attacks remain frame-rate independent against the level-6
   const small = run(1 / 60),
     large = run(0.2);
   assert.deepEqual(small, large);
-  assert.equal(small.boss, 1090);
+  assert.equal(small.boss, 1290);
   assert.ok(small.hp > 0);
   assert.equal(small.phase, 'fighting');
 });

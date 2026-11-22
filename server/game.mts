@@ -32,8 +32,7 @@ import { createInventoryAccount } from './inventory.mts';
 import { createHighScores } from './high-scores.mts';
 import { hydratePlayerProfile, serializePlayerProfile } from '../src/player-document.ts';
 import { createPvpCombat } from './pvp.mts';
-import { skillStatus, hitpointMaximum } from '../src/progression.ts';
-import { strengthStatus } from '../src/strength.ts';
+import { skillStatus, hitpointMaximum, playerLevel } from '../src/progression.ts';
 import { guildStatusFor, guildAction } from './guild.mts';
 import { createServerInstances } from './instances.mts';
 import { PUBLIC_INSTANCE } from '../src/map-instances.ts';
@@ -205,6 +204,13 @@ export async function createGame({
   };
   const shared = createSharedWorld({
     onCombatDamage: (p: ServerPlayer, damage: number) => personal.awardCombat(p, damage),
+    onRaptorDefeated: (p: ServerPlayer) => {
+      if (personal.runtime(p).expeditions.markRaptorDefeated())
+        send(p, {
+          type: 'notice',
+          message: contentText('world-message.jurassic.railgun-unlocked'),
+        });
+    },
     onBind: bindPlayer,
     geometry,
     routes,
@@ -564,7 +570,8 @@ export async function createGame({
       // Legacy/local adapters can authenticate concurrently while a name
       // reservation yields; capacity must still hold at the final commit.
       if (players.size >= maxPlayers) throw Error('The world is full. Please try again soon.');
-      const hpXP = skillStatus(parse(profile.privateState['sf-hitpoints-v1']).xp).xp,
+      const hitpoints = skillStatus(profile.playerState.skills.hitpoints.xp),
+        hpXP = hitpoints.xp,
         maxHP = hitpointMaximum(hpXP);
       const id = ++serial,
         spawn = geometry.spawn,
@@ -595,7 +602,10 @@ export async function createGame({
         hasCharacterPassword,
         profile,
         inventory,
-        level: strengthStatus(parse(profile.privateState['sf-strength-v1']).xp).level,
+        level: playerLevel(
+          skillStatus(profile.playerState.skills.strength.xp).level,
+          hitpoints.level,
+        ),
         transport,
         name: persisted.name,
         nameChanged: persisted.changed || 0,

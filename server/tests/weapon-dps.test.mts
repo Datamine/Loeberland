@@ -29,7 +29,7 @@ test('the authoritative attack loop honors each weapon interval and Strength Lev
           'sf-purse-v1': '{"coins":25,"ownedEquipment":["battleaxe","akibo"]}',
           'sf-quests-v1':
             '{"theyLive":{"started":true,"evidence":true,"permit":true,"bayonet":true}}',
-          'sf-expeditions-v1': '{"raptor":"escaped","railgun":true,"equipped":true}',
+          'sf-expeditions-v1': '{"raptor":"completed","railgun":true,"equipped":true}',
           'sf-character-v1': JSON.stringify({ weapon }),
         });
         const target = game.shared.cows[0];
@@ -117,7 +117,7 @@ test('PvP uses Fist when selected even if the player owns an equipped railgun', 
   try {
     const a = await player(game, 41901, {
         'sf-character-v1': '{"weapon":"unarmed"}',
-        'sf-expeditions-v1': '{"raptor":"escaped","railgun":true,"equipped":true}',
+        'sf-expeditions-v1': '{"raptor":"completed","railgun":true,"equipped":true}',
       }),
       b = await player(game, 41902);
     for (const person of [a, b]) await command(game, person.p, 'pvp', { enabled: true });
@@ -145,7 +145,7 @@ test('spectres take bayonet damage and zero railgun damage when both weapons are
       'sf-sunglasses-v1': '{"owned":true}',
       'sf-character-v1': '{"weapon":"bayonet","sunglasses":true}',
       'sf-quests-v1': '{"theyLive":{"started":true,"evidence":true,"permit":true,"bayonet":true}}',
-      'sf-expeditions-v1': '{"raptor":"escaped","railgun":true,"equipped":true}',
+      'sf-expeditions-v1': '{"raptor":"completed","railgun":true,"equipped":true}',
     });
     await command(game, a.p, 'playerAction', {
       verb: 'attackPersonal',

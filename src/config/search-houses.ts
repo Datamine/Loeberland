@@ -1,6 +1,12 @@
 import type { Parcel } from '../types/parcels.ts';
 // CONTENT-BINDINGS-MIGRATED
 import { contentText } from '../content-runtime.ts';
+export const CULTIST_WARDROBE = Object.freeze({
+  id: 'bolinas-cultist-wardrobe',
+  container: 'wardrobe',
+  label: 'Wardrobe',
+  reward: { item: 'goose-costume', amount: 1 },
+});
 /** Stable pseudo-random residential choices; never reroll on a page load.
  * Rewards are personal, once per character. Keep IDs stable for checkpoints. */
 export const HOUSE_SEARCHES = Object.freeze(

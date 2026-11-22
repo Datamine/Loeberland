@@ -1,4 +1,19 @@
 {
+  "world-message.bolinas.approach-cultist": {
+    "template": "Walk closer to the Cultist to talk."
+  },
+  "world-message.bolinas.cultist-refuses": {
+    "template": "‘I have nothing to tell you.’ The Cultist attacks!"
+  },
+  "world-message.jurassic.railgun-on-loan": {
+    "template": "The railgun is on loan from Jurassic Biosciences for the Velociraptor hunt. Switch weapons for other targets until you’ve defeated it."
+  },
+  "world-message.jurassic.railgun-unlocked": {
+    "template": "You defeated the Velociraptor. You can now use the railgun. Recover the remains and return to the scientist."
+  },
+  "world-message.jurassic.your-own-raptor-remains": {
+    "template": "Accept the recovery quest and defeat the Velociraptor yourself to collect its remains."
+  },
   "world-message.goblin-space.approach": {
     "template": "Take your mud to the chief engineer at the Goblin Space Program."
   },
@@ -540,7 +555,7 @@
     "template": "Obtain that weapon first."
   },
   "world-message.server.player-state.railgun-issued-and-charged-equip-it-in-character-then-follow-t": {
-    "template": "Railgun issued, charged, and equipped. Follow the raptor south."
+    "template": "Railgun issued at full charge on loan from Jurassic Biosciences. Equip it and chase the Velociraptor south. Defeat it to unlock the railgun for other targets."
   },
   "world-message.server.player-state.rewards-and-timed-activities-are-calculated-by-the-server": {
     "template": "Rewards and timed activities are calculated by the server."
@@ -1103,6 +1118,9 @@
   "world-message.src.finance-ui.a-coin-duel-offer-awaits-your-agreement": {
     "template": "A {stake} coin duel offer awaits your agreement."
   },
+  "world-message.src.fishing.cooldown": {
+    "template": "You can fish again in {seconds}s."
+  },
   "world-message.src.fishing.you-can-only-carry-one-live-fish": {
     "template": "Sell or trade your live fish before fishing again."
   },
@@ -1227,7 +1245,7 @@
     "template": "Equip a railgun, Akimbos, or a missile launcher to fight the Kraken."
   },
   "world-message.src.jurassic.railgun-issued-the-gate-is-opening-follow-the-velociraptor-sou": {
-    "template": "Railgun issued. The gate is opening. Follow the velociraptor south of the lab."
+    "template": "Railgun issued on loan for the Velociraptor hunt. Chase it south of the lab."
   },
   "world-message.src.jurassic.recover-the-velociraptor-first": {
     "template": "Recover the velociraptor first."
@@ -1254,10 +1272,10 @@
     "template": "The Pequod sets sail into the western Pacific."
   },
   "world-message.src.jurassic.the-scientist-hands-you-a-railgun-and-opens-the-cage-the-veloc": {
-    "template": "The scientist hands you a railgun and opens the cage. The velociraptor is loose! Click it to fire from up to five tiles away."
+    "template": "The scientist opens the cage. The Velociraptor is loose! Chase it down and use the loaned railgun to defeat it."
   },
   "world-message.src.jurassic.the-velociraptor-attacks-a-coins-fall-to-the-ground": {
-    "template": "The velociraptor attacks a {value1}. Coins fall to the ground."
+    "template": "The Velociraptor kills a {value1}. Coins fall to the ground."
   },
   "world-message.src.jurassic.the-velociraptor-falls": {
     "template": "The velociraptor falls."

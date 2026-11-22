@@ -1,6 +1,10 @@
 import { contentText } from '../src/content-runtime.ts';
 import type { ServerPlayer, SimulationServices } from '../src/types/server.ts';
-import { consumeWeaponShot, advanceAttackDeadline } from './combat-supplies.mts';
+import {
+  consumeWeaponShot,
+  advanceAttackDeadline,
+  railgunRestriction,
+} from './combat-supplies.mts';
 import {
   selectedWeapon,
   weaponAttackInterval,
@@ -10,6 +14,7 @@ import {
 } from '../src/item-stats.ts';
 import { rollWeaponDamage } from '../src/combat.ts';
 import { sameMapInstance } from '../src/map-instances.ts';
+import { skillStatus } from '../src/progression.ts';
 
 export const PVP_DISABLE_COOLDOWN = 30000;
 export function createPvpCombat({
@@ -146,6 +151,8 @@ export function createPvpCombat({
     const target = allowed.target,
       weapon = weaponFor(p),
       range = ITEM_STATS[weapon].range + 0.25;
+    const restriction = railgunRestriction(p, weapon);
+    if (restriction) return { ok: false, message: restriction };
     if (Math.hypot(p.x - target.x, p.z - target.z) > range + 0.05 || Math.abs(p.y - target.y) > 2.5)
       return {
         ok: false,
@@ -217,7 +224,7 @@ export function createPvpCombat({
         Math.max(
           0,
           rollWeaponDamage(
-            p.level || 1,
+            skillStatus(p.profile.playerState.skills.strength.xp).level,
             weapon,
             random,
             p.profile.playerState.conditions.inebriation,

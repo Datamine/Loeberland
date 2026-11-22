@@ -224,6 +224,7 @@ export interface AlienProgress {
 }
 export interface ExpeditionProgress {
   raptor: RaptorStage;
+  raptorDefeated: boolean;
   railgun: boolean;
   equipped: boolean;
   krakenStarted: boolean;
@@ -319,6 +320,7 @@ export interface PlayerDocument {
     delivery: JSONObject;
     monkeyKeeper: JSONObject;
     laborReadyAt: Record<string, number>;
+    fishingReadyAt: number;
     gym: { workedSeconds: number; readyAt: number };
     construction: { workedSeconds: number; readyAt: number };
     [key: string]: JSONValue;

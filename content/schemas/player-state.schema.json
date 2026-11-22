@@ -289,6 +289,9 @@
                 "completed"
               ]
             },
+            "raptorDefeated": {
+              "type": "boolean"
+            },
             "railgun": {
               "type": "boolean"
             },
@@ -310,6 +313,7 @@
           },
           "required": [
             "raptor",
+            "raptorDefeated",
             "railgun",
             "equipped",
             "krakenStarted",
@@ -416,6 +420,9 @@
           "required": [],
           "additionalProperties": true
         },
+        "fishingReadyAt": {
+          "type": "number"
+        },
         "gym": {
           "type": "object",
           "properties": {
@@ -453,6 +460,7 @@
         "delivery",
         "monkeyKeeper",
         "laborReadyAt",
+        "fishingReadyAt",
         "gym",
         "construction"
       ],

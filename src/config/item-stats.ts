@@ -247,6 +247,11 @@ export const ITEM_STATS = defineItems({
     description: 'A charcoal T-shirt with a white goose logo on the chest.',
     slot: 'top',
   },
+  'goose-costume': {
+    name: 'Goose Costume',
+    slot: 'torso',
+    description: 'A padded white goose costume with an orange bill.',
+  },
   'decorative-robe-bottom': {
     name: 'Decorative robe bottom',
     slot: 'legs',
@@ -284,7 +289,7 @@ export const ITEM_STATS = defineItems({
   'ice-top': {
     name: contentText('config.item-stats.module.name-30', {}),
     slot: 'top',
-    defense: 2,
+    defense: 5,
     color: '#92d9ed',
     trim: '#e1faff',
     description: contentText('config.item-stats.module.description-31', {}),
@@ -292,7 +297,7 @@ export const ITEM_STATS = defineItems({
   'ice-pants': {
     name: contentText('config.item-stats.module.name-32', {}),
     slot: 'legs',
-    defense: 2,
+    defense: 5,
     color: '#78bde5',
     trim: '#d1f4ff',
     description: contentText('config.item-stats.module.description-33', {}),
@@ -368,6 +373,7 @@ export const EQUIPMENT_IDS = Object.freeze([
   'decorative-robe-top',
   'cashmere-turtleneck',
   'goose-corp-shirt',
+  'goose-costume',
   'decorative-robe-bottom',
   'goblin-phone',
   'fighter-yard-pass',

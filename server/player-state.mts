@@ -6,10 +6,15 @@ import type { PlayerRuntime } from '../src/types/player-runtime.ts';
 import type { Point } from '../src/types/geometry.ts';
 
 import type { SimulationServices, ServerPlayer } from '../src/types/server.ts';
-import { BATTERY_SHOTS, consumeWeaponShot, combatSupplyAction } from './combat-supplies.mts';
+import {
+  BATTERY_SHOTS,
+  consumeWeaponShot,
+  combatSupplyAction,
+  railgunRestriction,
+} from './combat-supplies.mts';
 import { createPlayerComponents } from './player-components.mts';
 import { PROGRESSION } from '../src/config/progression.ts';
-import { skillStatus, hitpointMaximum } from '../src/progression.ts';
+import { skillStatus, hitpointMaximum, playerLevel } from '../src/progression.ts';
 import {
   chairForGesture,
   FACTORY_CHAIRS,
@@ -249,7 +254,11 @@ export function createPlayerState({
         onSave: save('sf-ai-lab-job-v1'),
       }),
       interview = createArithmeticInterview({ clock: now, random });
-    const fishing = createFishing(economy),
+    const fishing = createFishing(economy, {
+        now,
+        readyAt: p.profile.playerState.activities.fishingReadyAt,
+        onCooldown: (readyAt) => (p.profile.playerState.activities.fishingReadyAt = readyAt),
+      }),
       origin = geometry.sights?.find((n) => n.id === 'lucindas-deli')?.entry || geometry.spawn;
     const deli = createDeli({
       capacity: () => sandwichCapacity(economy.state),
@@ -430,21 +439,21 @@ export function createPlayerState({
     p.hitpointsXP = skillStatus(p.hitpointsXP + damage * PROGRESSION.hitpointsXPPerDamage).xp;
     p.max = hitpointMaximum(p.hitpointsXP);
     if (p.hp > 0) p.hp = Math.min(p.max, p.hp + p.max - before);
-    if (p.level !== r.strength.status.level) {
-      p.level = r.strength.status.level;
-      p.revision++;
-    }
+    updatePlayerLevel(p, r.strength.status.level);
     r.save('sf-hitpoints-v1')({ hp: p.hp, max: p.max, xp: p.hitpointsXP });
     dirty(p);
   }
-  function commit(p: ServerPlayer, r: PlayerRuntime) {
-    p.inventory.save();
-    dirty(p);
-    const level = r.strength.status.level;
+  function updatePlayerLevel(p: ServerPlayer, strengthLevel: number) {
+    const level = playerLevel(strengthLevel, skillStatus(p.hitpointsXP).level);
     if (p.level !== level) {
       p.level = level;
       p.revision++;
     }
+  }
+  function commit(p: ServerPlayer, r: PlayerRuntime) {
+    p.inventory.save();
+    dirty(p);
+    updatePlayerLevel(p, r.strength.status.level);
   }
   function inventory(p: ServerPlayer, operation: unknown, args: Record<string, unknown> = {}) {
     if (typeof operation !== 'string')
@@ -1216,9 +1225,6 @@ export function createPlayerState({
           if (!hadRailgun) {
             p.inventory.meta.railgunCharge = BATTERY_SHOTS;
             p.inventory.receive({ lootKind: 'equipment', itemId: 'railgun', amount: 1 });
-            p.appearance = { ...p.appearance, weapon: 'railgun' };
-            r.save('sf-character-v1')(p.appearance);
-            p.revision++;
             result = {
               ok: true,
               inventory: p.inventory.snapshot(),
@@ -1348,6 +1354,8 @@ export function createPlayerState({
         };
       if (typeof args.weapon === 'string' && !weaponOwned(p.inventory.economy.state, args.weapon))
         return deny(contentText('world-message.server.player-state.obtain-that-weapon-first'));
+      const restriction = railgunRestriction(p, args.weapon);
+      if (restriction) return deny(restriction);
       if (target.alienId && r.sunglasses.state.owned && p.appearance.sunglasses) {
         const valid = r.quests.theyLive.attack(target.alienId, { revealed: true });
         if (!valid.ok) {
@@ -1445,6 +1453,7 @@ export function createPlayerState({
     const s = r.expeditions.state;
     return {
       raptor: s.raptor,
+      raptorDefeated: s.raptorDefeated,
       railgun: s.railgun,
       equipped: s.equipped,
       cape: s.cape,
@@ -1468,6 +1477,7 @@ export function createPlayerState({
     for (const p of players.values()) {
       const r = runtime(p),
         coins = p.inventory.economy.state.coins,
+        fish = p.inventory.economy.state.fish,
         phone = p.inventory.economy.state.iphoneOwned;
       r.deli.state.sandwiches = p.inventory.meta.sandwiches;
       const seat = p.seat;
@@ -1506,11 +1516,9 @@ export function createPlayerState({
             dirty(p);
             send(p, { type: 'notice', message: contentText('world-message.gym.shift-ended') });
           }
-          if (p.level !== r.strength.status.level) {
-            p.level = r.strength.status.level;
-            p.revision++;
-          }
-          if (p.level === PROGRESSION.maxLevel) movement.leaveTraining(p);
+          const strengthLevel = r.strength.status.level;
+          updatePlayerLevel(p, strengthLevel);
+          if (strengthLevel === PROGRESSION.maxLevel) movement.leaveTraining(p);
         }
       }
       if (p.constructing) {
@@ -1667,6 +1675,7 @@ export function createPlayerState({
       r.save('sf-hitpoints-v1')({ hp: p.hp, max: p.max, xp: p.hitpointsXP });
       if (
         coins !== p.inventory.economy.state.coins ||
+        fish !== p.inventory.economy.state.fish ||
         phone !== p.inventory.economy.state.iphoneOwned
       )
         commit(p, r);
@@ -1726,6 +1735,7 @@ export function createPlayerState({
       if (award.kind === 'raptor') {
         const r = runtime(p);
         r.expeditions.raptor.phase = 'dead';
+        r.expeditions.markRaptorDefeated();
         r.expeditions.recover();
       }
     },

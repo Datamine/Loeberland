@@ -4,7 +4,8 @@ import type { Parcel } from './types/parcels.ts';
 import './picking.ts';
 import { rayBox } from './geometry.ts';
 import { SEARCH_HOUSE_PARCELS } from './southern-layout.ts';
-import { HOUSE_SEARCHES } from './config/search-houses.ts';
+import { CULTIST_WARDROBE, HOUSE_SEARCHES } from './config/search-houses.ts';
+import { CULTIST_COTTAGE } from './bolinas.ts';
 
 export function searchHousePoint(p: Readonly<Parcel>, u: number, v: number) {
   const c = Math.cos(p.rotation || 0),
@@ -22,33 +23,41 @@ export function houseClimb(id: string) {
     angle: (p.rotation || 0) - Math.PI / 2,
   };
 }
+function searchHome(id: string, p: Parcel, search: (typeof HOUSE_SEARCHES)[number]) {
+  const inside = searchHousePoint(p, 0, p.d / 2 - 0.7),
+    entry = searchHousePoint(p, 0, p.d / 2 + 0.45),
+    target =
+      search.container === 'doghouse'
+        ? searchHousePoint(p, -p.w / 2 + 0.48, p.d / 2 + 0.5)
+        : searchHousePoint(p, -p.w / 2 + 0.65, -p.d / 2 + 0.65),
+    approach =
+      search.container === 'doghouse'
+        ? entry
+        : searchHousePoint(p, -p.w / 2 + 0.95, -p.d / 2 + 1.3);
+  return Object.freeze({
+    id,
+    parcel: p,
+    search,
+    inside: { x: inside.x - 0.5, y: inside.z - 0.5 },
+    entry: { x: entry.x - 0.5, y: entry.z - 0.5 },
+    target,
+    approach: { x: approach.x - 0.5, y: approach.z - 0.5 },
+  });
+}
 export const SEARCH_HOMES = Object.freeze(
-  SEARCH_HOUSE_PARCELS.map((p, i) => {
-    const search = HOUSE_SEARCHES[i],
-      inside = searchHousePoint(p, 0, p.d / 2 - 0.7),
-      entry = searchHousePoint(p, 0, p.d / 2 + 0.45),
-      target =
-        search.container === 'doghouse'
-          ? searchHousePoint(p, -p.w / 2 + 0.48, p.d / 2 + 0.5)
-          : searchHousePoint(p, -p.w / 2 + 0.65, -p.d / 2 + 0.65),
-      approach =
-        search.container === 'doghouse'
-          ? entry
-          : searchHousePoint(p, -p.w / 2 + 0.95, -p.d / 2 + 1.3);
-    return Object.freeze({
-      id: 'explorable-home-' + (i + 1),
-      parcel: p,
-      search,
-      inside: { x: inside.x - 0.5, y: inside.z - 0.5 },
-      entry: { x: entry.x - 0.5, y: entry.z - 0.5 },
-      target,
-      approach: { x: approach.x - 0.5, y: approach.z - 0.5 },
-    });
-  }),
+  SEARCH_HOUSE_PARCELS.map((p, i) =>
+    searchHome('explorable-home-' + (i + 1), p, HOUSE_SEARCHES[i]),
+  ),
 );
+export const CULTIST_HOME = searchHome(
+  'bolinas-cultist-cottage',
+  CULTIST_COTTAGE,
+  CULTIST_WARDROBE,
+);
+export const ALL_SEARCH_HOMES = [...SEARCH_HOMES, CULTIST_HOME];
 
 export function searchHomeContaining(x: number, z: number) {
-  return SEARCH_HOMES.find((h) => {
+  return ALL_SEARCH_HOMES.find((h) => {
     const p = h.parcel,
       dx = x - p.x,
       dz = z - p.z;

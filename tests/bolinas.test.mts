@@ -5,6 +5,9 @@ import {
   BOLINAS,
   BOLINAS_COTTAGES,
   BOLINAS_PATH,
+  CULTIST_COTTAGE,
+  BOLINAS_CULTIST,
+  EMF_DISCIPLES,
   EMF_WARRIOR,
   bolinasBlocks,
   drawBolinas,
@@ -15,6 +18,7 @@ import { createDetentionSite } from '../src/encounters.ts';
 import { minimapActors, minimapShops } from '../src/minimap-layers.ts';
 import { characterAppearance, normalizeCharacter } from '../src/character-config.ts';
 import { drawCharacter } from '../src/characters.ts';
+import { CULTIST_HOME } from '../src/search-houses.ts';
 
 test('Bolinas and its warrior are connected to Marin, with cottages blocking their footprints and a continuous trail', () => {
   const detention = createDetentionSite(1.5),
@@ -30,9 +34,13 @@ test('Bolinas and its warrior are connected to Marin, with cottages blocking the
     land.path(BOLINAS.entry, { x: EMF_WARRIOR.x - 0.5, y: EMF_WARRIOR.z - 0.5 }, () => null),
   );
   for (const h of BOLINAS_COTTAGES) {
+    if (h === CULTIST_COTTAGE) continue;
     assert.equal(bolinasBlocks(h.x, h.z), true);
     assert.equal(land.contains(h.x, h.z), false);
   }
+  for (const npc of [BOLINAS_CULTIST, ...EMF_DISCIPLES])
+    assert.ok(land.contains(npc.x, npc.z), npc.id);
+  assert.ok(land.path(CULTIST_HOME.entry, CULTIST_HOME.approach, () => null));
   for (const [x, z] of BOLINAS_PATH) assert.ok(land.onLand(x, z));
   const mesh = new Mesh();
   drawBolinas(mesh, (x, z) => marinElevation(x / 1.5, z / 1.5));

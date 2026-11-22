@@ -46,8 +46,8 @@ The friendly level-10 bear waits at the Marin end of the Golden Gate Bridge.
 Left-click to pet it; right-click to attack or examine. It has 20 HP and a
 1/20 peptide drop. Two snow giants (140 HP, level 18) and two ice giants
 (180 HP, level 20) patrol the foot of Tahoe's mountain. Collect their rare
-ice top/pants and equip them in Character settings for crystalline armor;
-each piece reduces incoming shared-monster/PvP damage by two.
+ice top and pants and equip them in Character settings. Each piece blocks up to
+5 damage per shared-monster or PvP hit, compared with 3 for iron armor.
 `src/wilderness.ts` supplies the server’s native navigation/combat simulation; `src/wilderness-models.ts` contains their original meshes.
 
 In-N-Out's associate sells sandwiches for two
@@ -79,8 +79,9 @@ can be changed once every 60 seconds. Validation, profanity/leet substitutions,
 name reservations and the cooldown run on the backend. Names remain reserved
 while their owners are offline; renaming releases the previous name.
 
-Left-click another player to inspect their Strength Level. Right-click for
-**Follow**; following uses the native tile graph, replans as the target moves,
+Player level is the average of the Strength and Hitpoints levels, rounded down.
+Left-click another player to inspect their level. Right-click for **Follow**.
+Following uses the native tile graph, replans as the target moves,
 and stops when you click a new walking destination. NPC interaction menus and
 examinations also show their level. Type `:debug` to see coordinates and live
 rendering FPS. FPS is independent of the server's 20 Hz simulation.
@@ -101,6 +102,16 @@ are transferred without applying the iPhone earnings bonus. The victim
 respawns at UCSF with a short protection period.
 
 ## Shared versus personal
+
+Jurassic Biosciences loans the player a fully charged railgun with 25 shots.
+Chase the level-12 Velociraptor south. It hunts adult pedestrians, who respawn
+after 35 seconds. The loaned railgun can fire at the Velociraptor. Defeating it
+unlocks the railgun for other targets,
+and bringing its remains back to the scientist completes the recovery.
+
+Bolinas is home to a level-6 Cultist who attacks when spoken to. Search the
+wardrobe in their cottage to find the Goose Costume. The level-44 EMF Warrior
+guards the weaponry upgrade kit nearby, alongside three level-20 EMF Disciples.
 
 The Nob Hill **Freemasons' Guild** is run by **Ray**, in a red suit. The first
 check-in starts Rank 1. Each qualifying return must be at least one full hour
@@ -202,10 +213,10 @@ private kraken are protected. Creature deaths, normal drops and respawns
 remain shared; giants can survive one blast. Other surface players can see
 each pilot's aircraft.
 
-The kraken has **600 HP**, hits with base damage 14 every three seconds and
-enrages at half health: base damage 18 every two seconds. Its 100-coin reward
+The Kraken has **1,400 HP** and 45 base attack power at 2.4-second intervals.
+At half health it enrages, increasing to 51 attack power at 1.8-second intervals. Its 100-coin reward
 and cape remain personal. Each owned, equipped ice armor piece reduces incoming
-combat damage by **2** (4 together), including kraken, spectre, shared-monster and
+combat damage by up to **5** (10 together), including kraken, spectre, shared-monster and
 PvP attacks. This does not reduce environmental damage such as doomscrolling.
 Balance values live in `src/config/monster-drops.ts` and `src/config/item-stats.ts`.
 

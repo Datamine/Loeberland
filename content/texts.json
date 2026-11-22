@@ -239,13 +239,13 @@
       "template": "Ice top"
     },
     "config.item-stats.module.description-31": {
-      "template": "A crystalline cuirass. While equipped, blocks 2 damage from each incoming combat hit."
+      "template": "A crystalline cuirass. While equipped, blocks up to 5 damage per incoming combat hit."
     },
     "config.item-stats.module.name-32": {
       "template": "Ice pants"
     },
     "config.item-stats.module.description-33": {
-      "template": "Frosted greaves. While equipped, block 2 damage from each incoming combat hit."
+      "template": "Frosted greaves. While equipped, block up to 5 damage per incoming combat hit."
     },
     "config.item-stats.module.name-34": {
       "template": "Sandwich"
@@ -788,7 +788,7 @@
       "template": "Do you have a quest for me?"
     },
     "jurassic.scientistDialogue.briefing.intro": {
-      "template": "We ran the containment drill with an empty cage. It went beautifully. Now we have to do the same drill with the raptor inside. I’ll issue you a railgun and work the gate. Once it gets loose, track it down and bring the remains back here so we can write up what happened."
+      "template": "We ran the drill with an empty cage. Now we’re trying it with the raptor inside. I’ll loan you a fully charged railgun for the hunt. Defeat the raptor to unlock it for other targets. Chase it south before it reaches the pedestrians, then bring me its remains."
     },
     "jurassic.scientistDialogue.briefing.accept": {
       "template": "I’ll recover the raptor."

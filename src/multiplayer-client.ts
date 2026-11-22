@@ -245,6 +245,7 @@ export function createMultiplayerClient({
             selfSamples.push({ time, pose });
             if (selfSamples.length > 6) selfSamples.shift();
             state.position = pose;
+            state.level = pose.level;
             if (state.hp !== pose.hp || state.max !== pose.max) {
               state.hp = pose.hp;
               state.max = pose.max;

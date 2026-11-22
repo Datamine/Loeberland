@@ -75,6 +75,7 @@ export interface ServerPlayer {
   hp: number;
   max: number;
   hitpointsXP: number;
+  /** Public level derived from Strength and Hitpoints. */
   level: number;
   mode: string;
   phase: number;

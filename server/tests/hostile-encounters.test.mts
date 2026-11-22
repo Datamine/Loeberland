@@ -13,6 +13,25 @@ import { createGame } from '../game.mts';
 import { createMemoryStore } from '../store.mts';
 
 import { MONSTER_STATS } from '../../src/monster-drops.ts';
+import { JURASSIC } from '../../src/jurassic-layout.ts';
+import type { Actor } from '../../src/types/world.ts';
+
+test('the shared Velociraptor runs south, kills an adult pedestrian and lets them respawn', async (t) => {
+  const geometry = fixtureGeometry();
+  const pedestrian: Actor = { id: 'pedestrian', label: 'Man', ...JURASSIC.runout };
+  geometry.merchants = [pedestrian];
+  const game = await createGame({ geometry, store: createMemoryStore(), random: () => 0.9 });
+  t.after(() => game.close());
+  const a = await player(game, 759);
+  assert.equal(game.shared.command(a.p, 'releaseRaptor').ok, true);
+  for (let i = 0; i < 80; i++) game.tick(0.05);
+  assert.ok(game.shared.raptor.z > JURASSIC.exit.z);
+  assert.equal(game.shared.raptor.phase, 'loose');
+  assert.equal(pedestrian.expeditionDead, true);
+  assert.ok([...game.shared.loot.values()].some((l) => l.lootKind === 'coins'));
+  for (let i = 0; i < 700; i++) game.tick(0.05);
+  assert.equal(pedestrian.expeditionDead, false);
+});
 
 function geometry() {
   const g = fixtureGeometry();

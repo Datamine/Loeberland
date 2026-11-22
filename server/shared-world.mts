@@ -8,6 +8,7 @@ import {
 import { isYardFighter } from '../src/fighter-yard-layout.ts';
 import { hasFighterYardPass } from './fighter-yard.mts';
 import { contentText } from '../src/content-runtime.ts';
+import { GAMEPLAY } from '../src/config/gameplay.ts';
 import { isFiniteNumber } from '../src/types/json.ts';
 import type { WildernessPerson, WildernessActor } from '../src/types/monsters.ts';
 import type { CommandResult, AirshipSnapshot } from '../src/types/network.ts';
@@ -21,7 +22,11 @@ import type {
 
 import type { Actor } from '../src/types/world.ts';
 import type { ServerPlayer } from '../src/types/server.ts';
-import { consumeWeaponShot, advanceAttackDeadline } from './combat-supplies.mts';
+import {
+  consumeWeaponShot,
+  advanceAttackDeadline,
+  railgunRestriction,
+} from './combat-supplies.mts';
 import { updateGrazingCow } from '../src/cow-roaming.ts';
 import { createAirship } from '../src/airship.ts';
 import { validNPCRoamingState } from '../src/npc-roaming.ts';
@@ -30,6 +35,7 @@ import { createAirshipRental } from './airship-rental.mts';
 
 import { AIRSHIP_BASKET } from '../src/airship-basket.ts';
 import { JURASSIC, cowSpawns } from '../src/jurassic-layout.ts';
+import { raptorCivilian } from '../src/jurassic.ts';
 import { SF_ZOO } from '../src/zoo.ts';
 import { createTigerEncounter } from '../src/zoo-encounter.ts';
 import { rollWeaponDamage, rollEnemyDamage } from '../src/combat.ts';
@@ -55,6 +61,11 @@ import { ENERGY_BOLT_SECONDS, SCIENTIST_EXPLOSIVE } from '../src/config/gameplay
 
 const PEPTIDE_LIFETIME_SECONDS = 20 * 60;
 const near = (a: WorldPoint, b: WorldPoint) => Math.hypot(a.x - b.x, a.z - b.z);
+const LEGACY_RAPTOR_MAX_HP = 40;
+function restoredMonsterHealth(hp: number, savedMax: number | undefined, currentMax: number) {
+  if (isFiniteNumber(savedMax) && savedMax > 0 && hp >= savedMax) return currentMax;
+  return Math.max(0, Math.min(currentMax, hp));
+}
 export function createSharedWorld({
   geometry,
   routes,
@@ -67,6 +78,7 @@ export function createSharedWorld({
   movement,
   onAirshipReset = () => {},
   onCombatDamage = () => {},
+  onRaptorDefeated = () => {},
   onBind = () => {},
 }: SharedWorldOptions) {
   const routeTo = (...args: Parameters<NonNullable<typeof routes>['pathTo']>) =>
@@ -162,7 +174,12 @@ export function createSharedWorld({
   }
   if (saved.raptor)
     Object.assign(raptor, saved.raptor, {
-      hp: Math.min(saved.raptor.hp ?? raptor.hp, MONSTER_STATS.raptor.hp),
+      max: MONSTER_STATS.raptor.hp,
+      hp: restoredMonsterHealth(
+        saved.raptor.hp ?? saved.raptor.max ?? LEGACY_RAPTOR_MAX_HP,
+        saved.raptor.max ?? LEGACY_RAPTOR_MAX_HP,
+        MONSTER_STATS.raptor.hp,
+      ),
       path: [],
       prey: null,
       repath: 0,
@@ -421,7 +438,7 @@ export function createSharedWorld({
         level: actor.level,
         height: actor.height,
         max: actor.max,
-        hp: isFiniteNumber(n.hp) ? Math.max(0, Math.min(actor.max, n.hp)) : actor.hp,
+        hp: isFiniteNumber(n.hp) ? restoredMonsterHealth(n.hp, n.max, actor.max) : actor.hp,
         enemy: null,
         enemyPosition: undefined,
         attackAnimation: undefined,
@@ -562,7 +579,7 @@ export function createSharedWorld({
     weapon: string,
   ): CommandResult & { cooldown?: boolean; damage?: number } {
     if (p.shotAt > clock + 1e-8) return { ok: false, cooldown: true };
-    const supply = consumeWeaponShot(p, weapon);
+    const supply = consumeWeaponShot(p, weapon, target === raptor);
     if (!supply.ok) {
       p.attack = null;
       return supply;
@@ -604,7 +621,9 @@ export function createSharedWorld({
       if (target === raptor) {
         raptor.phase = 'dead';
         raptor.path = [];
+        raptor.prey = null;
         raptor.resetAt = clock + MONSTER_STATS.raptor.respawn;
+        onRaptorDefeated(p);
         monsterDrops('raptor', target, p.owner);
       } else {
         (target as SharedCow).respawn = MONSTER_STATS.cow.respawn;
@@ -732,6 +751,20 @@ export function createSharedWorld({
       };
     if (action === 'airshipStatus' || action === 'airshipRecall')
       return airshipRental.command(p, action, args);
+    if (action === 'talkCultist') {
+      const cultist = wilderness.actors.find(
+        (n) => n.id === args.id && n.combatKind === 'bolinas-cultist' && n.hp > 0,
+      );
+      if (
+        !eligible(p) ||
+        !cultist ||
+        near(p, cultist) > GAMEPLAY.interactionRange ||
+        !creatureSegment(p, cultist)
+      )
+        return { ok: false, message: contentText('world-message.bolinas.approach-cultist') };
+      wilderness.provoke(cultist, p);
+      return { ok: true, message: contentText('world-message.bolinas.cultist-refuses') };
+    }
     if (action === 'attack') {
       const target = [...cows, raptor, ...wilderness.actors].find((n) => n.id === args.id),
         weapon = typeof args.weapon === 'string' ? args.weapon : 'railgun';
@@ -742,6 +775,8 @@ export function createSharedWorld({
             'world-message.server.shared-world.you-need-to-own-that-weapon-and-have-both-feet-available',
           ),
         };
+      const restriction = railgunRestriction(p, weapon, target === raptor);
+      if (restriction) return { ok: false, message: restriction };
       if (
         !target?.hp ||
         inBerkeleyLab(target.x, target.z) !== labPlayer(p) ||
@@ -918,13 +953,11 @@ export function createSharedWorld({
         };
       if (
         item.lootKind === 'raptor' &&
-        p.profile.playerState.quests.expeditions.raptor !== 'escaped'
+        (item.owner !== p.owner || p.profile.playerState.quests.expeditions.raptor !== 'escaped')
       )
         return {
           ok: false,
-          message: contentText(
-            'world-message.server.shared-world.accept-the-scientists-recovery-quest-before-collecting-the-rem',
-          ),
+          message: contentText('world-message.jurassic.your-own-raptor-remains'),
         };
       const definition = ITEM_STATS[item.lootKind];
       if (definition?.pickup === 'disintegrate') {
@@ -1418,23 +1451,12 @@ export function createSharedWorld({
       raptor.attackIn -= dt;
       if (raptor.repath <= 0) {
         raptor.repath = 0.75;
-        const candidates = [
-          ...available,
-          ...npcList.filter(
-            (n) =>
-              !n.expeditionDead &&
-              !n.alienId &&
-              !n.child &&
-              !n.baby &&
-              !n.dogWalker &&
-              !n.stroller &&
-              (['Man', 'Woman'] satisfies [string, string]).includes(n.label),
-          ),
-        ].filter((target) => near(target, raptor) <= 22);
+        const candidates = npcList.filter((n) => near(n, raptor) <= 30 && raptorCivilian(n, clock));
         candidates.sort((a, b) => near(a, raptor) - near(b, raptor));
         raptor.prey = null;
         raptor.path = [];
-        for (const target of candidates.slice(0, 8)) {
+        const nearbyPlayers = available.filter((p) => near(p, raptor) < 8);
+        for (const target of [...candidates.slice(0, 8), ...nearbyPlayers]) {
           const path = pathTo(raptor, target);
           if (path) {
             raptor.prey = target;
@@ -1469,10 +1491,21 @@ export function createSharedWorld({
           );
           if (reflected) damageCreature(playerPrey, raptor, reflected, 'recoil-amulet');
         } else {
-          if (random() < 0.5) {
+          if (!(prey as Actor).expeditionDead) {
             (prey as Actor).expeditionDead = true;
             (prey as Actor).recoverAt = clock + 35;
             drop('coins', prey.x, prey.z, null, 3 + Math.floor(random() * 5));
+            for (const p of available)
+              if (near(p, prey) < 25)
+                send(p, {
+                  type: 'notice',
+                  message: contentText(
+                    'world-message.src.jurassic.the-velociraptor-attacks-a-coins-fall-to-the-ground',
+                    {
+                      value1: String((prey as Actor).label.toLowerCase()),
+                    },
+                  ),
+                });
           }
           raptor.repath = 0;
         }
@@ -1670,6 +1703,7 @@ export function createSharedWorld({
         x: raptor.x,
         z: raptor.z,
         hp: raptor.hp,
+        max: raptor.max,
         phase: raptor.phase,
         angle: raptor.angle,
         resetAt: raptor.resetAt,

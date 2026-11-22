@@ -66,7 +66,7 @@ test('SQLite restarts retain PvP consent, its cooldown and an atomic death inven
     });
     const a = await player(game, 301, {
         'sf-character-v1': '{"weapon":"railgun"}',
-        'sf-expeditions-v1': '{"raptor":"escaped","railgun":true,"equipped":true}',
+        'sf-expeditions-v1': '{"raptor":"completed","railgun":true,"equipped":true}',
       }),
       b = await player(game, 302, {
         'sf-purse-v1': '{"coins":123,"iphoneOwned":true,"ownedHats":["beanie"]}',

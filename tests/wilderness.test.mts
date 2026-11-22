@@ -110,7 +110,7 @@ test('weapon/food stats live in the item catalog and the axe fills the damage ga
   };
   assert.ok(average('bayonet') < average('battleaxe'));
   assert.ok(average('battleaxe') < average('railgun'));
-  assert.equal(MONSTER_STATS.kraken.hp, 1200);
+  assert.equal(MONSTER_STATS.kraken.hp, 1400);
   assert.equal(MONSTER_STATS.bear.level, 10);
   assert.equal(MONSTER_STATS.bear.hp, 50);
   assert.equal(selectedWeapon('battleaxe', { ownedEquipment: [] }), 'unarmed');

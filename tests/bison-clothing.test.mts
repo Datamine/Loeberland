@@ -45,7 +45,7 @@ test('cloak pieces appear only when owned and occupy exclusive torso/leg slots',
   const legacy = normalizeCharacter({ iceTop: true, icePants: true });
   assert.equal(legacy.torso, 'ice-top');
   assert.equal(legacy.legs, 'ice-pants');
-  assert.equal(equipmentDefense(legacy), 4);
+  assert.equal(equipmentDefense(legacy), 10);
   const black = normalizeCharacter({
     ...legacy,
     torso: 'black-cloak-top',

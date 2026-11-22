@@ -175,7 +175,13 @@ import {
   createResearcherNPCs,
 } from '../research-campuses.ts';
 import { SUNGLASSES_BEACH_TARGET, beachSunglassesSite } from '../sunglasses.ts';
-import { SEARCH_HOMES, houseClimb, searchHomeContaining } from '../search-houses.ts';
+import {
+  ALL_SEARCH_HOMES,
+  CULTIST_HOME,
+  SEARCH_HOMES,
+  houseClimb,
+  searchHomeContaining,
+} from '../search-houses.ts';
 import { createLoreBookTarget } from '../world-lore.ts';
 import { TERMINATOR_FACTORY } from '../encounter-layout.ts';
 import { drawGoblinPhoneHut, GOBLIN_INDUSTRIALIST, ROBE_SELLER } from '../goblin-industrialist.ts';
@@ -1558,12 +1564,17 @@ export function createGeneration(context: WorldContext) {
   }
 
   function setupSearchHomes() {
-    for (const [i, home] of SEARCH_HOMES.entries()) {
+    for (const [i, home] of ALL_SEARCH_HOMES.entries()) {
+      const cultist = home === CULTIST_HOME;
       const p = home.parcel,
         house: Place = {
           id: home.id,
-          name: contentText('world.generation.setupSearchHomes.name-44', {}),
-          label: contentText('world.generation.setupSearchHomes.label-45', {}),
+          name: cultist
+            ? 'Cultist’s cottage'
+            : contentText('world.generation.setupSearchHomes.name-44', {}),
+          label: cultist
+            ? 'Cultist’s cottage'
+            : contentText('world.generation.setupSearchHomes.label-45', {}),
           kind: 'residence',
           activityBuilding: true,
           searchHome: true,
@@ -1587,14 +1598,15 @@ export function createGeneration(context: WorldContext) {
           description: contentText('world.generation.setupSearchHomes.description-46', {}),
         };
       const ground = terrainHeight(p.x, p.z);
-      context.southernTerrain.cutPlot({
-        cx: p.x,
-        cz: p.z,
-        w: p.w,
-        d: p.d,
-        angle: p.rotation || 0,
-        height: ground,
-      });
+      if (!cultist)
+        context.southernTerrain.cutPlot({
+          cx: p.x,
+          cz: p.z,
+          w: p.w,
+          d: p.d,
+          angle: p.rotation || 0,
+          height: ground,
+        });
       planningPlaces().push(house);
       const object = context.makeBuilding(house, true),
         outside = home.search.container === 'doghouse',

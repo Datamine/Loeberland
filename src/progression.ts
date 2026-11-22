@@ -31,3 +31,6 @@ export function skillStatus(value: unknown) {
 }
 export const hitpointMaximum = (xp: number | undefined) =>
   PROGRESSION.baseHitpoints + (skillStatus(xp).level - 1) * PROGRESSION.hitpointsPerLevel;
+
+export const playerLevel = (strengthLevel: number, hitpointsLevel: number) =>
+  Math.floor((strengthLevel + hitpointsLevel) / 2);

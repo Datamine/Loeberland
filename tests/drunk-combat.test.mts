@@ -56,7 +56,7 @@ test('personal spectre combat checks current inebriation on each swing and recov
 test('expedition and wilderness attacks use the same current inebriation penalty', () => {
   let percent = 100;
   const expedition = createExpeditions({
-      saved: { railgun: true, equipped: true },
+      saved: { raptor: 'completed', railgun: true, equipped: true },
       health: createHitpoints(),
       economy: createEconomy(),
       random: () => 0.6,

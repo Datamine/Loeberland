@@ -2,12 +2,19 @@ import { contentText } from '../src/content-runtime.ts';
 import { isFiniteNumber } from '../src/types/json.ts';
 import type { ServerPlayer } from '../src/types/server.ts';
 import { equipmentOwned, MISSILE_PRICE } from '../src/item-stats.ts';
+import { mayFireRailgun } from '../src/jurassic.ts';
 export const AMMO_PACK_ROUNDS = 20,
   AMMO_PACK_PRICE = 5,
   BATTERY_PRICE = 20,
   BATTERY_SHOTS = 25;
+export function railgunRestriction(p: ServerPlayer, weapon: unknown, atRaptor = false) {
+  if (weapon === 'railgun' && !mayFireRailgun(p.profile.playerState.quests.expeditions, atRaptor))
+    return contentText('world-message.jurassic.railgun-on-loan');
+}
 /** A shot spends its resource only once, after range and cooldown validation. */
-export function consumeWeaponShot(p: ServerPlayer, weapon: string) {
+export function consumeWeaponShot(p: ServerPlayer, weapon: string, atRaptor = false) {
+  const restriction = railgunRestriction(p, weapon, atRaptor);
+  if (restriction) return { ok: false, spent: false, message: restriction };
   const magazine =
     weapon === 'akibo'
       ? ({

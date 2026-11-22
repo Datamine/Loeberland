@@ -38,6 +38,7 @@ export interface ExpeditionPrey extends WorldPoint {
   isPlayer?: boolean;
   label?: string;
   expeditionDead?: boolean;
+  recoverAt?: number;
   hold?: number;
 }
 export interface ExpeditionState extends ExpeditionProgress {

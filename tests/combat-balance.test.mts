@@ -28,16 +28,16 @@ test('ice defense requires ownership and equipment, stacks and never turns a hit
       { ownedEquipment: ['ice-top', 'ice-pants'] satisfies [string, string] },
       { iceTop: true, icePants: true },
     ),
-    4,
+    10,
   );
   assert.equal(ownedEquipmentDefense({ ownedEquipment: [] }, { iceTop: true, icePants: true }), 0);
   assert.equal(ownedEquipmentDefense({ ownedEquipment: ['ice-top'] }, {}), 0);
   assert.equal(
-    rollEnemyDamage(14, 1, () => 0.5, 4),
-    rollEnemyDamage(14, 1, () => 0.5) - 4,
+    rollEnemyDamage(14, 1, () => 0.5, 5),
+    rollEnemyDamage(14, 1, () => 0.5) - 5,
   );
   assert.equal(
-    rollEnemyDamage(7, 1, () => 0, 4),
+    rollEnemyDamage(7, 1, () => 0, 10),
     0,
   );
   let defense = 0;
@@ -45,9 +45,9 @@ test('ice defense requires ownership and equipment, stacks and never turns a hit
     battle = createAlienBattle({ health, defense: () => defense, random: () => 0.5 });
   battle.update(0.85);
   assert.equal(health.state.hp, 25);
-  defense = 4;
+  defense = 10;
   battle.update(1.25);
-  assert.equal(health.state.hp, 24);
+  assert.equal(health.state.hp, 25);
 });
 test('the level-60 kraken enrages once at half health, accelerates its attacks and hits harder', () => {
   const p = { x: 0, z: 0, eligible: false },
@@ -64,7 +64,7 @@ test('the level-60 kraken enrages once at half health, accelerates its attacks a
       },
     },
     g = createExpeditions({
-      saved: { railgun: true },
+      saved: { raptor: 'completed', railgun: true },
       health,
       economy: createEconomy(),
       player: () => p,
@@ -77,7 +77,7 @@ test('the level-60 kraken enrages once at half health, accelerates its attacks a
   p.x = g.ship.x;
   p.eligible = true;
   assert.equal(MONSTER_STATS.kraken.level, 60);
-  assert.equal(g.kraken.max, 1200);
+  assert.equal(g.kraken.max, 1400);
   g.ship.attackIn = 0.05;
   g.update(0.05);
   const normal = requiredFixture(

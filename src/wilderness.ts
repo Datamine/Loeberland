@@ -30,7 +30,7 @@ type WalkingMonster = MonsterStats & {
 import { FIGHTER_SPAWNS, isYardFighter, inFighterYard } from './fighter-yard-layout.ts';
 import { SCAPEGOAT } from './girard-layout.ts';
 import { POINT_REYES_URCHINS } from './point-reyes.ts';
-import { EMF_WARRIOR } from './bolinas.ts';
+import { BOLINAS_CULTIST, EMF_DISCIPLES, EMF_WARRIOR } from './bolinas.ts';
 import { GOBLIN_SPAWNS } from './goblin-town.ts';
 import { SOMA_ZOMBIE_SPAWNS } from './downtown.ts';
 import { ITEM_STATS } from './item-stats.ts';
@@ -125,6 +125,8 @@ export function wildernessSpawns({ marin, tahoe }: { marin: Point; tahoe: WorldP
     ...SOMA_ZOMBIE_SPAWNS.map((spawn) => ({ ...spawn })),
     { id: 'presidio-coyote', combatKind: 'coyote', x: 27.5, z: 23.5 },
     { ...EMF_WARRIOR },
+    ...EMF_DISCIPLES,
+    BOLINAS_CULTIST,
     { id: 'marin-ridge-fox-1', combatKind: 'tahoe-fox', x: 4, z: -34 },
     { id: 'marin-ridge-fox-2', combatKind: 'tahoe-fox', x: 14, z: -28 },
     { id: 'marin-ridge-bear-1', combatKind: 'tahoe-bear', x: 8, z: -27 },
@@ -244,6 +246,17 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
       true,
     );
   }
+  function provoke(actor: WildernessActor, person: WildernessPerson) {
+    if (actor.enemy !== person.id) {
+      actor.chaseUntil = 0;
+      actor.enemyPosition = { x: person.x, z: person.z };
+      actor.repath = 0;
+    }
+    if (actor.enemy === null) actor.attackAt = Math.max(actor.attackAt, clock + 0.6);
+    actor.enemy = person.id;
+    actor.returning = false;
+    actor.affection = 0;
+  }
   function damage(id: string, amount: unknown, attacker: WildernessPerson, retaliate = false) {
     const actor = actors.find((n) => n.id === id);
     if (!actor?.hp || !isFiniteNumber(amount) || amount < 0) return { ok: false };
@@ -256,18 +269,7 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
     actor.hp -= hit;
     const stats = walkingStats(actor.combatKind);
     const reflected = stats.reflectDamage ? Math.ceil(hit * stats.reflectDamage) : 0;
-    const pursues = retaliate && !stats.reflectDamage;
-    const newTarget = pursues && actor.enemy !== attacker.id;
-    if (newTarget) {
-      actor.chaseUntil = 0;
-      actor.enemyPosition = { x: attacker.x, z: attacker.z };
-    }
-    if (pursues && actor.enemy === null) actor.attackAt = Math.max(actor.attackAt, clock + 0.6);
-    if (pursues) {
-      actor.enemy = attacker.id;
-      actor.returning = false;
-      if (newTarget) actor.repath = 0;
-    }
+    if (retaliate && !stats.reflectDamage) provoke(actor, attacker);
     if (actor.dispatchedFor !== undefined) actor.lastCombatAt = clock;
     actor.affection = 0;
     onHit({ actor, attacker, damage: hit });
@@ -498,6 +500,7 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
     actors,
     dispatch,
     strike,
+    provoke,
     damage,
     pet,
     update,

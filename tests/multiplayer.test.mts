@@ -141,12 +141,14 @@ test('authoritative follower poses interpolate without a local movement loop and
       motion: 1,
       moving: true,
       mode: 'walk',
+      level: 5,
     };
     socket.message({ type: 'following', target: 2, position: base });
     time = 1100;
     socket.message(encodePlayerFrame([{ ...base, x: 1, phase: 1 }], 1, 1100));
     time = 1200;
-    socket.message(encodePlayerFrame([{ ...base, x: 2, phase: 2 }], 2, 1200));
+    socket.message(encodePlayerFrame([{ ...base, x: 2, phase: 2, level: 6 }], 2, 1200));
+    assert.equal(client.state.level, 6);
     const pose = client.selfPose(1250);
     assert.ok(pose != null, 'Missing test fixture: pose');
     assert.ok(Math.abs(pose.x - 0.8) < 1e-6);

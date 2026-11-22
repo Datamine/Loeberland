@@ -12,9 +12,21 @@ export const EMF_WARRIOR = Object.freeze({
   x: -7,
   z: -53,
 });
+export const EMF_DISCIPLES = [
+  { id: 'bolinas-emf-disciple-west', combatKind: 'emf-disciple', x: -9, z: -53.5 },
+  { id: 'bolinas-emf-disciple-east', combatKind: 'emf-disciple', x: -4.5, z: -51 },
+  { id: 'bolinas-emf-disciple-north', combatKind: 'emf-disciple', x: -7.5, z: -55 },
+] as const;
+export const CULTIST_COTTAGE = { x: -3, z: -47, w: 3.4, d: 2.6, color: '#799b93' };
+export const BOLINAS_CULTIST = {
+  id: 'bolinas-cultist',
+  combatKind: 'bolinas-cultist',
+  x: -4.6,
+  z: -44.8,
+};
 export const BOLINAS_COTTAGES = Object.freeze([
   { x: -12, z: -45.5, color: '#9e6862' },
-  { x: -3, z: -47, color: '#799b93' },
+  CULTIST_COTTAGE,
   { x: -12, z: -51, color: '#c4ad79' },
   { x: -2.5, z: -53, color: '#889577' },
 ]);
@@ -40,9 +52,19 @@ export function bolinasBeachHeight(x: number, z: number) {
   return 0.035 + Math.max(0, x - shore) * 0.115;
 }
 export function bolinasBlocks(x: number, z: number) {
+  const cottage = CULTIST_COTTAGE,
+    dx = Math.abs(x - cottage.x),
+    dz = z - cottage.z,
+    side = cottage.w / 2,
+    front = cottage.d / 2;
   return (
     (Math.abs(x + 4.55) < 1.05 && Math.abs(z + 55.35) < 0.78) ||
-    BOLINAS_COTTAGES.some((h) => Math.abs(x - h.x) < 1.65 && Math.abs(z - h.z) < 1.35)
+    BOLINAS_COTTAGES.some(
+      (h) => h !== cottage && Math.abs(x - h.x) < 1.65 && Math.abs(z - h.z) < 1.35,
+    ) ||
+    (dx < side + 0.15 &&
+      Math.abs(dz) < front + 0.15 &&
+      (dx > side - 0.16 || dz < -front + 0.16 || (dz > front - 0.16 && dx > 0.43)))
   );
 }
 export function drawBolinas(
@@ -74,6 +96,7 @@ export function drawBolinas(
       }
   }
   for (const [index, h] of BOLINAS_COTTAGES.entries()) {
+    if (h === CULTIST_COTTAGE) continue;
     const y = ground(h.x, h.z);
     m.box(h.x - 1.44, y - 0.38, h.z - 1.14, 2.88, 0.48, 2.28, '#888378', 'marinRock');
     m.box(h.x - 1.4, y, h.z - 1.1, 2.8, 1.8, 2.2, h.color, 'clapboard');
@@ -173,6 +196,7 @@ export function drawBolinas(
   }
   // Porch awnings, driftwood planters and low coastal vegetation.
   for (const [i, cottage] of BOLINAS_COTTAGES.entries()) {
+    if (cottage === CULTIST_COTTAGE) continue;
     const y = ground(cottage.x, cottage.z);
     for (let k = 0; k < 9; k++)
       m.box(

@@ -9,6 +9,7 @@ interface ExpeditionDialogueController {
   board: () => ActionReceipt | Promise<ActionReceipt>;
 }
 import type { WorldPoint } from './types/geometry.ts';
+import type { ExpeditionProgress } from './types/content.ts';
 import type {
   ExpeditionState,
   ExpeditionPrey,
@@ -27,6 +28,28 @@ import type { ActionReceipt, Actor, RuntimeDialogue } from './types/world.ts';
 export const RAILGUN_RANGE = ITEM_STATS.railgun.range,
   RAILGUN_DAMAGE = 10,
   RAILGUN_INTERVAL = ITEM_STATS.railgun.interval;
+function raptorDefeated(progress: Partial<ExpeditionProgress>) {
+  return (
+    progress.raptorDefeated === true ||
+    progress.raptor === 'carrying' ||
+    progress.raptor === 'completed'
+  );
+}
+export function mayFireRailgun(progress: Partial<ExpeditionProgress>, atRaptor = false) {
+  return raptorDefeated(progress) || (atRaptor && progress.raptor === 'escaped');
+}
+export function raptorCivilian(npc: Actor, now: number) {
+  return (
+    !npc.expeditionDead &&
+    (npc.recoverAt === undefined || now >= npc.recoverAt + 5) &&
+    !npc.child &&
+    !npc.baby &&
+    !npc.dogWalker &&
+    !npc.stroller &&
+    !npc.alienId &&
+    (npc.label === 'Man' || npc.label === 'Woman')
+  );
+}
 const distance = (a: WorldPoint, b: WorldPoint) => Math.hypot(a.x - b.x, a.z - b.z);
 /** Combat, drops and journeys use simulation time, not draw calls. Routes are
  * supplied by the production adjacency graph and refreshed at most twice/s. */
@@ -56,6 +79,7 @@ export function createExpeditions({
       typeof saved.raptor === 'string' && stages.includes(saved.raptor)
         ? saved.raptor
         : 'not-started',
+    raptorDefeated: raptorDefeated(saved),
     railgun: saved.railgun === true,
     armed: false,
     cape: saved.cape === true,
@@ -156,6 +180,7 @@ export function createExpeditions({
   const save = () =>
     onSave({
       raptor: state.raptor,
+      raptorDefeated: state.raptorDefeated,
       railgun: state.railgun,
       equipped: state.equipped,
       cape: state.cape,
@@ -207,19 +232,21 @@ export function createExpeditions({
     for (const record of rollMonsterDrops(kind, random))
       Object.assign(drop(record.lootKind, x, z, record.amount), record);
   }
-  function killRaptor(by = 'player') {
+  function markRaptorDefeated() {
+    if (state.raptor !== 'escaped' || state.raptorDefeated) return false;
+    state.raptorDefeated = true;
+    save();
+    return true;
+  }
+  function killRaptor() {
     if (raptor.phase !== 'loose') return;
     raptor.hp = 0;
     raptor.phase = 'dead';
     raptor.path = [];
     state.target = null;
+    markRaptorDefeated();
     dropMonster('raptor', raptor.x, raptor.z);
-    event(
-      'raptor-dead',
-      by === 'player'
-        ? contentText('world-message.src.jurassic.the-velociraptor-falls')
-        : contentText('world-message.src.jurassic.a-citizen-defeats-the-velociraptor'),
-    );
+    event('raptor-dead', contentText('world-message.src.jurassic.the-velociraptor-falls'));
   }
   function startQuest() {
     if (state.raptor !== 'not-started')
@@ -231,9 +258,10 @@ export function createExpeditions({
       };
     state.raptor = 'escaped';
     state.railgun = true;
-    state.equipped = true;
+    state.equipped = false;
     raptor.phase = 'releasing';
     raptor.release = 0;
+    raptor.prey = null;
     save();
     event(
       'released',
@@ -249,7 +277,8 @@ export function createExpeditions({
     };
   }
   function recover() {
-    if (state.raptor !== 'escaped' || raptor.phase !== 'dead') return { ok: false };
+    if (state.raptor !== 'escaped' || !state.raptorDefeated || raptor.phase !== 'dead')
+      return { ok: false };
     state.raptor = 'carrying';
     raptor.phase = 'recovered';
     state.loot = state.loot.filter((l) => l.lootKind !== 'raptor');
@@ -280,6 +309,8 @@ export function createExpeditions({
     ship.z = home.z;
   }
   function board() {
+    if (hasRailgun() && !state.raptorDefeated)
+      return { ok: false, message: contentText('world-message.jurassic.railgun-on-loan') };
     if (!hasRailgun())
       return {
         ok: false,
@@ -381,6 +412,8 @@ export function createExpeditions({
           'world-message.src.jurassic.you-do-not-have-a-suitable-weapon-equipped',
         ),
       };
+    if (weapon === 'railgun' && !mayFireRailgun(state, target === raptor))
+      return { ok: false, message: contentText('world-message.jurassic.railgun-on-loan') };
     if (state.cooldown > 1e-8) return { ok: false, cooldown: true };
     if (target?.combatKind === 'kraken') {
       if (!ship.aboard || ship.phase !== 'fighting')
@@ -617,7 +650,8 @@ export function createExpeditions({
       raptor.z = JURASSIC.cage.z + (JURASSIC.exit.z - JURASSIC.cage.z) * raptor.release;
       if (raptor.release >= 1 - 1e-8) {
         raptor.phase = 'loose';
-        raptor.replan = 0;
+        raptor.path = routeTo(raptor, JURASSIC.runout) || [];
+        raptor.replan = raptor.path.length ? 2.5 : 0;
       }
       return;
     }
@@ -627,25 +661,14 @@ export function createExpeditions({
     if (raptor.replan <= 0) {
       raptor.replan = 0.6;
       const citizens = pedestrians().filter(
-        (n) =>
-          !n.expeditionDead &&
-          !n.child &&
-          !n.baby &&
-          !n.dogWalker &&
-          !n.stroller &&
-          !n.alienId &&
-          (['Man', 'Woman'] satisfies [string, string]).includes(n.label) &&
-          distance(n, raptor) < 22,
+        (n) => raptorCivilian(n, state.clock) && distance(n, raptor) < 30,
       );
       citizens.sort((a, b) => distance(a, raptor) - distance(b, raptor));
-      const candidates = (
-        p.eligible && !ship.aboard && distance(p, raptor) < 8
-          ? [p, ...citizens.slice(0, 4)]
-          : [...citizens.slice(0, 4), p.eligible && !ship.aboard ? p : null]
-      ).filter((candidate): candidate is NonNullable<typeof candidate> => candidate !== null);
+      const candidates = [...citizens.slice(0, 4)];
+      const nearbyPlayer = p.eligible && !ship.aboard && distance(p, raptor) < 8 ? [p] : [];
       raptor.prey = null;
       raptor.path = [];
-      for (const candidate of candidates) {
+      for (const candidate of [...candidates, ...nearbyPlayer]) {
         const path = routeTo(raptor, candidate);
         if (path) {
           raptor.prey = candidate;
@@ -688,29 +711,18 @@ export function createExpeditions({
       if (p.eligible && !ship.aboard && distance(raptor, p) < 1.3)
         damagePlayer(MONSTER_STATS.raptor.damage, raptor);
     } else {
-      const victimDies = random() < 0.5,
-        raptorDies = random() < 0.5;
-      if (victimDies) {
-        prey.expeditionDead = true;
-        prey.hold = 35;
-        state.victims.push({ npc: prey, until: state.clock + 35 });
-        drop('coins', prey.x, prey.z, 3 + Math.floor(random() * 5));
-        event(
-          'citizen-down',
-          contentText(
-            'world-message.src.jurassic.the-velociraptor-attacks-a-coins-fall-to-the-ground',
-            { value1: String(prey.label!.toLowerCase()) },
-          ),
-        );
-      }
-      if (raptorDies) killRaptor('citizen');
-      if (!victimDies && !raptorDies)
-        event(
-          'standoff',
-          contentText(
-            'world-message.src.jurassic.a-citizen-fends-off-the-velociraptor-neither-looks-pleased',
-          ),
-        );
+      prey.expeditionDead = true;
+      prey.recoverAt = state.clock + 35;
+      prey.hold = 35;
+      state.victims.push({ npc: prey, until: prey.recoverAt });
+      drop('coins', prey.x, prey.z, 3 + Math.floor(random() * 5));
+      event(
+        'citizen-down',
+        contentText(
+          'world-message.src.jurassic.the-velociraptor-attacks-a-coins-fall-to-the-ground',
+          { value1: String(prey.label!.toLowerCase()) },
+        ),
+      );
       raptor.replan = 0;
     }
   }
@@ -775,6 +787,7 @@ export function createExpeditions({
     returnShip,
     abandonShip,
     collect,
+    markRaptorDefeated,
     shoot,
     attack,
     update,

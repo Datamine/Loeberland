@@ -1,6 +1,6 @@
 import type { Actor } from './types/world.ts';
 import { MONSTER_STATS } from './monster-drops.ts';
-/** NPC difficulty is stable; a player's level is their actual strength. */
+/** NPCs use their authored difficulty and players use their server-reported level. */
 export function actorLevel(
   actor: Partial<
     Pick<

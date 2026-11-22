@@ -92,7 +92,7 @@ export function npcPrimaryVerb(npc: ActorMetadata, revealed = false) {
   if (npc.wilderness)
     return npc.combatKind === 'bear'
       ? 'pet'
-      : npc.combatKind === 'goblin-maker'
+      : npc.combatKind === 'goblin-maker' || npc.combatKind === 'bolinas-cultist'
         ? 'talk'
         : 'attack';
   if (npc.police) return 'examine';
@@ -121,7 +121,7 @@ export function npcContextActions(
     actions =
       npc.combatKind === 'bear'
         ? ['pet', 'attack']
-        : npc.combatKind === 'goblin-maker'
+        : npc.combatKind === 'goblin-maker' || npc.combatKind === 'bolinas-cultist'
           ? ['talk', 'attack']
           : ['attack'];
   else if (

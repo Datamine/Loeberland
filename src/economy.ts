@@ -119,11 +119,6 @@ export function createEconomy(
         ok: false,
         message: contentText('world-message.src.economy.you-do-not-have-any-sand-to-sell'),
       };
-    if ((kind === 'catch-fish' || kind === 'incubator-equity') && state.fish >= 1)
-      return {
-        ok: false,
-        message: contentText('world-message.src.economy.you-can-only-carry-one-live-fish'),
-      };
     if (kind === 'fish-sale' && !state.fish)
       return {
         ok: false,

@@ -62,6 +62,7 @@
     },
     "expeditions": {
       "raptor": "not-started",
+      "raptorDefeated": false,
       "railgun": false,
       "equipped": true,
       "krakenStarted": false,
@@ -87,6 +88,7 @@
     "delivery": {},
     "monkeyKeeper": {},
     "laborReadyAt": {},
+    "fishingReadyAt": 0,
     "gym": { "workedSeconds": 0, "readyAt": 0 },
     "construction": { "workedSeconds": 0, "readyAt": 0 }
   },

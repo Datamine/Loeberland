@@ -72,7 +72,7 @@ export async function player(
     owner = createHash('sha256').update(token).digest('hex');
   const seeded: Record<string, string> = {
     'sf-purse-v1': JSON.stringify({ coins: 25 }),
-    'sf-expeditions-v1': JSON.stringify({ raptor: 'escaped', railgun: true }),
+    'sf-expeditions-v1': JSON.stringify({ raptor: 'completed', railgun: true }),
     ...privateState,
   };
   // Trusted test setup writes the server store. A real hello cannot import

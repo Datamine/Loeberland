@@ -6,7 +6,7 @@ export interface FishingLocation {
   water: WorldPoint;
   base?: number;
 }
-import { isFiniteNumber } from './types/json.ts';
+import { isFiniteNumber, isSafeInteger } from './types/json.ts';
 import type { Economy } from './types/controllers.ts';
 import type { Mesh } from './geometry.ts';
 import { pose } from './geometry.ts';
@@ -14,23 +14,31 @@ import { GAMEPLAY } from './config/gameplay.ts';
 import { WATER_LEVEL } from './water-tiles.ts';
 
 export const FISHING_DURATION = GAMEPLAY.fishingSeconds;
-export function createFishing(economy: Economy) {
+export const FISHING_COOLDOWN_MS = 60_000;
+export function createFishing(
+  economy: Economy,
+  { now = Date.now, readyAt = 0, onCooldown = (_readyAt: number) => {} } = {},
+) {
   const state = { active: false, elapsed: 0, site: null as FishingLocation | null };
+  let nextCastAt = isSafeInteger(readyAt) && readyAt > 0 ? readyAt : 0;
   function cancel() {
     state.active = false;
     state.elapsed = 0;
     state.site = null;
   }
   function start(site: FishingLocation) {
-    if (economy.state.fish)
-      return {
-        ok: false,
-        message: contentText('world-message.src.fishing.you-can-only-carry-one-live-fish'),
-      };
     if (state.active)
       return {
         ok: false,
         message: contentText('world-message.src.fishing.your-line-is-already-in-the-water'),
+      };
+    const wait = nextCastAt - now();
+    if (wait > 0)
+      return {
+        ok: false,
+        message: contentText('world-message.src.fishing.cooldown', {
+          seconds: Math.ceil(wait / 1000),
+        }),
       };
     Object.assign(state, { active: true, elapsed: 0, site });
     return {
@@ -43,6 +51,10 @@ export function createFishing(economy: Economy) {
     state.elapsed += dt;
     if (state.elapsed + 1e-9 < FISHING_DURATION) return null;
     const result = economy.trade('catch-fish');
+    if (result.ok) {
+      nextCastAt = now() + FISHING_COOLDOWN_MS;
+      onCooldown(nextCastAt);
+    }
     cancel();
     return {
       ...result,
