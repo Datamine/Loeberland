@@ -4,11 +4,16 @@ import { ITEM_STATS, EQUIPMENT_IDS } from './config/item-stats.ts';
 
 export { ITEM_STATS, EQUIPMENT_IDS };
 export { MISSILE_PRICE } from './config/item-stats.ts';
+export const IRON_ARMOR_PIECES = ['iron-armor', 'iron-armor-legs'] as const;
+export type IronArmorPiece = (typeof IRON_ARMOR_PIECES)[number];
+export const isIronArmorTorso = (id: unknown): id is 'iron-armor' | 'gold-trimmed-iron-armor' =>
+  id === 'iron-armor' || id === 'gold-trimmed-iron-armor';
 const PROJECTILE_WEAPONS = ['railgun', 'akibo', 'missile-launcher'] as const;
 export const isProjectileWeapon = (weapon: unknown) => isOneOf(PROJECTILE_WEAPONS, weapon);
 export const PLAYER_WEAPONS = [
   'unarmed',
   'rolling-pin',
+  'crowbar',
   'bayonet',
   'battleaxe',
   'railgun',
@@ -22,6 +27,15 @@ export function itemById(id: PropertyKey) {
 }
 export function equipmentOwned(purse: { ownedEquipment: string | string[] }, id: string) {
   return !!purse?.ownedEquipment?.includes(id);
+}
+export function ownsIronArmorPiece(
+  purse: Pick<EconomyState, 'ownedEquipment'>,
+  id: IronArmorPiece,
+) {
+  return (
+    equipmentOwned(purse, id) ||
+    (id === 'iron-armor' && equipmentOwned(purse, 'gold-trimmed-iron-armor'))
+  );
 }
 export function normalizeBoots(value: unknown): NonNullable<Appearance['boots']> {
   return value === 'party-boots' ? value : value === true || value === 'true';
@@ -53,9 +67,8 @@ export function recoilDamage(
 }
 export function equipmentDefense(look: Appearance = {}) {
   return (
-    (look.torso === 'iron-armor' || look.torso === 'gold-trimmed-iron-armor'
-      ? ITEM_STATS[look.torso].defense || 0
-      : 0) +
+    (isIronArmorTorso(look.torso) ? ITEM_STATS[look.torso].defense : 0) +
+    (look.legs === 'iron-armor-legs' ? ITEM_STATS['iron-armor-legs'].defense : 0) +
     (look.boots === true ? ITEM_STATS['combat-boots'].defense : 0) +
     (look.iceTop ? ITEM_STATS['ice-top'].defense : 0) +
     (look.icePants ? ITEM_STATS['ice-pants'].defense : 0)
@@ -67,6 +80,7 @@ export function ownedEquipmentDefense(
 ) {
   return equipmentDefense({
     torso: look.torso && equipmentOwned(purse, look.torso) ? look.torso : undefined,
+    legs: look.legs && equipmentOwned(purse, look.legs) ? look.legs : undefined,
     boots: ownedBoots(purse, look),
     iceTop: look.iceTop && equipmentOwned(purse, 'ice-top'),
     icePants: look.icePants && equipmentOwned(purse, 'ice-pants'),

@@ -1,6 +1,16 @@
 import { DYNAMITE_DEPOT } from './config/dynamite-depot.ts';
+import type { CharacterAppearance } from './characters.ts';
 import type { Mesh } from './geometry.ts';
 import type { RenderedSite, SignAtlas } from './types/world.ts';
+
+// Flight height comes from the network pose. Terrain IK would pull the rider back to the ground.
+export const DEPOT_LAUNCH_POSE = {
+  mode: 'idle',
+  motion: 0,
+  action: 'rocket-hop',
+  actionT: 0.5,
+  ground: null,
+} satisfies CharacterAppearance;
 
 export function drawDynamiteDepot(
   mesh: Mesh,

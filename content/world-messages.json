@@ -2,8 +2,8 @@
   "world-message.bolinas.approach-cultist": {
     "template": "Walk closer to the Cultist to talk."
   },
-  "world-message.bolinas.cultist-refuses": {
-    "template": "‘I have nothing to tell you.’ The Cultist attacks!"
+  "world-message.bolinas.cultist-attacks": {
+    "template": "The Cultist attacks!"
   },
   "world-message.jurassic.railgun-on-loan": {
     "template": "The railgun is on loan from Jurassic Biosciences for the Velociraptor hunt. Switch weapons for other targets until you’ve defeated it."
@@ -1400,6 +1400,9 @@
   "world-message.src.southern-district.you-pay-coins-in-taxes-thank-you-for-your-contribution": {
     "template": "You pay {amount} coins in taxes. Thank you for your contribution."
   },
+  "world-message.src.strength.funding-awarded": {
+    "template": "You’ve built some impressive strength. Here are 1,000 coins to get your company off the ground."
+  },
   "world-message.src.strength.reach-strength-level-10-at-sf-fitness-before-we-invest": {
     "template": "Reach strength level 10 at SF Fitness before we invest."
   },
@@ -1578,7 +1581,7 @@
     "template": "Rehabilitation complete. You arrive outside UCSF in a completely different outfit, 100% inebriated."
   },
   "world-message.src.world.interactions.retract-the-rope-before-flying": {
-    "template": "Retract the rope before flying."
+    "template": "Open Rope options and have the pilot retract the rope before flying."
   },
   "world-message.src.world.interactions.return-the-airship-to-the-terminal-before-using-a-vehicle-or-e": {
     "template": "Return the airship to the terminal before using a vehicle or entering a building. Choose Return to terminal from the airship menu."
@@ -1875,13 +1878,13 @@
     "template": "You cannot carry any more Uni."
   },
   "world-message.uni.visit-rich-table": {
-    "template": "Take your Uni to Rich Table."
+    "template": "Speak to the chef at Rich Table to sell your Uni."
   },
   "world-message.uni.none": {
-    "template": "Rich Table offers 40 coins per Uni. You don’t have any to sell."
+    "template": "The Rich Table chef offers {price} coins per Uni. You don’t have any to sell."
   },
   "world-message.uni.sold": {
-    "template": "Rich Table buys one Uni for 40 coins."
+    "template": "The Rich Table chef buys one Uni for {price} coins."
   },
   "world-message.berkeley-lab.sand-full": {
     "template": "You cannot carry any more sand."
@@ -1922,8 +1925,8 @@
   "world-message.iron-armor.trim-requirements": {
     "template": "You need plain iron armor and an armor trimming kit."
   },
-  "world-message.iron-armor.already-trimmed": {
-    "template": "You already own a suit of gold-trimmed iron armor."
+  "world-message.iron-armor.already-purchased": {
+    "template": "The Industrialist sells each piece only once."
   },
   "world-message.iron-armor.trimmed": {
     "template": "You use up the kit edging your iron armor in gold."

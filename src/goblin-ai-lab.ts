@@ -12,6 +12,15 @@ export const GOBLIN_AI_LAB = {
   entry: { x: 38.5, y: -22 },
 };
 
+const SCRAP_BAY = { x: 2.78, z: -0.18, width: 1.56, depth: 2 };
+
+export function goblinAILabScrapBlocks(x: number, z: number) {
+  return (
+    Math.abs(x - GOBLIN_AI_LAB.x - SCRAP_BAY.x) < SCRAP_BAY.width / 2 + 0.15 &&
+    Math.abs(z - GOBLIN_AI_LAB.z - SCRAP_BAY.z) < SCRAP_BAY.depth / 2 + 0.15
+  );
+}
+
 export const GOBLIN_PLUMBERS = [
   {
     id: 'goblin-plumber-boiler',
@@ -47,6 +56,7 @@ export function drawGoblinAILab(
     brass = { metal: 0.52 },
     mud = '#926747';
   pose(m, x, base, z, 0, () => {
+    const roofHeight = (offset: number) => 2.54 - (Math.abs(offset) * 0.75) / (halfWidth + 0.22);
     m.box(
       -halfWidth,
       foundation - base,
@@ -91,6 +101,35 @@ export function drawGoblinAILab(
     m.box(-1.04, 1.75, 1.6, 2.08, 0.32, 0.09, '#69452d', 'wood');
     drawPlaque(m, signs, name, 0, 1.79, 1.698, 1.98, 0.24);
 
+    // Patch the wooden roof with strips cut from whatever sheet metal was on hand.
+    for (const [left, right, north, south, color] of [
+      [-1.96, -1.28, -1.46, -0.22, '#7a8076'],
+      [-0.92, -0.38, -0.38, 0.71, '#a27459'],
+      [0.78, 1.53, -1.2, -0.3, '#7f8a7f'],
+      [1.2, 2.16, 0.36, 1.47, '#87664f'],
+    ] as const) {
+      const panel = (dx: number, dz: number) => [dx, roofHeight(dx) + 0.025, dz];
+      m.quad(
+        panel(left, north),
+        panel(left, south),
+        panel(right, south),
+        panel(right, north),
+        color,
+        iron,
+      );
+      for (let rib = left + 0.09; rib < right - 0.03; rib += 0.16)
+        m.rod(panel(rib, north), panel(rib, south), 0.022, color, 5, iron);
+    }
+    const mast = [0.72, roofHeight(0.72), -0.71];
+    m.rod(mast, [0.82, 3.48, -0.67], 0.035, '#625849', 7, iron);
+    m.rod([0.29, 3.33, -0.91], [1.32, 3.47, -0.36], 0.025, '#695345', 6, iron);
+    for (let i = 0; i < 3; i++) {
+      const dx = 0.47 + i * 0.32,
+        y = 3.355 + i * 0.043,
+        dz = -0.81 + i * 0.17;
+      m.rod([dx - 0.16, y, dz + 0.28], [dx + 0.16, y, dz - 0.28], 0.018, '#897f71', 5, iron);
+    }
+
     // A riveted firebox, handwheel and exposed flywheel face the open front.
     const boilerA = [-0.65, 0.73, -0.96],
       boilerB = [-0.65, 0.73, 0.66];
@@ -124,17 +163,100 @@ export function drawGoblinAILab(
     m.rod([-0.35, 1.39, 0.11], [-0.35, 1.39, 0.21], 0.145, '#9c784b', 16, brass);
     m.rod([-0.35, 1.39, 0.21], [-0.35, 1.39, 0.24], 0.115, '#e4d4aa', 16);
     m.rod([-0.35, 1.39, 0.248], [-0.29, 1.46, 0.248], 0.013, '#4d3529', 6);
+
+    // The salvaged switchboard is propped against the front wall beside the flywheel.
+    m.box(1.37, 0.12, 0.37, 0.3, 1.3, 0.62, '#605242', 'wood');
+    m.box(1.27, 0.8, 0.92, 0.52, 0.61, 0.13, '#4a6258', iron);
+    m.box(1.34, 1.14, 1.05, 0.38, 0.19, 0.015, '#27352f');
+    for (let i = 0; i < 3; i++) {
+      const dx = 1.39 + i * 0.135;
+      m.sphere(dx, 1.23, 1.065, 0.034, 0.035, 0.026, ['#8fab6c', '#cead56', '#9d6145'][i], 7, 5);
+      m.rod([dx, 0.99, 1.048], [dx + 0.032, 1.02, 1.11], 0.018, '#b28e5e', 6, brass);
+    }
+    for (let i = 0; i < 3; i++) {
+      const dz = 1.02 + i * 0.093;
+      m.rod([-1.56, 0.185, dz], [-1.08 + i * 0.065, 0.185, dz + 0.025], 0.039, '#866049', 7, iron);
+    }
+
+    const floor = (dx: number, dz: number) => ground(x + dx, z + dz) - base;
+    const tankX = SCRAP_BAY.x - 0.09,
+      tankZ = SCRAP_BAY.z - 0.54,
+      tankY = floor(tankX, tankZ);
+    m.cylinder(tankX, tankY - 0.13, tankZ, 0.33, 1.45, '#6b7769', 14, 0.33, iron);
+    m.sphere(tankX, tankY + 1.31, tankZ, 0.33, 0.18, 0.33, '#778677', 14, 8, iron);
+    for (const height of [0.07, 0.86, 1.23])
+      m.cylinder(tankX, tankY + height, tankZ, 0.345, 0.065, '#92674b', 14, 0.345, iron);
+    const pipeY = tankY + 1.72;
+    m.rod([tankX, tankY + 1.39, tankZ], [tankX, pipeY, tankZ], 0.058, '#ba8660', 10, brass);
+    m.rod([tankX + 0.02, pipeY, tankZ], [1.94, pipeY, tankZ], 0.058, '#ba8660', 10, brass);
+    m.sphere(tankX, pipeY, tankZ, 0.071, 0.071, 0.071, '#ba8660', 10, 6, brass);
+    m.rod(
+      [tankX, tankY + 1.04, tankZ + 0.329],
+      [tankX, tankY + 1.04, tankZ + 0.4],
+      0.11,
+      '#a38051',
+      12,
+      brass,
+    );
+    m.rod(
+      [tankX, tankY + 1.04, tankZ + 0.4],
+      [tankX, tankY + 1.04, tankZ + 0.412],
+      0.087,
+      '#ded1ad',
+      12,
+    );
+    m.rod(
+      [tankX, tankY + 1.04, tankZ + 0.418],
+      [tankX - 0.046, tankY + 1.072, tankZ + 0.418],
+      0.009,
+      '#463e32',
+      6,
+    );
+
+    // Barrels, a cable reel, and a crate of pipe offcuts clutter the side of the hut.
+    for (const [dx, dz, height, color] of [
+      [3.25, 0.09, 0.55, '#a06343'],
+      [2.32, 0.15, 0.39, '#747664'],
+    ] as const) {
+      const y = floor(dx, dz);
+      m.cylinder(dx, y - 0.08, dz, 0.263, height + 0.08, color, 12, 0.263, iron);
+      for (const band of [0.04, height - 0.055])
+        m.cylinder(dx, y + band, dz, 0.275, 0.035, '#514b42', 12, 0.275, iron);
+    }
+    const crateY = floor(2.77, 0.6);
+    m.box(2.53, crateY - 0.13, 0.42, 0.57, 0.32, 0.39, '#765336', 'wood');
+    m.box(2.57, crateY + 0.19, 0.46, 0.49, 0.014, 0.31, '#4e3a2d', 'wood');
+    for (let i = 0; i < 4; i++)
+      m.rod(
+        [2.59 + 0.11 * i, crateY + 0.23, 0.49],
+        [2.62 + 0.11 * i, crateY + 0.32 + i * 0.048, 0.72],
+        0.039,
+        i % 2 ? '#965a3c' : '#686967',
+        8,
+        iron,
+      );
+    const reelY = floor(3.27, -0.63) + 0.22;
+    m.rod([3.16, reelY, -0.63], [3.34, reelY, -0.63], 0.175, '#785641', 12, brass);
+    for (const dx of [3.13, 3.34])
+      m.rod([dx, reelY, -0.63], [dx + 0.042, reelY, -0.63], 0.22, '#846345', 12, 'wood');
   });
+  const lo = [Infinity, Infinity, Infinity];
+  const hi = [-Infinity, -Infinity, -Infinity];
+  for (let i = start; i < m.data.length; i += 11)
+    for (let axis = 0; axis < 3; axis++) {
+      lo[axis] = Math.min(lo[axis], m.data[i + axis]);
+      hi[axis] = Math.max(hi[axis], m.data[i + axis]);
+    }
   return {
     id,
     kind: id,
     label: name,
     description:
-      'A mud hut built around a steam engine. The Goblin Plumbers are hoping to teach it calculus.',
+      'A mud hut full of salvage, with a steam engine wired to a salvaged switchboard. The Goblin Plumbers are hoping to teach it calculus.',
     entry,
     start,
     count: m.data.length - start,
-    lo: [x - 2.3, foundation, z - 1.62],
-    hi: [x + 2.3, base + 3.1, z + 1.7],
+    lo,
+    hi,
   };
 }

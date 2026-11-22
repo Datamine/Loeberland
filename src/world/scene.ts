@@ -1,3 +1,5 @@
+import { bindTabs } from '../ui/tabs.ts';
+import { bindActionChoices } from '../ui/action-choices.ts';
 import { bindHighScores } from '../high-scores.ts';
 import { bindTradeDialog } from '../trade-dialog.ts';
 import { LAKE_MERCED_SHORE, distanceToLakeMerced } from '../lake-merced.ts';
@@ -135,7 +137,7 @@ import { TILE_CONFIG, validateTileMap, runTileRuleTests } from '../tiles.ts';
 import '../water-tiles.ts';
 import { createSFCoast } from '../coastline.ts';
 import '../western-coast-details.ts';
-import { createModels } from '../models.ts';
+import { BANI_APPEARANCE, createModels } from '../models.ts';
 import { SUTRO_SITE, createSutroClimb } from '../sutro.ts';
 import '../lighting.ts';
 import { DOWNTOWN } from '../downtown.ts';
@@ -1782,9 +1784,6 @@ export function createSFWorld({
     get useFuel() {
       return useFuel;
     },
-    get useTeleportTablet() {
-      return useTeleportTablet;
-    },
     get visited() {
       return visited;
     },
@@ -2553,7 +2552,6 @@ export function createSFWorld({
       element: $('sf-quests'),
       content: $('sf-quest-list'),
       button: $('sf-quests-button'),
-      closeButton: $('sf-close-quests'),
       shade: $('sf-reader-shade'),
       canvas,
       quests,
@@ -2575,7 +2573,6 @@ export function createSFWorld({
       content: $('sf-collection-list'),
       summary: $('sf-collection-summary'),
       button: $('sf-collection-button'),
-      closeButton: $('sf-close-collection'),
       shade: $('sf-reader-shade'),
       canvas,
       getFound: () => collectionFound,
@@ -2775,6 +2772,7 @@ export function createSFWorld({
       id: 'nia',
       label: contentText('world.scene.createSFWorld.label-6', {}),
       named: 'Bani',
+      ...BANI_APPEARANCE,
     };
   const HILLS = SF_HILLS.map((h) => ({
     ...h,
@@ -4055,7 +4053,6 @@ export function createSFWorld({
   $('sf-skateboard-button').addEventListener('click', useSkateboard);
   for (const button of world.querySelectorAll<HTMLButtonElement>('[data-skate-trick]'))
     button.addEventListener('click', () => performSkateTrick(button.dataset.skateTrick || ''));
-  $('sf-motorcycle-button').addEventListener('click', () => useMotorcycle());
   const motorcycleTricks = [
     ...$('sf-motorcycle-tricks').querySelectorAll<HTMLButtonElement>('[data-motorcycle-trick]'),
   ];
@@ -4067,7 +4064,7 @@ export function createSFWorld({
       }),
     );
   $('sf-climb-button').addEventListener('click', descendSutro);
-  $('sf-rope-button').addEventListener('click', showRopeMenu);
+  $('sf-rope-button').addEventListener('click', () => showRopeMenu());
   $('sf-ski-button').addEventListener('click', useTahoeActivity);
   $('sf-atv-rent').addEventListener('click', () =>
     interactCitizen(
@@ -4114,6 +4111,7 @@ export function createSFWorld({
   $('sf-close-reader').addEventListener('click', closeReader);
   $('sf-reader-shade').addEventListener('click', () => {
     if (bankMenu?.active) bankMenu.close();
+    collectionMenu?.close();
     closeReader();
     closeHelp();
     closeCharacter();
@@ -4124,9 +4122,24 @@ export function createSFWorld({
   $('sf-roll-button').addEventListener('click', rollForward);
   $('sf-drink-coffee').addEventListener('click', drinkBankCoffee);
   $('sf-dance-button').addEventListener('click', dance);
-  $('sf-sit-button').addEventListener('click', sit);
+  bindActionChoices($('sf-quick-actions'), [
+    {
+      trigger: $('sf-sit-button'),
+      group: $('sf-chairs'),
+      stand: () => player.sitting && sit(),
+      choose: (button) => sit(button.dataset.chair === 'normal' ? undefined : button.dataset.chair),
+    },
+    {
+      trigger: $('sf-teleport-button'),
+      group: $('sf-tablets'),
+      choose: (button) => {
+        useTeleportTablet(requiredValue(button.dataset.tablet, 'Tablet destination'));
+        canvas.focus({ preventScroll: true });
+      },
+    },
+  ]);
   $('sf-character-button').addEventListener('click', showCharacter);
-  $('sf-close-character').addEventListener('click', closeCharacter);
+  bindTabs($('sf-character-tabs'));
   $('sf-character-done').addEventListener('click', saveCharacter);
   $('sf-light-decorative-rocket').addEventListener('click', lightDecorativeRocket);
   $('sf-rocket-hop').addEventListener('click', hopRocket);
@@ -4162,7 +4175,6 @@ export function createSFWorld({
     });
   }
   $('sf-help-button').addEventListener('click', showHelp);
-  $('sf-close-help').addEventListener('click', closeHelp);
   $('sf-zoom-slider').addEventListener('input', (e) =>
     setZoom(Number($('sf-zoom-slider').value) / 100),
   );
@@ -4309,7 +4321,7 @@ export function createSFWorld({
       updateGroundItemModifier(e);
       if (!useCommandForGroundItems && e.key === 'Alt' && !e.ctrlKey) e.preventDefault();
     }
-    if (tradePanel.open) return;
+    if (e.defaultPrevented || tradePanel.open) return;
     if (
       !active ||
       !built ||
@@ -4364,6 +4376,14 @@ export function createSFWorld({
         context.questMenu.close();
         return;
       }
+      if (modal === $('sf-character')) {
+        closeCharacter();
+        return;
+      }
+      if (modal === $('sf-help')) {
+        closeHelp();
+        return;
+      }
       if (!$('sf-context').hidden) {
         closeMenu();
         canvas.focus({ preventScroll: true });
@@ -4379,16 +4399,11 @@ export function createSFWorld({
         destination = null;
         return;
       }
-      if (!$('sf-character').hidden) {
-        closeCharacter();
-        return;
-      }
       if (context.dialogue.active) {
         context.dialogue.close();
         return;
       }
-      if (!$('sf-help').hidden) closeHelp();
-      else if (!$('sf-reader').hidden) closeReader();
+      if (!$('sf-reader').hidden) closeReader();
       else if (fishing.state.active) {
         fishing.cancel();
         announce(contentText('world-message.src.world.scene.you-reel-in-your-line'), 'Fishing');
@@ -4425,13 +4440,18 @@ export function createSFWorld({
             ...modal.querySelectorAll<
               HTMLElementTagNameMap['button' | 'a' | 'canvas' | 'input' | 'select']
             >('button,a[href],canvas[tabindex],input,select'),
-          ],
+          ].filter(
+            (field) =>
+              field.tabIndex >= 0 && !field.matches(':disabled') && !field.closest('[hidden]'),
+          ),
           first = focus[0],
-          last = focus[focus.length - 1];
-        if (e.shiftKey && document.activeElement === first) {
+          last = focus[focus.length - 1],
+          current = document.activeElement;
+        if (!first) e.preventDefault();
+        else if (e.shiftKey && (current === first || current === modal)) {
           e.preventDefault();
           last.focus();
-        } else if (!e.shiftKey && document.activeElement === last) {
+        } else if (!e.shiftKey && (current === last || current === modal)) {
           e.preventDefault();
           first.focus();
         }
@@ -4549,7 +4569,7 @@ export function createSFWorld({
       useTahoeActivity();
       return;
     }
-    if (key === 'm' && !$('sf-motorcycle-button').hidden) {
+    if (key === 'm' && motorcycle?.state.rented) {
       e.preventDefault();
       useMotorcycle();
       return;
@@ -4566,7 +4586,7 @@ export function createSFWorld({
     }
     if (key === 'x') {
       e.preventDefault();
-      sit();
+      if (!e.repeat) $('sf-sit-button').click();
       return;
     }
     if (key === 'd') {

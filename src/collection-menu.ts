@@ -3,7 +3,6 @@ interface CollectionMenuOptions {
   content: HTMLElement;
   summary: HTMLElement;
   button: HTMLElement;
-  closeButton: HTMLElement;
   shade: HTMLElement;
   canvas: HTMLElement;
   getFound: () => readonly string[];
@@ -17,7 +16,6 @@ export function createCollectionMenu({
   content,
   summary,
   button,
-  closeButton,
   shade,
   canvas,
   getFound,
@@ -60,11 +58,9 @@ export function createCollectionMenu({
     render();
     element.hidden = false;
     shade.hidden = false;
-    closeButton.focus({ preventScroll: true });
+    element.focus({ preventScroll: true });
   }
   button.addEventListener('click', open);
-  closeButton.addEventListener('click', close);
-  shade.addEventListener('click', close);
   return {
     open,
     close,

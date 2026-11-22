@@ -44,6 +44,7 @@ import { SALT_FLATS, SALT_FLATS_PATH } from './salt-layout.ts';
 import { RESEARCH_ROADS, RESEARCH_PADS } from './research-layout.ts';
 import { PENINSULA_STREETS, PENINSULA_HOUSING, PACIFICA_PARK_PATHS } from './southern-expansion.ts';
 import { AIRPORT_GARDEN_HOMES, southBayPlotOverlaps } from './south-bay-layout.ts';
+import { overlapsConstructionSite } from './construction-layout.ts';
 export { SF_FITNESS, gymAccess, gymWalkable };
 
 export const SOUTHERN_BOUNDS = Object.freeze({
@@ -467,7 +468,7 @@ export const SOUTHERN_HOUSING = Object.freeze(
   ]
     .filter((p) => !southBayPlotOverlaps(p) && !overlapsSuburbanCourt(p))
     .concat(AIRPORT_GARDEN_HOMES, SUBURBAN_PARCELS, SOUTHERN_COUNTRY_HOMES, SETTLEMENT_PARCELS)
-    .filter((p) => !overlapsTerminatorParcel(p))
+    .filter((p) => !overlapsTerminatorParcel(p) && !overlapsConstructionSite(p))
     .map((p) => {
       const style = p.settlement ? p.lowRiseStyle : suburbanStyleFor(p);
       return Object.freeze(style ? { ...p, lowRiseStyle: style } : p);

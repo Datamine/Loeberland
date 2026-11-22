@@ -17,6 +17,7 @@
     "economy": {
       "coins": 25,
       "equity": 0,
+      "incubatorEquityBought": false,
       "grain": 0,
       "bouquets": 0,
       "fuelCans": 0,
@@ -116,7 +117,8 @@
   },
   "progress": {
     "houseSearches": [],
-    "goblinSpaceMud": 0
+    "goblinSpaceMud": 0,
+    "industrialistArmorPurchases": []
   },
   "rewards": {
     "pending": [],

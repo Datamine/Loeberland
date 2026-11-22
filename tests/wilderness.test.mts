@@ -79,6 +79,39 @@ test('Robocop has distinct idle, stride and strike poses', () => {
   assert.notDeepEqual(render(0), render(0, 0.5));
 });
 
+test('creature attack poses animate their meshes and settle back to idle', () => {
+  for (const combatKind of [
+    'coyote',
+    'tahoe-fox',
+    'seagull',
+    'tahoe-bear',
+    'bison',
+    'scapegoat',
+    'sea-urchin',
+    'goblin-guard',
+    'snow-giant',
+    'ice-giant',
+    'landshark',
+  ]) {
+    const render = (attackAnimation: number, reduced = false) => {
+      const mesh = new Mesh();
+      drawWildMonster(
+        mesh,
+        { combatKind, x: 0, z: 0, base: 0, angle: 0, attackAnimation },
+        0,
+        reduced,
+      );
+      assert.ok(mesh.data.length && mesh.data.every(Number.isFinite), combatKind);
+      return mesh.data;
+    };
+    const idle = render(0);
+    const mid = render(0.61);
+    assert.notDeepEqual(mid, idle, combatKind);
+    assert.deepEqual(render(1), idle, combatKind + ' starts in its resting pose');
+    assert.deepEqual(render(0.61, true), idle, combatKind + ' respects reduced motion');
+  }
+});
+
 test('drop catalogs have exact 1/20 and 1/50 boundaries; giant success chooses one ice piece', () => {
   assert.equal(rollMonsterDrops('bear', () => 0.05).length, 0);
   assert.equal(rollMonsterDrops('bear', () => 0.05 - Number.EPSILON)[0].lootKind, 'peptides');

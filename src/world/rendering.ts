@@ -8,6 +8,7 @@ import {
   LAB_POSTER,
 } from '../berkeley-lab.ts';
 import { DYNAMITE_DEPOT } from '../config/dynamite-depot.ts';
+import { DEPOT_LAUNCH_POSE } from '../dynamite-depot.ts';
 import { isPickTarget } from '../picking.ts';
 import { requiredValue } from '../types/assert.ts';
 import type { TargetMetadata } from '../types/scene-state.ts';
@@ -880,7 +881,7 @@ export function createRendering(context: WorldContext) {
       for (const monster of context.wilderness?.actors || []) {
         if (!monster.hp || !inBerkeleyLab(monster.x, monster.z)) continue;
         start = m.data.length;
-        drawWildMonster(m, monster, t);
+        drawWildMonster(m, monster, t, context.reduced);
         target(start, { npc: monster });
       }
       for (const loot of context.expeditions.state.loot) {
@@ -951,6 +952,7 @@ export function createRendering(context: WorldContext) {
     let pendingAirshipTarget: { start: number; end: number } | null = null;
     let occupiedFerrariTarget: { start: number; end: number } | null = null;
     const m = actorMesh(),
+      launching = context.multiplayerWorld?.selfMode === 'depotLaunch',
       rolling = context.forwardRoll.state.active,
       trick = context.skateboard.riding ? context.skateTricks.pose : null,
       hop = context.playerRocketHop(),
@@ -979,6 +981,7 @@ export function createRendering(context: WorldContext) {
       );
     const carryingFish = !!(
       context.economy.state.fish &&
+      !launching &&
       !rolling &&
       !context.fishing.state.active &&
       !context.player.dancing &&
@@ -1332,6 +1335,7 @@ export function createRendering(context: WorldContext) {
                             : context.chase.state.jailed
                               ? () => context.detention.base + 0.19
                               : context.characterGround,
+          ...(launching && DEPOT_LAUNCH_POSE),
         },
       );
       if (rolling)
@@ -1608,7 +1612,7 @@ export function createRendering(context: WorldContext) {
         Math.hypot(monster.x - context.player.x - 0.5, monster.z - context.player.y - 0.5) < 40
       ) {
         const start = m.data.length;
-        drawWildMonster(m, monster, t);
+        drawWildMonster(m, monster, t, context.reduced);
         addTarget(start, { npc: monster });
       }
     context.multiplayerWorld?.draw(m, t, addTarget, context.actorTags);
@@ -2260,7 +2264,7 @@ export function createRendering(context: WorldContext) {
       const start = m.data.length,
         g = npc.gesture,
         gt = g ? (t - g.started) / g.duration : 1,
-        modelVariant = goblinModelVariant(npc.kind);
+        modelVariant = goblinModelVariant(npc);
       if (modelVariant)
         drawWildMonster(
           m,
@@ -2616,6 +2620,10 @@ export function createRendering(context: WorldContext) {
       tag.name.dataset.pvp = String(!!actor.pvp);
       tag.arrow.hidden = !marked;
       tag.speech.textContent = speechText;
+      tag.speech.classList.toggle(
+        'sf-event-speech',
+        !!actor.speechCue && t < actor.speechCue.until,
+      );
     }
     for (let i = used; i < context.labelPool.length; i++) context.labelPool[i].el.hidden = true;
     const speech = context.$('sf-player-speech');

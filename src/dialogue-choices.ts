@@ -1,7 +1,7 @@
 import type { RuntimeDialogue, RuntimeChoice } from './types/world.ts';
 /** Presentation uses stable action/node IDs even for older single-choice domain handlers. */
 export function dialogueChoices(person: RuntimeDialogue): RuntimeChoice[] {
-  if (person.choices) return person.choices;
+  if (person.choices) return person.choices.filter((choice) => choice.available?.() !== false);
   if (!person.choice) return [];
   return [
     {

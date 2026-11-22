@@ -6,7 +6,7 @@ import { createRegionalRoad } from '../src/regional-road.ts';
 import { createFerrari } from '../src/ferrari.ts';
 import { createEsotericCampus } from '../src/alien-sites.ts';
 import { TAHOE_BOUNDS } from '../src/tahoe.ts';
-import { EAST_BAY_COAST_X } from '../src/geography.ts';
+import { EAST_BAY_COAST_X, eastBayShoreX } from '../src/geography.ts';
 const road = createRegionalRoad(),
   campus = createEsotericCampus(createFerrari(road)),
   grass = createCountryside({
@@ -72,5 +72,18 @@ test('grass picking and foot heights match the actual regional backdrop triangle
       });
     assert.ok(hit);
     assert.ok(Math.abs(hit.point[1] - y) < 1e-7);
+  }
+});
+
+test('the East Bay beach slopes to the water and follows the same shoreline for picking and walking', () => {
+  for (const z of [-23.2, 19.7, 62.6]) {
+    const shore = eastBayShoreX(z);
+    assert.equal(grass.contains(shore - 0.15, z), false);
+    for (const x of [shore + 0.4, shore + 1, shore + 2, 126]) {
+      assert.ok(grass.contains(x, z));
+      const hit = grass.raycast({ origin: [x, 8, z], dir: [0, -1, 0] });
+      assert.ok(hit && Math.abs(hit.point[1] - grass.height(x, z)) < 1e-8);
+    }
+    assert.ok(grass.height(shore + 0.3, z) < grass.height(shore + 1.3, z));
   }
 });

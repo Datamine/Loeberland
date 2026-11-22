@@ -74,7 +74,7 @@ test('each owned chair seats the player until they move', async () => {
   }
 });
 
-test('a second player can climb a deployed airship rope without buying a grappling hook', async () => {
+test('a passenger can climb up and down the deployed rope without a grappling hook', async () => {
   const { game, geometry } = await fixture(),
     a = await player(game, 99002),
     b = await player(game, 99003),
@@ -109,6 +109,17 @@ test('a second player can climb a deployed airship rope without buying a grappli
     assert.equal(requiredResult(b.messages).ok, true);
     for (let i = 0; i < 200; i++) game.tick(0.05);
     assert.ok(game.shared.snapshot().airship.passengers.includes(b.p.id));
+    await command(game, b.p, 'airshipClimbDown');
+    assert.equal(requiredResult(b.messages).ok, true);
+    await command(game, a.p, 'airshipRope', { retract: true });
+    assert.equal(requiredResult(a.messages).ok, false, 'the pilot must wait for the climber');
+    for (let i = 0; i < 200; i++) game.tick(0.05);
+    assert.equal(b.p.mode, 'walk');
+    assert.ok(Math.hypot(b.p.x - bottom.x, b.p.y - bottom.y, b.p.z - bottom.z) < 1e-6);
+    assert.ok(!game.shared.snapshot().airship.passengers.includes(b.p.id));
+    await command(game, a.p, 'airshipRope', { retract: true });
+    assert.equal(requiredResult(a.messages).ok, true);
+    assert.equal(game.shared.snapshot().airship.rope.deployed, false);
   } finally {
     await game.close();
   }

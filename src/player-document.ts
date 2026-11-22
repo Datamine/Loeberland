@@ -8,6 +8,7 @@ import defaults from '../content/player-state-defaults.json' with { type: 'json'
 import bindings from '../content/player-state-bindings.json' with { type: 'json' };
 import { stateValue } from './content-conditions.ts';
 import { dogSurfingRound } from './dog-surfing.ts';
+import { IRON_ARMOR_PIECES, ownsIronArmorPiece } from './item-stats.ts';
 
 const attached = new WeakSet();
 const modulePaths = new Map(Object.entries(bindings.modules));
@@ -110,6 +111,10 @@ export function hydratePlayerProfile<T extends object>(input: T): T & PlayerProf
       if (decoded !== undefined) setModule(document, path, decoded);
     }
   }
+  if (!profile.playerState?.progress?.industrialistArmorPurchases)
+    document.progress.industrialistArmorPurchases = IRON_ARMOR_PIECES.filter((id) =>
+      ownsIronArmorPiece(document.inventory.economy, id),
+    );
   profile.playerState = document;
   Object.defineProperty(profile, 'stateRevision', { value: 0, writable: true, configurable: true });
   for (const [key, path] of Object.entries(bindings.profile) as [

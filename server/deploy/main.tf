@@ -206,8 +206,21 @@ resource "aws_security_group" "game" {
 }
 
 resource "aws_key_pair" "game" {
+  count           = var.ssh_key_name == "" ? 1 : 0
   key_name_prefix = "${var.name}-"
   public_key      = trimspace(var.ssh_public_key)
+
+  lifecycle {
+    precondition {
+      condition     = trimspace(var.ssh_public_key) != ""
+      error_message = "Supply an existing EC2 key pair name or an OpenSSH public key."
+    }
+  }
+}
+
+moved {
+  from = aws_key_pair.game
+  to   = aws_key_pair.game[0]
 }
 
 locals {
@@ -234,7 +247,7 @@ resource "aws_instance" "game" {
   associate_public_ip_address = true
   vpc_security_group_ids      = [aws_security_group.game.id]
   iam_instance_profile        = aws_iam_instance_profile.game.name
-  key_name                    = aws_key_pair.game.key_name
+  key_name                    = var.ssh_key_name == "" ? aws_key_pair.game[0].key_name : var.ssh_key_name
   root_block_device {
     volume_type = "gp3"
     volume_size = 40

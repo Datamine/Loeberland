@@ -111,31 +111,6 @@ function missileLauncher() {
   m.box(x - 0.015, 1.52, 0.266, 0.03, 0.023, 0.01, '#ecc172', { emissive: 0.55 });
   return (launcherMesh = m.data);
 }
-const armorMeshes = new Map<string, number[]>();
-function ironArmor(trimmed: boolean) {
-  const metal = '#454a50',
-    edge = trimmed ? '#dbab4c' : '#626973';
-  const cached = armorMeshes.get(edge);
-  if (cached) return cached;
-  const m = new Mesh();
-  m.sphere(0, 1.23, 0.065, 0.19, 0.24, 0.145, metal, 14, 7, { metal: 0.55 });
-  m.sphere(0, 1.23, -0.063, 0.18, 0.232, 0.11, metal, 14, 7, { metal: 0.49 });
-  for (const side of [-1, 1]) {
-    m.sphere(side * 0.19, 1.4, 0, 0.106, 0.097, 0.155, metal, 13, 7, { metal: 0.58 });
-    m.rod([side * 0.15, 1.46, 0.125], [side * 0.249, 1.36, 0.125], 0.012, edge, 7, { metal: 0.47 });
-    m.rod([side * 0.05, 1.445, 0.18], [side * 0.149, 1.31, 0.172], 0.009, edge, 7, { metal: 0.47 });
-    m.rod([side * 0.149, 1.31, 0.172], [side * 0.125, 1.15, 0.182], 0.009, edge, 7, {
-      metal: 0.47,
-    });
-    for (let i = 0; i < 3; i++)
-      m.sphere(side * 0.13, 1.17 + i * 0.067, 0.186, 0.013, 0.013, 0.008, edge, 7, 5, {
-        metal: 0.5,
-      });
-  }
-  m.rod([-0.125, 1.15, 0.182], [0.125, 1.15, 0.182], 0.01, edge, 7, { metal: 0.47 });
-  armorMeshes.set(edge, m.data);
-  return m.data;
-}
 function clockMesh(time: number) {
   const second = Math.floor(time);
   if (clockSecond === second) return clockData!;
@@ -226,12 +201,10 @@ export function drawWearableAccessories(
     cpu?: boolean;
   },
 ) {
-  const armor = look.torso === 'iron-armor' || look.torso === 'gold-trimmed-iron-armor';
   const goose = look.torso === 'goose-costume';
   if (
     look.headOnly ||
-    (!armor &&
-      !goose &&
+    (!goose &&
       !look.railgun &&
       look.weapon !== 'missile-launcher' &&
       look.back !== 'new-year-rocket' &&
@@ -321,7 +294,6 @@ export function drawWearableAccessories(
       attach(flameData!, 1, 'wearable-flame');
     }
   }
-  if (armor) attach(ironArmor(look.torso === 'gold-trimmed-iron-armor'), 2, look.torso!);
   if (goose) {
     const { body, hood } = gooseCostume();
     attach(body, 2, 'wearable-goose-body');

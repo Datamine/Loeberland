@@ -352,7 +352,7 @@ test('disconnected dialogue cannot open, execute a choice, apply a delayed reply
   }
 });
 
-test('the connection screen makes the world inert, captures old controls, and keeps server settings usable', () => {
+test('the connection screen only shows Reconnecting and blocks gameplay until the socket returns', () => {
   const { doc, Element } = dom(),
     world = new Element(),
     oldButton = new Element('button');
@@ -361,9 +361,10 @@ test('the connection screen makes the world inert, captures old controls, and ke
     form = new Element('form'),
     input = new Element('input'),
     status = new Element(),
-    title = new Element('h2');
+    title = new Element('h2'),
+    home = new Element('a');
   form.querySelector = () => input;
-  element.querySelector = (s) => (s === 'form' ? form : s === 'h2' ? title : status);
+  element.querySelector = (s) => ({ form, h2: title, a: home })[s as 'form' | 'h2' | 'a'] ?? status;
   let subscriber!: (message: ServerEvent) => void,
     disconnects = 0;
   const client = {
@@ -388,6 +389,11 @@ test('the connection screen makes the world inert, captures old controls, and ke
   assert.equal(element.hidden, false);
   assert.equal(disconnects, 1);
   assert.equal(client.state.reloadOnWelcome, true);
+  assert.equal(title.textContent, 'Reconnecting...');
+  assert.equal(status.hidden, true);
+  assert.equal(form.hidden, true);
+  assert.equal(home.hidden, true);
+  assert.equal(doc.activeElement, element);
   let prevented = 0,
     stopped = 0;
   const event = (target: InstanceType<typeof Element>) => ({
@@ -398,13 +404,55 @@ test('the connection screen makes the world inert, captures old controls, and ke
   requiredFixture(doc.listeners.get('click'))(event(oldButton));
   assert.equal(prevented, 1);
   assert.equal(stopped, 1);
-  requiredFixture(doc.listeners.get('input'))(event(input));
-  assert.equal(prevented, 1);
   input.value = 'ws://localhost:8787/ws';
   requiredFixture(form.listeners.submit)(event(form));
-  assert.equal(storage.getItem('sf-multiplayer-endpoint'), input.value);
-  assert.equal(new URL(locationObject.href).searchParams.has('offline'), false);
-  gate.setActive(false);
+  assert.equal(storage.getItem('sf-multiplayer-endpoint'), null);
+  assert.equal(new URL(locationObject.href).searchParams.has('offline'), true);
+  client.state.connected = true;
+  subscriber({ type: 'connection', connected: true, status: 'Online', sampleTime: 1 });
   assert.equal(element.hidden, true);
   assert.equal(world.inert, false);
+});
+
+test('initial setup accepts an address and the duplicate-tab screen explains how to recover', () => {
+  const { doc, Element } = dom(),
+    world = new Element(),
+    element = new Element(),
+    form = new Element('form'),
+    input = new Element('input'),
+    status = new Element(),
+    title = new Element('h2'),
+    home = new Element('a');
+  form.querySelector = () => input;
+  element.querySelector = (s) => ({ form, h2: title, a: home })[s as 'form' | 'h2' | 'a'] ?? status;
+  const client = {
+    state: { connected: false, configured: false, status: 'Offline' },
+    subscribe() {},
+  };
+  const storage = memory();
+  const locationObject = { href: 'http://localhost/explore.html' };
+  const gate = createServerConnectionGate({
+    client,
+    world: world as unknown as HTMLElement,
+    element: element as unknown as HTMLElement,
+    storage,
+    locationObject,
+  });
+  gate.setActive(true);
+  assert.equal(doc.activeElement, input);
+  assert.equal(form.hidden, false);
+  assert.equal(home.hidden, false);
+  input.value = 'ws://localhost:8787/ws';
+  requiredFixture(form.listeners.submit)({
+    target: form,
+    preventDefault() {},
+    stopImmediatePropagation() {},
+  });
+  assert.equal(storage.getItem('sf-multiplayer-endpoint'), input.value);
+  client.state.configured = true;
+  client.state.status = 'Character open in another tab';
+  gate.update();
+  assert.equal(form.hidden, true);
+  assert.equal(title.textContent, 'Character open in another tab');
+  assert.match(status.textContent ?? '', /Close the other tab/);
 });

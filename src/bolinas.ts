@@ -4,8 +4,23 @@ import { rand, type Mesh } from './geometry.ts';
 export const BOLINAS = Object.freeze({ x: -8, z: -48, entry: { x: -7.5, y: -43.5 } });
 export const BOLINAS_BEACH = Object.freeze({
   id: 'bolinas-beach',
-  entry: { x: -13.5, y: -48.5 },
+  entry: { x: -12.5, y: -44 },
 });
+export const BOLINAS_URCHINS = Object.freeze(
+  [
+    { x: -13.85, z: -47.6 },
+    { x: -14.2, z: -46.65 },
+    { x: -14.1, z: -45.65 },
+    { x: -13.8, z: -44.6 },
+    { x: -12.9, z: -43.6 },
+    { x: -12.2, z: -42.8 },
+  ].map((position, i) => ({
+    // Keep the existing encounter IDs so saved urchins follow the moved spawns.
+    id: 'point-reyes-urchin-' + (i + 1),
+    combatKind: 'sea-urchin',
+    ...position,
+  })),
+);
 export const EMF_WARRIOR = Object.freeze({
   id: 'bolinas-emf-warrior',
   combatKind: 'emf-warrior',

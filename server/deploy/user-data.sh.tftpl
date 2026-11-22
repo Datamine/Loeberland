@@ -3,7 +3,16 @@ set -euo pipefail
 umask 077
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
-apt-get install -y docker.io docker-buildx docker-compose-v2 awscli openssl python3 cron
+apt-get install -y docker.io docker-buildx docker-compose-v2 openssl python3 cron curl unzip
+if ! command -v aws >/dev/null; then
+    aws_installer=$(mktemp -d)
+    trap 'rm -rf -- "$aws_installer"' EXIT
+    curl -fsSL --retry 3 https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o "$aws_installer/awscliv2.zip"
+    unzip -q "$aws_installer/awscliv2.zip" -d "$aws_installer"
+    "$aws_installer/aws/install"
+    rm -rf -- "$aws_installer"
+    trap - EXIT
+fi
 systemctl enable --now docker cron
 if snap list amazon-ssm-agent >/dev/null 2>&1; then snap start amazon-ssm-agent; fi
 install -d -m 700 /etc/loeberland /var/lib/loeberland/backups /opt/loeberland/releases

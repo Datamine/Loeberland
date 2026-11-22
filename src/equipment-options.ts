@@ -53,7 +53,7 @@ export function equipmentOptions(
     ],
     legs: [
       option('trousers', 'Regular trousers'),
-      ...(['ice-pants', 'black-cloak-bottom', 'decorative-robe-bottom'] as const)
+      ...(['ice-pants', 'black-cloak-bottom', 'decorative-robe-bottom', 'iron-armor-legs'] as const)
         .filter(owns)
         .map((id) => option(id, ITEM_STATS[id].name)),
     ],

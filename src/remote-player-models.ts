@@ -23,6 +23,7 @@ import { applyForwardRollMesh } from './forward-roll.ts';
 import { collapseCharacterMesh } from './capture-animation.ts';
 import { drawGymExercise } from './gym-exercises.ts';
 import { drawConstructionWorker } from './construction-animation.ts';
+import { DEPOT_LAUNCH_POSE } from './dynamite-depot.ts';
 import { rocketHopForPose } from './rocket-hop.ts';
 import type { Mesh } from './geometry.ts';
 
@@ -81,6 +82,7 @@ export function drawRemotePlayer(
       akibo: false,
       battleaxe: false,
       rollingPin: false,
+      crowbar: false,
       bayonet: false,
       phone: false,
     });
@@ -179,6 +181,7 @@ export function drawRemotePlayer(
             ? (x: number, z: number) => ground(x, z) + hop.height
             : ground
           : null,
+        ...(p.mode === 'depotLaunch' && DEPOT_LAUNCH_POSE),
       },
     );
     if (p.mode === 'bike') drawBicycle(m, p.x, p.z, p.y + 0.055, p.angle, p.phase);

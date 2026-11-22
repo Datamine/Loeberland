@@ -19,6 +19,7 @@ interface AdminOptions {
   username?: string;
   password?: string;
   readOnly?: boolean;
+  publicHost?: string;
 }
 import { createServer } from 'node:http';
 import { randomBytes, createHash, timingSafeEqual } from 'node:crypto';
@@ -317,8 +318,10 @@ export async function startAdmin({
   username = process.env.ADMIN_USERNAME,
   password = process.env.ADMIN_PASSWORD,
   readOnly = process.env.ADMIN_READ_ONLY === '1',
+  publicHost = process.env.ADMIN_PUBLIC_HOST,
 }: AdminOptions = {}) {
   const authorized = adminAuthorization(username, password);
+  const publicOrigin = readOnly && publicHost ? new URL(`https://${publicHost}`) : null;
   const store = providedStore || (await openAdminStore());
   const token = randomBytes(32).toString('hex');
   const html = (await readFile(new URL('./admin.html', import.meta.url), 'utf8'))
@@ -348,13 +351,19 @@ export async function startAdmin({
         send(401, { error: 'Admin authentication required.' });
         return;
       }
+      const requestOrigin =
+        req.headers.host === new URL(origin).host
+          ? origin
+          : req.headers.host === publicOrigin?.host
+            ? publicOrigin?.origin
+            : null;
       if (
-        req.headers.host !== new URL(origin).host ||
-        (req.headers.origin && req.headers.origin !== origin) ||
+        !requestOrigin ||
+        (req.headers.origin && req.headers.origin !== requestOrigin) ||
         req.headers['sec-fetch-site'] === 'cross-site'
       )
-        throw fail(403, 'Open the editor using its printed local URL.');
-      const url = new URL(req.url || '/', origin);
+        throw fail(403, 'Open the admin panel using its configured URL.');
+      const url = new URL(req.url || '/', requestOrigin);
       if (req.method === 'GET' && url.pathname === '/') {
         send(200, html, 'text/html');
         return;

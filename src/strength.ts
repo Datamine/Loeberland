@@ -59,6 +59,7 @@ export function createStrength(
       if (result.ok) {
         state.funded = true;
         save();
+        return { ...result, message: contentText('world-message.src.strength.funding-awarded') };
       }
       return result;
     },

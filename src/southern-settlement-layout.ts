@@ -478,6 +478,24 @@ const settlementRows = [
     string,
   ],
   [78, 234.5, 3.1, 2.8, 0, 'deco'] satisfies [number, number, number, number, number, string],
+  [64, 222.7, 3.4, 2.5, 0, 'bungalow', 'suburb'] satisfies [
+    number,
+    number,
+    number,
+    number,
+    number,
+    string,
+    string,
+  ],
+  [67.8, 222.7, 3.4, 2.5, 0, 'craftsman', 'suburb'] satisfies [
+    number,
+    number,
+    number,
+    number,
+    number,
+    string,
+    string,
+  ],
 ];
 export const SETTLEMENT_PARCELS = Object.freeze(
   settlementRows.map(([x, z, w, d, rotation, style, use], i) =>

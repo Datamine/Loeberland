@@ -11,10 +11,7 @@
       "additionalProperties": true
     },
     "position": {
-      "type": [
-        "object",
-        "null"
-      ]
+      "type": ["object", "null"]
     },
     "skills": {
       "type": "object",
@@ -29,10 +26,7 @@
               "type": "boolean"
             }
           },
-          "required": [
-            "xp",
-            "funded"
-          ],
+          "required": ["xp", "funded"],
           "additionalProperties": true
         },
         "hitpoints": {
@@ -48,18 +42,11 @@
               "type": "number"
             }
           },
-          "required": [
-            "hp",
-            "max",
-            "xp"
-          ],
+          "required": ["hp", "max", "xp"],
           "additionalProperties": true
         }
       },
-      "required": [
-        "strength",
-        "hitpoints"
-      ],
+      "required": ["strength", "hitpoints"],
       "additionalProperties": true
     },
     "inventory": {
@@ -73,6 +60,9 @@
             },
             "equity": {
               "type": "number"
+            },
+            "incubatorEquityBought": {
+              "type": "boolean"
             },
             "grain": {
               "type": "number"
@@ -123,6 +113,7 @@
           "required": [
             "coins",
             "equity",
+            "incubatorEquityBought",
             "grain",
             "bouquets",
             "fuelCans",
@@ -142,10 +133,7 @@
           "additionalProperties": true
         },
         "ledger": {
-          "type": [
-            "object",
-            "null"
-          ]
+          "type": ["object", "null"]
         },
         "sunglasses": {
           "type": "object",
@@ -154,9 +142,7 @@
               "type": "boolean"
             }
           },
-          "required": [
-            "owned"
-          ],
+          "required": ["owned"],
           "additionalProperties": true
         },
         "grapplingHook": {
@@ -166,13 +152,7 @@
           "type": "array"
         }
       },
-      "required": [
-        "economy",
-        "ledger",
-        "sunglasses",
-        "grapplingHook",
-        "collection"
-      ],
+      "required": ["economy", "ledger", "sunglasses", "grapplingHook", "collection"],
       "additionalProperties": true
     },
     "quests": {
@@ -182,35 +162,20 @@
           "type": "object",
           "properties": {
             "stage": {
-              "enum": [
-                "not-started",
-                "accepted",
-                "carrying",
-                "completed"
-              ]
+              "enum": ["not-started", "accepted", "carrying", "completed"]
             }
           },
-          "required": [
-            "stage"
-          ],
+          "required": ["stage"],
           "additionalProperties": true
         },
         "stochasticParrot": {
           "type": "object",
           "properties": {
             "stage": {
-              "enum": [
-                "not-started",
-                "accepted",
-                "carrying",
-                "proof",
-                "sold"
-              ]
+              "enum": ["not-started", "accepted", "carrying", "proof", "sold"]
             }
           },
-          "required": [
-            "stage"
-          ],
+          "required": ["stage"],
           "additionalProperties": true
         },
         "burningMan": {
@@ -232,10 +197,7 @@
               "type": "number"
             }
           },
-          "required": [
-            "stage",
-            "burnAt"
-          ],
+          "required": ["stage", "burnAt"],
           "additionalProperties": true
         },
         "theyLive": {
@@ -282,12 +244,7 @@
           "type": "object",
           "properties": {
             "raptor": {
-              "enum": [
-                "not-started",
-                "escaped",
-                "carrying",
-                "completed"
-              ]
+              "enum": ["not-started", "escaped", "carrying", "completed"]
             },
             "raptorDefeated": {
               "type": "boolean"
@@ -327,10 +284,7 @@
           "type": "object",
           "properties": {
             "guild": {
-              "type": [
-                "object",
-                "null"
-              ]
+              "type": ["object", "null"]
             },
             "initiated": {
               "type": "boolean"
@@ -339,11 +293,7 @@
               "type": "boolean"
             }
           },
-          "required": [
-            "guild",
-            "initiated",
-            "bomberOwned"
-          ],
+          "required": ["guild", "initiated", "bomberOwned"],
           "additionalProperties": true
         }
       },
@@ -373,10 +323,7 @@
           "additionalProperties": true
         },
         "bicycle": {
-          "type": [
-            "object",
-            "null"
-          ]
+          "type": ["object", "null"]
         },
         "bomber": {
           "type": "object",
@@ -385,18 +332,11 @@
               "type": "number"
             }
           },
-          "required": [
-            "bombReadyAt"
-          ],
+          "required": ["bombReadyAt"],
           "additionalProperties": true
         }
       },
-      "required": [
-        "ferrari",
-        "motorcycle",
-        "bicycle",
-        "bomber"
-      ],
+      "required": ["ferrari", "motorcycle", "bicycle", "bomber"],
       "additionalProperties": true
     },
     "activities": {
@@ -433,10 +373,7 @@
               "type": "number"
             }
           },
-          "required": [
-            "workedSeconds",
-            "readyAt"
-          ],
+          "required": ["workedSeconds", "readyAt"],
           "additionalProperties": true
         },
         "construction": {
@@ -449,10 +386,7 @@
               "type": "number"
             }
           },
-          "required": [
-            "workedSeconds",
-            "readyAt"
-          ],
+          "required": ["workedSeconds", "readyAt"],
           "additionalProperties": true
         }
       },
@@ -476,21 +410,13 @@
           "type": "boolean"
         },
         "police": {
-          "type": [
-            "object",
-            "null"
-          ]
+          "type": ["object", "null"]
         },
         "deathPending": {
           "type": "boolean"
         }
       },
-      "required": [
-        "inebriation",
-        "jailed",
-        "police",
-        "deathPending"
-      ],
+      "required": ["inebriation", "jailed", "police", "deathPending"],
       "additionalProperties": true
     },
     "employment": {
@@ -506,16 +432,11 @@
               "type": "number"
             }
           },
-          "required": [
-            "hired",
-            "bestScore"
-          ],
+          "required": ["hired", "bestScore"],
           "additionalProperties": true
         }
       },
-      "required": [
-        "aiLab"
-      ],
+      "required": ["aiLab"],
       "additionalProperties": true
     },
     "business": {
@@ -528,46 +449,30 @@
           "additionalProperties": true
         }
       },
-      "required": [
-        "tech"
-      ],
+      "required": ["tech"],
       "additionalProperties": true
     },
     "finance": {
       "type": "object",
       "properties": {
         "bank": {
-          "type": [
-            "object",
-            "null"
-          ]
+          "type": ["object", "null"]
         },
         "growth": {
-          "type": [
-            "object",
-            "null"
-          ]
+          "type": ["object", "null"]
         }
       },
-      "required": [
-        "bank",
-        "growth"
-      ],
+      "required": ["bank", "growth"],
       "additionalProperties": true
     },
     "social": {
       "type": "object",
       "properties": {
         "pvp": {
-          "type": [
-            "object",
-            "null"
-          ]
+          "type": ["object", "null"]
         }
       },
-      "required": [
-        "pvp"
-      ],
+      "required": ["pvp"],
       "additionalProperties": true
     },
     "progress": {
@@ -578,12 +483,12 @@
         },
         "goblinSpaceMud": {
           "type": "number"
+        },
+        "industrialistArmorPurchases": {
+          "type": "array"
         }
       },
-      "required": [
-        "houseSearches",
-        "goblinSpaceMud"
-      ],
+      "required": ["houseSearches", "goblinSpaceMud", "industrialistArmorPurchases"],
       "additionalProperties": true
     },
     "rewards": {
@@ -596,10 +501,7 @@
           "type": "number"
         }
       },
-      "required": [
-        "pending",
-        "serial"
-      ],
+      "required": ["pending", "serial"],
       "additionalProperties": true
     },
     "equipment": {
@@ -618,17 +520,11 @@
               "type": "number"
             }
           },
-          "required": [
-            "readyAt",
-            "burnUntil",
-            "hopAt"
-          ],
+          "required": ["readyAt", "burnUntil", "hopAt"],
           "additionalProperties": true
         }
       },
-      "required": [
-        "decorativeRocket"
-      ],
+      "required": ["decorativeRocket"],
       "additionalProperties": true
     }
   },

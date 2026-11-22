@@ -1,7 +1,7 @@
 import { TRAMPOLINE } from '../src/backyard-details.ts';
 import { contentText } from '../src/content-runtime.ts';
 import { BURNING_MAN, burningManStrawAt, type BurningManProgress } from '../src/burning-man.ts';
-import { isFiniteNumber, isRecord } from '../src/types/json.ts';
+import { isFiniteNumber, isOneOf, isRecord } from '../src/types/json.ts';
 import type { PlayerRuntime } from '../src/types/player-runtime.ts';
 import type { Point } from '../src/types/geometry.ts';
 
@@ -30,7 +30,12 @@ import {
   ROBE_SELLER,
 } from '../src/goblin-industrialist.ts';
 import { FIGHTER_YARD } from '../src/fighter-yard-layout.ts';
-import { CONSTRUCTION_SITE } from '../src/construction-layout.ts';
+import {
+  CONSTRUCTION_SITE,
+  CONSTRUCTION_PAY_INTERVAL,
+  CONSTRUCTION_SHIFT_SECONDS,
+  CONSTRUCTION_COOLDOWN_MS,
+} from '../src/construction-layout.ts';
 import {
   FISH_PER_MUD,
   GOBLIN_MUD_REWARD_AT,
@@ -41,6 +46,8 @@ import {
 import { isTahoePelt, TAHOE_PELT_PRICES } from '../src/config/tahoe-pelts.ts';
 import { hasFighterYardPass } from './fighter-yard.mts';
 import { GAMEPLAY } from '../src/config/gameplay.ts';
+import { TRADE_PRICES } from '../src/config/economy.ts';
+import { COFFEE_STALL_VENDOR, HARDWARE_CLERK, RICH_TABLE_CHEF } from '../src/config/npcs.ts';
 import { createStrength } from '../src/strength.ts';
 import { createQuestLog } from '../src/quests.ts';
 import { PARROT_SCIENTIST, proofPrice } from '../src/stochastic-parrot.ts';
@@ -48,7 +55,7 @@ import { createSunglasses } from '../src/sunglasses.ts';
 import { createInebriation } from '../src/inebriation.ts';
 import { createTechVentures } from '../src/tech-ventures.ts';
 import { createSocialBusiness } from '../src/sales-conference.ts';
-import { AI_LAB_PAY_INTERVAL, createAILabJob, createArithmeticInterview } from '../src/ai-lab.ts';
+import { createAILabJob, createArithmeticInterview } from '../src/ai-lab.ts';
 import { createFishing } from '../src/fishing.ts';
 import { createDeli } from '../src/deli.ts';
 import { createAlienBattle } from '../src/combat.ts';
@@ -61,7 +68,9 @@ import { gymExercise, gymExercisePosition } from '../src/gym-exercises.ts';
 import { CAPTURE_DURATION } from '../src/capture-animation.ts';
 import {
   ITEM_STATS,
+  IRON_ARMOR_PIECES,
   equipmentOwned,
+  ownsIronArmorPiece,
   ownedEquipmentDefense,
   recoilDamage,
   sandwichCapacity,
@@ -88,9 +97,6 @@ const deny = (message: string) => ({ ok: false, message });
 /** Per-player domain controllers. Their clocks advance on the server even
  * when the browser is backgrounded. The client cannot submit balances, XP,
  * quest flags, enemy HP, interview scores or elapsed time. */
-const CONSTRUCTION_PAY_INTERVAL = AI_LAB_PAY_INTERVAL * 10;
-const CONSTRUCTION_SHIFT_SECONDS = 30 * 60;
-const CONSTRUCTION_COOLDOWN_MS = 60 * 60 * 1000;
 const CONSTRUCTION_TIME_EPSILON = 1e-6;
 
 export function createPlayerState({
@@ -280,6 +286,7 @@ export function createPlayerState({
     const expeditions = createExpeditions({
       saved: saved('sf-expeditions-v1'),
       onSave: save('sf-expeditions-v1'),
+      now,
       health,
       economy,
       consumeShot: (weapon: string) => {
@@ -566,24 +573,32 @@ export function createPlayerState({
       return deny(contentText('world-message.server.player-state.choose-a-trade-first'));
     const r = runtime(p),
       economy = p.inventory.economy;
-    if (kind === 'iron-armor') {
+    if (isOneOf(IRON_ARMOR_PIECES, kind)) {
       if (!npc(p, (actor) => actor.id === 'enterprising-industrialist'))
         return deny(contentText('world-message.iron-armor.visit'));
-      if (equipmentOwned(economy.state, 'gold-trimmed-iron-armor'))
-        return deny(contentText('world-message.iron-armor.already-trimmed'));
-      return economy.buyEquipment('iron-armor');
+      const purchases = (p.profile.playerState.progress.industrialistArmorPurchases ??= []);
+      if (purchases.includes(kind) || ownsIronArmorPiece(economy.state, kind))
+        return deny(contentText('world-message.iron-armor.already-purchased'));
+      const result = economy.buyEquipment(kind);
+      if (result.ok) purchases.push(kind);
+      return result;
     }
     if (kind === 'sell-uni') {
-      const counter = geometry.sights?.find((sight) => sight.id === 'rich-table')?.entry;
-      if (!counter || Math.hypot(p.x - counter.x - 0.5, p.z - counter.y - 0.5) > 2.2)
+      const chef = npc(p, (actor) => actor.id === RICH_TABLE_CHEF);
+      if (
+        !chef ||
+        (geometry.canTravel &&
+          !geometry.canTravel(p.x - 0.5, p.z - 0.5, chef.x - 0.5, chef.z - 0.5, true))
+      )
         return deny(contentText('world-message.uni.visit-rich-table'));
       const count = p.inventory.meta.uni ?? 0;
-      if (count < 1) return deny(contentText('world-message.uni.none'));
-      if (!Number.isSafeInteger(economy.state.coins + 40))
+      const price = TRADE_PRICES.uni;
+      if (count < 1) return deny(contentText('world-message.uni.none', { price }));
+      if (!Number.isSafeInteger(economy.state.coins + price))
         return deny(contentText('world-message.server.inventory.your-coin-purse-is-full'));
       p.inventory.meta.uni = count - 1;
-      economy.state.coins += 40;
-      return { ok: true, message: contentText('world-message.uni.sold') };
+      economy.state.coins += price;
+      return { ok: true, message: contentText('world-message.uni.sold', { price }) };
     }
     if (kind === 'fighter-yard-admission') {
       if (!npc(p, (actor) => actor.id === FIGHTER_YARD.tyler.id))
@@ -662,6 +677,13 @@ export function createPlayerState({
         return deny(contentText('world-message.server.player-state.visit-the-cotogna-counter'));
       return economy.buyEquipment(kind);
     }
+    if (kind === 'crowbar') {
+      if (!byKind(p, HARDWARE_CLERK))
+        return deny(
+          contentText('world-message.server.player-state.speak-to-the-appropriate-npc-nearby'),
+        );
+      return economy.buyEquipment(kind);
+    }
     const merchants: Record<string, string> = {
       equity: 'founder',
       secondary: 'secondary',
@@ -678,7 +700,8 @@ export function createPlayerState({
       skis: 'lift',
     };
     if (merchants[kind]) {
-      const merchant = byKind(p, merchants[kind]);
+      const merchant =
+        byKind(p, merchants[kind]) || (kind === 'coffee' && byKind(p, COFFEE_STALL_VENDOR));
       if (!merchant)
         return deny(
           contentText('world-message.server.player-state.speak-to-the-appropriate-npc-nearby'),

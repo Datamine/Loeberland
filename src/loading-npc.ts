@@ -101,9 +101,62 @@ function loadingAttachment(
   }
 }
 
+const clockX = 0.94;
+const clockY = 1.22;
+const clockZ = -0.22;
+
+function createLoadingClock() {
+  const clock = new Mesh();
+  clock.cylinder(0, -0.105, 0, 0.32, 0.105, '#5c5347', 32);
+  clock.cylinder(0, 0, 0, 0.283, 0.009, '#f8f4e5', 32);
+  // Clock cylinders face forward instead of up.
+  for (let i = 0; i < clock.data.length; i += 11) {
+    const [x, y, z, nx, ny, nz] = clock.data.slice(i, i + 6);
+    clock.data[i] = clockX + x;
+    clock.data[i + 1] = clockY - z;
+    clock.data[i + 2] = clockZ + y;
+    clock.data[i + 3] = nx;
+    clock.data[i + 4] = -nz;
+    clock.data[i + 5] = ny;
+  }
+  clock.cylinder(clockX, -0.07, clockZ - 0.06, 0.17, 0.06, '#e7e1d4', 24);
+  clock.cylinder(clockX, -0.01, clockZ - 0.06, 0.036, 1.04, '#766858', 12);
+  for (let tick = 0; tick < 12; tick++) {
+    const angle = (tick * Math.PI) / 6;
+    const inner = tick % 3 === 0 ? 0.203 : 0.228;
+    const x = Math.sin(angle),
+      y = Math.cos(angle);
+    clock.rod(
+      [clockX + x * inner, clockY + y * inner, clockZ + 0.012],
+      [clockX + x * 0.255, clockY + y * 0.255, clockZ + 0.012],
+      tick % 3 === 0 ? 0.012 : 0.007,
+      '#534e43',
+    );
+  }
+  return clock;
+}
+
+function drawClockHand(
+  m: Mesh,
+  turn: number,
+  length: number,
+  z: number,
+  width: number,
+  color: string,
+) {
+  const angle = turn * Math.PI * 2;
+  m.rod(
+    [clockX, clockY, clockZ + z],
+    [clockX + Math.sin(angle) * length, clockY + Math.cos(angle) * length, clockZ + z],
+    width,
+    color,
+  );
+}
+
 export function createLoadingNPCMesh() {
   const pose = createCharacterPose(),
     watch = new Mesh(),
+    clock = createLoadingClock(),
     angle = 1.5,
     hat = getHatGeometry('panama')!.mesh.data;
   watch.box(-0.283, 0.775, 0.015, 0.076, 0.04, 0.065, '#514536');
@@ -122,7 +175,7 @@ export function createLoadingNPCMesh() {
     '#4b5146',
     4,
   );
-  return (seconds: number) => {
+  return (seconds: number, time = new Date()) => {
     const sample = sampleLoadingNPC(seconds, pose),
       m = new Mesh();
     // Identical mesh, palette, hairstyle, skinning and normals to in-world NPCs.
@@ -178,8 +231,13 @@ export function createLoadingNPCMesh() {
         ...hat.slice(i + 6, i + 11),
       );
     }
-    // A small contact shadow anchors the feet without a separate backdrop.
-    m.cylinder(0, -0.025, 0, 0.45, 0.023, '#243b32', 32, 0.45);
+    m.cylinder(0, -0.07, 0, 0.46, 0.066, '#ffffff', 32, 0.44);
+    m.data.push(...clock.data);
+    const minute = time.getMinutes() + time.getSeconds() / 60;
+    drawClockHand(m, (time.getHours() + minute / 60) / 12, 0.137, 0.024, 0.018, '#37332c');
+    drawClockHand(m, minute / 60, 0.195, 0.046, 0.012, '#37332c');
+    drawClockHand(m, time.getSeconds() / 60, 0.224, 0.064, 0.006, '#ab4737');
+    m.sphere(clockX, clockY, clockZ + 0.052, 0.023, 0.023, 0.024, '#ab4737', 10, 6);
     return m;
   };
 }
@@ -263,8 +321,8 @@ export function createLoadingNPC(inputCanvas: HTMLCanvasElement | null) {
       canvas.width = width;
       canvas.height = height;
     }
-    const eye = [3, 2.4, 4] satisfies [number, number, number],
-      target = [0, 1.02, 0] satisfies [number, number, number],
+    const eye = [3.25, 2.4, 4] satisfies [number, number, number],
+      target = [0.25, 1.02, 0] satisfies [number, number, number],
       b = unit(sub(eye, target)),
       r = unit(cross([0, 1, 0] satisfies [number, number, number], b)),
       u = cross(b, r),

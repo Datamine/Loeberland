@@ -56,9 +56,16 @@ variable "ssh_cidr" {
   }
 }
 
-variable "ssh_public_key" {
-  description = "OpenSSH public key. The deploy script stores the matching PEM on the operator machine."
+variable "ssh_key_name" {
+  description = "Name of a key pair already created in EC2."
   type        = string
+  default     = ""
+}
+
+variable "ssh_public_key" {
+  description = "OpenSSH public key for deployments that register a locally generated key."
+  type        = string
+  default     = ""
 }
 
 variable "max_players" {

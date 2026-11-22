@@ -83,6 +83,7 @@ export function characterAppearance(settings: CharacterSettings & { phone?: bool
     bayonet: settings.weapon === 'bayonet',
     battleaxe: settings.weapon === 'battleaxe',
     rollingPin: settings.weapon === 'rolling-pin',
+    crowbar: settings.weapon === 'crowbar',
     akibo: settings.weapon === 'akibo',
     female,
     longHair: female && settings.hairstyle === 'long',

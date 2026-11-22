@@ -17,8 +17,8 @@ interface CountryObstacle {
 }
 import { isFiniteNumber } from './types/json.ts';
 import { rayTriangle } from './geometry.ts';
-import { EAST_BAY_COAST_X } from './geography.ts';
-import { TAHOE_BOUNDS, regionalGroundHeight } from './tahoe.ts';
+import { EAST_BAY_COAST_X, EAST_BAY_SHORE, eastBayShoreX } from './geography.ts';
+import { TAHOE_BOUNDS, regionalGroundHeight, eastBayShoreStrip } from './tahoe.ts';
 
 /** Open California ground uses a small visibility graph around solid parcels,
  * rather than allocating millions of empty grid cells between SF and Tahoe.
@@ -32,7 +32,7 @@ export function createCountryside({
     points: readonly RoadPoint[];
     segments: readonly Pick<RoadSegment, 'a' | 'b' | 'dx' | 'dz' | 'length'>[];
   };
-  campus: { quads: readonly (readonly (readonly number[])[])[] };
+  campus: { groundQuads: readonly (readonly (readonly number[])[])[] };
   parcels?: readonly CountryParcel[];
 }) {
   const b = TAHOE_BOUNDS,
@@ -50,24 +50,23 @@ export function createCountryside({
     c: Math.cos(angle),
     s: Math.sin(angle),
   });
-  const campusQuad = campus.quads[0],
-    center = campusQuad.reduce((p, q) => ({ x: p.x + q[0] / 4, z: p.z + q[2] / 4 }), {
-      x: 0,
-      z: 0,
-    }),
-    edge = [campusQuad[3][0] - campusQuad[0][0], campusQuad[3][2] - campusQuad[0][2]] satisfies [
-      number,
-      number,
-    ];
   const obstacles = [
     rectangle((b.west + b.east) / 2, (b.north + b.south) / 2, b.east - b.west, b.south - b.north),
-    rectangle(
-      center.x,
-      center.z,
-      Math.hypot(...edge),
-      Math.hypot(campusQuad[1][0] - campusQuad[0][0], campusQuad[1][2] - campusQuad[0][2]),
-      Math.atan2(edge[1], edge[0]),
-    ),
+    ...campus.groundQuads.map((quad) => {
+      const center = quad.reduce((p, q) => ({ x: p.x + q[0] / 4, z: p.z + q[2] / 4 }), {
+        x: 0,
+        z: 0,
+      });
+      const dx = quad[3][0] - quad[0][0],
+        dz = quad[3][2] - quad[0][2];
+      return rectangle(
+        center.x,
+        center.z,
+        Math.hypot(dx, dz),
+        Math.hypot(quad[1][0] - quad[0][0], quad[1][2] - quad[0][2]),
+        Math.atan2(dz, dx),
+      );
+    }),
     ...parcels.map((p) => rectangle(p.x, p.z, p.w, p.d, p.angle)),
   ];
   const local = (p: { x: number; y: number }, o: CountryObstacle) => ({
@@ -77,7 +76,7 @@ export function createCountryside({
   const inBounds = (p: Point) =>
     isFiniteNumber(p.x) &&
     isFiniteNumber(p.y) &&
-    p.x >= bounds.west &&
+    p.x >= eastBayShoreX(p.y) + 0.18 &&
     p.x <= bounds.east &&
     p.y >= bounds.north &&
     p.y <= bounds.south;
@@ -116,8 +115,19 @@ export function createCountryside({
   }
   const world = (p: { x: number; y: number }) => ({ x: p.x + 0.5, y: p.y + 0.5 }),
     logical = (p: Point) => ({ x: p.x - 0.5, y: p.y - 0.5 });
+  function avoidsWater(a: Point, b: Point) {
+    if (Math.min(a.x, b.x) > EAST_BAY_COAST_X + 3 || a.y === b.y) return true;
+    const step = EAST_BAY_SHORE.step;
+    const north = Math.max(EAST_BAY_SHORE.north, Math.min(a.y, b.y));
+    const south = Math.min(EAST_BAY_SHORE.south, Math.max(a.y, b.y));
+    for (let z = Math.ceil(north / step) * step; z <= south; z += step) {
+      const t = (z - a.y) / (b.y - a.y);
+      if (a.x + (b.x - a.x) * t < eastBayShoreX(z) + 0.18) return false;
+    }
+    return true;
+  }
   const clear = (a: Point, b: Point) =>
-    free(a) && free(b) && !obstacles.some((o) => intersects(a, b, o));
+    free(a) && free(b) && avoidsWater(a, b) && !obstacles.some((o) => intersects(a, b, o));
   const nodes: Point[] = [];
   for (const o of obstacles)
     for (const sx of [-1, 1] satisfies [number, number])
@@ -229,7 +239,24 @@ export function createCountryside({
       [east, north] satisfies [number, number],
     ].map(([x, z]) => [x, regionalGroundHeight(x, z), z] satisfies [number, number, number]);
   }
+  const inShoreBand = (x: number, z: number) =>
+    x < EAST_BAY_SHORE.east && z >= EAST_BAY_SHORE.north && z < EAST_BAY_SHORE.south;
   function height(x: number, z: number) {
+    if (inShoreBand(x, z)) {
+      if (x < eastBayShoreX(z)) return -0.65;
+      const step = EAST_BAY_SHORE.step;
+      const north = Math.floor(z / step) * step;
+      const t = (z - north) / step;
+      for (const [a, b, c, d] of eastBayShoreStrip(north)) {
+        if (x > d[0] + (c[0] - d[0]) * t) continue;
+        const diagonal = a[0] + (c[0] - a[0]) * t;
+        const edge = x < diagonal ? b : d;
+        const end = x < diagonal ? c : a;
+        return (
+          a[1] + (c[1] - a[1]) * t + (edge[1] - end[1]) * ((x - diagonal) / (edge[0] - end[0]))
+        );
+      }
+    }
     const q = cell(x, z);
     if (!q) return regionalGroundHeight(x, z);
     const u = (x - q[0][0]) / (q[2][0] - q[0][0]),
@@ -238,39 +265,46 @@ export function createCountryside({
       ? q[0][1] + v * (q[1][1] - q[0][1]) + u * (q[2][1] - q[1][1])
       : q[0][1] + u * (q[3][1] - q[0][1]) + v * (q[2][1] - q[3][1]);
   }
-  function raycast(ray: Ray, maxDistance = 220) {
-    let best = maxDistance,
-      hit: {
-        distance: number;
-        point: number[] | Float64Array<ArrayBuffer> | Float32Array<ArrayBuffer>;
-      } | null = null;
+  function raycast(ray: Ray, maxDistance = 220): { distance: number; point: number[] } | null {
+    let best = maxDistance;
+    let hit: { distance: number; point: number[] } | null = null;
     const seen = new Set();
+    const test = (q: number[][]) => {
+      for (const tri of [
+        [q[0], q[1], q[2]],
+        [q[0], q[2], q[3]],
+      ]) {
+        const d = rayTriangle(ray, tri[0], tri[1], tri[2]);
+        if (d !== null && d < best) {
+          best = d;
+          hit = { distance: d, point: Array.from(ray.origin, (v, i) => v + ray.dir[i] * d) };
+        }
+      }
+    };
     for (let t = 0; t <= maxDistance; t += 4) {
       const x = ray.origin[0] + ray.dir[0] * t,
-        z = ray.origin[2] + ray.dir[2] * t,
-        key = Math.floor(x / 16) + ',' + Math.floor(z / 16);
+        z = ray.origin[2] + ray.dir[2] * t;
+      if (x >= EAST_BAY_COAST_X && inShoreBand(x, z)) {
+        const north = Math.floor(z / EAST_BAY_SHORE.step) * EAST_BAY_SHORE.step;
+        const key = 'shore,' + north;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        for (const q of eastBayShoreStrip(north)) test(q);
+        continue;
+      }
+      const key = Math.floor(x / 16) + ',' + Math.floor(z / 16);
       if (seen.has(key) || !inBounds({ x, y: z })) continue;
       seen.add(key);
       const west = Math.max(EAST_BAY_COAST_X, Math.floor(x / 16) * 16),
         north = Math.floor(z / 16) * 16;
       for (const [u, v] of [
-        [west + 0.001, north + 0.001] satisfies [number, number],
-        [west + 0.001, north + 15.999] satisfies [number, number],
-        [west + 15.999, north + 0.001] satisfies [number, number],
-        [west + 15.999, north + 15.999] satisfies [number, number],
+        [west + 0.001, north + 0.001],
+        [west + 0.001, north + 15.999],
+        [west + 15.999, north + 0.001],
+        [west + 15.999, north + 15.999],
       ]) {
         const q = cell(u, v);
-        if (!q) continue;
-        for (const tri of [
-          [q[0], q[1], q[2]],
-          [q[0], q[2], q[3]],
-        ]) {
-          const d = rayTriangle(ray, tri[0], tri[1], tri[2]);
-          if (d !== null && d < best) {
-            best = d;
-            hit = { distance: d, point: ray.origin.map((v, i) => v + ray.dir[i] * d) };
-          }
-        }
+        if (q) test(q);
       }
     }
     return hit;

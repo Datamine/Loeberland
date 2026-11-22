@@ -4,7 +4,7 @@ import { isPickTarget, hasPhysicalBounds } from '../picking.ts';
 import { requiredValue } from '../types/assert.ts';
 import type { WorldContext } from './scene.ts';
 import { BOLINAS_PATH, BOLINAS_COTTAGES } from '../bolinas.ts';
-import { minimapActors, minimapShops } from '../minimap-layers.ts';
+import { minimapActors, minimapShops, minimapTasks } from '../minimap-layers.ts';
 import { createUIJob } from '../ui/scheduler.ts';
 import { drawCompiledMinimapRoads } from '../world-minimap.ts';
 import { APPLE_CAMPUS, ROBOTAXI_DEALER } from '../tech-layout.ts';
@@ -40,7 +40,13 @@ import { nearTahoe, drawTahoeMinimap } from '../tahoe.ts';
 import { ILLUMINATI_CAVE, CAVE_TILES } from '../map-instances.ts';
 import { PROMETHEUS } from '../prometheus.ts';
 import { GPU_FACTORY } from '../gpu-layout.ts';
-import { EAST_BAY_COAST_X, PANHANDLE, DOLORES_PARK, boundsPolygon } from '../geography.ts';
+import {
+  EAST_BAY_COAST_X,
+  EAST_BAY_SHORELINE,
+  PANHANDLE,
+  DOLORES_PARK,
+  boundsPolygon,
+} from '../geography.ts';
 
 /** Minimap services for the browser scene.
  * Dependencies are explicit live scene bindings, preserving initialization
@@ -751,6 +757,7 @@ export function createMinimap(context: WorldContext) {
             number,
           ],
           [EAST_BAY_COAST_X, context.player.y + 2000] satisfies [number, number],
+          ...EAST_BAY_SHORELINE.slice().reverse(),
         ].map(([x, z]) => m.point(x, z)),
         '#9eaa84',
       );
@@ -817,21 +824,7 @@ export function createMinimap(context: WorldContext) {
       context.mc.lineWidth = 1;
       context.mc.stroke();
     }
-    const actors = minimapActors(context);
-    if (context.$('sf-map-npcs').getAttribute('aria-pressed') === 'true')
-      for (const npc of actors) {
-        const p = m.point(npc.x, npc.z);
-        ellipse(context.mc, p.x, p.y, 1.7, 1.7, '#eddd72');
-      }
-    if (context.$('sf-map-shops').getAttribute('aria-pressed') === 'true')
-      for (const shop of minimapShops(actors)) {
-        const p = m.point(shop.x, shop.z);
-        context.mc.fillStyle = '#91e0d2';
-        context.mc.strokeStyle = '#243d39';
-        context.mc.lineWidth = 1;
-        context.mc.fillRect(p.x - 2.5, p.y - 2.5, 5, 5);
-        context.mc.strokeRect(p.x - 2.5, p.y - 2.5, 5, 5);
-      }
+    drawNPCMarkers(m.point);
     drawOtherPlayers((x, z) => m.point(x, z));
     const p = m.point(context.player.x + 0.5, context.player.y + 0.5),
       direction = m.point(
@@ -882,6 +875,59 @@ export function createMinimap(context: WorldContext) {
       const flag = m.point(context.destination.x + 0.5, context.destination.y + 0.5);
       drawDestinationFlag(context.mc, flag.x, flag.y);
     }
+  }
+
+  function drawNPCMarkers(point: (x: number, z: number) => Point) {
+    const showNPCs = context.$('sf-map-npcs').getAttribute('aria-pressed') === 'true';
+    const showShops = context.$('sf-map-shops').getAttribute('aria-pressed') === 'true';
+    const showTasks = context.$('sf-map-tasks').getAttribute('aria-pressed') === 'true';
+    if (!showNPCs && !showShops && !showTasks) return;
+    const actors = minimapActors(context);
+    const shops = new Set(showShops ? minimapShops(actors) : []);
+    const tasks = new Set(
+      showTasks
+        ? minimapTasks(actors, {
+            burningMan: context.multiplayer?.state.playerState?.quests.burningMan?.stage,
+            parrot: context.quests.state.stochasticParrot,
+            guildMember: context.multiplayer?.state.guild?.member,
+          })
+        : [],
+    );
+    const c = context.mc;
+    const outline = '#2c2922';
+    c.save();
+    c.strokeStyle = outline;
+    c.lineWidth = 1;
+    if (showNPCs)
+      for (const npc of actors) {
+        if (shops.has(npc) || tasks.has(npc)) continue;
+        const { x, y } = point(npc.x, npc.z);
+        ellipse(c, x, y, 1.7, 1.7, '#eddd72');
+        c.stroke();
+      }
+    c.fillStyle = '#91e0d2';
+    for (const npc of shops) {
+      const p = point(npc.x, npc.z);
+      const x = p.x - (tasks.has(npc) ? 4 : 0);
+      c.fillRect(x - 3, p.y - 3, 6, 6);
+      c.strokeRect(x - 3, p.y - 3, 6, 6);
+    }
+    for (const npc of tasks) {
+      const p = point(npc.x, npc.z);
+      const x = p.x + (shops.has(npc) ? 4 : 0);
+      poly(
+        c,
+        [
+          { x, y: p.y - 4 },
+          { x: x + 4, y: p.y },
+          { x, y: p.y + 4 },
+          { x: x - 4, y: p.y },
+        ],
+        '#ffc7ec',
+        outline,
+      );
+    }
+    c.restore();
   }
 
   function drawGroundItemDots(point: (x: number, z: number) => { x: number; y: number }) {
@@ -1151,7 +1197,7 @@ export function createMinimap(context: WorldContext) {
   }
 
   function prepareWayfinding() {
-    for (const id of ['sf-map-npcs', 'sf-map-shops'] as const) {
+    for (const id of ['sf-map-npcs', 'sf-map-shops', 'sf-map-tasks'] as const) {
       const button = context.$(id);
       try {
         button.setAttribute('aria-pressed', String(localStorage.getItem(id) === 'true'));

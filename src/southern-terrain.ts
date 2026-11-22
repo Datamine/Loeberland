@@ -43,8 +43,14 @@ import { BOTTLE_STREAM, TWITTER_HQ, SALES_CONFERENCE, socialFootprint } from './
 import { SALT_FLATS, SALT_PONDS, inSaltFlats, saltPondAt } from './salt-layout.ts';
 import { estateGroundColor } from './estate-layout.ts';
 import { minimapGroundColor } from './map-colors.ts';
+import { MUD_BATH, mudBathDistance } from './goblin-space-layout.ts';
 import { unit, rayTriangle } from './geometry.ts';
-import { SOUTHERN_BOUNDS, SOUTHERN_HILLS, SOUTHERN_TRAILS } from './southern-layout.ts';
+import {
+  SOUTHERN_BOUNDS,
+  SOUTHERN_HILLS,
+  SOUTHERN_TRAILS,
+  southernTrailDistance,
+} from './southern-layout.ts';
 import {
   westernCoastX,
   westernBeachWidth,
@@ -194,6 +200,11 @@ export function createSouthernTerrain({
           lake.level + Math.max(0, lakeDistance - 1) * 0.8 - Math.max(0, 1 - lakeDistance) * 0.9,
         blend = 1 - southSmooth((lakeDistance - 1.05) / 0.25);
       height += (bank - height) * blend;
+    }
+    const bath = mudBathDistance(x, z);
+    if (bath < 1.4 && distance > 0.85 && southernTrailDistance(x, z) > 0.25) {
+      const blend = 1 - southSmooth((bath - 1.02) / 0.38);
+      height += (MUD_BATH.basin.floor - height) * blend;
     }
     const join = southSmooth((z - b.north) / 12);
     return edgeHeight(x) * (1 - join) + height * join;

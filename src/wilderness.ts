@@ -1,3 +1,4 @@
+import { CREATURE_STRIKE_MS } from './creature-attack-pose.ts';
 import { legacyBugSpawns } from './legacy-software-layout.ts';
 import { contentText } from './content-runtime.ts';
 import { isFiniteNumber } from './types/json.ts';
@@ -29,9 +30,9 @@ type WalkingMonster = MonsterStats & {
 };
 import { FIGHTER_SPAWNS, isYardFighter, inFighterYard } from './fighter-yard-layout.ts';
 import { SCAPEGOAT } from './girard-layout.ts';
-import { POINT_REYES_URCHINS } from './point-reyes.ts';
-import { BOLINAS_CULTIST, EMF_DISCIPLES, EMF_WARRIOR } from './bolinas.ts';
+import { BOLINAS_CULTIST, BOLINAS_URCHINS, EMF_DISCIPLES, EMF_WARRIOR } from './bolinas.ts';
 import { GOBLIN_SPAWNS } from './goblin-town.ts';
+import { FROG_SPAWNS, inFrogFarm } from './frog-farm.ts';
 import { SOMA_ZOMBIE_SPAWNS } from './downtown.ts';
 import { ITEM_STATS } from './item-stats.ts';
 import { MONSTER_STATS, rollMonsterDrops } from './monster-drops.ts';
@@ -118,10 +119,11 @@ export function wildernessSpawns({ marin, tahoe }: { marin: Point; tahoe: WorldP
     { ...TERMINATOR_SITE },
     { ...BISON_SITE },
     ...GOBLIN_SPAWNS,
+    ...FROG_SPAWNS,
     ...FIGHTER_SPAWNS,
     ...legacyBugSpawns(),
     SCAPEGOAT,
-    ...POINT_REYES_URCHINS,
+    ...BOLINAS_URCHINS,
     ...SOMA_ZOMBIE_SPAWNS.map((spawn) => ({ ...spawn })),
     { id: 'presidio-coyote', combatKind: 'coyote', x: 27.5, z: 23.5 },
     { ...EMF_WARRIOR },
@@ -269,7 +271,7 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
     actor.hp -= hit;
     const stats = walkingStats(actor.combatKind);
     const reflected = stats.reflectDamage ? Math.ceil(hit * stats.reflectDamage) : 0;
-    if (retaliate && !stats.reflectDamage) provoke(actor, attacker);
+    if (retaliate && actor.combatKind !== 'frog' && !stats.reflectDamage) provoke(actor, attacker);
     if (actor.dispatchedFor !== undefined) actor.lastCombatAt = clock;
     actor.affection = 0;
     onHit({ actor, attacker, damage: hit });
@@ -328,15 +330,21 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
         inFiringRange = (person: P) =>
           Math.hypot(person.x - actor.x, person.z - actor.z) <= attackRange &&
           canShoot(actor, person),
-        inTerritory = (p: WorldPoint) =>
-          yardFighter
-            ? inFighterYard(p.x, p.z)
-            : !stats.territoryHalfWidth ||
-              Math.max(Math.abs(p.x - actor.home.x), Math.abs(p.z - actor.home.z)) <=
-                stats.territoryHalfWidth;
+        inTerritory = (p: WorldPoint) => {
+          if (yardFighter) return inFighterYard(p.x, p.z);
+          if (actor.combatKind === 'frog') return inFrogFarm(p.x, p.z, -0.18);
+          return (
+            !stats.territoryHalfWidth ||
+            Math.max(Math.abs(p.x - actor.home.x), Math.abs(p.z - actor.home.z)) <=
+              stats.territoryHalfWidth
+          );
+        };
       actor.affection = Math.max(0, actor.affection - dt);
       if (actor.attackAnimation)
-        actor.attackAnimation = Math.max(0, actor.attackAnimation - dt / 0.45);
+        actor.attackAnimation = Math.max(
+          0,
+          actor.attackAnimation - (dt * 1000) / CREATURE_STRIKE_MS,
+        );
       if (!actor.hp) {
         actor.respawn = Math.max(0, actor.respawn - dt);
         if (!actor.respawn)

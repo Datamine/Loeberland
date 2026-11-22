@@ -8,8 +8,8 @@ export const BURNING_MAN = {
   dj: 'burning-man-dj',
   partyDJ: 'burning-man-party-dj',
   waterClerk: 'in-n-out-clerk',
-  u: -8.25,
-  v: 6.65,
+  u: 30,
+  v: -11,
   burnMs: 4600,
   straw: [
     [-1, 0],

@@ -65,6 +65,19 @@ test('sampling stops at the last known point, wraps angles and snaps teleports a
   );
 });
 
+test('a creature strike begins between snapshots and plays forward from its wind-up', () => {
+  const track = createSnapshotMotion({ delayMs: 0 });
+  track.accept({ x: 0, z: 0 }, 0);
+  track.accept({ x: 0, z: 0, attackAnimation: 0.8 }, 200);
+  track.accept({ x: 0, z: 0, attackAnimation: 0.4 }, 380);
+  assert.equal(track.sample(100)?.attackAnimation, 0);
+  assert.equal(track.sample(110)?.attackAnimation, 1);
+  const windup = requiredFixture(track.sample(155)?.attackAnimation);
+  assert.ok(Math.abs(windup - 0.9) < 1e-8);
+  assert.equal(track.sample(200)?.attackAnimation, 0.8);
+  assert.ok(Math.abs(requiredFixture(track.sample(290)?.attackAnimation) - 0.6) < 1e-8);
+});
+
 test('metadata applies immediately without mutating snapshots or restarting unchanged delta records', () => {
   let time = 0;
   const target: Partial<{ x: number; z: number; phase: number; hp: number }> = {},

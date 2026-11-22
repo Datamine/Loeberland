@@ -2,27 +2,29 @@ import type { Mesh } from './geometry.ts';
 import { pose } from './geometry.ts';
 import { ATV_JUMP_LANE, ATV_ROOF, rampRise } from './atv.ts';
 import { GOBLIN_INDUSTRIALIST } from './goblin-industrialist.ts';
-import { GOBLIN_AI_LAB } from './goblin-ai-lab.ts';
+import { GOBLIN_AI_LAB, goblinAILabScrapBlocks } from './goblin-ai-lab.ts';
 import { GOBLIN_SPACE_PROGRAM, VILLAGE_GOOSE } from './goblin-space-layout.ts';
-import { drawPlaque } from './southern-district.ts';
-import type { RenderedSite, SignAtlas } from './types/world.ts';
+import { FROG_FARM } from './frog-farm.ts';
 
 export const FURNITURE_FACTORY = Object.freeze({
   name: 'Goblin Furniture Factory',
   x: 29.5,
-  z: -30.9,
+  z: -32.2,
   width: 4.4,
   depth: 2.6,
+  get front() {
+    return this.z + this.depth / 2;
+  },
 });
 export const GOBLIN_INCUBATOR = Object.freeze({
   id: 'goblin-startup-incubator',
   name: 'Goblin Startup Incubator',
-  x: 34.15,
-  z: -28,
+  x: 45,
+  z: -40,
   width: 3.8,
   depth: 2.35,
-  founder: { id: 'goblin-incubator-founder', x: 34.65, z: -26.2 },
-  entry: { x: 34.15, y: -25.8 },
+  founder: { id: 'goblin-incubator-founder', x: 45.5, z: -38.2 },
+  entry: { x: 45, y: -37.8 },
 });
 export const FACTORY_CHAIRS = Object.freeze([
   { id: 'ball-chair', name: 'Ball Chair', gesture: 'chair', height: 0.2 },
@@ -46,22 +48,43 @@ export const GOBLIN_SPAWNS = Object.freeze([
   { id: 'tam-goblin-1', combatKind: 'goblin', x: 30, z: -19 },
   { id: 'tam-goblin-2', combatKind: 'goblin', x: 29, z: -23 },
   { id: 'tam-goblin-3', combatKind: 'goblin', x: 32, z: -26 },
-  { id: 'tam-furniture-maker', combatKind: 'goblin-maker', x: 29.5, z: -27.5 },
-  { id: 'tam-yard-goblin', combatKind: 'goblin', x: 27.5, z: -33.5 },
-  { id: 'tam-yard-guard', combatKind: 'goblin-guard', x: 31.5, z: -33.7 },
+  {
+    id: 'tam-furniture-maker',
+    combatKind: 'goblin-maker',
+    x: FURNITURE_FACTORY.x,
+    z: FURNITURE_FACTORY.front + 2.1,
+  },
+  { id: 'tam-yard-goblin', combatKind: 'goblin', x: 27.5, z: FURNITURE_FACTORY.z - 2.6 },
+  { id: 'tam-yard-guard', combatKind: 'goblin-guard', x: 31.5, z: FURNITURE_FACTORY.z - 2.8 },
   { id: 'tam-yard-veteran', combatKind: 'goblin-veteran', x: 30, z: -36.2 },
   { id: 'south-lost-goblin', combatKind: 'lost-goblin', x: 74.5, z: 187.5 },
+  { id: 'tam-goblin-4', combatKind: 'goblin', x: 23.3, z: -18.6 },
+  { id: 'tam-goblin-5', combatKind: 'goblin', x: 23, z: -28.1 },
+  { id: 'tam-goblin-6', combatKind: 'goblin', x: 36.5, z: -24.4 },
+  { id: 'tam-goblin-7', combatKind: 'goblin', x: 44, z: -22.5 },
+  { id: 'tam-ridge-guard-1', combatKind: 'goblin-guard', x: 24, z: -34 },
+  { id: 'tam-ridge-guard-2', combatKind: 'goblin-guard', x: 33, z: -38.5 },
+  { id: 'tam-ridge-guard-3', combatKind: 'goblin-guard', x: 36.6, z: -40.2 },
+  { id: 'tam-ridge-guard-4', combatKind: 'goblin-guard', x: 47.5, z: -36.3 },
+  { id: 'tam-ridge-veteran-1', combatKind: 'goblin-veteran', x: 23.7, z: -40.2 },
+  { id: 'tam-ridge-veteran-2', combatKind: 'goblin-veteran', x: 46.8, z: -44.8 },
 ]);
 export function goblinRoofAt(x: number, z: number) {
   return GOBLIN_HUTS.find(
     (hut) => Math.abs(x - hut.x) <= ATV_ROOF.halfWidth && rampRise(z, hut.z) > 0,
   );
 }
+export function incubatorPitRadius(x: number, z: number) {
+  const pit = GOBLIN_INCUBATOR;
+  return Math.hypot((2 * (x - pit.x)) / pit.width, (2 * (z - pit.z)) / pit.depth);
+}
 export function goblinHutBlocks(x: number, z: number) {
   return (
     (Math.abs(x - VILLAGE_GOOSE.x) < 0.57 && Math.abs(z - VILLAGE_GOOSE.z) < 0.54) ||
     (Math.abs(x - GOBLIN_SPACE_PROGRAM.x) < 1.16 && Math.abs(z - GOBLIN_SPACE_PROGRAM.z) < 0.88) ||
-    [FURNITURE_FACTORY, GOBLIN_AI_LAB, GOBLIN_INCUBATOR, GOBLIN_INDUSTRIALIST].some(
+    incubatorPitRadius(x, z) < 0.86 ||
+    goblinAILabScrapBlocks(x, z) ||
+    [FURNITURE_FACTORY, GOBLIN_AI_LAB, GOBLIN_INDUSTRIALIST].some(
       (hut) =>
         Math.abs(x - hut.x) < hut.width / 2 + 0.15 && Math.abs(z - hut.z) < hut.depth / 2 + 0.15,
     ) ||
@@ -101,7 +124,7 @@ export function drawGoblinTown(m: Mesh, ground: (arg0: number, arg1: number) => 
       [33.7, -9],
       [33.7, -15.5],
       [30, -17],
-      [30, -28.8],
+      [30, FURNITURE_FACTORY.front + 0.8],
     ],
     [
       [30, -20.5],
@@ -111,7 +134,21 @@ export function drawGoblinTown(m: Mesh, ground: (arg0: number, arg1: number) => 
     [
       [30, -26.7],
       [32.25, -25.8],
+      [40.85, -26.6],
+      [41.8, -28.5],
+      [44.1, -32.3],
+      [44.2, -35.5],
       [GOBLIN_INCUBATOR.entry.x + 0.5, GOBLIN_INCUBATOR.entry.y + 0.5],
+    ],
+    [
+      [41.8, -28.5],
+      [GOBLIN_INDUSTRIALIST.entry.x + 0.5, GOBLIN_INDUSTRIALIST.entry.y + 0.5],
+    ],
+    [
+      [41.3, -20.87],
+      [44.2, -19.14],
+      [FROG_FARM.x, FROG_FARM.entry.y + 0.5],
+      [FROG_FARM.x, FROG_FARM.z + 0.7],
     ],
   ];
   for (const points of paths)
@@ -148,71 +185,6 @@ export function drawGoblinTown(m: Mesh, ground: (arg0: number, arg1: number) => 
     m.tri([x, y + 1.05, z], [x, y + 0.78, z], [x + 0.38, y + 0.9, z], '#e6aa48');
   }
   drawFactory(m, ground);
-}
-
-export function drawGoblinIncubator(
-  m: Mesh,
-  signs: SignAtlas,
-  ground: (x: number, z: number) => number,
-): RenderedSite {
-  const { id, name, x, z, width, depth, entry } = GOBLIN_INCUBATOR;
-  const side = width / 2,
-    front = depth / 2,
-    back = -front;
-  const y = ground(x, z + front);
-  const foundation =
-    Math.min(
-      y,
-      ground(x - side, z + front),
-      ground(x + side, z + front),
-      ground(x - side, z + back),
-      ground(x + side, z + back),
-    ) - 0.15;
-  const start = m.data.length;
-  pose(m, x, y, z, 0, () => {
-    m.box(-side, foundation - y, back, width, y - foundation + 0.1, depth, '#747366', 'stone');
-    m.box(-side, 0.1, back, width, 1.8, 0.16, '#947553', 'clapboard');
-    for (const x of [-side, side - 0.16]) {
-      m.box(x, 0.1, back + 0.16, 0.16, 1.35, depth - 0.32, '#837758', 'wood');
-      m.box(x, 0.1, front - 0.16, 0.16, 1.96, 0.16, '#514739', 'wood');
-    }
-    m.box(-side, 1.8, front - 0.2, width, 0.34, 0.22, '#574735', 'wood');
-    drawPlaque(m, signs, name, 0, 1.825, front + 0.035, 3.44, 0.29);
-    const eave = side + 0.17;
-    for (const x of [-eave, eave]) {
-      const [a, b] = x < 0 ? [back - 0.14, front + 0.2] : [front + 0.2, back - 0.14];
-      m.quad([x, 2.1, a], [x, 2.1, b], [0, 2.66, b], [0, 2.66, a], '#64745a', 'roof');
-      m.rod([x, 2.1, front + 0.2], [0, 2.66, front + 0.2], 0.064, '#8d7550', 8);
-    }
-    m.rod([0, 2.66, back - 0.14], [0, 2.66, front + 0.2], 0.05, '#6a533a', 8);
-
-    m.box(-1.52, 0.12, 0.2, 1.24, 0.56, 0.56, '#896242', 'wood');
-    m.box(-1.62, 0.67, 0.13, 1.42, 0.09, 0.7, '#b18b61', 'wood');
-    for (let i = 0; i < 4; i++)
-      m.box(-1.42 + i * 0.19, 0.77 + i * 0.009, 0.28, 0.24, 0.018, 0.34, '#e6d7aa');
-
-    m.box(0.42, 0.64, back + 0.17, 1.17, 0.95, 0.045, '#3f4b42', 'wood');
-    const chart = [
-      [0.58, 0.82],
-      [0.82, 1.01],
-      [1.06, 0.98],
-      [1.38, 1.43],
-    ];
-    for (let i = 1; i < chart.length; i++)
-      m.rod([...chart[i - 1], back + 0.222], [...chart[i], back + 0.222], 0.017, '#b8ce84', 6);
-  });
-  return {
-    id,
-    kind: id,
-    label: name,
-    entry,
-    start,
-    count: m.data.length - start,
-    description:
-      'A timber shed full of pitch decks. Talk to the Goblin Founder to buy startup equity.',
-    lo: [x - side - 0.23, foundation, z + back - 0.2],
-    hi: [x + side + 0.23, y + 2.72, z + front + 0.26],
-  };
 }
 
 function drawRampHouse(
@@ -359,11 +331,10 @@ export function drawOwnedChair(
 }
 
 function drawFactory(m: Mesh, ground: (x: number, z: number) => number) {
-  const { x, z, width, depth } = FURNITURE_FACTORY;
+  const { x, z, width, depth, front } = FURNITURE_FACTORY;
   const y = ground(x, z),
     left = x - width / 2,
-    back = z - depth / 2,
-    front = z + depth / 2;
+    back = z - depth / 2;
   m.box(left, y - 0.45, back, width, 0.55, depth, '#6c6e63', 'stone');
   m.box(left, y + 0.1, back, width, 2.1, 0.15, '#695446', 'brick');
   for (const side of [left, left + width - 0.15])

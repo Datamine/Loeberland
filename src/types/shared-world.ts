@@ -8,7 +8,6 @@ export interface SharedLoot extends ExpeditionLoot {
   owner: string | null;
   transfer?: boolean;
   unlockAt: number;
-  wallExpiresAt?: number;
 }
 export interface SharedRaptor extends Actor {
   hp: number;

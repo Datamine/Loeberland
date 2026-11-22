@@ -27,6 +27,7 @@ export interface RuntimeChoice extends DialogueTextBindings {
   contentNodeId?: string;
   actionId?: string;
   label: string;
+  available?: () => boolean;
   receipt?: string | null;
   repeat?: boolean;
   trade?: string | null;
@@ -125,6 +126,7 @@ export interface Actor extends RuntimeDialogue {
   waiting?: boolean;
   speech?: string;
   speechUntil?: number;
+  speechCue?: { text: string; until: number };
   index?: number;
   routeIndex?: number;
   points?: Point[] | number[][];

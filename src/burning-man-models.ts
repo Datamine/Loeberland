@@ -6,9 +6,9 @@ import { BURNING_MAN } from './burning-man.ts';
 const guests = [
   {
     name: 'Saffron',
-    u: -9.8,
-    v: 6.7,
-    approachV: 7.55,
+    u: -1.55,
+    v: 0.05,
+    approachV: 0.9,
     shirt: '#f0398f',
     pants: '#45dcbb',
     hair: '#7333aa',
@@ -18,9 +18,9 @@ const guests = [
   },
   {
     name: 'Lumen',
-    u: -7.15,
-    v: 4.9,
-    approachV: 4.05,
+    u: 1.1,
+    v: -1.75,
+    approachV: -2.6,
     shirt: '#e79425',
     pants: '#a946b8',
     hair: '#33aabb',
@@ -29,9 +29,9 @@ const guests = [
   },
   {
     name: 'Patch',
-    u: -6.2,
-    v: 6.45,
-    approachV: 7.3,
+    u: 2.05,
+    v: -0.2,
+    approachV: 0.65,
     shirt: '#68e542',
     pants: '#dd377c',
     hair: '#c13a83',
@@ -41,9 +41,9 @@ const guests = [
   },
   {
     name: 'Juno',
-    u: -9.35,
-    v: 8.7,
-    approachV: 9.55,
+    u: -1.1,
+    v: 2.05,
+    approachV: 2.9,
     shirt: '#7b43dc',
     pants: '#f5cc45',
     hair: '#23967e',
@@ -78,15 +78,15 @@ export function drawBurningManGrove(
   const angle = Math.atan2(direction.z - center.z, direction.x - center.x);
   const base = campus.ground();
   const approach = (x: number, z: number) => {
-    const p = campus.point(x, z);
+    const p = campus.point(u + x, v + z);
     return { x: p.x - 0.5, y: p.z - 0.5 };
   };
   pose(m, center.x, base, center.z, angle, () => {
     for (const [x, z] of BURNING_MAN.straw) straw(m, x, z);
     for (const guest of guests) {
       if (!('seated' in guest)) continue;
-      const x = guest.u - u,
-        z = guest.v - v;
+      const x = guest.u,
+        z = guest.v;
       m.box(x - 0.25, 0.025, z - 0.25, 0.5, 0.45, 0.5, '#794738', 'wood');
       m.box(x - 0.29, 0.475, z - 0.29, 0.58, 0.065, 0.58, guest.pants, 'canvasWeave');
     }
@@ -133,7 +133,7 @@ export function drawBurningManGrove(
   };
   const people: Actor[] = guests.map(({ u: x, v: z, approachV, ...look }, i) => ({
     ...look,
-    ...campus.point(x, z),
+    ...campus.point(u + x, v + z),
     id: 'burning-man-guest-' + i,
     kind: 'burning-man-guest',
     label: look.name,
@@ -145,13 +145,13 @@ export function drawBurningManGrove(
     description: 'A Berkeley partygoer dressed for an occasion that could happen at any moment.',
   }));
   people.push({
-    ...campus.point(-9.55, 5.65),
+    ...campus.point(u - 1.3, v - 1),
     id: BURNING_MAN.matilda,
     kind: BURNING_MAN.matilda,
     name: 'Matilda',
     label: 'Matilda',
     base,
-    approach: approach(-9.55, 4.8),
+    approach: approach(-1.3, -1.85),
     angle: angle - 0.4,
     regional: true,
     stationary: true,
@@ -166,8 +166,8 @@ export function drawBurningManGrove(
     description: 'The host of the Berkeley party. Her dazzling boots have their own altitude.',
   });
   people.push({
-    ...burningManDJ(campus.point(-6.2, 5.45), base, angle, true),
-    approach: approach(-6.2, 4.6),
+    ...burningManDJ(campus.point(u + 2.05, v - 1.2), base, angle, true),
+    approach: approach(2.05, -2.05),
   });
   return { statue, people };
 }

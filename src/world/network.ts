@@ -8,7 +8,6 @@ import { FERRARI_SPEED } from '../ferrari.ts';
 import { createActorAnimation } from '../animation-presentation.ts';
 import { serverConnected } from '../server-connection.ts';
 import { createDuelMenu } from '../finance-ui.ts';
-import { TABLET_PLACES } from '../teleport-tablets.ts';
 import { ownedHat } from '../hat-catalog.ts';
 import { PEQUOD } from '../jurassic-layout.ts';
 import { FORWARD_ROLL_DURATION } from '../forward-roll.ts';
@@ -115,8 +114,6 @@ export function createNetwork(context: WorldContext) {
       player: context.player,
       announce: context.announce,
     });
-    for (const id of TABLET_PLACES)
-      context.$('sf-tablet-' + id).addEventListener('click', () => context.useTeleportTablet(id));
     context
       .$('sf-bomber-bomb')
       .addEventListener('click', () => context.secretAction(context.secretWorld.dropBomb()));

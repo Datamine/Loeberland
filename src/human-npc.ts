@@ -1,3 +1,4 @@
+import { RICH_TABLE_CHEF } from './config/npcs.ts';
 import { CHARACTER_CLIPS, drawCharacter } from './characters.ts';
 import type { Mesh } from './geometry.ts';
 import type { CharacterAppearance } from './characters.ts';
@@ -139,7 +140,7 @@ export function merchantHeadAppearance(npc: Partial<Actor>): CharacterAppearance
     hair: npc.hair,
     cap: npc.kind === 'crew' || !!npc.cap,
     topHat: npc.topHat || npc.kind === 'tax',
-    chef: npc.kind === 'chef',
+    chef: npc.kind === 'chef' || npc.kind === RICH_TABLE_CHEF,
   };
 }
 

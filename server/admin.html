@@ -412,6 +412,21 @@
       accuracyCap: 0.94,
       description: "A stainless-steel rolling pin from Cotogna, with a solid barrel and worn wooden handles."
     },
+    crowbar: {
+      name: "Crowbar",
+      slot: "weapon",
+      price: 35,
+      range: 1.5,
+      interval: 1,
+      min: 2,
+      max: 6,
+      minPerLevel: 0.15,
+      maxPerLevel: 0.8,
+      accuracy: 0.78,
+      accuracyPerLevel: 0.012,
+      accuracyCap: 0.94,
+      description: "A steel crowbar with a red shaft and a forged hook."
+    },
     bayonet: {
       name: contentText("config.item-stats.module.name-10", {}),
       slot: "weapon",
@@ -473,11 +488,18 @@
     uni: { name: "Uni", description: "Fresh sea urchin roe. Rich Table buys it for 40 coins." },
     "sand-bucket": { name: "Bucket of sand", description: "A bucket filled with ordinary sand." },
     "iron-armor": {
-      name: "Iron armor",
+      name: "Iron torso armor",
       slot: "torso",
       defense: 3,
       price: 120,
       description: "A dark gray iron breastplate and pauldrons."
+    },
+    "iron-armor-legs": {
+      name: "Iron leg armor",
+      slot: "legs",
+      defense: 2,
+      price: 100,
+      description: "Articulated iron plates that cover the thighs, knees, and shins."
     },
     "gold-trimmed-iron-armor": {
       name: "Gold-trimmed iron armor",
@@ -672,6 +694,7 @@
     "railgun",
     "battleaxe",
     "rolling-pin",
+    "crowbar",
     "ice-top",
     "ice-pants",
     "akibo",
@@ -680,6 +703,7 @@
     "clock-amulet",
     "recoil-amulet",
     "iron-armor",
+    "iron-armor-legs",
     "gold-trimmed-iron-armor",
     "missile-launcher",
     "black-cloak-top",
@@ -694,9 +718,11 @@
   ]);
 
   // src/item-stats.ts
+  var isIronArmorTorso = (id) => id === "iron-armor" || id === "gold-trimmed-iron-armor";
   var PLAYER_WEAPONS = [
     "unarmed",
     "rolling-pin",
+    "crowbar",
     "bayonet",
     "battleaxe",
     "railgun",
@@ -710,7 +736,7 @@
     return value === "party-boots" ? value : value === true || value === "true";
   }
   function equipmentDefense(look = {}) {
-    return (look.torso === "iron-armor" || look.torso === "gold-trimmed-iron-armor" ? ITEM_STATS[look.torso].defense || 0 : 0) + (look.boots === true ? ITEM_STATS["combat-boots"].defense : 0) + (look.iceTop ? ITEM_STATS["ice-top"].defense : 0) + (look.icePants ? ITEM_STATS["ice-pants"].defense : 0);
+    return (isIronArmorTorso(look.torso) ? ITEM_STATS[look.torso].defense : 0) + (look.legs === "iron-armor-legs" ? ITEM_STATS["iron-armor-legs"].defense : 0) + (look.boots === true ? ITEM_STATS["combat-boots"].defense : 0) + (look.iceTop ? ITEM_STATS["ice-top"].defense : 0) + (look.icePants ? ITEM_STATS["ice-pants"].defense : 0);
   }
   function weaponAttackInterval(weapon, purse) {
     const upgraded = (weapon === "railgun" || weapon === "akibo") && equipmentOwned(purse, "railgun-upgrade");
@@ -898,13 +924,26 @@
     respawn: COMMON_RESPAWN_SECONDS,
     speed: 1.5,
     leash: 5,
-    roamRadius: 0.6,
-    roamSpeed: 0.4,
+    roamRadius: 2.5,
+    roamSpeed: 1.2,
     height: 1.35,
     model: "goblin",
     description: contentText("config.monster-drops.module.description-2", {})
   };
   var MONSTER_STATS = defineMonsterStats({
+    frog: {
+      name: "Frog",
+      ...monsterCombat(10, 2, { passive: true }),
+      respawn: COMMON_RESPAWN_SECONDS,
+      speed: 1.2,
+      leash: 2.5,
+      roamRadius: 0.62,
+      roamSpeed: 0.76,
+      walkStride: 0.68,
+      height: 0.64,
+      model: "frog",
+      description: "A broad green frog with golden eyes and surprisingly sturdy legs."
+    },
     scapegoat: {
       name: "Scapegoat",
       ...monsterCombat(10, 2, { passive: true }),
@@ -979,6 +1018,18 @@
       height: 1.9,
       appearance: { shirt: "#7a8290", pants: "#454959", hair: "#493e38", tinfoil: true },
       description: "Static crackles around the disciple\u2019s foil suit."
+    },
+    "unusual-pastor": {
+      name: "Unusual Pastor",
+      ...monsterCombat(10, 1.8),
+      respawn: 25,
+      speed: 2.15,
+      leash: 5,
+      roamRadius: 0.15,
+      model: "human",
+      height: 1.85,
+      appearance: { shirt: "#38363e", pants: "#2d2c34", hair: "#a9a19a" },
+      description: "The pastor of the Unusual Church. His collar sits high on his neck."
     },
     "bolinas-cultist": {
       name: "Cultist",
@@ -1204,6 +1255,7 @@
       respawn: 30,
       speed: 1.75,
       leash: 6,
+      aggression: 3.5,
       roamRadius: 1.7,
       roamSpeed: 0.52,
       walkStride: 0.95,
@@ -1217,6 +1269,7 @@
       respawn: 25,
       speed: 2.2,
       leash: 5,
+      aggression: 3,
       roamRadius: 1.45,
       roamSpeed: 0.62,
       description: "A red fox with black stockings and a white-tipped brush."
@@ -1686,7 +1739,7 @@
       ],
       legs: [
         option("trousers", "Regular trousers"),
-        ...["ice-pants", "black-cloak-bottom", "decorative-robe-bottom"].filter(owns).map((id) => option(id, ITEM_STATS[id].name))
+        ...["ice-pants", "black-cloak-bottom", "decorative-robe-bottom", "iron-armor-legs"].filter(owns).map((id) => option(id, ITEM_STATS[id].name))
       ],
       boots: [
         option("false", "Regular shoes"),
@@ -1733,7 +1786,13 @@
       value.torso
     ) ? value.torso : value.iceTop === true ? "ice-top" : value.cloakTop === true ? "black-cloak-top" : "shirt";
     const legs = isOneOf(
-      ["trousers", "ice-pants", "black-cloak-bottom", "decorative-robe-bottom"],
+      [
+        "trousers",
+        "ice-pants",
+        "black-cloak-bottom",
+        "decorative-robe-bottom",
+        "iron-armor-legs"
+      ],
       value.legs
     ) ? value.legs : value.icePants === true ? "ice-pants" : value.cloakBottom === true ? "black-cloak-bottom" : "trousers";
     return {
@@ -1896,7 +1955,7 @@
     renderEquipment();
   }
   async function api(path, options = {}) {
-    const response = await fetch("/api/" + path, {
+    const response = await fetch("api/" + path, {
       ...options,
       headers: { "X-Admin-Token": token, "Content-Type": "application/json" }
     });

@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { HAIRSTYLES } from '../src/config/hairstyles.ts';
 import { normalizeCharacter, characterAppearance } from '../src/character-config.ts';
 import { getCharacterMesh, drawCharacter } from '../src/characters.ts';
-import { Mesh } from '../src/geometry.ts';
+import { Mesh, rayTriangleAt } from '../src/geometry.ts';
+import type { Ray } from '../src/types/geometry.ts';
 import { npcOffersAttack, npcDisplayLabel, promoteWalkAction } from '../src/npc-interactions.ts';
 import { equipmentOptions } from '../src/equipment-options.ts';
 
@@ -48,6 +49,59 @@ test('hairstyle menus offer a broccoli cut and ponytail with distinct animated m
     assert.equal(normalizeCharacter({ gender, hairstyle: '<script>' }).hairstyle, styles[0].id);
     const other = HAIRSTYLES[gender === 'man' ? 'woman' : 'man'][2].id;
     assert.equal(normalizeCharacter({ gender, hairstyle: other }).hairstyle, styles[0].id);
+  }
+});
+
+test('pulled-back hairstyles cover the sides and nape while leaving the ears and face visible', () => {
+  for (const hairstyle of ['ponytail', 'braid']) {
+    const appearance = characterAppearance(normalizeCharacter({ gender: 'woman', hairstyle }));
+    const { indices, vertices, slots } = getCharacterMesh(appearance);
+    const visibleSlot = (ray: Ray) => {
+      let nearest = Infinity;
+      let slot: number | undefined;
+      for (let i = 0; i < indices.length; i += 3) {
+        const distance = rayTriangleAt(ray, vertices, i * 6, 6, indices);
+        if (distance !== null && distance < nearest) {
+          nearest = distance;
+          slot = slots[indices[i]];
+        }
+      }
+      return slot;
+    };
+    const hair = visibleSlot({ origin: [0, 2, -0.018], dir: [0, -1, 0] });
+    const face = visibleSlot({ origin: [0, 1.55, 1], dir: [0, 0, -1] });
+    assert.notEqual(hair, undefined, hairstyle);
+    assert.notEqual(face, undefined, hairstyle);
+    assert.notEqual(face, hair, hairstyle);
+    assert.equal(visibleSlot({ origin: [-1, 1.515, -0.065], dir: [1, 0, 0] }), hair, hairstyle);
+    assert.equal(visibleSlot({ origin: [1, 1.515, -0.065], dir: [-1, 0, 0] }), hair, hairstyle);
+    assert.equal(visibleSlot({ origin: [-0.066, 1.467, -1], dir: [0, 0, 1] }), hair, hairstyle);
+    assert.equal(visibleSlot({ origin: [1, 1.56, 0.01], dir: [-1, 0, 0] }), face, hairstyle);
+  }
+});
+
+test('human mouths sit below the nose and curve upward at the corners', () => {
+  for (const female of [false, true]) {
+    const { indices, vertices, shades } = getCharacterMesh({ female });
+    const shadeAt = (x: number, y: number) => {
+      const ray: Ray = { origin: [x, y, 1], dir: [0, 0, -1] };
+      let nearest = Infinity;
+      let shade;
+      for (let i = 0; i < indices.length; i += 3) {
+        const distance = rayTriangleAt(ray, vertices, i * 6, 6, indices);
+        if (distance !== null && distance < nearest) {
+          nearest = distance;
+          shade = shades[indices[i]];
+        }
+      }
+      return shade;
+    };
+    const mouth = shadeAt(0, 1.49);
+    assert.ok(mouth !== undefined && mouth < 0.8);
+    assert.equal(shadeAt(-0.035, 1.498), mouth);
+    assert.equal(shadeAt(0.035, 1.498), mouth);
+    assert.equal(shadeAt(0, 1.498), 1);
+    assert.equal(shadeAt(0, 1.52), 1);
   }
 });
 

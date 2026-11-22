@@ -1,4 +1,4 @@
-import type { SignAtlas, Site } from './types/world.ts';
+import type { Actor, SignAtlas, Site } from './types/world.ts';
 // CONTENT-BINDINGS-MIGRATED
 import { contentText } from './content-runtime.ts';
 import type { Mesh } from './geometry.ts';
@@ -29,6 +29,20 @@ export const NIGHTLIFE = Object.freeze({
 export function inNightlife(x: number, z: number) {
   const n = NIGHTLIFE;
   return Math.abs(x - n.x) < n.w / 2 && Math.abs(z - n.z) < n.d / 2;
+}
+export function complimentNightlifeDance(
+  patrons: readonly Pick<Actor, 'club' | 'speechCue'>[],
+  x: number,
+  z: number,
+  time: number,
+) {
+  if (!inNightlife(x, z)) return;
+  const compliments = ['Nice footwork!', 'You’ve got rhythm!'];
+  let index = 0;
+  for (const patron of patrons) {
+    if (!patron.club) continue;
+    patron.speechCue = { text: compliments[index++ % compliments.length], until: time + 3500 };
+  }
 }
 export function nightlifeAccess(x: number, z: number) {
   return (

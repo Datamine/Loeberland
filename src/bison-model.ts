@@ -14,6 +14,8 @@ export function drawBison(
     seated?: boolean;
   },
   time = 0,
+  ram = 0,
+  brace = 0,
 ) {
   const phase = typeof n.phase === 'number' ? n.phase : 0,
     motion = n.motion || 0,
@@ -21,22 +23,46 @@ export function drawBison(
   pose(m, n.x, n.base || 0, n.z, n.angle || 0, () => {
     const fur = '#65503c',
       shag = '#40352d',
-      light = '#8b6b4b';
+      light = '#8b6b4b',
+      reach = 0.38 * ram - 0.16 * brace,
+      dip = 0.29 * ram + 0.12 * brace;
     m.sphere(-0.2, 1 + bob, 0, 0.78, 0.43, 0.39, fur, 20, 12, 'stucco');
-    m.sphere(0.35, 1.14 + bob, 0, 0.53, 0.63, 0.46, shag, 20, 12, 'stucco');
-    m.sphere(0.32, 1.56 + bob, 0, 0.37, 0.27, 0.34, fur, 16, 9, 'stucco');
-    m.sphere(0.84, 0.97 + bob, 0, 0.36, 0.4, 0.32, shag, 18, 11, 'stucco');
-    m.sphere(1.11, 0.76 + bob, 0, 0.27, 0.2, 0.23, fur, 16, 9);
-    m.sphere(1.29, 0.77 + bob, 0, 0.12, 0.1, 0.18, '#302c28', 12, 7);
+    m.sphere(
+      0.35 + reach * 0.43,
+      1.14 + bob - dip * 0.4,
+      0,
+      0.53,
+      0.63,
+      0.46,
+      shag,
+      20,
+      12,
+      'stucco',
+    );
+    m.sphere(
+      0.32 + reach * 0.43,
+      1.56 + bob - dip * 0.4,
+      0,
+      0.37,
+      0.27,
+      0.34,
+      fur,
+      16,
+      9,
+      'stucco',
+    );
+    m.sphere(0.84 + reach, 0.97 + bob - dip, 0, 0.36, 0.4, 0.32, shag, 18, 11, 'stucco');
+    m.sphere(1.11 + reach, 0.76 + bob - dip, 0, 0.27, 0.2, 0.23, fur, 16, 9);
+    m.sphere(1.29 + reach, 0.77 + bob - dip, 0, 0.12, 0.1, 0.18, '#302c28', 12, 7);
     for (const side of [-1, 1] satisfies [number, number]) {
-      m.sphere(0.91, 1.1 + bob, side * 0.292, 0.035, 0.033, 0.018, '#1e211d', 10, 6);
-      m.sphere(0.92, 1.11 + bob, side * 0.308, 0.008, 0.008, 0.006, '#e0d9bd', 6, 4);
-      m.sphere(0.64, 1.23 + bob, side * 0.35, 0.13, 0.075, 0.1, light, 12, 7);
+      m.sphere(0.91 + reach, 1.1 + bob - dip, side * 0.292, 0.035, 0.033, 0.018, '#1e211d', 10, 6);
+      m.sphere(0.92 + reach, 1.11 + bob - dip, side * 0.308, 0.008, 0.008, 0.006, '#e0d9bd', 6, 4);
+      m.sphere(0.64 + reach, 1.23 + bob - dip, side * 0.35, 0.13, 0.075, 0.1, light, 12, 7);
       const horn = [
-        [0.78, 1.2 + bob, side * 0.27] satisfies [number, number, number],
-        [0.8, 1.29 + bob, side * 0.43] satisfies [number, number, number],
-        [0.87, 1.47 + bob, side * 0.46] satisfies [number, number, number],
-        [0.93, 1.61 + bob, side * 0.41] satisfies [number, number, number],
+        [0.78 + reach, 1.2 + bob - dip, side * 0.27] satisfies [number, number, number],
+        [0.8 + reach, 1.29 + bob - dip, side * 0.43] satisfies [number, number, number],
+        [0.87 + reach, 1.47 + bob - dip, side * 0.46] satisfies [number, number, number],
+        [0.93 + reach, 1.61 + bob - dip, side * 0.41] satisfies [number, number, number],
       ];
       for (let i = 1; i < horn.length; i++)
         m.rod(horn[i - 1], horn[i], 0.058 * (1 - i / 4), '#d8cba3', 10);
@@ -47,8 +73,12 @@ export function drawBison(
           t = f < stance ? f / stance : (f - stance) / (1 - stance),
           reach = 0.385;
         const step =
-            (f < stance ? reach - 1.1 * f : -reach + 2 * reach * t * t * (3 - 2 * t)) * motion,
-          lift = f < stance ? 0 : Math.sin(Math.PI * t) * 0.14 * motion;
+            (f < stance ? reach - 1.1 * f : -reach + 2 * reach * t * t * (3 - 2 * t)) *
+              motion *
+              (1 - ram) +
+            (end > 0 ? 0.25 * ram : -0.1 * brace),
+          lift =
+            (f < stance ? 0 : Math.sin(Math.PI * t) * 0.14 * motion) + (end > 0 ? 0.14 * brace : 0);
         const hip = [end * 0.48, 0.78 + bob, side * 0.29] satisfies [number, number, number],
           knee = [end * 0.48 + step * 0.4, 0.39 + lift * 0.5, side * 0.31] satisfies [
             number,

@@ -5,6 +5,7 @@ export function actorSpeechText(
   actor: Partial<import('../types/scene-state.ts').ActorTag>,
   time: number,
 ) {
+  if (actor.speechCue && time < actor.speechCue.until) return actor.speechCue.text;
   if (!actor.player && !actor.police && !actor.chasing && !actor.speechBubble) return '';
   return time < (actor.speechUntil || 0) ? editedSpeechText(actor, actor.speech || '') : '';
 }

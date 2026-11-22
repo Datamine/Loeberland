@@ -9,6 +9,27 @@ export const WORLD_SIZE = 96,
   STREET_LAYOUT_SIZE = 83;
 // Compressed East Bay shore: a short crossing from the island to the shops.
 export const EAST_BAY_COAST_X = 112;
+export const EAST_BAY_SHORE = Object.freeze({ north: -96, south: 112, east: 128, step: 4 });
+function shoreVertex(z: number) {
+  if (z <= EAST_BAY_SHORE.north || z >= EAST_BAY_SHORE.south) return EAST_BAY_COAST_X;
+  const edge = Math.min(1, (z - EAST_BAY_SHORE.north) / 20, (EAST_BAY_SHORE.south - z) / 20);
+  return EAST_BAY_COAST_X + edge * (1.35 + 0.88 * Math.sin(z * 0.16) + 0.42 * Math.sin(z * 0.39));
+}
+export function eastBayShoreX(z: number) {
+  const north = Math.floor(z / EAST_BAY_SHORE.step) * EAST_BAY_SHORE.step;
+  const south = north + EAST_BAY_SHORE.step;
+  return (
+    shoreVertex(north) +
+    (shoreVertex(south) - shoreVertex(north)) * ((z - north) / EAST_BAY_SHORE.step)
+  );
+}
+export const EAST_BAY_SHORELINE = Array.from(
+  { length: (EAST_BAY_SHORE.south - EAST_BAY_SHORE.north) / EAST_BAY_SHORE.step + 1 },
+  (_, i) => {
+    const z = EAST_BAY_SHORE.north + i * EAST_BAY_SHORE.step;
+    return [eastBayShoreX(z), z] satisfies [number, number];
+  },
+);
 export const PARK_BOUNDS = Object.freeze({ west: 9, east: 32, north: 29, south: 34 });
 // Fell/Oak, Stanyan/Baker: a deliberately narrow continuation of the park.
 // The eastern boundary stops at the next north/south street's western curb.

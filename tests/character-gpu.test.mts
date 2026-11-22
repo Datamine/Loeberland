@@ -20,6 +20,8 @@ import { characterAppearance, normalizeCharacter } from '../src/character-config
 import { swayCharacter } from '../src/inebriation.ts';
 import { pitchMotorcycleMesh } from '../src/motorcycle.ts';
 import { tiltRocketMesh, rocketFlightPoint } from '../src/rocket.ts';
+import { DYNAMITE_DEPOT } from '../src/config/dynamite-depot.ts';
+import { DEPOT_LAUNCH_POSE } from '../src/dynamite-depot.ts';
 
 function reconstructed(mesh: Mesh) {
   assert.ok(mesh?.characters != null, 'Missing test fixture: mesh.characters');
@@ -82,6 +84,42 @@ test('the equipped railgun follows the hand in the shared character renderer', (
   assert.ok(aimed.mesh.bonesA.every((bone) => bone === CHARACTER_BONES.rightHand));
   assert.equal(render('cycle'), undefined);
   assert.equal(render('idle', 'rocket-hop'), undefined);
+});
+
+test('the depot launch draws the entire character at the flight height even above ground', () => {
+  const ground = 2;
+  const { x, z, height } = DYNAMITE_DEPOT;
+  const look = characterAppearance(normalizeCharacter({ back: 'new-year-rocket' }));
+  const groundedLook = { ...look, ground: () => ground };
+  const p = {
+    id: 1,
+    x,
+    y: ground + height,
+    z,
+    angle: 0.7,
+    phase: 0,
+    mode: 'depotLaunch',
+    moving: false,
+    motion: 0,
+    hp: 30,
+    max: 30,
+  };
+  const local = new Mesh();
+  const remote = new Mesh();
+  remote.characters = createCharacterBatch().begin();
+  drawCharacter(local, p.x, p.z, p.y + 0.07, p.angle, p.phase, false, look.skin, look.shirt, {
+    ...groundedLook,
+    ...DEPOT_LAUNCH_POSE,
+  });
+  drawRemotePlayer(remote, p, 0, {
+    look,
+    ground: groundedLook.ground,
+    animation: createActorAnimation().sample(p, 0),
+  });
+  compare(local.data, reconstructed(remote), 'airborne local and remote poses');
+  assert.ok(local.data.length > 0);
+  for (let i = 1; i < local.data.length; i += 11)
+    assert.ok(local.data[i] > p.y - 0.1 && local.data[i] < p.y + 2.5);
 });
 
 test('GPU draw records preserve body, clothing, head, colors, wearables and terrain IK', () => {

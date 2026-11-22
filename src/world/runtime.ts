@@ -24,6 +24,7 @@ import {
   cutawayWallMask,
 } from '../geometry.ts';
 import { AIRSHIP_TERMINAL, onAirportApron } from '../airship.ts';
+import { hitProjectedRope, ropeEnds } from '../airship-rope.ts';
 import { PEQUOD } from '../jurassic-layout.ts';
 import '../forward-roll.ts';
 import { instituteHiddenSections, raycastInstituteFloor } from '../institute-interiors.ts';
@@ -757,6 +758,21 @@ export function createRuntime(context: WorldContext) {
 
   function hitSight(sx: number, sy: number) {
     const hit = pick(sx, sy);
+    const ropeState = context.rope?.state;
+    if (
+      (!hit || hit.sight?.id === 'airship') &&
+      ropeState?.deployed &&
+      ropeState.top &&
+      ropeState.bottom
+    ) {
+      const rope = context.dynamicTargets.find((target) => target.sight?.kind === 'airship-rope');
+      const [top, bottom] = ropeEnds(ropeState.top, ropeState.bottom);
+      if (
+        rope?.sight &&
+        hitProjectedRope(sx, sy, project(...top), project(...bottom), (x, y) => pick(x, y) === rope)
+      )
+        return rope.sight;
+    }
     if (hit?.sight) return hit.sight;
     // Small vials and coins get a few screen pixels of tolerance, while
     // an actual visibility ray prevents selecting items through walls.
@@ -764,14 +780,9 @@ export function createRuntime(context: WorldContext) {
       score = Infinity;
     for (const o of context.dynamicTargets)
       if (
-        (
-          ['loot', 'sunglasses', 'fishing', 'airship-rope'] satisfies [
-            string,
-            string,
-            string,
-            string,
-          ]
-        ).includes(o.sight?.kind || '')
+        (['loot', 'sunglasses', 'fishing'] satisfies [string, string, string]).includes(
+          o.sight?.kind || '',
+        )
       ) {
         const fishing = o.sight?.kind === 'fishing' ? context.fishingSite : null;
         const anchors = fishing
@@ -795,11 +806,7 @@ export function createRuntime(context: WorldContext) {
             at.distance <= 0 ||
             (fishing
               ? Math.max(dx, dy) > 45
-              : distance >
-                Math.max(
-                  o.sight?.kind === 'airship-rope' ? 28 : 9,
-                  (project(o.hi[0], anchor[1], o.hi[2]).x - at.x) * 1.3,
-                )) ||
+              : distance > Math.max(9, (project(o.hi[0], anchor[1], o.hi[2]).x - at.x) * 1.3)) ||
             distance >= score ||
             pick(at.x, at.y) !== o
           )

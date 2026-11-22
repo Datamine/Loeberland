@@ -2,15 +2,29 @@
 
 ## AWS
 
-Install Terraform 1.6 or later, Node.js 22.16 or later with npm, Git, curl, and OpenSSH on your machine. Use an AWS profile or the standard AWS credential environment variables. The identity needs permission to manage EC2 networking, key pairs, instances, IAM instance roles and profiles, the SSM public AMI parameter, and S3.
+Install Terraform 1.6 or later, AWS CLI v2, Node.js 22.16 or later with npm, Git, curl, and OpenSSH on your machine. The AWS identity needs permission to manage EC2 networking, key pairs, instances, IAM instance roles and profiles, the SSM public AMI parameter, and S3.
 
-From the repository root:
+### Install AWS CLI v2
 
-```sh
-AWS_PROFILE=your-profile ./deploy/aws.sh
+On Kubuntu or Ubuntu, run the AWS installer for your user account in the terminal you use to deploy. It supports 64-bit Intel, AMD, and Arm systems and needs no `sudo`. [AWS CLI installation guide](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
+
+```bash
+curl -fsSL https://awscli.amazonaws.com/v2/install.sh | bash
+export PATH="${XDG_BIN_HOME:-$HOME/.local/bin}:$PATH"
+aws --version
 ```
 
-If you already exported AWS credentials, run `./deploy/aws.sh` by itself. The script builds the current checkout, presents the infrastructure plan, uploads a release to private S3, and waits for public HTTPS. Use the same command to publish updates. `DEPLOY_AUTO_APPROVE=1` skips the plan confirmation for unattended runs.
+Check that the version starts with `aws-cli/2.`. If a new Bash terminal cannot find `aws`, add the `export PATH` line to `~/.bashrc`.
+
+### Deploy the site
+
+Export your access key ID as `AWS_ACCESS_KEY` and your secret access key as `AWS_SECRET_KEY`. Both variables are required. Then run this command from the repository root.
+
+```sh
+./deploy/aws.sh
+```
+
+The script builds the current checkout, presents the infrastructure plan, uploads a release to private S3, and waits for public HTTPS. Use the same command to publish updates. `DEPLOY_AUTO_APPROVE=1` skips the plan confirmation for unattended runs.
 
 The default is one **c8i.large in Oregon**, a **100-player cap**, a 40 GiB encrypted disk, and an Elastic IP. Ports 80 and 443 serve the game. SSH is limited to your public IPv4 address unless you set `TF_VAR_ssh_cidr`. The script uses the Elastic IP for the public HTTPS URL, with a short-lived Let's Encrypt certificate that Caddy renews. It creates its own VPC and public subnet. EC2, storage, the public IP, and traffic incur AWS charges.
 
@@ -29,7 +43,7 @@ snapshots aged 24 hours or more from local disk and private S3.
 
 ### SSH and admin
 
-The private key is **`.deploy/aws.pem`** with mode 600. Keep a secure copy of it and the local Terraform state in `server/deploy/`. Terraform registers the public key. If your public IP changes, rerun the deployment to refresh the SSH rule.
+After you approve the first plan, the script asks EC2 to create a key pair and saves the private key to **`.deploy/aws.pem`** with mode 600 before Terraform launches the instance. EC2 returns the private key only once. Keep secure copies of the PEM, `.deploy/aws-key-name`, and the local Terraform state in `server/deploy/`. Updates reuse that key and the instance recorded in Terraform state. Deployments originally set up with a locally generated PEM continue to use it. If your public IP changes, rerun the deployment to refresh the SSH rule.
 
 ```sh
 ./deploy/aws.sh ssh
@@ -38,7 +52,11 @@ The private key is **`.deploy/aws.pem`** with mode 600. Keep a secure copy of it
 ./deploy/aws.sh admin
 ```
 
-Open **http://127.0.0.1:8788/** with the tunnel running and sign in using the credentials printed by the credentials command. The admin panel reads live checkpoints and listens on the host loopback interface. The game and Redis keep running during inspection.
+On a custom domain, open `/admin/` over HTTPS and sign in with the credentials in **`.deploy/aws-admin.env`**. An AWS deploy saves the current credentials there on first use. You can also use the SSH tunnel to open **http://127.0.0.1:8788/**. The panel reads live checkpoints while the game runs.
+
+To change the login, edit `ADMIN_USERNAME` and `ADMIN_PASSWORD` in `.deploy/aws-admin.env` and run `./deploy/aws.sh admin-configure`. If the file is missing, that command first downloads the current credentials. The file is ignored by Git and stored with mode 600. Applying a change restarts the admin panel.
+
+Use single quotes around a password containing `$` so Compose reads it literally. [Compose environment file syntax](https://docs.docker.com/reference/compose-file/services/#env_file)
 
 Close the admin tunnel before running `./deploy/aws.sh edit`. That command opens a tunnel, stops the game to release its write lease, and starts an editing session. Press Ctrl+C after saving. The game and read-only admin panel restart automatically.
 

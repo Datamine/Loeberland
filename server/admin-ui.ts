@@ -146,7 +146,7 @@ function controls() {
 function api(path: 'records', options?: RequestInit): Promise<AdminList>;
 function api(path: string, options?: RequestInit): Promise<AdminRecord>;
 async function api(path: string, options: RequestInit = {}): Promise<AdminList | AdminRecord> {
-  const response = await fetch('/api/' + path, {
+  const response = await fetch('api/' + path, {
     ...options,
     headers: { 'X-Admin-Token': token, 'Content-Type': 'application/json' },
   });

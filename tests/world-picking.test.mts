@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Mesh } from '../src/geometry.ts';
+import { hitProjectedRope } from '../src/airship-rope.ts';
 import { createInteractions } from '../src/world/interactions.ts';
 import { createRuntime } from '../src/world/runtime.ts';
 import type { WorldContext } from '../src/world/scene.ts';
@@ -63,4 +64,20 @@ test('a missed ground ray cannot submit an invalid movement command', () => {
   const { walkTo } = createInteractions(context as unknown as WorldContext);
   assert.equal(walkTo(NaN, 50), false);
   assert.equal(walkTo(50, Infinity), false);
+});
+
+test('the airship rope hit area follows its full visible length', () => {
+  const top = { x: 100, y: 50, distance: 10 };
+  const bottom = { x: 100, y: 500, distance: 20 };
+  assert.ok(hitProjectedRope(132, 61, top, bottom, () => true));
+  assert.ok(hitProjectedRope(132, 489, top, bottom, () => true));
+  assert.ok(hitProjectedRope(100, 60, top, bottom, (_x, y) => y > 70));
+  assert.equal(
+    hitProjectedRope(137, 250, top, bottom, () => true),
+    false,
+  );
+  assert.equal(
+    hitProjectedRope(100, 250, top, bottom, () => false),
+    false,
+  );
 });

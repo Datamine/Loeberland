@@ -13,37 +13,86 @@ import type { SignAtlas } from './types/world.ts';
 
 export const MAD_HOUSE = Object.freeze({
   id: 'mad-scientist-house',
-  x: 12.75,
-  z: 9.2,
-  w: 4.4,
-  d: 3.75,
+  x: 10.5,
+  z: -7.85,
+  w: 2.65,
+  d: 2.2,
   base: 0,
-  front: -1,
+  front: 1,
   rotation: 0,
 });
-export const BERKELEY_HOMES = [
-  { id: 'claremont-bungalow', rect: [10.4, 3.75, 14.7, 6.6], color: '#d3ac78' },
-  {
-    id: MAD_HOUSE.id,
-    rect: [
-      MAD_HOUSE.x - MAD_HOUSE.w / 2,
-      MAD_HOUSE.z - MAD_HOUSE.d / 2,
-      MAD_HOUSE.x + MAD_HOUSE.w / 2,
-      MAD_HOUSE.z + MAD_HOUSE.d / 2,
-    ],
-    color: '#9aaca0',
-  },
-  { id: 'berkeley-craftsman', rect: [10.6, 13.1, 15.6, 16.55], color: '#8da18a' },
-  { id: 'eucalyptus-cottage', rect: [-14.2, 5.6, -10.5, 8.85], color: '#c49a86' },
-  { id: 'oak-bungalow', rect: [-14.6, 12.1, -10.7, 15.25], color: '#b8b380' },
+export const BERKELEY_CHURCH_ROOM = Object.freeze({
+  id: 'unusual-church',
+  x: -1.3,
+  z: -11.45,
+  w: 5.6,
+  d: 5.4,
+  base: 0,
+  front: 1,
+  rotation: 0,
+});
+
+const roomRect = ({ x, z, w, d }: { x: number; z: number; w: number; d: number }) => [
+  x - w / 2,
+  z - d / 2,
+  x + w / 2,
+  z + d / 2,
 ];
+const home = (id: string, label: string, x: number, z: number, color: string) => ({
+  id,
+  label,
+  color,
+  rect: roomRect({ x, z, w: 2.4, d: 2.05 }),
+});
+
+export const BERKELEY_HOMES = [
+  home('claremont-bungalow', 'Claremont Bungalow', 6.7, -7.85, '#d3ac78'),
+  { id: MAD_HOUSE.id, label: 'Scientist’s House', rect: roomRect(MAD_HOUSE), color: '#9aaca0' },
+  home('berkeley-craftsman', 'Berkeley Craftsman', 14.2, -7.85, '#8da18a'),
+  home('eucalyptus-cottage', 'Eucalyptus Cottage', -7.2, -7.85, '#c49a86'),
+  home('oak-bungalow', 'Oak Bungalow', -10.55, -7.85, '#b8b380'),
+];
+
+export const BERKELEY_NEIGHBORHOOD = [
+  { ...home('bay-victorian-blue', 'Blue Victorian', -14, -7.85, '#678392'), style: 'victorian' },
+  { ...home('bay-victorian-rose', 'Rose Victorian', -17.4, -7.85, '#b97b80'), style: 'victorian' },
+  { ...home('bay-victorian-gold', 'Gold Victorian', -20.8, -7.85, '#d1ab72'), style: 'victorian' },
+  {
+    id: 'bay-sauna',
+    label: 'Cedar Sauna',
+    color: '#a2744d',
+    style: 'sauna',
+    rect: roomRect({ x: -15, z: -12.1, w: 2.7, d: 2.15 }),
+  },
+  {
+    id: 'bay-commune',
+    label: 'Sunflower Commune',
+    color: '#ab947c',
+    style: 'commune',
+    rect: roomRect({ x: 20.4, z: -12, w: 4.1, d: 2.55 }),
+  },
+];
+
 export const HOT_TRAPDOOR = 'berkeley-hot-trapdoor';
 
 // The same parcels place the models, exclude solid ground, and color the map.
 export const BERKELEY_CAMPUS = Object.freeze({
-  bounds: [-16, 1.6, 17, 18.5] satisfies [number, number, number, number],
+  bounds: [-23, -16, 36, 18.5],
+  grounds: [
+    [-16, 1.6, 17, 18.5],
+    [-23, -16, 36, -1.65],
+  ],
+  roads: [
+    [-22, -5.1, 28, -3.35],
+    [17, -10.4, 18.45, -5.1],
+  ],
+  parks: [
+    [-21.85, -14.9, -17.6, -9.65],
+    [3, -14.8, 12.3, -9.7],
+  ],
   buildings: [
     ...BERKELEY_HOMES,
+    ...BERKELEY_NEIGHBORHOOD,
     {
       id: 'institute',
       rect: [-3.6, 5.7, 3.6, 10.6] satisfies [number, number, number, number],
@@ -66,26 +115,41 @@ export const BERKELEY_CAMPUS = Object.freeze({
     },
     {
       id: 'unusual-church',
-      rect: [-8.55, 12.9, -6.15, 15.65] satisfies [number, number, number, number],
+      rect: roomRect(BERKELEY_CHURCH_ROOM),
       color: '#e2d4b6',
     },
   ],
   paths: [
-    [-0.55, -0.25, 0.55, 3.5] satisfies [number, number, number, number],
+    [-0.65, -1.95, 0.65, 3.5] satisfies [number, number, number, number],
     [-14.7, 2.1, 16, 3.25] satisfies [number, number, number, number],
     [-7.8, 2.1, 7.8, 4.3],
     [9.1, 2.8, 10.1, 17.9],
     [-10.45, 2.8, -9.5, 17.8],
-    [9.8, 6.45, 13.2, 7.3],
-    [9.8, 12.05, 13.4, 13.1],
-    [-12.7, 4.65, -9.9, 5.6],
-    [-12.9, 11.1, -9.9, 12.1],
+    [-22, -6.55, 30, -5.1],
+    [-22, -3.35, 30, -2],
+    [-2, -8.75, -0.6, -6.55],
+    [-20.25, -14.25, -19.25, -6.2],
+    [7.15, -14.2, 8.35, -6.55],
+    [18.5, -10.75, 21.1, -9.85],
+    [28.4, -10.7, 29.65, -6.5],
     [-5.8, 3.6, -4.2, 15.3] satisfies [number, number, number, number],
     [4.2, 3.6, 5.8, 15.3] satisfies [number, number, number, number],
     [-5.8, 11.4, 5.8, 15.3] satisfies [number, number, number, number],
     [-1.5, 4.3, 1.5, 5.7] satisfies [number, number, number, number],
   ],
   trees: [
+    [-21, -13.8],
+    [-18.35, -13.65],
+    [-21, -10.35],
+    [-17.6, -14.9],
+    [-12, -13.9],
+    [-9.1, -11.8],
+    [4, -13.25],
+    [5, -10.4],
+    [10.8, -13.1],
+    [11.8, -11.5],
+    [24.4, -13.8],
+    [33.1, -13.7],
     [-15.2, 5.2],
     [-12.15, 10.2],
     [-14.8, 16.9],
@@ -102,6 +166,9 @@ export const BERKELEY_CAMPUS = Object.freeze({
     [6.2, 17.2] satisfies [number, number],
   ],
   obstacles: [
+    { u: -20.85, v: -11.91, r: 0.52 },
+    { u: 9.4, v: -12.01, r: 0.52 },
+    { u: 6, v: -13.41, r: 0.52 },
     { u: 0, v: 12.8, r: 1 },
     { u: -3.1, v: 13.7, r: 0.85 },
     { u: 3.1, v: 13.7, r: 0.85 },
@@ -235,7 +302,25 @@ function berkeleyOrbit(
  * a campanile, a classical library, redwoods and a real walkable quadrangle. */
 export function drawBerkeleyCampus(m: Mesh, signs: SignAtlas, title: string) {
   const b = BERKELEY_CAMPUS;
-  m.box(-9, -0.12, 1.6, 18, 0.12, 16.9, '#839774', 'grass');
+  for (const [x, z, xx, zz] of b.grounds)
+    m.box(x, -0.12, z, xx - x, 0.12, zz - z, '#839774', 'grass');
+  for (const [x, z, xx, zz] of b.parks) m.box(x, 0, z, xx - x, 0.002, zz - z, '#759669', 'grass');
+  for (const [x, z, xx, zz] of b.roads) {
+    m.box(x, 0, z, xx - x, 0.012, zz - z, '#636967', 'asphalt');
+    if (xx - x > 3)
+      for (let u = x + 0.5; u < xx - 0.65; u += 1.7)
+        m.box(u, 0.013, (z + zz) / 2 - 0.025, 0.65, 0.002, 0.05, '#c9ae74');
+  }
+  for (const [x, z] of [
+    [-20.85, -12.1],
+    [9.4, -12.2],
+    [6, -13.6],
+  ]) {
+    m.box(x - 0.65, 0.36, z, 1.3, 0.09, 0.38, '#956c48', 'wood');
+    m.box(x - 0.65, 0.51, z, 1.3, 0.25, 0.075, '#956c48', 'wood');
+    for (const dx of [-0.48, 0.48])
+      m.box(x + dx, 0.02, z + 0.065, 0.09, 0.34, 0.25, '#595e55', { metal: 0.65 });
+  }
   for (const [x, z, xx, zz] of b.paths)
     m.box(x, 0.003, z, xx - x, 0.012, zz - z, '#c6c5b1', 'stone');
   for (const [x, z] of [

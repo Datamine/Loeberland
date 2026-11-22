@@ -11,7 +11,7 @@ RUN if [ "$PREBUILT_CLIENT" = 1 ]; then test -f world-cache/manifest.json; else 
 
 FROM node:24-bookworm-slim AS runtime
 WORKDIR /app
-COPY --from=builder /app/.build/ ./
+COPY --from=builder --chown=node:node /app/.build/ ./
 RUN mkdir -p /app/server/data && chown -R node:node /app/server/data
 USER node
 WORKDIR /app/server

@@ -1,4 +1,4 @@
-# Optional settings. deploy/aws.sh supplies the SSH public key and CIDR.
+# Optional settings. deploy/aws.sh supplies the SSH key configuration and CIDR.
 # aws_region = "us-west-2"
 # instance_type = "c8i.large"
 # max_players = 100

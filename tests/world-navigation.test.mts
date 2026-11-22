@@ -140,7 +140,7 @@ test('Mount Tam goblins, the lost goblin and all waterfront and Presidio seagull
     'seagull',
   ]);
   const creatures = world.wilderness.actors.filter((a) => kinds.has(a.combatKind));
-  assert.equal(creatures.length, 15);
+  assert.equal(creatures.length, 25);
   assert.equal(creatures.filter((actor) => actor.id.startsWith('presidio-seagull-')).length, 3);
   for (const actor of creatures) {
     assert.ok(world.landClearAt(actor.x - 0.5, actor.z - 0.5), actor.id);
@@ -662,13 +662,11 @@ test('Noe Valley has three stroller families on connected dry routes within the 
 });
 
 test('all three institute interiors and their resident researchers connect to the production world graph', () => {
-  assert.equal(
-    world.instituteRooms.filter(
-      (r) => !([TWITTER_HQ.id, SALES_CONFERENCE.id] as readonly string[]).includes(r.id ?? ''),
-    ).length,
-    3,
+  const institutes = world.instituteRooms.filter(
+    (room) => room.sight.kind === 'research-institute' || room.sight.kind === 'esoteric-institute',
   );
-  for (const room of world.instituteRooms) {
+  assert.equal(institutes.length, 3);
+  for (const room of institutes) {
     assert.ok(room.sight.enterableInstitute);
     assert.ok(room?.inside != null, 'Missing test fixture: room.inside');
     assert.ok(world.clearAt(room.inside.x, room.inside.y));
@@ -955,6 +953,39 @@ test('They Live characters stand on connected ground and the Berkeley courtyard 
     true,
     'the countryside surrounding the campus is walkable grass',
   );
+});
+
+test('the Berkeley chapel and East Bay neighborhood connect to the bridge and populate the new streets', () => {
+  const campus = world.esotericCampus;
+  const church = requiredFixture(world.sights.find((s) => s.id === 'unusual-church'));
+  const inside = requiredFixture(church.inside);
+  assert.equal(world.instituteRoomAt(inside.x + 0.5, inside.y + 0.5)?.id, church.id);
+  const neighborhood = requiredFixture(campus.life).people.filter(
+    ({ points }) => campus.local(points[0][0], points[0][1]).v < 0,
+  );
+  assert.equal(neighborhood.length, 6);
+  assert.equal(neighborhood.filter((person) => person.stroller).length, 1);
+  assert.equal(neighborhood.filter((person) => person.dogWalker).length, 1);
+  for (const person of neighborhood) assert.ok(!person.child);
+
+  const zombies = world.wilderness.actors.filter((n) => n.id.startsWith('in-n-out-zombie-'));
+  assert.equal(zombies.length, 2);
+  const diner = requiredFixture(world.sights.find((s) => s.id === 'in-n-out'));
+  for (const zombie of zombies) assert.ok(zombie.z > diner.entry.y + 1.5);
+
+  for (const target of [
+    inside,
+    ...campus.residents.map((person) => requiredFixture(person.approach)),
+    ...zombies.map(({ x, z }) => ({ x: x - 0.5, y: z - 0.5 })),
+  ]) {
+    const path = requiredFixture(world.pathTo(target.x, target.y, world.spawn));
+    let previous = world.spawn;
+    for (const next of path) {
+      assert.ok(world.canTravel(previous.x, previous.y, next.x, next.y));
+      previous = next;
+    }
+    assert.deepEqual(previous, target);
+  }
 });
 
 test('the square is inhabited and the skateboarding dog now patrols next to Dolores Park', () => {

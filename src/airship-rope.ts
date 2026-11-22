@@ -11,6 +11,34 @@ interface RopeState {
 import type { Mesh } from './geometry.ts';
 import { pose } from './geometry.ts';
 
+export function ropeEnds(top: RopePoint, bottom: RopePoint) {
+  return [
+    [top.x, top.y + 0.45, top.z],
+    [bottom.x, bottom.y + 0.06, bottom.z],
+  ] as const;
+}
+
+export function hitProjectedRope(
+  x: number,
+  y: number,
+  top: { x: number; y: number; distance: number },
+  bottom: { x: number; y: number; distance: number },
+  visible: (x: number, y: number) => boolean,
+) {
+  if (top.distance <= 0 || bottom.distance <= 0) return false;
+  const dx = bottom.x - top.x,
+    dy = bottom.y - top.y,
+    length = Math.hypot(dx, dy),
+    along = length ? ((x - top.x) * dx + (y - top.y) * dy) / length : 0;
+  for (const offset of [0, -12, 12, -24, 24]) {
+    const t = length ? Math.max(0, Math.min(1, (along + offset) / length)) : 0,
+      px = top.x + t * dx,
+      py = top.y + t * dy;
+    if (Math.hypot(x - px, y - py) <= 36 && visible(px, py)) return true;
+  }
+  return false;
+}
+
 export function createAirshipRope() {
   const state: RopeState = {
     deployed: false,
@@ -109,14 +137,8 @@ export function drawAirshipRope(m: Mesh, state: RopeState, time: number, reduced
   if (!state.deployed) return;
   const top = state.top!,
     bottom = state.bottom!;
-  m.rod(
-    [top.x, top.y + 0.45, top.z],
-    [bottom.x, bottom.y + 0.06, bottom.z],
-    0.018,
-    '#c8b38b',
-    8,
-    'wood',
-  );
+  const [start, end] = ropeEnds(top, bottom);
+  m.rod(start, end, 0.018, '#c8b38b', 8, 'wood');
   for (let y = bottom.y + 0.1; y < top.y; y += 0.55)
     m.rod([top.x - 0.07, y, top.z], [top.x + 0.07, y, top.z], 0.027, '#b49e74', 6);
   pose(m, bottom.x, bottom.y, bottom.z, 0, () => {

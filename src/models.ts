@@ -35,6 +35,14 @@ import { drawSomaPyramid } from './soma-pyramid.ts';
 import { TRANSAMERICA_PYRAMID, drawTransamericaPyramid } from './transamerica.ts';
 import type { Material } from './types/geometry.ts';
 
+export const BANI_APPEARANCE = Object.freeze({
+  female: true,
+  hairstyle: 'long',
+  longHair: true,
+  skin: '#9e6e4b',
+  shirt: '#b8896d',
+} as const);
+
 /** Mesh construction only; the world owns placement, navigation and GPU state. */
 export function createModels({
   N,
@@ -272,9 +280,9 @@ export function createModels({
             8,
           );
       const start = m.data.length;
-      human(m, nx, nz, base + 0.035, -Math.PI / 2, 0, true, '#9e6e4b', '#b8896d', {
-        female: true,
-        hairstyle: 'curly',
+      const { skin, shirt, ...appearance } = BANI_APPEARANCE;
+      human(m, nx, nz, base + 0.035, -Math.PI / 2, 0, true, skin, shirt, {
+        ...appearance,
         backpack: false,
         mode: 'sit',
       });

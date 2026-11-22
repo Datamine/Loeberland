@@ -56,6 +56,8 @@ function fixture(returningCharacter: boolean) {
     form,
     play,
     login: elements['[data-character-login-link]'],
+    stage: elements['[data-loading-stage]'],
+    percent: elements['[data-loading-percent]'],
     get renames() {
       return renames;
     },
@@ -71,6 +73,8 @@ test('returning characters can play or log in without going through the name pic
     assert.equal(f.form.hidden, true);
     assert.equal(f.play.hidden, false);
     assert.equal(f.login.hidden, false);
+    assert.equal(f.percent.textContent, '100% loaded');
+    assert.equal(f.stage.hidden, true);
     await f.play.click();
     await entering;
     assert.equal(f.element.hidden, true);

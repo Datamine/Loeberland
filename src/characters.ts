@@ -2,7 +2,7 @@ import type { SkinnedMesh } from './types/rendering.ts';
 import type { Appearance } from './types/content.ts';
 import { drawWearableAccessories } from './wearable-models.ts';
 import { hatById } from './hat-catalog.ts';
-import { ITEM_STATS } from './item-stats.ts';
+import { ITEM_STATS, isIronArmorTorso } from './item-stats.ts';
 import { getHatGeometry } from './hat-models.ts';
 import type { Mesh } from './geometry.ts';
 import { rgb } from './geometry.ts';
@@ -45,6 +45,7 @@ export interface CharacterAppearance extends Appearance {
   bayonet?: boolean;
   battleaxe?: boolean;
   rollingPin?: boolean;
+  crowbar?: boolean;
   trim?: string;
   bag?: string;
   gilded?: boolean;
@@ -966,6 +967,176 @@ class CharacterMeshBuilder {
     };
   }
 }
+
+const headRings = [
+  [0, 1.46, 0.015, 0.069, 0.072],
+  [0, 1.5, 0.007, 0.104, 0.101],
+  [0, 1.59, 0, 0.123, 0.111],
+  [0, 1.68, -0.006, 0.112, 0.105],
+  [0, 1.727, -0.014, 0.074, 0.074],
+];
+
+const HEAD_SEGMENTS = 10;
+
+function drawHumanSmile(m: CharacterMeshBuilder) {
+  const halfWidth = 0.047;
+  // The smile fits inside the two front facets of the jaw.
+  const angle = CHAR_TAU / HEAD_SEGMENTS;
+  const slope = (1 - Math.cos(angle)) / Math.sin(angle);
+  const point = (u: number, edge: number) => {
+    const x = u * halfWidth;
+    const y = 1.49 + 0.014 * u * u + edge * (0.0032 - 0.0028 * u * u);
+    const ring = y < headRings[1][1] ? 1 : 2;
+    const lower = headRings[ring - 1];
+    const upper = headRings[ring];
+    const t = (y - lower[1]) / (upper[1] - lower[1]);
+    const center = charMix(lower[2], upper[2], t);
+    const width = charMix(lower[3], upper[3], t);
+    const depth = charMix(lower[4], upper[4], t);
+    return [x, y, center + depth * (1 - (slope * Math.abs(x)) / width) + 0.003];
+  };
+  const segments = 8;
+  for (let i = 0; i < segments; i++) {
+    const left = (2 * i) / segments - 1;
+    const right = (2 * (i + 1)) / segments - 1;
+    m.quad(
+      point(left, -1),
+      point(right, -1),
+      point(right, 1),
+      point(left, 1),
+      CHAR_SLOT.skin,
+      CHARACTER_BONES.head,
+      0.62,
+    );
+  }
+}
+
+function drawSweptBackHair(m: CharacterMeshBuilder) {
+  // Start at the forehead, tuck past each ear, and follow the nape in back.
+  const hairline = [
+    1.679, 1.675, 1.665, 1.643, 1.625, 1.601, 1.575, 1.516, 1.48, 1.461, 1.448, 1.443, 1.442,
+  ];
+  const segments = (hairline.length - 1) * 2;
+  const rings = [0, 0.26, 0.56, 0.81, 1].map((rise) =>
+    Array.from({ length: segments }, (_, i) => {
+      const angle = (i * CHAR_TAU) / segments;
+      const y = charMix(hairline[Math.min(i, segments - i)], 1.733, rise);
+      const match = headRings.findIndex((ring) => ring[1] >= y);
+      const upper = match < 0 ? headRings.length : match;
+      const a = headRings[Math.max(0, upper - 1)];
+      const b = headRings[upper] ?? a;
+      const blend = a === b ? 0 : (y - a[1]) / (b[1] - a[1]);
+      const thickness = charMix(0.012, 0.021, rise);
+      return [
+        Math.sin(angle) * (charMix(a[3], b[3], blend) + thickness),
+        y,
+        charMix(a[2], b[2], blend) + Math.cos(angle) * (charMix(a[4], b[4], blend) + thickness),
+      ];
+    }),
+  );
+  rings.push(
+    ...[
+      [1.76, 0.067, 0.067],
+      [1.776, 0.025, 0.03],
+    ].map(([y, rx, rz]) =>
+      Array.from({ length: segments }, (_, i) => {
+        const angle = (i * CHAR_TAU) / segments;
+        return [Math.sin(angle) * rx, y, -0.018 + Math.cos(angle) * rz];
+      }),
+    ),
+  );
+  const { head } = CHARACTER_BONES;
+  const { hair } = CHAR_SLOT;
+  for (let row = 0; row < rings.length - 1; row++)
+    for (let i = 0; i < segments; i++) {
+      const next = (i + 1) % segments;
+      const tone = i % 3 === 1 ? 1.045 : 1;
+      m.quad(
+        rings[row][i],
+        rings[row][next],
+        rings[row + 1][next],
+        rings[row + 1][i],
+        hair,
+        head,
+        tone,
+      );
+    }
+  const crown = rings[rings.length - 1];
+  for (let i = 0; i < segments; i++)
+    m.tri([0, 1.779, -0.018], crown[i], crown[(i + 1) % segments], hair, head);
+}
+
+function drawPonytail(m: CharacterMeshBuilder) {
+  const { head } = CHARACTER_BONES;
+  const { hair, trim } = CHAR_SLOT;
+  m.loft(
+    [
+      [0.074, 1.16, -0.188, 0.004, 0.007],
+      [0.083, 1.23, -0.217, 0.023, 0.025],
+      [0.083, 1.32, -0.242, 0.048, 0.037],
+      [0.061, 1.43, -0.25, 0.067, 0.055],
+      [0.032, 1.54, -0.232, 0.068, 0.064],
+      [0.011, 1.605, -0.194, 0.052, 0.061],
+      [0, 1.649, -0.151, 0.039, 0.049],
+      [0, 1.69, -0.126, 0.042, 0.039],
+      [0, 1.721, -0.094, 0.045, 0.031],
+    ],
+    hair,
+    head,
+    12,
+  );
+  m.loft(
+    [
+      [0.004, 1.631, -0.169, 0.051, 0.061],
+      [0.001, 1.645, -0.155, 0.047, 0.057],
+    ],
+    trim,
+    head,
+    12,
+    false,
+  );
+}
+
+function drawBraid(m: CharacterMeshBuilder) {
+  const { head } = CHARACTER_BONES;
+  const { hair, trim } = CHAR_SLOT;
+  for (let strand = 0; strand < 3; strand++) {
+    const rings = Array.from({ length: 25 }, (_, i) => {
+      const t = i / 24;
+      const angle = CHAR_TAU * (3.5 * t + strand / 3);
+      const taper = charMix(0.52, 1, t);
+      return [
+        0.04 * (1 - t) + Math.cos(angle) * 0.024 * taper,
+        charMix(1.18, 1.638, t),
+        charMix(-0.218, -0.115, t ** 2) + Math.sin(angle) * 0.022 * taper,
+        0.031 * taper,
+        0.029 * taper,
+      ];
+    });
+    m.loft(rings, hair, head, 7);
+  }
+  m.loft(
+    [
+      [0.048, 1.109, -0.211, 0.009, 0.012],
+      [0.044, 1.15, -0.215, 0.024, 0.022],
+      [0.04, 1.186, -0.218, 0.027, 0.025],
+    ],
+    hair,
+    head,
+    8,
+  );
+  m.loft(
+    [
+      [0.041, 1.178, -0.218, 0.029, 0.027],
+      [0.04, 1.193, -0.218, 0.03, 0.028],
+    ],
+    trim,
+    head,
+    8,
+    false,
+  );
+}
+
 const charMeshCache = new Map<string, CharacterMesh>();
 function charBlend(a: number, b: number, t: number) {
   return [a, b, charClamp(t, 0, 1)] satisfies [number, number, number];
@@ -991,10 +1162,13 @@ function charBuildMesh({
   bayonet,
   battleaxe,
   rollingPin,
+  crowbar,
   akibo,
   boots,
   iceTop,
   icePants,
+  torso,
+  legs,
   tinfoil,
   cloakTop,
   cloakBottom,
@@ -1008,8 +1182,66 @@ function charBuildMesh({
   const m = new CharacterMeshBuilder(),
     S = CHAR_SLOT,
     waist = female ? 0.142 : 0.164,
-    shoulder = female ? 0.222 : 0.238;
-  if (cloakTop)
+    shoulder = female ? 0.222 : 0.238,
+    ironTop = isIronArmorTorso(torso),
+    ironLegs = legs === 'iron-armor-legs';
+  if (ironTop) {
+    m.loft(
+      [
+        [0, 0.86, 0, 0.185, 0.145],
+        [0, 0.98, 0, waist + 0.027, 0.146],
+        [0, 1.18, 0.008, shoulder - 0.005, 0.177],
+        [0, 1.33, 0, shoulder + 0.024, 0.156],
+        [0, 1.425, 0, 0.096, 0.088],
+      ],
+      S.shirt,
+      charTorsoRig,
+      10,
+    );
+    m.loft(
+      [
+        [0, 0.882, 0, 0.19, 0.152],
+        [0, 0.916, 0, 0.191, 0.154],
+      ],
+      S.trim,
+      charTorsoRig,
+      10,
+      false,
+    );
+    m.loft(
+      [
+        [0, 1.4, 0, 0.144, 0.116],
+        [0, 1.428, 0, 0.098, 0.09],
+      ],
+      S.trim,
+      2,
+      10,
+      false,
+    );
+    for (const side of [-1, 1]) {
+      const x = side * shoulder;
+      const upperArm = side > 0 ? 7 : 4;
+      m.loft(
+        [
+          [x + side * 0.035, 1.245, 0, 0.111, 0.115],
+          [x + side * 0.025, 1.343, 0, 0.123, 0.139],
+          [x, 1.439, 0, 0.076, 0.089],
+        ],
+        S.shirt,
+        upperArm,
+      );
+      m.loft(
+        [
+          [x + side * 0.035, 1.242, 0, 0.113, 0.118],
+          [x + side * 0.032, 1.27, 0, 0.118, 0.126],
+        ],
+        S.trim,
+        upperArm,
+        8,
+        false,
+      );
+    }
+  } else if (cloakTop)
     m.loft(
       [
         [0, 0.72, 0, 0.29, 0.2] satisfies [number, number, number, number, number],
@@ -1046,7 +1278,7 @@ function charBuildMesh({
     0,
     8,
   );
-  if (!cloakBottom) {
+  if (!cloakBottom && !ironTop && !ironLegs) {
     m.loft(
       [
         [0, 0.89, 0, 0.176, 0.121] satisfies [number, number, number, number, number],
@@ -1073,7 +1305,7 @@ function charBuildMesh({
       );
     }
   // Collar, a placket and sleeve cuffs add readable clothing planes.
-  if (!cloakTop && !turtleneck && !gooseShirt) {
+  if (!cloakTop && !turtleneck && !gooseShirt && !ironTop) {
     m.quad(
       [-0.1, 1.39, 0.07] satisfies [number, number, number],
       [0, 1.27, 0.14] satisfies [number, number, number],
@@ -1187,6 +1419,36 @@ function charBuildMesh({
       legRig,
       8,
     );
+    if (ironLegs) {
+      m.loft(
+        [
+          [x, 0.52, 0.012, 0.101, 0.124],
+          [x, 0.69, 0.006, 0.108, 0.127],
+          [x, 0.855, 0.002, 0.108, 0.12],
+        ],
+        S.pants,
+        legRig,
+      );
+      m.loft(
+        [
+          [x, 0.155, 0.008, 0.077, 0.098],
+          [x, 0.32, 0.014, 0.092, 0.117],
+          [x, 0.438, 0.017, 0.102, 0.129],
+          [x, 0.53, 0.024, 0.103, 0.127],
+        ],
+        S.pants,
+        legRig,
+      );
+      m.loft(
+        [
+          [x, 0.414, 0.049, 0.078, 0.1],
+          [x, 0.49, 0.054, 0.094, 0.115],
+          [x, 0.559, 0.04, 0.075, 0.098],
+        ],
+        S.metal,
+        legRig,
+      );
+    }
     if (boots === true) {
       m.loft(
         [
@@ -1390,18 +1652,7 @@ function charBuildMesh({
     m.box(ax + (side ? -0.053 : 0.031), 0.65, 0.005, 0.022, 0.048, 0.033, S.skin, hand, 0.94);
   }
   // Smaller head, cheek and jaw contours, separate ears, and a modeled nose.
-  m.loft(
-    [
-      [0, 1.46, 0.015, 0.069, 0.072] satisfies [number, number, number, number, number],
-      [0, 1.5, 0.007, 0.104, 0.101] satisfies [number, number, number, number, number],
-      [0, 1.59, 0, 0.123, 0.111] satisfies [number, number, number, number, number],
-      [0, 1.68, -0.006, 0.112, 0.105] satisfies [number, number, number, number, number],
-      [0, 1.727, -0.014, 0.074, 0.074] satisfies [number, number, number, number, number],
-    ],
-    S.skin,
-    3,
-    10,
-  );
+  m.loft(headRings, S.skin, CHARACTER_BONES.head, HEAD_SEGMENTS);
   if (alien) {
     // The human disguise becomes an articulated skull, with deep eye
     // sockets, cheek ridges, exposed teeth and a narrow nasal opening.
@@ -1497,7 +1748,7 @@ function charBuildMesh({
       3,
       0.98,
     );
-    m.box(-0.026, 1.516, 0.108, 0.052, 0.008, 0.009, S.belt, 3, 0.9);
+    drawHumanSmile(m);
   }
   if (sunglasses) {
     for (const side of [-1, 1] satisfies [number, number]) {
@@ -1512,29 +1763,35 @@ function charBuildMesh({
   // Hair is a fitted polygon cap. Longer styles have side and back locks.
   const broccoli = hairstyle === 'broccoli',
     crop = hairstyle === 'crop' || broccoli;
-  m.loft(
-    [
-      [0, 1.655, -0.024, 0.124, 0.104] satisfies [number, number, number, number, number],
-      [0, 1.713, -0.022, 0.112, 0.102] satisfies [number, number, number, number, number],
-      [0, crop ? 1.733 : 1.758, -0.024, 0.076, 0.075],
-      [0, crop ? 1.742 : 1.773, -0.027, 0.016, 0.02],
-    ],
-    S.hair,
-    3,
-    10,
-  );
-  if (broccoli)
+  if (hairstyle === 'ponytail' || hairstyle === 'braid') {
+    drawSweptBackHair(m);
+    if (hairstyle === 'ponytail') drawPonytail(m);
+    else drawBraid(m);
+  } else {
     m.loft(
       [
-        [0, 1.653, -0.024, 0.124, 0.104],
-        [0, 1.69, -0.024, 0.128, 0.108],
+        [0, 1.655, -0.024, 0.124, 0.104] satisfies [number, number, number, number, number],
+        [0, 1.713, -0.022, 0.112, 0.102] satisfies [number, number, number, number, number],
+        [0, crop ? 1.733 : 1.758, -0.024, 0.076, 0.075],
+        [0, crop ? 1.742 : 1.773, -0.027, 0.016, 0.02],
       ],
       S.hair,
       3,
       10,
-      false,
     );
-  else m.box(-0.108, 1.626, -0.106, 0.216, 0.077, 0.035, S.hair, 3);
+    if (broccoli)
+      m.loft(
+        [
+          [0, 1.653, -0.024, 0.124, 0.104],
+          [0, 1.69, -0.024, 0.128, 0.108],
+        ],
+        S.hair,
+        3,
+        10,
+        false,
+      );
+    else m.box(-0.108, 1.626, -0.106, 0.216, 0.077, 0.035, S.hair, 3);
+  }
   if (longHair || curly) {
     m.loft(
       [
@@ -1666,49 +1923,6 @@ function charBuildMesh({
         3,
         8,
       );
-  }
-  if (hairstyle === 'ponytail') {
-    m.loft(
-      [
-        [0.062, 1.205, -0.242, 0.012, 0.018],
-        [0.077, 1.3, -0.255, 0.041, 0.04],
-        [0.067, 1.43, -0.282, 0.062, 0.065],
-        [0.038, 1.575, -0.269, 0.072, 0.076],
-        [0.013, 1.666, -0.204, 0.054, 0.06],
-        [0, 1.713, -0.113, 0.05, 0.046],
-      ],
-      S.hair,
-      3,
-      10,
-    );
-    m.loft(
-      [
-        [0.011, 1.666, -0.181, 0.056, 0.05],
-        [0.004, 1.697, -0.146, 0.054, 0.048],
-      ],
-      S.trim,
-      3,
-      10,
-    );
-  }
-  if (hairstyle === 'braid') {
-    for (let i = 0; i < 8; i++) {
-      const y = 1.2 + i * 0.056,
-        x = (i % 2 ? 1 : -1) * 0.018,
-        z = -0.155 - i * 0.008,
-        r = 0.032 + i * 0.002;
-      m.loft(
-        [
-          [x, y - 0.025, z, r * 0.6, r * 0.6] satisfies [number, number, number, number, number],
-          [x, y, z, r, r] satisfies [number, number, number, number, number],
-          [x, y + 0.032, z, r * 0.6, r * 0.6] satisfies [number, number, number, number, number],
-        ],
-        S.hair,
-        3,
-        7,
-      );
-    }
-    m.box(-0.027, 1.187, -0.177, 0.054, 0.026, 0.05, S.trim, 3);
   }
   if (cap && !hat) {
     m.loft(
@@ -1877,6 +2091,22 @@ function charBuildMesh({
       9,
       12,
     );
+  }
+  if (crowbar) {
+    m.box(0.224, 0.375, -0.017, 0.043, 0.72, 0.045, S.rainbow, 9);
+    m.loft(
+      [
+        [0.245, 1.065, 0.005, 0.027, 0.023],
+        [0.231, 1.14, 0.005, 0.035, 0.023],
+        [0.164, 1.168, 0.005, 0.048, 0.023],
+        [0.102, 1.124, 0.005, 0.033, 0.019],
+        [0.089, 1.068, 0.005, 0.028, 0.012],
+      ],
+      S.metal,
+      9,
+      8,
+    );
+    m.box(0.217, 0.35, -0.022, 0.057, 0.049, 0.054, S.metal, 9);
   }
   if (battleaxe) {
     m.box(0.224, 0.48, -0.022, 0.044, 0.83, 0.045, S.bag, 9);
@@ -2079,9 +2309,12 @@ export function getCharacterMesh(appearance: CharacterAppearance = {}) {
     bayonet: !!appearance.bayonet,
     battleaxe: !!appearance.battleaxe,
     rollingPin: !!appearance.rollingPin,
+    crowbar: !!appearance.crowbar,
     akibo: !!appearance.akibo,
     boots: appearance.boots || false,
     iceTop: !!appearance.iceTop,
+    torso: isIronArmorTorso(appearance.torso) ? 'iron-armor' : '',
+    legs: appearance.legs === 'iron-armor-legs' ? appearance.legs : '',
     tinfoil: !!appearance.tinfoil,
     icePants: !!appearance.icePants,
     cloakTop: !!appearance.cloakTop || appearance.torso === 'decorative-robe-top',
@@ -2103,40 +2336,50 @@ const charScratch = createCharacterPose(),
  * kind: 0 cloth/skin, 1 metal, 2 phone glow. Cache palettes separately. */
 export function characterPalette(appearance: CharacterAppearance, skin: string, shirt: string) {
   const hat = hatById(appearance.hat),
+    ironTop = isIronArmorTorso(appearance.torso),
+    ironLegs = appearance.legs === 'iron-armor-legs',
     colors = [
       appearance.alien ? '#a4b797' : skin,
-      appearance.tinfoil
-        ? '#c5d0d2'
-        : appearance.torso === 'decorative-robe-top'
-          ? '#e373a8'
-          : appearance.torso === 'cashmere-turtleneck'
-            ? '#efe1c3'
-            : appearance.torso === 'goose-corp-shirt'
-              ? '#292b32'
-              : appearance.cloakTop
-                ? '#1b1e23'
-                : appearance.iceTop
-                  ? ITEM_STATS['ice-top'].color
-                  : shirt,
-      appearance.tinfoil
-        ? '#b1bec2'
-        : appearance.legs === 'decorative-robe-bottom'
-          ? '#e373a8'
-          : appearance.cloakBottom
-            ? '#181b20'
-            : appearance.icePants
-              ? ITEM_STATS['ice-pants'].color
-              : appearance.pants || '#626955',
+      ironTop
+        ? '#505862'
+        : appearance.tinfoil
+          ? '#c5d0d2'
+          : appearance.torso === 'decorative-robe-top'
+            ? '#e373a8'
+            : appearance.torso === 'cashmere-turtleneck'
+              ? '#efe1c3'
+              : appearance.torso === 'goose-corp-shirt'
+                ? '#292b32'
+                : appearance.cloakTop
+                  ? '#1b1e23'
+                  : appearance.iceTop
+                    ? ITEM_STATS['ice-top'].color
+                    : shirt,
+      ironLegs
+        ? '#505862'
+        : appearance.tinfoil
+          ? '#b1bec2'
+          : appearance.legs === 'decorative-robe-bottom'
+            ? '#e373a8'
+            : appearance.cloakBottom
+              ? '#181b20'
+              : appearance.icePants
+                ? ITEM_STATS['ice-pants'].color
+                : appearance.pants || '#626955',
       appearance.hair || '#453a30',
       appearance.boots ? '#171a21' : appearance.shoes || '#3c3d36',
-      appearance.iceTop
-        ? ITEM_STATS['ice-top'].trim
-        : appearance.torso === 'cashmere-turtleneck'
-          ? '#e2d1ad'
-          : appearance.trim || '#c9c7b4',
+      ironTop
+        ? appearance.torso === 'gold-trimmed-iron-armor'
+          ? '#dbab4c'
+          : '#737f8a'
+        : appearance.iceTop
+          ? ITEM_STATS['ice-top'].trim
+          : appearance.torso === 'cashmere-turtleneck'
+            ? '#e2d1ad'
+            : appearance.trim || '#c9c7b4',
       '#282c29',
       '#e1dfca',
-      '#c7aa67',
+      ironLegs ? '#747e89' : '#c7aa67',
       '#45483c',
       appearance.bag || '#886d4b',
       ...(hat?.colors || (['#888888', '#aaaaaa', '#cccccc'] satisfies [string, string, string])),
@@ -2155,6 +2398,8 @@ export function characterPalette(appearance: CharacterAppearance, skin: string, 
     '|' +
     Number(!!appearance.gilded) +
     Number(!!appearance.tinfoil) * 2 +
+    Number(ironTop) * 4 +
+    Number(ironLegs) * 8 +
     '|' +
     Number(!!hat?.metal) +
     '|' +
@@ -2174,6 +2419,8 @@ export function characterPalette(appearance: CharacterAppearance, skin: string, 
         (
           [CHAR_SLOT.shirt, CHAR_SLOT.pants, CHAR_SLOT.trim] satisfies [number, number, number]
         ).includes(slot)) ||
+      (ironTop && (slot === CHAR_SLOT.shirt || slot === CHAR_SLOT.trim)) ||
+      (ironLegs && (slot === CHAR_SLOT.pants || slot === CHAR_SLOT.metal)) ||
       (hat &&
         ((slot === CHAR_SLOT.hat && hat.metal) ||
           (slot === CHAR_SLOT.hatTrim && hat.trimMetal) ||

@@ -10,6 +10,7 @@ interface MotionSample {
   pose: MotionPose;
 }
 // CONTENT-BINDINGS-MIGRATED
+import { CREATURE_STRIKE_MS } from './creature-attack-pose.ts';
 import { MP_ENTITY_INTERPOLATION_MS } from './multiplayer-protocol.ts';
 
 // Presentation only. Never interpolate HP, inventory, targets or route nodes.
@@ -82,6 +83,13 @@ export function createSnapshotMotion({
     for (const key of MOTION_FIELDS) {
       const from = a.pose[key],
         to = b.pose[key];
+      // The first sample of a strike may already be partway through it.
+      // Recover its start from the countdown so the pose plays forward.
+      if (key === 'attackAnimation' && to !== undefined && to > (from ?? 0)) {
+        const remaining = to + ((b.time - a.time) * (1 - t)) / CREATURE_STRIKE_MS;
+        pose[key] = remaining <= 1 ? remaining : (from ?? 0);
+        continue;
+      }
       if (
         typeof from === 'number' &&
         typeof to === 'number' &&

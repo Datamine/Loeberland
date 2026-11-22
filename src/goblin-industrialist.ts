@@ -6,12 +6,12 @@ export const GOBLIN_INDUSTRIALIST = Object.freeze({
   id: 'goblin-industrialist',
   hutId: 'goblin-phone-hut',
   name: 'Goblin Phone Campus',
-  x: 37.8,
-  z: -31.2,
+  x: 40.8,
+  z: -34.2,
   width: 4.2,
   depth: 4.2,
-  vendor: { x: 37.8, z: -28.65 },
-  entry: { x: 37.3, y: -28.2 },
+  vendor: { x: 40.8, z: -31.65 },
+  entry: { x: 40.3, y: -31.2 },
 });
 export const GOBLIN_PHONE_BUYER = 'market-farmer-0';
 export const GOBLIN_PHONE_RESALE = 35;

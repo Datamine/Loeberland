@@ -27,7 +27,6 @@ export function createLoadingScreen(element: HTMLElement) {
     play = element.querySelector<HTMLButtonElement>('[data-loading-play]');
   const loginLink = element.querySelector<HTMLButtonElement>('[data-character-login-link]');
   const loginForm = element.querySelector<HTMLFormElement>('[data-character-login]');
-  const clock = element.querySelector<HTMLElement>('[data-loading-clock]');
   loginLink?.addEventListener('click', () => {
     loginForm!.hidden = !loginForm!.hidden;
     if (!loginForm!.hidden) loginForm!.querySelector('input')?.focus();
@@ -66,20 +65,12 @@ export function createLoadingScreen(element: HTMLElement) {
     percent = Math.max(percent, Math.min(100, Math.round(value)));
     element.querySelector<HTMLElement>('[data-loading-percent]')!.textContent =
       percent + '% loaded';
-    element.querySelector<HTMLElement>('[data-loading-stage]')!.textContent = label;
+    const stage = element.querySelector<HTMLElement>('[data-loading-stage]')!;
+    stage.hidden = !label;
+    stage.textContent = label;
     element.querySelector<HTMLElementTagNameMap['progress']>('progress')!.value = percent;
     username?.update();
     updatePlay();
-  }
-  function updateClock() {
-    if (!clock) return;
-    const time = new Date();
-    clock.style.setProperty(
-      '--hour',
-      ((time.getHours() % 12) + time.getMinutes() / 60) * 30 + 'deg',
-    );
-    clock.style.setProperty('--minute', (time.getMinutes() + time.getSeconds() / 60) * 6 + 'deg');
-    clock.style.setProperty('--second', time.getSeconds() * 6 + 'deg');
   }
   function hide() {
     npc?.stop();
@@ -109,9 +100,7 @@ export function createLoadingScreen(element: HTMLElement) {
     npc ??= createLoadingNPC(element.querySelector<HTMLCanvasElement>('[data-loading-npc]'));
     npc?.start();
     report(0, 'Preparing San Francisco…');
-    updateClock();
     timer ??= setInterval(() => {
-      updateClock();
       username?.update();
       updatePlay();
     }, 1000);
@@ -169,7 +158,7 @@ export function createLoadingScreen(element: HTMLElement) {
     },
     async done() {
       if (element.hidden) return;
-      report(100, 'Ready to play');
+      report(100, '');
       await nextLoadingPaint();
       const resume = globalThis.sessionStorage?.getItem('sf-resume-character') === '1';
       globalThis.sessionStorage?.removeItem('sf-resume-character');
@@ -197,8 +186,9 @@ export function createLoadingScreen(element: HTMLElement) {
       }
       element.hidden = false;
       element.dataset.failed = 'true';
-      element.querySelector<HTMLElement>('[data-loading-stage]')!.textContent =
-        'Loading failed. Reload to try again.';
+      const stage = element.querySelector<HTMLElement>('[data-loading-stage]')!;
+      stage.hidden = false;
+      stage.textContent = 'Loading failed. Reload to try again.';
       element.querySelector<HTMLElement>('[data-loading-error]')!.textContent = errorMessage(error);
       const retry = element.querySelector<HTMLButtonElement>('[data-refresh-map]');
       if (retry) retry.hidden = false;

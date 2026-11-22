@@ -1,5 +1,12 @@
 import type { Point } from './geometry.ts';
-import type { WorldObject, Site, Place, InteractiveActor, InteractionSight } from './world.ts';
+import type {
+  Actor,
+  WorldObject,
+  Site,
+  Place,
+  InteractiveActor,
+  InteractionSight,
+} from './world.ts';
 import type { CharacterDraw } from './rendering.ts';
 import type { Mesh } from '../geometry.ts';
 export interface CityParcel {
@@ -27,7 +34,7 @@ export interface LightSource {
   poolStrength: number;
   color: number[];
 }
-export interface ActorTag {
+export interface ActorTag extends Pick<Actor, 'speechCue'> {
   x: number;
   z: number;
   base?: number;

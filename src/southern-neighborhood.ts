@@ -60,6 +60,8 @@ import {
   SOUTHERN_STREET_LIGHT_POLICY,
 } from './street-light-layout.ts';
 import { inSquareConstruction } from './square-construction-layout.ts';
+import { inConstructionSite } from './construction-layout.ts';
+import { mudBathDistance } from './goblin-space-layout.ts';
 import { inCivicGrounds } from './southern-district.ts';
 import { inJurassicGrounds, inCowPen } from './jurassic-layout.ts';
 import { inGPUFactoryGrounds } from './gpu-layout.ts';
@@ -181,6 +183,8 @@ export function populateSouthernNeighborhood({
       inCowPen(x, z, 1) ||
       inCivicGrounds(x, z, 1.2) ||
       inSquareConstruction(x, z, 0.6) ||
+      inConstructionSite(x, z, 0.65) ||
+      mudBathDistance(x, z, 0.65) < 1 ||
       inPacificaPark(x, z) ||
       researchCampusAt(x, z) ||
       gymAccess(x, z) ||
@@ -229,6 +233,7 @@ export function populateSouthernNeighborhood({
     const x = 31 + rand(i, 7, 5) * 21,
       z = 107 + rand(i, 5, 4) * 42;
     if (
+      mudBathDistance(x, z, 0.7) < 1 ||
       inSearchHousePlot(x, z, 0.9) ||
       inSouthernHousePlot(x, z, 1) ||
       inPacificaPark(x, z) ||

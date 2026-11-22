@@ -10,6 +10,7 @@ export interface ExpeditionLoot extends WorldPoint {
   description: string;
   amount: number;
   expires: number;
+  wallExpiresAt?: number;
   network?: boolean;
   base?: number;
   itemId?: string;
@@ -70,6 +71,7 @@ export interface ExpeditionOptions {
   canTravel?: (from: WorldPoint, to: WorldPoint) => boolean;
   lineClear?: (from: WorldPoint, to: WorldPoint) => boolean;
   random?: () => number;
+  now?: () => number;
   onEvent?: (event: ExpeditionEvent) => void;
   consumeShot?: (weapon: string) => { ok: boolean; message?: string };
 }

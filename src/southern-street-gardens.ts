@@ -26,6 +26,7 @@ import { inTechGrounds } from './tech-layout.ts';
 import { inGPUFactoryGrounds } from './gpu-layout.ts';
 import { inJurassicGrounds, inCowPen } from './jurassic-layout.ts';
 import { inSquareConstruction } from './square-construction-layout.ts';
+import { inConstructionSite } from './construction-layout.ts';
 import { westernCoastX } from './coastline.ts';
 import { inStartupGrounds, SOUTHERN_MAP_END } from './southern-countryside-layout.ts';
 
@@ -74,6 +75,7 @@ export function drawSouthernStreetGardens(
           inJurassicGrounds(x, z, 1) ||
           inCowPen(x, z, 1) ||
           inSquareConstruction(x, z, 1) ||
+          inConstructionSite(x, z, 0.55) ||
           entrances.some((p) => Math.hypot(p.x - x, p.z - z) < 1.6) ||
           lamps.some((p) => Math.hypot(p.x - x, p.z - z) < 0.8) ||
           beds.some((p) => Math.hypot(p.x - x, p.z - z) < 5)

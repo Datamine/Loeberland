@@ -105,8 +105,8 @@ export function describeCharacter(person: ActorMetadata) {
   if (person.researcher) return person.description;
   if (person.club)
     return 'A regular at Nightlife. Excellent rhythm, excellent outfit, and apparently already in a relationship.';
-  if (person.named === 'Nia' || person.id === 'nia')
-    return 'Nia has claimed the warmest seat in Mazarine. Her coffee is cooling at a rate that suggests an excellent conversation.';
+  if (person.named === 'Bani' || person.id === 'nia')
+    return 'Bani has claimed the warmest seat in Mazarine. Her coffee is cooling at a rate that suggests an excellent conversation.';
   if (merchantDescriptions[person.kind as keyof typeof merchantDescriptions])
     return merchantDescriptions[person.kind as keyof typeof merchantDescriptions];
   if (typeof person.id === 'string' && person.id.includes('-diner-'))

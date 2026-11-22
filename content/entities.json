@@ -383,7 +383,7 @@
             {
               "id": "interaction.7",
               "action": "interaction.7",
-              "label": "Climb airship rope"
+              "label": "Climb up airship rope"
             },
             {
               "id": "examine",
@@ -405,7 +405,7 @@
             {
               "id": "interaction.7",
               "action": "interaction.7",
-              "label": "Climb airship rope"
+              "label": "Climb up airship rope"
             },
             {
               "id": "examine",
@@ -632,7 +632,7 @@
       "name": "Bani \u00b7 caf\u00e9 regular",
       "category": "object",
       "kind": "guest",
-      "description": "A friendly woman with warm brown skin and dark curls, enjoying her coffee at a table inside Mazarine.",
+      "description": "A friendly woman with warm brown skin and long dark hair, enjoying her coffee at a table inside Mazarine.",
       "menus": [
         {
           "id": "sight:nia.menu-1",
@@ -824,11 +824,6 @@
               "label": "Attack {name} (Level {level})"
             },
             {
-              "id": "npc.steal",
-              "action": "npc.steal",
-              "label": "Steal-from {name} (Level {level})"
-            },
-            {
               "id": "npc.examine",
               "action": "npc.examine",
               "label": "Examine {name}"
@@ -841,7 +836,6 @@
         "npc.walk",
         "npc.talk",
         "npc.attack",
-        "npc.steal",
         "npc.examine",
         "world.interactions.interactCitizen.action-31"
       ]
@@ -1452,11 +1446,6 @@
               "label": "Attack {name} (Level {level})"
             },
             {
-              "id": "npc.steal",
-              "action": "npc.steal",
-              "label": "Steal-from {name} (Level {level})"
-            },
-            {
               "id": "npc.examine",
               "action": "npc.examine",
               "label": "Examine {name}"
@@ -1465,7 +1454,7 @@
         }
       ],
       "dialogues": ["actor:bolinas-grocer.dialogue-1"],
-      "capabilities": ["npc.walk", "npc.talk", "npc.attack", "npc.steal", "npc.examine"]
+      "capabilities": ["npc.walk", "npc.talk", "npc.attack", "npc.examine"]
     },
     "actor:bolinas-surfer": {
       "id": "actor:bolinas-surfer",
@@ -1531,11 +1520,6 @@
               "label": "Attack {name} (Level {level})"
             },
             {
-              "id": "npc.steal",
-              "action": "npc.steal",
-              "label": "Steal-from {name} (Level {level})"
-            },
-            {
               "id": "npc.examine",
               "action": "npc.examine",
               "label": "Examine {name}"
@@ -1544,7 +1528,7 @@
         }
       ],
       "dialogues": ["actor:bolinas-surfer.dialogue-1"],
-      "capabilities": ["npc.walk", "npc.talk", "npc.attack", "npc.steal", "npc.examine"]
+      "capabilities": ["npc.walk", "npc.talk", "npc.attack", "npc.examine"]
     },
     "sight:bottle-post-machine": {
       "id": "sight:bottle-post-machine",
@@ -11029,11 +11013,6 @@
               "label": "Attack {name} (Level {level})"
             },
             {
-              "id": "npc.steal",
-              "action": "npc.steal",
-              "label": "Steal-from {name} (Level {level})"
-            },
-            {
               "id": "npc.examine",
               "action": "npc.examine",
               "label": "Examine {name}"
@@ -11042,7 +11021,7 @@
         }
       ],
       "dialogues": ["actor:lucindas-deli-diner-0.dialogue-1"],
-      "capabilities": ["npc.walk", "npc.talk", "npc.attack", "npc.steal", "npc.examine"]
+      "capabilities": ["npc.walk", "npc.talk", "npc.attack", "npc.examine"]
     },
     "actor:rich-table-diner-0": {
       "id": "actor:rich-table-diner-0",

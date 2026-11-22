@@ -23,6 +23,7 @@ import { MONSTER_STATS, rollMonsterDrops } from './monster-drops.ts';
 import { ITEM_STATS, weaponOwned, isProjectileWeapon, weaponAttackInterval } from './item-stats.ts';
 import { JURASSIC, cowSpawns, PEQUOD, KRAKEN_CAPE_TEXT } from './jurassic-layout.ts';
 import { rollWeaponDamage, rollEnemyDamage } from './combat.ts';
+import { groundItemDeadline, groundItemExpired } from './ground-items.ts';
 import type { ActionReceipt, Actor, RuntimeDialogue } from './types/world.ts';
 
 export const RAILGUN_RANGE = ITEM_STATS.railgun.range,
@@ -70,6 +71,7 @@ export function createExpeditions({
   canTravel = () => false,
   lineClear = () => true,
   random = Math.random,
+  now = Date.now,
   onEvent = () => {},
   consumeShot = () => ({ ok: true }),
 }: ExpeditionOptions = {}) {
@@ -209,7 +211,7 @@ export function createExpeditions({
       x,
       z,
       amount,
-      expires: kind === 'raptor' || kind === 'kraken' ? Infinity : state.clock + 120,
+      ...groundItemDeadline(state.clock, now()),
       description:
         kind === 'raptor'
           ? 'The emergency recovery protocol is now considerably less mobile.'
@@ -249,7 +251,14 @@ export function createExpeditions({
     event('raptor-dead', contentText('world-message.src.jurassic.the-velociraptor-falls'));
   }
   function startQuest() {
-    if (state.raptor !== 'not-started')
+    const retry =
+      !sharedWorld() &&
+      state.raptor === 'escaped' &&
+      raptor.phase === 'dead' &&
+      !state.loot.some(
+        (item) => item.lootKind === 'raptor' && !groundItemExpired(item, state.clock, now()),
+      );
+    if (state.raptor !== 'not-started' && !retry)
       return {
         ok: false,
         message: contentText(
@@ -258,7 +267,14 @@ export function createExpeditions({
       };
     state.raptor = 'escaped';
     state.railgun = true;
-    state.equipped = false;
+    if (!retry) state.equipped = false;
+    Object.assign(raptor, {
+      x: JURASSIC.cage.x,
+      z: JURASSIC.cage.z,
+      hp: raptor.max,
+      attackIn: 1,
+      replan: 0,
+    });
     raptor.phase = 'releasing';
     raptor.release = 0;
     raptor.prey = null;
@@ -272,7 +288,9 @@ export function createExpeditions({
     return {
       ok: true,
       message: contentText(
-        'world-message.src.jurassic.railgun-issued-the-gate-is-opening-follow-the-velociraptor-sou',
+        retry
+          ? 'world-message.server.shared-world.the-gate-opens-follow-the-raptor-south-of-the-lab'
+          : 'world-message.src.jurassic.railgun-issued-the-gate-is-opening-follow-the-velociraptor-sou',
       ),
     };
   }
@@ -361,7 +379,7 @@ export function createExpeditions({
     state.target = null;
   }
   function collect(item: ExpeditionLoot) {
-    if (!state.loot.includes(item))
+    if (!state.loot.includes(item) || groundItemExpired(item, state.clock, now()))
       return {
         ok: false,
         message: contentText('world-message.src.jurassic.that-loot-has-already-been-collected'),
@@ -549,7 +567,8 @@ export function createExpeditions({
     state.beams = state.beams.filter((b) => b.ttl > 0);
     for (const s of state.splats) s.ttl -= dt;
     state.splats = state.splats.filter((s) => s.ttl > 0);
-    state.loot = state.loot.filter((l) => l.expires > state.clock);
+    const lootTime = now();
+    state.loot = state.loot.filter((item) => !groundItemExpired(item, state.clock, lootTime));
     for (const v of state.victims)
       if (v.until <= state.clock) {
         v.npc.expeditionDead = false;

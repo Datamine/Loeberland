@@ -133,3 +133,99 @@ test('a directly picked vehicle wins over nearby actors and stays selected throu
   assert.equal(worldTarget(20, 20, pressed).sight, ferrari);
   assert.equal(worldTarget(20, 20, pressed).npc, null);
 });
+
+test('clicking the rope from the airship opens rope options and sends the climb-down command', (t) => {
+  const rope = {
+    id: 'shared-airship-rope',
+    kind: 'airship-rope',
+    label: 'Airship rope',
+    entry: { x: 20, y: 20 },
+  };
+  const commands: [string, object?][] = [];
+  const buttons: {
+    textContent: string;
+    click?: () => void;
+    focus(): void;
+    setAttribute(): void;
+    addEventListener(event: string, fn: () => void): void;
+  }[] = [];
+  const menu = {
+    hidden: true,
+    style: {},
+    offsetWidth: 100,
+    offsetHeight: 100,
+    replaceChildren: () => (buttons.length = 0),
+    append: (button: (typeof buttons)[number]) => buttons.push(button),
+    querySelector: () => buttons[1],
+  };
+  const previousDocument = Object.getOwnPropertyDescriptor(globalThis, 'document');
+  Object.defineProperty(globalThis, 'document', {
+    configurable: true,
+    value: {
+      createElement: () => ({
+        textContent: '',
+        focus() {},
+        setAttribute() {},
+        addEventListener(this: (typeof buttons)[number], _event: string, fn: () => void) {
+          this.click = fn;
+        },
+      }),
+    },
+  });
+  t.after(() => {
+    if (previousDocument) Object.defineProperty(globalThis, 'document', previousDocument);
+    else Reflect.deleteProperty(globalThis, 'document');
+  });
+  const context = {
+    width: 800,
+    height: 600,
+    $: () => menu,
+    canvas: { focus() {} },
+    player: { x: 20, y: 20 },
+    airship: { state: { active: true } },
+    rope: { state: { deployed: true } },
+    rocket: { state: { active: false } },
+    surf: { state: { jump: false } },
+    tahoe: { state: { mode: 'ground' } },
+    multiplayer: { state: { id: 2 } },
+    multiplayerWorld: {
+      sharedAirship: { captain: 1 },
+      command: (action: string, args?: object) => commands.push([action, args]),
+    },
+    pick: () => ({ sight: { id: 'airship', label: 'Airship' } }),
+    hitSight: () => rope,
+    flying: (): boolean => context.airship.state.active,
+    clearAt: () => true,
+    tileAt: () =>
+      context.airship.state.active
+        ? assert.fail('An airship rope click must not become a flight destination')
+        : { x: 20, y: 20 },
+  };
+  const { worldTarget, primaryWorldAction, showMenu } = createInteractions(
+    context as unknown as WorldContext,
+  );
+  const action = primaryWorldAction(worldTarget(400, 300));
+  assert.equal(action.label, 'Rope options');
+  action.run();
+  assert.deepEqual(
+    buttons.slice(1).map((button) => button.textContent),
+    ['Climb down'],
+  );
+  buttons[1].click?.();
+  assert.deepEqual(commands.pop(), ['airshipClimbDown', undefined]);
+
+  context.multiplayer.state.id = 1;
+  showMenu(400, 300);
+  assert.deepEqual(
+    buttons.slice(1).map((button) => button.textContent),
+    ['Climb down', 'Offer a ride · 5 coins', 'Retract rope'],
+  );
+  buttons[3].click?.();
+  assert.deepEqual(commands.pop(), ['airshipRope', { retract: true }]);
+
+  context.airship.state.active = false;
+  const groundAction = primaryWorldAction(worldTarget(400, 300));
+  assert.equal(groundAction.label, 'Climb up airship rope');
+  groundAction.run();
+  assert.deepEqual(commands.pop(), ['airshipClimbUp', undefined]);
+});

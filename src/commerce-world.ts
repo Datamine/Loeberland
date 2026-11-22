@@ -3,7 +3,69 @@ import { pose } from './geometry.ts';
 import { drawFacadeWindow } from './windows.ts';
 import { STARTUP_HQ, AIRSHIP_TERMINAL } from './airship.ts';
 import { MERCHANTS } from './economy.ts';
-import type { Actor } from './types/world.ts';
+import type { Actor, RenderedSite, SignAtlas } from './types/world.ts';
+import { drawPlaque } from './southern-district.ts';
+
+export const COFFEE_STALL = {
+  id: 'coffee-stall',
+  name: 'Coffee Stall',
+  x: 38,
+  z: 79,
+  width: 1.55,
+  depth: 0.85,
+  rotation: -Math.PI / 2,
+  vendor: { x: 38.8, z: 79.9 },
+  entry: { x: 38.65, y: 78.65 },
+};
+
+export function drawCoffeeStall(
+  m: Mesh,
+  signs: SignAtlas,
+  ground: (x: number, z: number) => number,
+): RenderedSite {
+  const { id, name, x, z, width, depth, rotation, entry } = COFFEE_STALL;
+  const front = depth / 2,
+    side = width / 2,
+    base = ground(x + front, z),
+    bottom = Math.min(ground(x - front, z - side), ground(x - front, z + side)) - base - 0.05,
+    start = m.data.length;
+  pose(m, x, base, z, rotation, () => {
+    m.box(-side, bottom, -front, width, 0.84 - bottom, depth, '#456d63', 'clapboard');
+    m.box(-side, 0.84, -front, width, 0.065, depth, '#925e40', 'wood');
+    for (const xx of [-side + 0.025, side - 0.075])
+      for (const zz of [-front + 0.025, front - 0.075])
+        m.box(xx, 0.905, zz, 0.05, 0.91, 0.05, '#624535', 'wood');
+    for (let i = 0; i < 7; i++) {
+      const a = -side + (i * width) / 7,
+        b = a + width / 7;
+      m.quad(
+        [a, 1.8, front],
+        [b, 1.8, front],
+        [b, 1.98, -front],
+        [a, 1.98, -front],
+        i % 2 ? '#41645d' : '#e8dbba',
+      );
+    }
+    m.box(-0.57, 1.57, front - 0.05, 1.14, 0.23, 0.05, '#45372e', 'wood');
+    drawPlaque(m, signs, name, 0, 1.61, front + 0.003, 1.06, 0.15);
+    m.box(-0.49, 0.905, -0.29, 0.52, 0.31, 0.39, '#b9c1bb', 'metal');
+    m.box(-0.46, 0.98, 0.1, 0.43, 0.11, 0.022, '#383b37', 'metal');
+    for (const xx of [0.19, 0.37, 0.55])
+      m.cylinder(xx, 0.905, 0.18, 0.044, 0.12, '#efe8d8', 10, 0.057);
+  });
+  return {
+    id,
+    kind: id,
+    label: name,
+    entry,
+    mapPoint: { x, y: z },
+    description: 'A striped awning shades a small espresso machine and a row of coffee cups.',
+    start,
+    count: m.data.length - start,
+    lo: [x - front, base + bottom, z - side],
+    hi: [x + front + 0.003, base + 1.98, z + side],
+  };
+}
 
 export function drawStartupHQ(m: Mesh) {
   const { x, z } = STARTUP_HQ,

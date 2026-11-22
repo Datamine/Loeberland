@@ -97,7 +97,7 @@ Only a death caused by another player drops all of the victim's coins,
 sandwiches, iPhone and owned hats, including unequipped hats. Animal and other
 personal deaths do not trigger these PvP drops. Other progression and unlocks
 are retained. The killer has first claim for 15 seconds, after which anyone
-can collect the drops; uncollected PvP drops expire after five minutes. Coins
+can collect the drops. Uncollected ground items expire after 60 seconds. Coins
 are transferred without applying the iPhone earnings bonus. The victim
 respawns at UCSF with a short protection period.
 
@@ -125,10 +125,10 @@ Alternatively, donate one **peptide vial** to Ray for one immediate promotion.
 Admission therefore costs 24 vials if earned entirely through donations.
 Hourly returns and donations count toward the same 24 promotions and can be
 mixed. Donations do not extend an existing hourly return timer.
-A vial spawns every ten minutes at a randomly selected reachable point on
+A vial spawns every five minutes at a randomly selected reachable point on
 the **Technologist’s Farmers Market** forecourt. The spawn and its timer are shared and
 persisted. Everyone nearby sees the same vial; its first collector receives
-it exactly once in the server inventory. Vials expire after twenty minutes,
+it exactly once in the server inventory. Vials expire after 60 seconds,
 and a restart never creates a backlog of missed spawns. Donation atomically
 consumes one vial and saves the new rank, granting membership at Rank 25.
 Character settings show guild rank
@@ -256,7 +256,9 @@ prices and reservation duration live in `src/config/airship.ts`.
 Buy a **5-coin grappling hook** from the terminal's airship menu. The inventory
 button **Grapple airship** works within six tiles horizontally beneath an
 occupied aircraft. The hook and ascent are visible to other players. The
-pilot's lowered rope is shared too; it can be used to climb up or down.
+pilot's lowered rope is shared. Click it from the ground to approach and climb
+up. From the basket, click the rope or choose **Rope options**, then select
+**Climb down**. The pilot uses **Retract rope** in the same menu before flying.
 
 Zoom now reaches **650%** using the slider, wheel or pinch, allowing close
 inspection of the kraken cape's lettering. Camera settings are entirely local.

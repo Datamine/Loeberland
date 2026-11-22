@@ -2,6 +2,10 @@
 import { contentText } from '../content-runtime.ts';
 import { NPC_DIALOGUES } from './dialogue.ts';
 
+export const RICH_TABLE_CHEF = 'rich-table-chef';
+export const HARDWARE_CLERK = 'hardware-clerk';
+export const COFFEE_STALL_VENDOR = 'coffee-stall-vendor';
+
 /** NPC names and palettes. Conversation catalogs live in ../dialogues/. */
 const NPC_APPEARANCES = {
   'hiking-supplier': {
@@ -105,6 +109,26 @@ const NPC_APPEARANCES = {
     skin: '#b38c6d',
     hair: '#40352f',
     shirt: '#e3e2d5',
+  },
+  [RICH_TABLE_CHEF]: {
+    name: 'Rich Table chef',
+    skin: '#a2765b',
+    hair: '#514235',
+    shirt: '#e8dfce',
+    description: 'The Rich Table chef buys fresh sea urchin roe for the kitchen.',
+  },
+  [HARDWARE_CLERK]: {
+    name: 'Hardware clerk',
+    skin: '#ac805f',
+    hair: '#4a352d',
+    shirt: '#667b86',
+    description: 'The clerk sells steel crowbars at the Hardware Store.',
+  },
+  [COFFEE_STALL_VENDOR]: {
+    name: 'Coffee vendor',
+    skin: '#a47859',
+    hair: '#4b3730',
+    shirt: '#456d63',
   },
   lift: {
     name: contentText('config.npcs.module.name-18', {}),

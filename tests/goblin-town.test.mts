@@ -65,6 +65,25 @@ test('a new unarmed player can defeat a goblin with at most a few sandwiches; re
   assert.equal(drops, 1);
 });
 
+test('all combat goblin variants move briskly and wander several tiles from home', () => {
+  const kinds = [...new Set(GOBLIN_SPAWNS.map((spawn) => spawn.combatKind))];
+  const world = createWilderness({
+    spawns: kinds.map((combatKind) => ({ id: combatKind, combatKind, x: 0, z: 0 })),
+  });
+  world.update(0.25);
+  for (const actor of world.actors) assert.ok(Math.hypot(actor.x, actor.z) >= 0.25, actor.id);
+
+  const farthest = new Map<string, number>();
+  for (let i = 0; i < 120; i++) {
+    world.update(0.25);
+    for (const actor of world.actors) {
+      const distance = Math.hypot(actor.x, actor.z);
+      farthest.set(actor.id, Math.max(farthest.get(actor.id) ?? 0, distance));
+    }
+  }
+  for (const kind of kinds) assert.ok((farthest.get(kind) ?? 0) >= 2, kind);
+});
+
 test('boots require ownership for defense and wardrobe availability; all new meshes have finite geometry', () => {
   assert.equal(ownedEquipmentDefense({ ownedEquipment: [] }, { boots: true }), 0);
   assert.equal(ownedEquipmentDefense({ ownedEquipment: ['combat-boots'] }, { boots: true }), 2);
@@ -83,7 +102,14 @@ test('boots require ownership for defense and wardrobe availability; all new mes
   const chair = new Mesh();
   drawBallChair(chair, 0, 0, 0);
   assert.ok(chair.data.every(Number.isFinite));
-  assert.equal(GOBLIN_SPAWNS.filter((p) => p.z < 0).length, 7);
+  const tamGoblins = GOBLIN_SPAWNS.filter((spawn) => spawn.z < 0);
+  assert.equal(tamGoblins.length, 17);
+  assert.deepEqual(
+    [...new Set(tamGoblins.map(({ combatKind }) => MONSTER_STATS[combatKind].level))].sort(
+      (a, b) => a - b,
+    ),
+    [3, 7, 9, 13],
+  );
 });
 
 test('dog surfing heats share deterministic scores and keep dogs and boards finite during surfing and judging', () => {

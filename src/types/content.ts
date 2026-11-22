@@ -195,6 +195,7 @@ export interface Appearance {
 export interface EconomyState {
   coins: number;
   equity: number;
+  incubatorEquityBought: boolean;
   grain: number;
   bouquets: number;
   fuelCans: number;
@@ -338,7 +339,11 @@ export interface PlayerDocument {
     growth: import('./finance.ts').GrowthPosition | null;
   };
   social: { pvp: { enabled: boolean; disableAt: number } | null };
-  progress: { houseSearches: string[]; goblinSpaceMud: number };
+  progress: {
+    houseSearches: string[];
+    goblinSpaceMud: number;
+    industrialistArmorPurchases?: import('../item-stats.ts').IronArmorPiece[];
+  };
   rewards: { pending: PendingAward[]; serial: number };
   equipment: { decorativeRocket: { readyAt: number; burnUntil: number; hopAt: number } };
 }

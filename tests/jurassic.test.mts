@@ -133,6 +133,25 @@ test('the scientist grants a railgun, visibly releases the raptor, and accepts i
   assert.equal(g.state.railgun, true);
   assert.equal(createExpeditions({ saved: saved.at(-1) }).state.raptor, 'completed');
 });
+test('expired expedition loot is uncollectable and the raptor hunt can be retried', () => {
+  let time = 1000;
+  const { game } = setup({ now: () => time });
+  assert.equal(game.startQuest().ok, true);
+  game.update(1);
+  for (let i = 0; i < 8; i++) assert.equal(shoot(game, game.raptor).ok, true);
+  const remains = requiredFixture(game.state.loot.find((l) => l.lootKind === 'raptor'));
+  time += 59_999;
+  assert.equal(game.startQuest().ok, false);
+  time++;
+  assert.equal(game.collect(remains).ok, false);
+  game.update(0.05);
+  assert.ok(!game.state.loot.includes(remains));
+  assert.equal(game.startQuest().ok, true);
+  assert.equal(game.raptor.phase, 'releasing');
+  assert.equal(game.raptor.hp, game.raptor.max);
+  assert.equal(game.state.raptorDefeated, true);
+});
+
 test('railgun range, cooldown, collision and immunity cannot be bypassed; shooting a civilian raises the alarm', () => {
   const { game: g, events } = setup({ saved: { raptor: 'completed', railgun: true } });
   g.update(1);

@@ -84,7 +84,7 @@ shows the connection form and waits for authentication.
 
 Run `./deploy/aws.sh` from the repository root using your AWS credentials.
 The [deployment guide](../deploy/README.md) covers prerequisites, optional DNS,
-SSH, the private admin panel and release updates. The same host runs the game,
+SSH, the password-protected admin panel and release updates. The same host runs the game,
 admin, Redis and Caddy, and sends its five-minute checkpoint exports to private S3.
 
 For off-host recovery, get the bucket name with
@@ -283,9 +283,9 @@ STATE_FILE=/path/to/world.sqlite npm --prefix server run admin
 ```
 
 Use `ADMIN_PORT` to change port 8788. The Node panel binds to loopback by
-default; the Docker launcher binds inside the container and publishes only
-host loopback. Keep it behind an SSH/SSM tunnel for remote use. Basic Auth
-should not be sent over an unencrypted public HTTP connection.
+default. The Docker launcher binds inside the container and publishes to host
+loopback. On AWS with a custom domain, Caddy serves the read-only panel at
+`/admin/` over HTTPS. Use an SSH or SSM tunnel for remote editing sessions.
 
 For custom credential/settings files:
 

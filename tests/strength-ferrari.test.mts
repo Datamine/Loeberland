@@ -46,7 +46,9 @@ test('Sand Hill funding requires level 10 and pays one thousand coins once acros
   assert.equal(gym.claim(economy).ok, false);
   assert.equal(economy.state.coins, 7);
   gym.train(1200);
-  assert.equal(gym.claim(economy).ok, true);
+  const funding = gym.claim(economy);
+  assert.equal(funding.ok, true);
+  assert.match(funding.message ?? '', /impressive strength.*1,000 coins/);
   assert.equal(economy.state.coins, 1007);
   assert.equal(gym.claim(economy).ok, false);
   assert.equal(createStrength(gym.state).claim(economy).ok, false);

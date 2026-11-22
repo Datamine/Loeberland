@@ -285,14 +285,17 @@ export function createNavigation(context: WorldContext) {
         );
         if (entry) s.entry = entry;
       }
-    const spawn = cafe.entry;
+    // Navigation uses tile indices offset by half a unit from the map coordinates.
+    const spawn = { x: 70 - 0.5, y: 43 - 0.5 };
+    if (!context.cityNavigation.free(spawn.x, spawn.y))
+      throw new Error('The starting tile must be walkable');
     context.camera.yaw = -(cafe.rotation ?? 0) - Math.PI / 4;
     context.camera.cos = Math.cos(context.camera.yaw);
     context.camera.sin = Math.sin(context.camera.yaw);
     context.player.x = spawn.x;
     context.player.y = spawn.y;
-    context.bike.x = spawn.x + 1;
-    context.bike.y = spawn.y;
+    context.bike.x = cafe.entry.x + 1;
+    context.bike.y = cafe.entry.y;
     const bikeSite = nearestNavigation(context.bike.x, context.bike.y, 2);
     if (bikeSite) {
       context.bike.x = bikeSite.x;

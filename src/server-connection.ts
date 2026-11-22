@@ -39,7 +39,7 @@ export function serverCommand(
     : Promise.resolve({ ok: false, message: contentText('world-message.connection.required') });
 }
 
-/** Connection settings remain usable while the entire game is inert. */
+/** Pause gameplay while the server is unavailable or needs initial setup. */
 export function createServerConnectionGate({
   client,
   element,
@@ -51,7 +51,8 @@ export function createServerConnectionGate({
   const form = element.querySelector<HTMLElementTagNameMap['form']>('form')!,
     input = form.querySelector<HTMLElementTagNameMap['input']>('input')!,
     status = element.querySelector<HTMLElement>('[data-connection-message]')!,
-    title = element.querySelector<HTMLElementTagNameMap['h2']>('h2')!;
+    title = element.querySelector<HTMLElementTagNameMap['h2']>('h2')!,
+    home = element.querySelector<HTMLElementTagNameMap['a']>('a')!;
   let active = false,
     blocked = false,
     seenConnection = serverConnected(client);
@@ -60,7 +61,25 @@ export function createServerConnectionGate({
     storage.getItem('sf-multiplayer-endpoint') ||
     '';
   function update() {
-    const next = active && !serverConnected(client);
+    const connected = serverConnected(client);
+    if (connected) seenConnection = true;
+    const otherTab = client?.state.status === 'Character open in another tab';
+    const needsSetup = !otherTab && !seenConnection && !client?.state.configured;
+    const reconnecting = !needsSetup && !otherTab;
+    title.textContent = reconnecting
+      ? 'Reconnecting...'
+      : otherTab
+        ? 'Character open in another tab'
+        : 'Connect to San Francisco';
+    status.hidden = reconnecting;
+    status.textContent = otherTab
+      ? 'Close the other tab and reload here.'
+      : needsSetup
+        ? 'Enter the game server address to play.'
+        : '';
+    form.hidden = home.hidden = !needsSetup;
+
+    const next = active && !connected;
     if (next !== blocked) {
       blocked = next;
       world.inert = blocked;
@@ -68,20 +87,13 @@ export function createServerConnectionGate({
       if (blocked) {
         onDisconnect();
         if (seenConnection && client) client.state.reloadOnWelcome = true;
-        input.focus({ preventScroll: true });
+        (needsSetup ? input : element).focus({ preventScroll: true });
       }
     }
-    if (serverConnected(client)) seenConnection = true;
-    title.textContent = seenConnection ? 'Connection lost' : 'Connect to San Francisco';
-    status.textContent =
-      client?.state.status === 'Character open in another tab'
-        ? 'This character is open in another tab. Close that tab and reload here.'
-        : client?.state.configured
-          ? 'Gameplay is paused. Reconnecting to the server…'
-          : 'Enter the game server address to play.';
   }
   form.addEventListener('submit', (event) => {
     event.preventDefault();
+    if (form.hidden) return;
     const value = multiplayerEndpoint(input.value, locationObject.href);
     if (!value) {
       status.textContent = 'Enter a ws:// or wss:// server address. HTTPS pages require wss://.';

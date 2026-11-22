@@ -9,7 +9,16 @@ import {
   normalizeCharacter,
   characterAppearance,
 } from '../src/character-config.ts';
-import { NIGHTLIFE, nightlifeWalkable, nightlifeRebuff, drawNightlife } from '../src/nightlife.ts';
+import {
+  NIGHTLIFE,
+  buildNightlife,
+  complimentNightlifeDance,
+  nightlifeWalkable,
+  nightlifeRebuff,
+  drawNightlife,
+} from '../src/nightlife.ts';
+import { actorSpeechText } from '../src/rendering/actor-labels.ts';
+import type { Actor } from '../src/types/world.ts';
 
 test('saved appearance accepts valid colors and gender while recovering from corrupt preferences', () => {
   assert.deepEqual(normalizeCharacter(null), CHARACTER_DEFAULTS);
@@ -132,6 +141,37 @@ test('Nightlife has a real door and solid walls and keeps its DJ equipment off t
     assert.equal(nightlifeWalkable(x, z), false);
   assert.equal(nightlifeRebuff('man'), 'I have a boyfriend.');
   assert.equal(nightlifeRebuff('woman'), 'I have a girlfriend.');
+});
+
+test('Nightlife patrons give timed overhead compliments when you start dancing inside', () => {
+  const { diners } = buildNightlife(new Mesh(), {
+    height: () => 1,
+    naturalHeight: () => 1,
+    cutPlot() {},
+  });
+  const ordinaryDiner = {
+    id: 'regular-diner',
+    label: 'Diner',
+    x: NIGHTLIFE.x,
+    z: NIGHTLIFE.z,
+    speech: 'Use the conversation menu.',
+    speechUntil: Infinity,
+  };
+  const patrons: Actor[] = [...diners, ordinaryDiner];
+  complimentNightlifeDance(patrons, NIGHTLIFE.x, NIGHTLIFE.z + NIGHTLIFE.d, 500);
+  assert.deepEqual(
+    patrons.map((npc) => actorSpeechText(npc, 500)),
+    ['', '', ''],
+  );
+  complimentNightlifeDance(patrons, NIGHTLIFE.x, NIGHTLIFE.z, 1000);
+  assert.deepEqual(
+    patrons.map((npc) => actorSpeechText(npc, 1000)),
+    ['Nice footwork!', 'You’ve got rhythm!', ''],
+  );
+  assert.deepEqual(
+    patrons.map((npc) => actorSpeechText(npc, 4500)),
+    ['', '', ''],
+  );
 });
 
 test('the roof comes off inside, and camera-facing walls disappear at every camera orientation', () => {

@@ -1,7 +1,7 @@
 import { requiredValue } from './types/assert.ts';
 interface MonsterPose {
   id?: string | number;
-  modelVariant?: 'mechanic' | 'scientist' | 'plumber';
+  modelVariant?: 'mechanic' | 'scientist' | 'plumber' | 'founder' | 'farmer';
   combatKind: string;
   x: number;
   z: number;
@@ -17,9 +17,15 @@ import type { Mesh } from './geometry.ts';
 import { pose } from './geometry.ts';
 import { MONSTER_STATS } from './monster-drops.ts';
 import { drawBison } from './bison-model.ts';
+import { attackPulse } from './creature-attack-pose.ts';
+import { GOBLIN_INCUBATOR } from './goblin-town.ts';
+import type { Actor } from './types/world.ts';
 
-export function goblinModelVariant(kind?: string): MonsterPose['modelVariant'] {
-  switch (kind) {
+export function goblinModelVariant(
+  npc: Partial<Pick<Actor, 'id' | 'kind'>>,
+): MonsterPose['modelVariant'] {
+  if (npc.id === GOBLIN_INCUBATOR.founder.id) return 'founder';
+  switch (npc.kind) {
     case 'atv-rental':
     case 'goblin-space-engineer':
       return 'mechanic';
@@ -28,6 +34,8 @@ export function goblinModelVariant(kind?: string): MonsterPose['modelVariant'] {
       return 'scientist';
     case 'goblin-plumber':
       return 'plumber';
+    case 'goblin-frog-farmer':
+      return 'farmer';
   }
 }
 
@@ -44,7 +52,14 @@ export function drawGoblinHead(m: Mesh, actor: MonsterPose) {
     const green = goblinSkin(actor.combatKind);
     m.sphere(0, 1.03, 0.03, 0.24, 0.23, 0.19, green, 16, 10);
     m.sphere(0, 0.95, 0.156, 0.15, 0.103, 0.104, '#77934d', 13, 8);
-    m.rod([-0.088, 0.94, 0.238], [0.088, 0.94, 0.238], 0.012, '#443f2e', 7);
+    const smilePoint = (u: number) => {
+      const x = u * 0.091;
+      const y = 0.896 + 0.017 * u * u;
+      const z = 0.156 + 0.104 * Math.sqrt(1 - (x / 0.15) ** 2 - ((y - 0.95) / 0.103) ** 2);
+      return [x, y, z + 0.004];
+    };
+    for (let i = 0; i < 6; i++)
+      m.rod(smilePoint(i / 3 - 1), smilePoint((i + 1) / 3 - 1), 0.007, '#536236', 6);
     m.sphere(0, 0.99, 0.23, 0.085, 0.075, 0.1, green, 10, 6);
     for (const s of [-1, 1] satisfies [number, number]) {
       m.tri(
@@ -60,7 +75,7 @@ export function drawGoblinHead(m: Mesh, actor: MonsterPose) {
         green,
       );
       m.sphere(s * 0.175, 1.01, 0.141, 0.073, 0.075, 0.053, '#8aa45e', 10, 7);
-      m.rod([s * 0.064, 0.928, 0.247], [s * 0.081, 0.973, 0.244], 0.014, '#ddd0a2', 7);
+      m.rod([s * 0.064, 0.891, 0.233], [s * 0.081, 0.938, 0.25], 0.012, '#ddd0a2', 7);
       m.rod([s * 0.052, 1.12, 0.211], [s * 0.152, 1.138, 0.179], 0.022, '#4c603b', 7);
       m.sphere(s * 0.1, 1.08, 0.192, 0.04, 0.025, 0.015, '#e9c96e', 10, 6);
       m.sphere(s * 0.1, 1.08, 0.206, 0.013, 0.021, 0.009, '#242b24', 8, 4);
@@ -68,6 +83,11 @@ export function drawGoblinHead(m: Mesh, actor: MonsterPose) {
     if (actor.modelVariant === 'mechanic' || plumber) {
       m.sphere(0, 1.185, 0.014, 0.255, 0.14, 0.216, plumber ? '#bd8347' : '#a57832', 14, 7);
       m.box(-0.182, 1.165, 0.09, 0.364, 0.045, 0.2, '#776441');
+    }
+    if (actor.modelVariant === 'farmer') {
+      m.sphere(0, 1.174, 0.01, 0.35, 0.054, 0.27, '#b49a55', 16, 6, 'canvasWeave');
+      m.cylinder(0, 1.175, 0.002, 0.201, 0.137, '#c4a665', 12, 0.164, 'canvasWeave');
+      m.cylinder(0, 1.18, 0.002, 0.205, 0.036, '#755739', 12);
     }
     if (actor.modelVariant === 'scientist') {
       for (const s of [-1, 1])
@@ -126,10 +146,9 @@ export function sampleBearWalk(phase: number, motion = 1) {
   };
 }
 
-function drawRobocop(m: Mesh, actor: MonsterPose, time: number) {
+function drawRobocop(m: Mesh, actor: MonsterPose, time: number, firing: number) {
   const motion = actor.motion ?? 0;
   const phase = actor.phase ?? 0;
-  const firing = actor.attackAnimation ?? 0;
   const aim = Math.min(1, firing * 2);
   const servo = Math.sin(time / 330);
   const bob = Math.abs(Math.sin(phase)) * motion * 0.065 + servo * 0.009;
@@ -201,24 +220,74 @@ function drawRobocop(m: Mesh, actor: MonsterPose, time: number) {
   });
 }
 
-export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0) {
+export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0, reduced = false) {
+  const attack = reduced ? 0 : (actor.attackAnimation ?? 0);
+  const progress = 1 - attack;
+  const load = attackPulse(progress, 0, 0.16, 0.36);
+  const strike = attackPulse(progress, 0.12, 0.39, 1);
   const stats = requiredValue(
     MONSTER_STATS[actor.combatKind],
     'Unknown monster model: ' + actor.combatKind,
   );
+  if (stats.model === 'frog') {
+    const stride = ((actor.phase || 0) / (Math.PI * 2)) % 1;
+    const hop = (actor.motion || 0) * Math.sin(stride * Math.PI);
+    pose(m, actor.x, actor.base + 0.21 * hop, actor.z, actor.angle, () => {
+      const green = '#6b953c',
+        dark = '#4d7330',
+        belly = '#b3b96a';
+      m.sphere(-0.105, 0.225, 0, 0.303, 0.19, 0.225, green, 14, 8);
+      m.sphere(0.131, 0.215, 0, 0.244, 0.155, 0.245, green, 14, 8);
+      m.sphere(0.193, 0.153, 0, 0.209, 0.086, 0.223, belly, 12, 7);
+      m.rod([0.325, 0.194, -0.128], [0.366, 0.181, 0], 0.01, '#4b572b', 5);
+      m.rod([0.366, 0.181, 0], [0.325, 0.194, 0.128], 0.01, '#4b572b', 5);
+      for (const side of [-1, 1]) {
+        const eyeZ = side * 0.149;
+        m.sphere(0.15, 0.339, eyeZ, 0.113, 0.109, 0.105, dark, 12, 7);
+        m.sphere(0.22, 0.368, eyeZ + 0.018 * side, 0.064, 0.063, 0.072, '#d8a347', 12, 7);
+        m.sphere(0.265, 0.371, eyeZ + 0.034 * side, 0.027, 0.033, 0.05, '#252b20', 10, 6);
+        const heel = -0.11 - 0.28 * hop;
+        m.sphere(-0.22, 0.132 - 0.028 * hop, side * 0.223, 0.194, 0.129, 0.121, dark, 12, 7);
+        m.rod([-0.31, 0.1, side * 0.25], [heel, 0.044, side * 0.29], 0.052, green, 7);
+        m.rod([0.12, 0.15, side * 0.167], [0.244 + 0.08 * hop, 0.04, side * 0.21], 0.04, green, 7);
+        for (let i = 0; i < 3; i++) {
+          const toe = side * (0.178 + i * 0.035);
+          m.rod(
+            [0.239 + 0.08 * hop, 0.037, side * 0.21],
+            [0.311 + 0.08 * hop, 0.025, toe],
+            0.016,
+            belly,
+            5,
+          );
+          m.sphere(
+            -0.03 - i * 0.083,
+            0.38,
+            side * (0.075 + (i % 2) * 0.047),
+            0.035,
+            0.02,
+            0.04,
+            dark,
+            7,
+            5,
+          );
+        }
+      }
+    });
+    return;
+  }
   if (stats.model === 'goat') {
     pose(m, actor.x, actor.base, actor.z, actor.angle, () => {
       const coat = '#d3c5a6';
       const dark = '#6b5947';
       const horn = '#a08c65';
-      const ram = Math.sin(Math.PI * (actor.attackAnimation || 0));
-      const stride = (actor.motion || 0) * 0.14;
-      m.sphere(-0.08, 0.65, 0, 0.37, 0.207, 0.168, coat, 14, 8);
+      const ram = strike;
+      const stride = (actor.motion || 0) * 0.14 * (1 - ram);
+      m.sphere(-0.08 + 0.08 * ram, 0.65 - 0.06 * load, 0, 0.37, 0.207, 0.168, coat, 14, 8);
       m.sphere(-0.23, 0.68, 0, 0.22, 0.172, 0.171, '#ac9674', 12, 7);
       m.rod([-0.405, 0.74, 0], [-0.56, 0.86, 0.012], 0.047, dark, 8);
       m.rod([0.19, 0.65, 0], [0.345 + 0.09 * ram, 0.857 - 0.119 * ram, 0], 0.122, coat, 11);
-      const hx = 0.375 + 0.105 * ram,
-        hy = 0.89 - 0.17 * ram;
+      const hx = 0.375 + 0.28 * ram - 0.09 * load,
+        hy = 0.89 - 0.27 * ram - 0.1 * load;
       m.sphere(hx, hy, 0, 0.137, 0.116, 0.113, coat, 12, 8);
       m.sphere(hx + 0.13, hy - 0.033, 0, 0.105, 0.067, 0.077, '#a99276', 12, 7);
       m.rod([hx + 0.08, hy - 0.077, 0], [hx + 0.033, hy - 0.22, 0], 0.04, dark, 7);
@@ -320,6 +389,7 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0) {
   }
   if (stats.model === 'sea-urchin') {
     const pulse = 1 + Math.sin((actor.phase || 0) * 2) * (actor.motion || 0) * 0.065;
+    const spineReach = pulse + 0.8 * strike - 0.3 * load;
     pose(m, actor.x, actor.base, actor.z, actor.angle, () => {
       m.sphere(0, 0.178, 0, 0.28 * pulse, 0.164, 0.27 * pulse, '#4a2d57', 16, 9);
       for (const [elevation, count] of [
@@ -335,7 +405,7 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0) {
           const c = Math.cos(angle);
           const s = Math.sin(angle);
           const root = [0.24 * horizontal * c, 0.178 + 0.143 * vertical, 0.24 * horizontal * s];
-          const length = (0.17 + ((i * 7 + count) % 5) * 0.028) * pulse;
+          const length = (0.17 + ((i * 7 + count) % 5) * 0.028) * spineReach;
           const tip = [
             root[0] + length * horizontal * c,
             root[1] + length * vertical,
@@ -365,29 +435,97 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0) {
         back = fox ? '#9b4a30' : '#756956',
         cream = fox ? '#eadbc5' : '#d6c3a1',
         feet = fox ? '#3d3030' : cream,
-        stride = (actor.motion || 0) * 0.13;
-      m.sphere(-0.06, 0.57, 0, 0.38, 0.18, 0.15, fur, 14, 8);
-      m.sphere(-0.075, 0.64, 0, 0.34, 0.119, 0.126, back, 14, 8);
-      m.sphere(0.23, 0.64, 0, 0.17, 0.19, 0.14, fur, 12, 8);
-      m.sphere(0.39, 0.75, 0, 0.15, 0.115, 0.115, fur, 14, 8);
-      m.sphere(0.51, 0.708, 0, 0.14, 0.059, 0.072, cream, 12, 6);
-      m.sphere(0.627, 0.731, 0, 0.035, 0.029, 0.048, '#34312d', 10, 6);
+        stride = (actor.motion || 0) * 0.13 * (1 - strike),
+        reach = (fox ? 0.36 : 0.48) * strike,
+        chest = 0.14 * strike - 0.19 * load,
+        headX = 0.39 + reach - 0.14 * load,
+        headY = 0.75 + chest - 0.09 * strike,
+        gape = 0.115 * attackPulse(progress, 0, 0.28, 0.58);
+      m.sphere(
+        -0.06 + reach * 0.34,
+        0.57 + chest * 0.5,
+        0,
+        0.38 + reach * 0.13,
+        0.18,
+        0.15,
+        fur,
+        14,
+        8,
+      );
+      m.sphere(
+        -0.075 + reach * 0.34,
+        0.64 + chest * 0.5,
+        0,
+        0.34 + reach * 0.13,
+        0.119,
+        0.126,
+        back,
+        14,
+        8,
+      );
+      m.sphere(0.23 + reach * 0.63, 0.64 + chest, 0, 0.17 + reach * 0.14, 0.19, 0.14, fur, 12, 8);
+      m.sphere(headX, headY, 0, 0.15, 0.115, 0.115, fur, 14, 8);
+      m.sphere(headX + 0.12, headY - 0.034, 0, 0.14, 0.046, 0.072, cream, 12, 6);
+      m.sphere(headX + 0.237, headY - 0.019, 0, 0.035, 0.029, 0.048, '#34312d', 10, 6);
+      m.rod(
+        [headX + 0.052, headY - 0.077, 0],
+        [headX + 0.192, headY - 0.074 - gape, 0],
+        0.029,
+        back,
+        8,
+      );
+      if (gape > 0.015) {
+        m.sphere(
+          headX + 0.132,
+          headY - 0.063 - gape * 0.48,
+          0,
+          0.09,
+          0.023 + gape * 0.32,
+          0.045,
+          '#412b26',
+          9,
+          5,
+        );
+        for (const side of [-1, 1])
+          m.rod(
+            [headX + 0.169, headY - 0.069, side * 0.044],
+            [headX + 0.178, headY - 0.103, side * 0.041],
+            0.01,
+            '#f0e0b4',
+            5,
+          );
+      }
       for (const side of [-1, 1]) {
-        const earTip = [0.3, 0.991, side * 0.104],
-          earFront = [0.39, 0.81, side * 0.061],
-          earBack = [0.24, 0.816, side * 0.082];
+        const earTip = [headX - 0.09 - 0.11 * load, headY + 0.241 - 0.11 * load, side * 0.104],
+          earFront = [headX, headY + 0.06, side * 0.061],
+          earBack = [headX - 0.15, headY + 0.066, side * 0.082];
         m.tri(earTip, earBack, earFront, back);
         m.tri(earTip, earFront, earBack, '#b49476');
-        m.sphere(0.442, 0.772, side * 0.095, 0.021, 0.015, 0.014, '#332a20', 8, 5);
+        m.sphere(headX + 0.052, headY + 0.022, side * 0.095, 0.021, 0.015, 0.014, '#332a20', 8, 5);
         for (const front of [-1, 1]) {
           const swing = Math.sin((actor.phase || 0) + (side === front ? 0 : Math.PI)) * stride,
             leg = front > 0 ? 0.225 : -0.32,
-            knee = leg + (front > 0 ? -0.024 : 0.07) + swing * 0.45;
-          m.rod([leg, 0.57, side * 0.106], [knee, 0.255, side * 0.107], 0.056, fur, 8);
-          m.rod([knee, 0.255, side * 0.107], [leg + swing, 0.059, side * 0.108], 0.032, feet, 7);
+            shoulderX = leg + (front > 0 ? reach * 0.65 : reach * 0.25),
+            toe = leg + swing + (front > 0 ? reach * (side > 0 ? 1.2 : 0.83) : -0.1 * strike),
+            lift = front > 0 ? (side > 0 ? 0.23 : 0.13) * strike + 0.04 * load : 0,
+            knee = (shoulderX + toe) / 2 + (front > 0 ? -0.024 : 0.07);
+          m.rod(
+            [shoulderX, 0.57 + chest * (front > 0 ? 1 : 0.45), side * 0.106],
+            [knee, 0.255 + lift * 0.67, side * 0.107],
+            0.056,
+            fur,
+            8,
+          );
+          m.rod(
+            [knee, 0.255 + lift * 0.67, side * 0.107],
+            [toe, 0.059 + lift, side * 0.108],
+            0.032,
+            feet,
+            7,
+          );
           m.sphere(
-            leg + swing + 0.025,
-            0.045,
+            toe + 0.025,
+            0.045 + lift,
             side * 0.108,
             0.053,
             0.035,
@@ -399,46 +537,90 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0) {
         }
       }
       if (fox) {
-        const swish = Math.sin(time * 0.003 + (actor.phase || 0)) * 0.08;
-        m.rod([-0.34, 0.58, 0], [-0.63, 0.545, swish * 0.6], 0.087, fur, 10);
-        m.sphere(-0.69, 0.535, swish * 0.85, 0.24, 0.095, 0.09, fur, 14, 8);
-        m.sphere(-0.865, 0.514, swish, 0.112, 0.06, 0.06, cream, 10, 7);
-        m.sphere(0.253, 0.536, 0, 0.114, 0.122, 0.117, cream, 10, 8);
+        const swish = Math.sin(time * 0.003 + (actor.phase || 0)) * 0.08 + 0.14 * strike;
+        m.rod([-0.34, 0.58, 0], [-0.63, 0.545 + 0.13 * load, swish * 0.6], 0.087, fur, 10);
+        m.sphere(-0.69, 0.535 + 0.13 * load, swish * 0.85, 0.24, 0.095, 0.09, fur, 14, 8);
+        m.sphere(-0.865, 0.514 + 0.17 * load, swish, 0.112, 0.06, 0.06, cream, 10, 7);
+        m.sphere(0.253 + reach * 0.63, 0.536 + chest, 0, 0.114, 0.122, 0.117, cream, 10, 8);
       } else {
-        m.rod([-0.37, 0.57, 0], [-0.67, 0.28, 0.035], 0.073, back, 10);
-        m.rod([-0.62, 0.33, 0.029], [-0.77, 0.19, 0.057], 0.044, '#403a31', 9);
+        m.rod([-0.37, 0.57, 0], [-0.67, 0.28 + 0.18 * strike, 0.035], 0.073, back, 10);
+        m.rod(
+          [-0.62, 0.33 + 0.15 * strike, 0.029],
+          [-0.77, 0.19 + 0.28 * strike, 0.057],
+          0.044,
+          '#403a31',
+          9,
+        );
       }
     });
     return;
   }
   if (stats.model === 'seagull') {
     pose(m, actor.x, actor.base, actor.z, actor.angle, () => {
-      const step = Math.sin(actor.phase || 0) * (actor.motion || 0) * 0.08;
-      m.sphere(0, 0.3, 0, 0.25, 0.18, 0.15, '#e6e5dc', 14, 8);
-      m.sphere(0.18, 0.45, 0, 0.12, 0.13, 0.1, '#f5f0df', 12, 8);
+      const step = Math.sin(actor.phase || 0) * (actor.motion || 0) * 0.08 * (1 - strike);
+      const hop = 0.26 * strike,
+        push = 0.31 * strike;
+      const headX = push + 0.18 + 0.26 * strike - 0.08 * load;
+      const headY = hop + 0.45 + 0.08 * load - 0.06 * strike;
+      const flare = attackPulse(progress, 0, 0.27, 0.86);
+      const upstroke = attackPulse(progress, 0, 0.19, 0.48);
+      m.sphere(push, 0.3 + hop - 0.07 * load, 0, 0.25, 0.18, 0.15, '#e6e5dc', 14, 8);
+      m.rod([push + 0.12, hop + 0.35, 0], [headX, headY - 0.025, 0], 0.074, '#efece1', 9);
+      m.sphere(headX, headY, 0, 0.12, 0.13, 0.1, '#f5f0df', 12, 8);
       m.rod(
-        [0.24, 0.43, 0] satisfies [number, number, number],
-        [0.4, 0.42, 0] satisfies [number, number, number],
+        [headX + 0.06, headY - 0.02, 0],
+        [headX + 0.22, headY - 0.03 - 0.055 * strike, 0],
         0.035,
         '#d6a23c',
         6,
       );
-      for (const s of [-1, 1] satisfies [number, number]) {
-        m.sphere(-0.06, 0.34, s * 0.13, 0.22, 0.055, 0.035, '#89959c', 12, 6);
-        m.sphere(0.22, 0.48, s * 0.085, 0.016, 0.017, 0.012, '#252d32', 8, 4);
+      for (const side of [-1, 1]) {
+        m.sphere(
+          push - 0.06,
+          0.34 + hop,
+          side * (0.13 + 0.07 * flare),
+          0.22,
+          0.055,
+          0.035 + 0.07 * flare,
+          '#89959c',
+          12,
+          6,
+        );
+        if (flare > 0.015) {
+          const leading = [push + 0.11, 0.35 + hop, side * 0.13];
+          const bend = [push - 0.13, 0.36 + hop + 0.27 * upstroke, side * (0.18 + flare * 0.37)];
+          const tip = [
+            push - 0.35,
+            0.3 + hop + 0.41 * upstroke - 0.21 * strike,
+            side * (0.2 + flare * 0.66),
+          ];
+          const trailing = [
+            push - 0.22,
+            0.32 + hop + 0.13 * upstroke,
+            side * (0.13 + flare * 0.29),
+          ];
+          m.tri(leading, bend, trailing, '#9ba7ae');
+          m.tri(trailing, bend, leading, '#d2d4ce');
+          m.tri(bend, tip, trailing, '#4e585e');
+          m.tri(trailing, tip, bend, '#707c84');
+        }
+        m.sphere(headX + 0.04, headY + 0.03, side * 0.085, 0.016, 0.017, 0.012, '#252d32', 8, 4);
+        const toe = side * step + push * 0.68 - 0.08 * flare,
+          lift = hop * 0.65;
         m.rod(
-          [0, 0.22, s * 0.07] satisfies [number, number, number],
-          [s * step, 0.04, s * 0.07] satisfies [number, number, number],
+          [push, 0.22 + hop, side * 0.07],
+          [toe, 0.04 + lift, side * 0.07],
           0.018,
           '#d9a943',
           6,
         );
-        m.box(s * step - 0.025, 0.02, s * 0.07 - 0.025, 0.12, 0.025, 0.07, '#d9a943');
+        m.box(toe - 0.025, 0.02 + lift, side * 0.07 - 0.025, 0.12, 0.025, 0.07, '#d9a943');
       }
     });
     return;
   }
   if (stats.model === 'goblin') {
+    const shoulderLean = 0.16 * strike - 0.13 * load;
     pose(m, actor.x, actor.base, actor.z, actor.angle - Math.PI / 2, () => {
       const guard = actor.combatKind === 'goblin-guard',
         veteran = actor.combatKind === 'goblin-veteran',
@@ -451,11 +633,13 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0) {
               ? '#426477'
               : actor.modelVariant === 'scientist'
                 ? '#dad8c2'
-                : actor.combatKind === 'goblin-maker'
-                  ? '#805069'
-                  : '#83634a',
+                : actor.modelVariant === 'farmer'
+                  ? '#887547'
+                  : actor.modelVariant === 'founder' || actor.combatKind === 'goblin-maker'
+                    ? '#805069'
+                    : '#83634a',
         step = Math.sin(actor.phase || 0) * (actor.motion || 0) * 0.12;
-      m.sphere(0, 0.67, 0, 0.25, 0.28, 0.17, cloth, 14, 8);
+      m.sphere(0, 0.67 - 0.07 * load, shoulderLean * 0.48, 0.25, 0.28, 0.17, cloth, 14, 8);
       for (let i = 0; i < 4; i++) {
         const y = 0.49 + i * 0.079;
         m.rod([-0.19, y, 0.109], [-0.12, y + 0.032, 0.155], 0.01, '#bf9a6c', 5);
@@ -465,13 +649,17 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0) {
       m.sphere(0, 0.585, 0, 0.247, 0.063, 0.174, '#423c2b', 14, 7, 'canvasWeave');
       m.box(-0.05, 0.561, 0.168, 0.1, 0.053, 0.04, '#b79b58', { metal: 0.55 });
       for (const s of [-1, 1]) {
-        m.rod(
-          [s * 0.23, 0.8, 0] satisfies [number, number, number],
-          [s * 0.33, 0.43, s * step] satisfies [number, number, number],
-          0.065,
-          green,
-          8,
-        );
+        const handY = 0.428 + (s > 0 ? 0.39 * strike + 0.32 * load : 0.14 * strike);
+        const handZ = s * step + (s > 0 ? 0.63 * strike - 0.18 * load : 0.13 * load);
+        const handX = s * 0.34 - (s > 0 ? 0.22 * strike : 0);
+        const shoulder = [s * 0.23, 0.8 - 0.07 * load, shoulderLean];
+        const elbow = [
+          s * 0.36,
+          (shoulder[1] + handY) / 2 - 0.04,
+          (shoulder[2] + handZ) / 2 - 0.04,
+        ];
+        m.rod(shoulder, elbow, 0.066, green, 8);
+        m.rod(elbow, [handX, handY, handZ], 0.061, green, 8);
         m.rod(
           [s * 0.13, 0.55, 0] satisfies [number, number, number],
           [s * 0.14, 0.16, s * step] satisfies [number, number, number],
@@ -479,7 +667,7 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0) {
           '#3d4636',
           8,
         );
-        m.sphere(s * 0.34, 0.428, s * step, 0.082, 0.086, 0.065, '#8ca968', 10, 7);
+        m.sphere(handX, handY, handZ, 0.082, 0.086, 0.065, '#8ca968', 10, 7);
         m.rod([s * 0.142, 0.08, s * step], [s * 0.14, 0.265, s * step], 0.091, '#313433', 10);
         m.sphere(s * 0.14, 0.094, s * step + 0.062, 0.095, 0.082, 0.152, '#2a2b2b', 12, 7);
         for (const y of [0.12, 0.22] satisfies [number, number])
@@ -495,6 +683,11 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0) {
         m.box(-0.095, 0.625, 0.153, 0.19, 0.125, 0.033, '#344b5c', 'canvasWeave');
         m.rod([0.25, 0.39, 0.19], [0.38, 0.63, 0.19], 0.024, '#a25642', 7);
         m.box(0.345, 0.61, 0.165, 0.1, 0.067, 0.05, '#9fa5a4', { metal: 0.65 });
+      }
+      if (actor.modelVariant === 'farmer') {
+        m.box(-0.139, 0.48, 0.132, 0.278, 0.305, 0.044, '#6a5840', 'canvasWeave');
+        for (const side of [-1, 1])
+          m.rod([side * 0.104, 0.73, 0.161], [side * 0.156, 0.868, 0.115], 0.027, '#4f4631', 6);
       }
       if (actor.modelVariant === 'scientist') {
         m.box(-0.177, 0.6, 0.123, 0.116, 0.14, 0.032, '#827698', 'wood');
@@ -532,23 +725,33 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0) {
         m.box(0.19, 0.72, -0.02, 0.28, 0.16, 0.16, '#b4c1c2', { metal: 0.65 });
       }
     });
-    drawGoblinHead(m, actor);
+    drawGoblinHead(
+      m,
+      attack
+        ? {
+            ...actor,
+            x: actor.x + Math.cos(actor.angle) * shoulderLean,
+            z: actor.z + Math.sin(actor.angle) * shoulderLean,
+            base: actor.base - 0.07 * load,
+          }
+        : actor,
+    );
     return;
   }
   if (stats.model === 'bison') {
-    drawBison(m, actor, time);
+    drawBison(m, actor, time, strike, load);
     return;
   }
   if (stats.model === 'shark') {
-    drawLandshark(m, actor);
+    drawLandshark(m, actor, strike, load);
     return;
   }
   if (stats.model === 'robocop') {
-    drawRobocop(m, actor, time);
+    drawRobocop(m, actor, time, attack);
     return;
   }
   if (stats.model === 'terminator') {
-    const firing = actor.attackAnimation ?? 0;
+    const firing = attack;
     drawHumanNPC(m, actor, time, {
       x: actor.x,
       z: actor.z,
@@ -595,9 +798,9 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0) {
       appearance: {
         ...look,
         ...(zombie && { action: 'zombie', actionT: 0.5 }),
-        ...(actor.attackAnimation && {
+        ...(attack && {
           action: stats.attackEffect === 'explosive' ? 'throw-explosive' : 'attack',
-          actionT: 1 - actor.attackAnimation,
+          actionT: progress,
         }),
         ...(second && { female: true, hairstyle: 'bob', pants: '#695952' }),
         backpack: false,
@@ -631,15 +834,15 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0) {
     ice = actor.combatKind === 'ice-giant',
     motion = actor.motion || 0,
     phase = actor.phase || 0;
-  pose(m, actor.x, actor.base, actor.z, actor.angle + (bear ? -Math.PI / 2 : Math.PI / 2), () => {
+  pose(m, actor.x, actor.base, actor.z, actor.angle - Math.PI / 2, () => {
     if (bear) {
       const fur = stats.model === 'bear' ? '#433e3b' : '#80604a',
         light = stats.model === 'bear' ? '#897a68' : '#af8a63',
         walk = sampleBearWalk(phase, motion),
-        bob = walk.bob,
-        sway = walk.sway;
+        bob = walk.bob + 0.21 * load + 0.09 * strike,
+        sway = walk.sway + 0.12 * load - 0.09 * strike;
       const affection = actor.affection ? Math.sin(time * 0.006) * 0.035 : 0,
-        head = walk.headBob + affection;
+        head = walk.headBob + affection + 0.11 * load - 0.17 * strike;
       m.sphere(sway, 0.79 + bob, 0, 0.47, 0.49, 0.67, fur, 16, 10, 'stucco');
       m.sphere(sway * 0.7, 1.03 + bob + head, 0.43, 0.38, 0.4, 0.38, fur, 16, 10, 'stucco');
       m.sphere(sway * 0.7, 0.96 + bob + head, 0.72, 0.23, 0.17, 0.18, light, 14, 8);
@@ -681,33 +884,47 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0) {
         );
       }
       for (const paw of walk.paws) {
+        const swipe = paw.side > 0 && paw.end > 0;
+        const x = paw.x + (swipe ? 0.22 * load - 0.6 * strike : 0);
+        const y = paw.y + (swipe ? 0.81 * load + 0.48 * strike : 0);
+        const z = paw.z + (swipe ? -0.24 * load + 0.82 * strike : 0);
         const shoulder = [paw.side * 0.3 + sway, 0.67 + bob, paw.end * 0.39] satisfies [
             number,
             number,
             number,
           ],
-          knee = [paw.x, 0.33 + (paw.y - 0.1) * 0.5, paw.z - 0.055] satisfies [
+          knee = [(paw.x + x) / 2, 0.33 + (y - 0.1) * 0.55, (paw.z + z) / 2 - 0.055] satisfies [
             number,
             number,
             number,
           ],
-          ankle = [paw.x, paw.y + 0.04, paw.z] satisfies [number, number, number];
+          ankle = [x, y + 0.04, z] satisfies [number, number, number];
         m.sphere(...shoulder, 0.18, 0.24, 0.2, fur, 12, 7, 'stucco');
         m.rod(shoulder, knee, 0.14, fur, 10);
         m.sphere(...knee, 0.145, 0.17, 0.155, fur, 12, 7, 'stucco');
         m.rod(knee, ankle, 0.115, fur, 10);
-        m.sphere(paw.x, paw.y, paw.z + 0.06, 0.17, 0.1, 0.22, '#614a3d', 12, 7);
+        m.sphere(x, y, z + 0.06, 0.17, 0.1, 0.22, '#614a3d', 12, 7);
       }
       m.sphere(sway, 0.85 + bob, -0.62, 0.13, 0.13, 0.13, fur, 10, 6);
     } else {
       const skin = ice ? '#9dcfdf' : '#d1ddd8',
         shade = ice ? '#5b94b9' : '#8fabb5',
         frost = '#e1f3ee';
-      m.sphere(0, 1.85, 0, 0.7, 0.94, 0.43, skin, 16, 11, 'stucco');
-      m.sphere(0, 2.83, 0.03, 0.39, 0.47, 0.32, skin, 14, 10);
+      const lean = 0.24 * strike - 0.1 * load;
+      m.sphere(0, 1.85 - 0.12 * strike, lean, 0.7, 0.94, 0.43, skin, 16, 11, 'stucco');
+      m.sphere(0, 2.83 - 0.12 * strike, 0.03 + lean, 0.39, 0.47, 0.32, skin, 14, 10);
       for (const side of [-1, 1] satisfies [number, number]) {
         const stride = Math.sin(phase + side * Math.PI) * motion * 0.25,
-          hand = [side * 0.91, 1.1 + stride, 0.08] satisfies [number, number, number];
+          hand = [
+            side * (0.91 - 0.32 * strike),
+            1.1 + stride + 1.75 * load + 0.29 * strike,
+            0.08 + 1.1 * strike - 0.35 * load,
+          ] satisfies [number, number, number];
+        const elbow = [
+          side * (0.91 - 0.09 * strike),
+          1.75 + 0.85 * load,
+          -stride + 0.51 * strike - 0.14 * load,
+        ] satisfies [number, number, number];
         m.rod(
           [side * 0.31, 1.21, 0] satisfies [number, number, number],
           [side * 0.35, 0.58, -stride] satisfies [number, number, number],
@@ -723,23 +940,48 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0) {
           12,
         );
         m.sphere(side * 0.36, 0.15, stride + 0.12, 0.23, 0.16, 0.34, shade, 12, 7);
-        m.sphere(side * 0.64, 2.36, 0, 0.35, 0.39, 0.31, frost, 12, 8);
+        m.sphere(side * 0.64, 2.36 - 0.1 * strike, lean, 0.35, 0.39, 0.31, frost, 12, 8);
         m.rod(
-          [side * 0.66, 2.3, 0] satisfies [number, number, number],
-          [side * 0.91, 1.75, -stride] satisfies [number, number, number],
+          [side * 0.66, 2.3 - 0.1 * strike, lean] satisfies [number, number, number],
+          elbow,
           0.22,
           skin,
           12,
         );
-        m.rod(
-          [side * 0.91, 1.75, -stride] satisfies [number, number, number],
-          hand,
-          0.18,
-          shade,
-          12,
-        );
+        m.rod(elbow, hand, 0.18, shade, 12);
         m.sphere(...hand, 0.23, 0.25, 0.21, skin, 12, 7);
-        m.sphere(side * 0.13, 2.9, 0.315, 0.06, 0.035, 0.022, '#4b7488', 10, 5, { emissive: 0.22 });
+        if (ice && side > 0) {
+          const grip: [number, number, number] = [hand[0] + 0.13, hand[1], hand[2] + 0.07];
+          const shaft = [0, Math.cos(strike * 1.18), Math.sin(strike * 1.18)];
+          const along = (length: number) => grip.map((v, i) => v + length * shaft[i]);
+          m.rod(along(-1), along(0.18), 0.055, shade, 10);
+          const tip = along(0.35);
+          m.sphere(tip[0], tip[1], tip[2], 0.17, 0.38, 0.17, '#a7e1ec', 6, 4, { emissive: 0.1 });
+        } else if (!ice && side < 0)
+          m.sphere(
+            hand[0] - 0.03,
+            hand[1] - 0.02,
+            hand[2] + 0.09,
+            0.32,
+            0.32,
+            0.3,
+            '#d8e6df',
+            12,
+            8,
+            'stucco',
+          );
+        m.sphere(
+          side * 0.13,
+          2.9 - 0.12 * strike,
+          0.315 + lean,
+          0.06,
+          0.035,
+          0.022,
+          '#4b7488',
+          10,
+          5,
+          { emissive: 0.22 },
+        );
         for (let i = 0; i < 3; i++) {
           const x = side * (0.5 + i * 0.13),
             y = 2.55 - i * 0.03;
@@ -757,33 +999,27 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0) {
           );
         }
       }
-      m.sphere(0, 2.72, 0.35, 0.09, 0.11, 0.1, shade, 12, 6);
+      m.sphere(0, 2.72 - 0.12 * strike, 0.35 + lean, 0.09, 0.11, 0.1, shade, 12, 6);
       for (let i = 0; i < 5; i++) {
         const x = (i - 2) * 0.07;
         m.tri(
-          [x - 0.045, 2.68, 0.3] satisfies [number, number, number],
-          [x + 0.045, 2.68, 0.3] satisfies [number, number, number],
-          [x, 2.32 - Math.abs(i - 2) * 0.05, 0.25] satisfies [number, number, number],
+          [x - 0.045, 2.68 - 0.12 * strike, 0.3 + lean] satisfies [number, number, number],
+          [x + 0.045, 2.68 - 0.12 * strike, 0.3 + lean] satisfies [number, number, number],
+          [x, 2.32 - Math.abs(i - 2) * 0.05 - 0.12 * strike, 0.25 + lean] satisfies [
+            number,
+            number,
+            number,
+          ],
           frost,
         );
       }
-      if (ice) {
-        m.rod(
-          [1.04, 0.1, 0.15] satisfies [number, number, number],
-          [1.04, 1.28, 0.15] satisfies [number, number, number],
-          0.055,
-          shade,
-          10,
-        );
-        m.sphere(1.04, 1.45, 0.15, 0.17, 0.38, 0.17, '#a7e1ec', 6, 4, { emissive: 0.1 });
-      } else m.sphere(-0.94, 1.08, 0.17, 0.32, 0.32, 0.3, '#d8e6df', 12, 8, 'stucco');
     }
   });
 }
 
 /** A horizontal shark mesh, facing +X like the authoritative movement vector.
  * Its pectoral fins shuffle on land while the forked tail swings behind it. */
-function drawLandshark(m: Mesh, actor: MonsterPose) {
+function drawLandshark(m: Mesh, actor: MonsterPose, strike: number, load: number) {
   const motion = actor.motion || 0,
     phase = actor.phase || 0,
     bob = Math.sin(phase * 2) * 0.035 * motion;
@@ -802,9 +1038,10 @@ function drawLandshark(m: Mesh, actor: MonsterPose) {
       [1.23, 0.13, 0.15] satisfies [number, number, number],
       [1.42, 0.045, 0.055] satisfies [number, number, number],
     ];
+    const headX = (x: number) => x + Math.max(0, x + 0.35) * (0.37 * strike - 0.15 * load);
     const at = (p: readonly number[], i: number) => {
       const a = (i * Math.PI) / 12;
-      return [p[0], 0.66 + Math.cos(a) * p[1] + bob, Math.sin(a) * p[2]];
+      return [headX(p[0]), 0.66 + Math.cos(a) * p[1] + bob, Math.sin(a) * p[2]];
     };
     for (let j = 1; j < profiles.length; j++)
       for (let i = 0; i < 24; i++) {
@@ -825,7 +1062,7 @@ function drawLandshark(m: Mesh, actor: MonsterPose) {
       for (let i = 0; i < 24; i++) {
         const a = at(p, i),
           b = at(p, i + 1);
-        m.tri([p[0], 0.66 + bob, 0], reverse ? b : a, reverse ? a : b, side);
+        m.tri([headX(p[0]), 0.66 + bob, 0], reverse ? b : a, reverse ? a : b, side);
       }
     const fin = (a: number[], b: number[], c: number[], color = back) => {
       const thickness = 0.024,
@@ -889,25 +1126,37 @@ function drawLandshark(m: Mesh, actor: MonsterPose) {
         back,
       );
       // Eyes, tiny highlights, and five recessed gill slits.
-      m.sphere(0.86, 0.77 + bob, s * 0.235, 0.045, 0.043, 0.018, '#162a32', 12, 7);
-      m.sphere(0.875, 0.783 + bob, s * 0.251, 0.011, 0.012, 0.005, '#f6f0d8', 8, 5);
+      m.sphere(headX(0.86), 0.77 + bob, s * 0.235, 0.045, 0.043, 0.018, '#162a32', 12, 7);
+      m.sphere(headX(0.875), 0.783 + bob, s * 0.251, 0.011, 0.012, 0.005, '#f6f0d8', 8, 5);
       for (let i = 0; i < 5; i++)
         m.rod(
-          [0.42 - i * 0.09, 0.77 + bob, s * (0.35 + i * 0.012)] satisfies [number, number, number],
-          [0.38 - i * 0.09, 0.49 + bob, s * (0.32 + i * 0.009)] satisfies [number, number, number],
+          [headX(0.42 - i * 0.09), 0.77 + bob, s * (0.35 + i * 0.012)] satisfies [
+            number,
+            number,
+            number,
+          ],
+          [headX(0.38 - i * 0.09), 0.49 + bob, s * (0.32 + i * 0.009)] satisfies [
+            number,
+            number,
+            number,
+          ],
           0.012,
           dark,
           5,
         );
       // Crescent mouth, with small individual ivory teeth.
       m.tri(
-        [0.7, 0.48 + bob, s * 0.26] satisfies [number, number, number],
-        [1.29, 0.55 + bob, s * 0.11] satisfies [number, number, number],
-        [1, 0.35 + bob, s * 0.18] satisfies [number, number, number],
+        [headX(0.7), 0.48 + bob, s * 0.26] satisfies [number, number, number],
+        [headX(1.29), 0.55 + bob, s * 0.11] satisfies [number, number, number],
+        [headX(1), 0.35 + bob - 0.13 * strike - 0.14 * load, s * 0.18] satisfies [
+          number,
+          number,
+          number,
+        ],
         dark,
       );
       for (let i = 0; i < 5; i++) {
-        const x = 0.8 + i * 0.075,
+        const x = headX(0.8 + i * 0.075),
           z = s * (0.24 - i * 0.022),
           y = 0.49 + i * 0.007 + bob;
         m.tri(

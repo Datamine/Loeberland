@@ -54,8 +54,20 @@
           <canvas id="sf-minimap" width="184" height="154" aria-hidden="true"></canvas>
         </button>
         <div class="sf-map-layers" role="group" aria-label="Map layers">
-          <button id="sf-map-npcs" type="button" aria-pressed="false">NPCs</button>
-          <button id="sf-map-shops" type="button" aria-pressed="false">Shops</button>
+          <button id="sf-map-npcs" type="button" aria-pressed="false">
+            <span aria-hidden="true"></span>NPCs
+          </button>
+          <button id="sf-map-shops" type="button" aria-pressed="false" title="NPCs who sell things">
+            <span aria-hidden="true"></span>Shops
+          </button>
+          <button
+            id="sf-map-tasks"
+            type="button"
+            aria-pressed="false"
+            title="NPCs who offer quests, chores, or buy items from you"
+          >
+            <span aria-hidden="true"></span>Tasks
+          </button>
         </div>
         <div class="sf-zoom">
           <label class="sf-zoom-control"
@@ -94,392 +106,479 @@
             hidden
           ></div>
         </div>
-        <div class="sf-actions" role="group" aria-label="Exploration controls" data-mode="ground">
-          <div class="sf-purse" aria-live="polite">
-            <span>◉ <strong id="sf-coins">25</strong> coins</span
-            ><span id="sf-inebriation">0% inebriated</span> <span id="sf-sales-status" hidden></span
-            ><span id="sf-phone-status" hidden></span><span id="sf-robotaxi-status" hidden></span
-            ><span id="sf-quest-inventory" class="sf-quest-inventory" hidden></span>
-          </div>
-          <button id="sf-fuel-can-button" class="sf-bike-button" type="button" hidden>
-            Use fuel can
-          </button>
-          <div class="sf-hitpoints">
-            <span id="sf-hitpoints-text">Hitpoints 30/30</span
-            ><span id="sf-enemy-health" hidden></span>
-          </div>
-          <div class="sf-food-controls">
-            <button id="sf-order-doordash" class="sf-bike-button" type="button">
-              DoorDash · 15 coins</button
-            ><button id="sf-eat-sandwich" class="sf-bike-button" type="button" hidden>
-              Eat sandwich
-            </button>
-            <button id="sf-call-waymo" class="sf-bike-button" type="button">
-              Call a Waymo · 12 coins
-            </button>
-          </div>
-          <button id="sf-stop-construction" class="sf-bike-button" type="button" hidden>
-            Stop construction
-          </button>
-          <button id="sf-exit-streetcar" class="sf-bike-button" type="button" hidden>
-            Get off cable car
-          </button>
-          <button id="sf-exit-swing" class="sf-bike-button" type="button" hidden>
-            Get off swing
-          </button>
-          <button class="sf-bike-button" type="button" data-inventory-action="trimArmor" hidden>
-            Trim iron armor
-          </button>
-          <button class="sf-bike-button" type="button" data-inventory-action="breakBind" hidden>
-            Break Bind Tablet
-          </button>
-          <small id="sf-combat-supplies" hidden></small
-          ><button id="sf-charge-railgun" class="sf-bike-button" type="button" hidden>
-            Fit battery
-          </button>
-          <button id="sf-drink-coffee" class="sf-bike-button" type="button" hidden>
-            Drink complimentary coffee
-          </button>
-          <div class="sf-strength">
-            <span id="sf-hp-level">Hitpoints Level 1 · 0 XP</span
-            ><span id="sf-strength-text">Strength Level 1 · 0 XP</span>
-          </div>
-          <div id="sf-fuel-card" class="sf-fuel-card" hidden>
-            <label
-              >Ferrari <span id="sf-fuel-text">100% gas</span
-              ><meter id="sf-fuel-meter" min="0" max="1" low=".15" high=".55" optimum="1" value="1">
-                Full
-              </meter></label
-            >
-            <div>
-              <button id="sf-drive-tahoe" type="button">Drive to Tahoe</button
-              ><button id="sf-drive-dealer" type="button">Dealership</button
-              ><button id="sf-refuel-button" type="button">Refuel nearby</button>
+        <div class="sf-side-hud">
+          <div class="sf-actions" role="group" aria-label="Exploration controls" data-mode="ground">
+            <div id="sf-you-panel" class="sf-you" role="tabpanel" aria-labelledby="sf-you-tab">
+              <div class="sf-purse" aria-live="polite">
+                <span>◉ <strong id="sf-coins">25</strong> coins</span
+                ><span id="sf-inebriation">0% inebriated</span>
+                <span id="sf-sales-status" hidden></span><span id="sf-phone-status" hidden></span
+                ><span id="sf-robotaxi-status" hidden></span
+                ><span id="sf-quest-inventory" class="sf-quest-inventory" hidden></span>
+              </div>
+              <button id="sf-fuel-can-button" class="sf-bike-button" type="button" hidden>
+                Use fuel can
+              </button>
+              <div class="sf-hitpoints">
+                <span id="sf-hitpoints-text">Hitpoints 30/30</span
+                ><span id="sf-enemy-health" hidden></span>
+              </div>
+              <div class="sf-food-controls">
+                <button id="sf-order-doordash" class="sf-bike-button" type="button">
+                  DoorDash · 15 coins</button
+                ><button id="sf-eat-sandwich" class="sf-bike-button" type="button" hidden>
+                  Eat sandwich
+                </button>
+                <button id="sf-call-waymo" class="sf-bike-button" type="button">
+                  Waymo · 12 coins
+                </button>
+              </div>
+              <button id="sf-stop-construction" class="sf-bike-button" type="button" hidden>
+                Stop construction
+              </button>
+              <button id="sf-exit-streetcar" class="sf-bike-button" type="button" hidden>
+                Get off cable car
+              </button>
+              <button id="sf-exit-swing" class="sf-bike-button" type="button" hidden>
+                Get off swing
+              </button>
+              <button class="sf-bike-button" type="button" data-inventory-action="trimArmor" hidden>
+                Trim iron armor
+              </button>
+              <button class="sf-bike-button" type="button" data-inventory-action="breakBind" hidden>
+                Break Bind Tablet
+              </button>
+              <small id="sf-combat-supplies" hidden></small
+              ><button id="sf-charge-railgun" class="sf-bike-button" type="button" hidden>
+                Fit battery
+              </button>
+              <button id="sf-drink-coffee" class="sf-bike-button" type="button" hidden>
+                Drink complimentary coffee
+              </button>
+              <div class="sf-strength">
+                <label id="sf-hp-level-text" for="sf-hp-level"
+                  >Hitpoints Level 1 · 0.00% to Level 2</label
+                >
+                <progress id="sf-hp-level" max="100" value="0"></progress>
+                <label id="sf-strength-level-text" for="sf-strength-progress"
+                  >Strength Level 1 · 0.00% to Level 2</label
+                >
+                <progress id="sf-strength-progress" max="100" value="0"></progress>
+              </div>
+              <div id="sf-fuel-card" class="sf-fuel-card" hidden>
+                <label
+                  >Ferrari <span id="sf-fuel-text">100% gas</span
+                  ><meter
+                    id="sf-fuel-meter"
+                    min="0"
+                    max="1"
+                    low=".15"
+                    high=".55"
+                    optimum="1"
+                    value="1"
+                  >
+                    Full
+                  </meter></label
+                >
+                <div>
+                  <button id="sf-drive-tahoe" type="button">Drive to Tahoe</button
+                  ><button id="sf-drive-dealer" type="button">Dealership</button
+                  ><button id="sf-refuel-button" type="button">Refuel nearby</button>
+                </div>
+              </div>
+              <div class="sf-travel-controls">
+                <div
+                  id="sf-bomber-controls"
+                  class="sf-bomber-controls"
+                  role="group"
+                  aria-label="B-2 controls"
+                  hidden
+                >
+                  <span id="sf-bomber-flight">Personal B-2 · Hold Shift to boost</span
+                  ><button id="sf-bomber-roll" class="sf-bike-button" type="button">
+                    Barrel roll · R</button
+                  ><button id="sf-bomber-bomb" class="sf-bike-button" type="button">
+                    Drop bomb · Space</button
+                  ><button id="sf-bomber-land" class="sf-bike-button" type="button">
+                    Land · Parachute out
+                  </button>
+                </div>
+                <button id="sf-climb-button" class="sf-bike-button" type="button" hidden>
+                  Climb down <span class="sf-key">E</span>
+                </button>
+                <button id="sf-grapple-button" class="sf-bike-button" type="button" disabled>
+                  Grapple airship
+                </button>
+                <div
+                  id="sf-wave-controls"
+                  class="sf-wave-controls"
+                  role="group"
+                  aria-label="Pacifica surfing"
+                  hidden
+                >
+                  <span id="sf-wave-status" aria-live="polite">Paddling</span>
+                  <button
+                    id="sf-wave-catch"
+                    class="sf-bike-button"
+                    type="button"
+                    aria-keyshortcuts="Space"
+                  >
+                    Catch wave · Space
+                  </button>
+                  <button
+                    class="sf-bike-button"
+                    type="button"
+                    data-surf-trick="air-360"
+                    aria-keyshortcuts="1 Space"
+                  >
+                    Air 360 · 1 / Space
+                  </button>
+                  <button
+                    class="sf-bike-button"
+                    type="button"
+                    data-surf-trick="kickflip"
+                    aria-keyshortcuts="2"
+                  >
+                    Kickflip · 2
+                  </button>
+                  <button
+                    class="sf-bike-button"
+                    type="button"
+                    data-surf-trick="backflip"
+                    aria-keyshortcuts="3"
+                  >
+                    Backflip · 3
+                  </button>
+                </div>
+                <button
+                  id="sf-skateboard-button"
+                  class="sf-bike-button"
+                  type="button"
+                  hidden
+                  aria-pressed="false"
+                  aria-keyshortcuts="K"
+                >
+                  Skateboard <span class="sf-key">K</span>
+                </button>
+                <div
+                  id="sf-skate-tricks"
+                  class="sf-vehicle-tricks"
+                  role="group"
+                  aria-label="Skateboard tricks"
+                  hidden
+                >
+                  <button
+                    class="sf-bike-button"
+                    type="button"
+                    data-skate-trick="ollie"
+                    aria-keyshortcuts="1"
+                  >
+                    Ollie · 1
+                  </button>
+                  <button
+                    class="sf-bike-button"
+                    type="button"
+                    data-skate-trick="kickflip"
+                    aria-keyshortcuts="2"
+                  >
+                    Kickflip · 2
+                  </button>
+                  <button
+                    class="sf-bike-button"
+                    type="button"
+                    data-skate-trick="shove-it"
+                    aria-keyshortcuts="3"
+                  >
+                    360 shove-it · 3
+                  </button>
+                </div>
+                <button
+                  id="sf-bike-button"
+                  class="sf-bike-button"
+                  type="button"
+                  aria-pressed="false"
+                >
+                  Find bike <span class="sf-key">B</span>
+                </button>
+                <div
+                  id="sf-motorcycle-tricks"
+                  class="sf-vehicle-tricks"
+                  role="group"
+                  aria-label="Motorcycle tricks"
+                  hidden
+                >
+                  <button
+                    class="sf-bike-button"
+                    type="button"
+                    data-motorcycle-trick="motorcycle-wheelie"
+                    aria-keyshortcuts="1"
+                  >
+                    Wheelie · 1
+                  </button>
+                  <button
+                    class="sf-bike-button"
+                    type="button"
+                    data-motorcycle-trick="motorcycle-endo"
+                    aria-keyshortcuts="2"
+                  >
+                    Endo · 2
+                  </button>
+                  <button
+                    class="sf-bike-button"
+                    type="button"
+                    data-motorcycle-trick="motorcycle-hop"
+                    aria-keyshortcuts="3"
+                  >
+                    Bunny hop · 3
+                  </button>
+                </div>
+                <button id="sf-rope-button" class="sf-bike-button" type="button" hidden>
+                  Rope
+                </button>
+                <button id="sf-ski-button" class="sf-bike-button" type="button" hidden>
+                  Ride gondola
+                </button>
+                <button id="sf-atv-rent" class="sf-bike-button" type="button" hidden>
+                  Rent ATV
+                </button>
+                <div
+                  id="sf-atv-controls"
+                  class="sf-atv-controls"
+                  role="group"
+                  aria-label="ATV controls"
+                  hidden
+                >
+                  <button class="sf-bike-button" type="button" data-atv-action="atvJump">
+                    Roof jump
+                  </button>
+                  <button class="sf-bike-button" type="button" data-atv-action="atvDonut">
+                    Donut
+                  </button>
+                  <button
+                    class="sf-bike-button"
+                    type="button"
+                    data-atv-action="atvTrick"
+                    data-atv-trick="roll"
+                    aria-keyshortcuts="R"
+                  >
+                    Air roll · R
+                  </button>
+                  <button
+                    class="sf-bike-button"
+                    type="button"
+                    data-atv-action="atvTrick"
+                    data-atv-trick="spin"
+                    aria-keyshortcuts="T"
+                  >
+                    Air spin · T
+                  </button>
+                  <button class="sf-bike-button" type="button" data-atv-action="atvDismount">
+                    Dismount ATV
+                  </button>
+                </div>
+                <div class="sf-speech-controls" role="group" aria-label="Quick dialogue">
+                  <button
+                    id="sf-say-button"
+                    class="sf-bike-button"
+                    type="button"
+                    data-say="yo"
+                    aria-label="Say yo (S)"
+                    aria-keyshortcuts="S"
+                    title="Say yo (S)"
+                  >
+                    yo <span class="sf-key">S</span>
+                  </button>
+                  <button class="sf-bike-button" type="button" data-say="ok" aria-label="Say ok">
+                    ok
+                  </button>
+                  <button class="sf-bike-button" type="button" data-say="no" aria-label="Say no">
+                    no
+                  </button>
+                </div>
+                <button
+                  id="sf-roll-button"
+                  class="sf-bike-button"
+                  type="button"
+                  aria-keyshortcuts="V"
+                  title="Forward roll (V)"
+                >
+                  Forward roll <span class="sf-key">V</span>
+                </button>
+                <div class="sf-rocket-ignition">
+                  <button
+                    id="sf-light-decorative-rocket"
+                    class="sf-bike-button"
+                    type="button"
+                    disabled
+                  >
+                    Light Rocket
+                  </button>
+                  <small id="sf-rocket-countdown" hidden></small>
+                </div>
+                <button
+                  id="sf-rocket-hop"
+                  class="sf-bike-button"
+                  type="button"
+                  aria-keyshortcuts="Space"
+                  title="Jump with your burning back rocket (Space)"
+                  hidden
+                >
+                  Rocket hop <span class="sf-key">Space</span>
+                </button>
+                <button
+                  id="sf-dance-button"
+                  class="sf-bike-button"
+                  type="button"
+                  aria-pressed="false"
+                  aria-keyshortcuts="D"
+                >
+                  Dance <span class="sf-key">D</span>
+                </button>
+                <div id="sf-quick-actions" class="sf-quick-actions">
+                  <button
+                    id="sf-sit-button"
+                    class="sf-bike-button"
+                    type="button"
+                    aria-controls="sf-chairs"
+                    aria-expanded="false"
+                    aria-keyshortcuts="X"
+                    title="Choose how to sit (X)"
+                  >
+                    Sit <span class="sf-key">X</span>
+                  </button>
+                  <button
+                    id="sf-teleport-button"
+                    class="sf-bike-button"
+                    type="button"
+                    aria-controls="sf-tablets"
+                    aria-expanded="false"
+                  >
+                    Teleport
+                  </button>
+                  <div
+                    id="sf-chairs"
+                    class="sf-action-choices"
+                    role="group"
+                    aria-label="Seating"
+                    popover="manual"
+                  >
+                    <button class="sf-bike-button" type="button" data-chair="normal">Normal</button>
+                    <button class="sf-bike-button" type="button" data-chair="eames-chair" hidden>
+                      Eames Chair
+                    </button>
+                    <button class="sf-bike-button" type="button" data-chair="bertoia-chair" hidden>
+                      Bertoia Chair
+                    </button>
+                    <button class="sf-bike-button" type="button" data-chair="ball-chair" hidden>
+                      Ball Chair
+                    </button>
+                  </div>
+                  <div
+                    id="sf-tablets"
+                    class="sf-action-choices sf-tablets"
+                    role="group"
+                    aria-label="Teleport destinations"
+                    popover="manual"
+                  >
+                    <button id="sf-tablet-cupertino" type="button" data-tablet="cupertino" disabled>
+                      Cupertino <span>· 0</span>
+                    </button>
+                    <button id="sf-tablet-downtown" type="button" data-tablet="downtown" disabled>
+                      Downtown <span>· 0</span>
+                    </button>
+                    <button id="sf-tablet-tahoe" type="button" data-tablet="tahoe" disabled>
+                      Tahoe <span>· 0</span>
+                    </button>
+                    <button
+                      id="sf-tablet-goblin-village"
+                      type="button"
+                      data-tablet="goblin-village"
+                      disabled
+                    >
+                      Goblin Village <span>· 0</span>
+                    </button>
+                  </div>
+                </div>
+                <button
+                  id="sf-collection-button"
+                  class="sf-bike-button"
+                  type="button"
+                  aria-haspopup="dialog"
+                  aria-controls="sf-collection"
+                >
+                  Collection log
+                </button>
+                <button
+                  id="sf-quests-button"
+                  class="sf-bike-button"
+                  type="button"
+                  aria-haspopup="dialog"
+                  aria-controls="sf-quests"
+                  aria-keyshortcuts="Q"
+                >
+                  Quests <span class="sf-key">Q</span>
+                </button>
+                <button
+                  id="sf-character-button"
+                  class="sf-bike-button"
+                  type="button"
+                  aria-haspopup="dialog"
+                  aria-controls="sf-character"
+                >
+                  Character <span class="sf-key">C</span>
+                </button>
+                <div id="sf-growth-ticker" class="sf-growth-ticker" aria-live="polite" hidden></div>
+              </div>
             </div>
-          </div>
-          <div class="sf-travel-controls">
-            <div
-              id="sf-bomber-controls"
-              class="sf-bomber-controls"
-              role="group"
-              aria-label="B-2 controls"
+            <section
+              id="sf-scores-panel"
+              class="sf-high-scores"
+              role="tabpanel"
+              aria-labelledby="sf-scores-tab"
               hidden
             >
-              <span id="sf-bomber-flight">Personal B-2 · Hold Shift to boost</span
-              ><button id="sf-bomber-roll" class="sf-bike-button" type="button">
-                Barrel roll · R</button
-              ><button id="sf-bomber-bomb" class="sf-bike-button" type="button">
-                Drop bomb · Space</button
-              ><button id="sf-bomber-land" class="sf-bike-button" type="button">
-                Land · Parachute out
+              <label
+                >Rank by
+                <select>
+                  <option value="coins">Coins</option>
+                  <option value="strength">Strength</option>
+                </select></label
+              >
+              <p role="status"></p>
+              <ol></ol>
+            </section>
+            <div class="sf-action-tabs">
+              <div class="sf-tablist" role="tablist" aria-label="Menu view">
+                <button
+                  id="sf-you-tab"
+                  type="button"
+                  role="tab"
+                  aria-controls="sf-you-panel"
+                  aria-selected="true"
+                >
+                  You
+                </button>
+                <button
+                  id="sf-scores-tab"
+                  type="button"
+                  role="tab"
+                  aria-controls="sf-scores-panel"
+                  aria-selected="false"
+                  tabindex="-1"
+                >
+                  High Scores
+                </button>
+              </div>
+              <button
+                id="sf-help-button"
+                type="button"
+                aria-haspopup="dialog"
+                aria-controls="sf-help"
+              >
+                Help
               </button>
+              <span id="sf-online-count" class="sf-online-count">0 online</span>
             </div>
-            <button id="sf-climb-button" class="sf-bike-button" type="button" hidden>
-              Climb down <span class="sf-key">E</span>
-            </button>
-            <button id="sf-tablet-downtown" class="sf-bike-button" type="button" hidden>
-              Downtown Teleport
-            </button>
-            <button id="sf-tablet-cupertino" class="sf-bike-button" type="button" hidden>
-              Cupertino Teleport
-            </button>
-            <button id="sf-tablet-tahoe" class="sf-bike-button" type="button" hidden>
-              Tahoe Teleport
-            </button>
-            <button id="sf-tablet-goblin-village" class="sf-bike-button" type="button" hidden>
-              Goblin Village Teleport
-            </button>
-            <button id="sf-grapple-button" class="sf-bike-button" type="button" disabled>
-              Grapple airship
-            </button>
-            <div
-              id="sf-wave-controls"
-              class="sf-wave-controls"
-              role="group"
-              aria-label="Pacifica surfing"
-              hidden
-            >
-              <span id="sf-wave-status" aria-live="polite">Paddling</span>
-              <button
-                id="sf-wave-catch"
-                class="sf-bike-button"
-                type="button"
-                aria-keyshortcuts="Space"
-              >
-                Catch wave · Space
-              </button>
-              <button
-                class="sf-bike-button"
-                type="button"
-                data-surf-trick="air-360"
-                aria-keyshortcuts="1 Space"
-              >
-                Air 360 · 1 / Space
-              </button>
-              <button
-                class="sf-bike-button"
-                type="button"
-                data-surf-trick="kickflip"
-                aria-keyshortcuts="2"
-              >
-                Kickflip · 2
-              </button>
-              <button
-                class="sf-bike-button"
-                type="button"
-                data-surf-trick="backflip"
-                aria-keyshortcuts="3"
-              >
-                Backflip · 3
-              </button>
-            </div>
-            <button
-              id="sf-skateboard-button"
-              class="sf-bike-button"
-              type="button"
-              hidden
-              aria-pressed="false"
-              aria-keyshortcuts="K"
-            >
-              Skateboard <span class="sf-key">K</span>
-            </button>
-            <div
-              id="sf-skate-tricks"
-              class="sf-vehicle-tricks"
-              role="group"
-              aria-label="Skateboard tricks"
-              hidden
-            >
-              <button
-                class="sf-bike-button"
-                type="button"
-                data-skate-trick="ollie"
-                aria-keyshortcuts="1"
-              >
-                Ollie · 1
-              </button>
-              <button
-                class="sf-bike-button"
-                type="button"
-                data-skate-trick="kickflip"
-                aria-keyshortcuts="2"
-              >
-                Kickflip · 2
-              </button>
-              <button
-                class="sf-bike-button"
-                type="button"
-                data-skate-trick="shove-it"
-                aria-keyshortcuts="3"
-              >
-                360 shove-it · 3
-              </button>
-            </div>
-            <button id="sf-bike-button" class="sf-bike-button" type="button" aria-pressed="false">
-              Find bike <span class="sf-key">B</span>
-            </button>
-            <button
-              id="sf-motorcycle-button"
-              class="sf-bike-button"
-              type="button"
-              hidden
-              aria-pressed="false"
-              aria-keyshortcuts="M"
-            >
-              Motorcycle · M
-            </button>
-            <div
-              id="sf-motorcycle-tricks"
-              class="sf-vehicle-tricks"
-              role="group"
-              aria-label="Motorcycle tricks"
-              hidden
-            >
-              <button
-                class="sf-bike-button"
-                type="button"
-                data-motorcycle-trick="motorcycle-wheelie"
-                aria-keyshortcuts="1"
-              >
-                Wheelie · 1
-              </button>
-              <button
-                class="sf-bike-button"
-                type="button"
-                data-motorcycle-trick="motorcycle-endo"
-                aria-keyshortcuts="2"
-              >
-                Endo · 2
-              </button>
-              <button
-                class="sf-bike-button"
-                type="button"
-                data-motorcycle-trick="motorcycle-hop"
-                aria-keyshortcuts="3"
-              >
-                Bunny hop · 3
-              </button>
-            </div>
-            <button id="sf-rope-button" class="sf-bike-button" type="button" hidden>Rope</button>
-            <button id="sf-ski-button" class="sf-bike-button" type="button" hidden>
-              Ride gondola
-            </button>
-            <button id="sf-atv-rent" class="sf-bike-button" type="button" hidden>Rent ATV</button>
-            <div
-              id="sf-atv-controls"
-              class="sf-atv-controls"
-              role="group"
-              aria-label="ATV controls"
-              hidden
-            >
-              <button class="sf-bike-button" type="button" data-atv-action="atvJump">
-                Roof jump
-              </button>
-              <button class="sf-bike-button" type="button" data-atv-action="atvDonut">Donut</button>
-              <button
-                class="sf-bike-button"
-                type="button"
-                data-atv-action="atvTrick"
-                data-atv-trick="roll"
-                aria-keyshortcuts="R"
-              >
-                Air roll · R
-              </button>
-              <button
-                class="sf-bike-button"
-                type="button"
-                data-atv-action="atvTrick"
-                data-atv-trick="spin"
-                aria-keyshortcuts="T"
-              >
-                Air spin · T
-              </button>
-              <button class="sf-bike-button" type="button" data-atv-action="atvDismount">
-                Dismount ATV
-              </button>
-            </div>
-            <div class="sf-speech-controls" role="group" aria-label="Quick dialogue">
-              <button
-                id="sf-say-button"
-                class="sf-bike-button"
-                type="button"
-                data-say="yo"
-                aria-label="Say yo (S)"
-                aria-keyshortcuts="S"
-                title="Say yo (S)"
-              >
-                yo <span class="sf-key">S</span>
-              </button>
-              <button class="sf-bike-button" type="button" data-say="ok" aria-label="Say ok">
-                ok
-              </button>
-              <button class="sf-bike-button" type="button" data-say="no" aria-label="Say no">
-                no
-              </button>
-            </div>
-            <button
-              id="sf-roll-button"
-              class="sf-bike-button"
-              type="button"
-              aria-keyshortcuts="V"
-              title="Forward roll (V)"
-            >
-              Forward roll <span class="sf-key">V</span>
-            </button>
-            <button id="sf-light-decorative-rocket" class="sf-bike-button" type="button" hidden>
-              Light rocket · 10 seconds
-            </button>
-            <button
-              id="sf-rocket-hop"
-              class="sf-bike-button"
-              type="button"
-              aria-keyshortcuts="Space"
-              title="Jump with your burning back rocket (Space)"
-              hidden
-            >
-              Rocket hop <span class="sf-key">Space</span>
-            </button>
-            <button
-              id="sf-dance-button"
-              class="sf-bike-button"
-              type="button"
-              aria-pressed="false"
-              aria-keyshortcuts="D"
-            >
-              Dance <span class="sf-key">D</span>
-            </button>
-            <button
-              id="sf-sit-button"
-              class="sf-bike-button"
-              type="button"
-              aria-pressed="false"
-              aria-keyshortcuts="X"
-              title="Sit down and sober up twice as fast (X)"
-            >
-              Sit <span class="sf-key">X</span>
-            </button>
-            <button
-              id="sf-collection-button"
-              class="sf-bike-button"
-              type="button"
-              aria-haspopup="dialog"
-              aria-controls="sf-collection"
-            >
-              Collection log
-            </button>
-            <button
-              id="sf-quests-button"
-              class="sf-bike-button"
-              type="button"
-              aria-haspopup="dialog"
-              aria-controls="sf-quests"
-              aria-keyshortcuts="Q"
-            >
-              Quests <span class="sf-key">Q</span>
-            </button>
-            <button
-              id="sf-character-button"
-              class="sf-bike-button"
-              type="button"
-              aria-haspopup="dialog"
-              aria-controls="sf-character"
-            >
-              Character <span class="sf-key">C</span>
-            </button>
-            <div id="sf-growth-ticker" class="sf-growth-ticker" aria-live="polite" hidden></div>
-            <button
-              id="sf-help-button"
-              class="sf-bike-button"
-              type="button"
-              aria-label="Help: controls and icon legend"
-            >
-              Help
-            </button>
-          </div>
-          <section class="sf-high-scores" aria-label="High Scores" hidden>
-            <label
-              >Rank by
-              <select>
-                <option value="coins">Coins</option>
-                <option value="strength">Strength</option>
-              </select></label
-            >
-            <p role="status"></p>
-            <ol></ol>
-          </section>
-          <div class="sf-action-tabs" role="group" aria-label="Menu view">
-            <button class="sf-bike-button" type="button" data-side-tab="you" aria-pressed="true">
-              You
-            </button>
-            <button
-              class="sf-bike-button"
-              type="button"
-              data-side-tab="scores"
-              aria-pressed="false"
-            >
-              High Scores
-            </button>
-            <span id="sf-online-count" class="sf-online-count">0 online</span>
           </div>
         </div>
       </div>
@@ -508,16 +607,9 @@
         role="dialog"
         aria-modal="true"
         aria-label="Collection log"
+        tabindex="-1"
         hidden
       >
-        <button
-          id="sf-close-collection"
-          class="sf-panel-close"
-          type="button"
-          aria-label="Close collection log"
-        >
-          Close
-        </button>
         <p id="sf-collection-summary"></p>
         <div id="sf-collection-list"></div>
       </section>
@@ -527,11 +619,9 @@
         role="dialog"
         aria-modal="true"
         aria-label="Quests"
+        tabindex="-1"
         hidden
       >
-        <button id="sf-close-quests" class="sf-panel-close" type="button" aria-label="Close quests">
-          Close
-        </button>
         <div id="sf-quest-list" aria-live="polite"></div>
       </section>
       <div id="sf-ai-interview" class="sf-interview-layer" hidden>
@@ -706,29 +796,140 @@
         role="dialog"
         aria-modal="true"
         aria-label="Character"
+        tabindex="-1"
         hidden
       >
-        <button
-          id="sf-close-character"
-          class="sf-panel-close"
-          type="button"
-          aria-label="Close character settings"
+        <div
+          id="sf-character-tabs"
+          class="sf-tablist"
+          role="tablist"
+          aria-label="Character settings"
         >
-          Close
-        </button>
-        <p id="sf-character-level" class="sf-guild-status">Level 1</p>
-        <p id="sf-character-balance" class="sf-character-balance">0 coins | 0.00 banked</p>
-        <p id="sf-character-resources" class="sf-character-resources" hidden></p>
-        <div class="sf-pvp-option">
-          <label
-            ><input id="sf-pvp-enabled" type="checkbox" aria-describedby="sf-pvp-status" /> Enable
-            PvP</label
-          ><small id="sf-pvp-status" role="status"
-            >Both players must opt in. Wait 30 seconds before disabling PvP.</small
+          <button
+            id="sf-character-tab"
+            type="button"
+            role="tab"
+            aria-controls="sf-character-panel"
+            aria-selected="true"
           >
-          <p>On death, you drop only your coins, iPhone, and sandwiches.</p>
+            Character
+          </button>
+          <button
+            id="sf-account-tab"
+            type="button"
+            role="tab"
+            aria-controls="sf-account-panel"
+            aria-selected="false"
+            tabindex="-1"
+          >
+            Username &amp; Password
+          </button>
         </div>
-        <div id="sf-username-form" class="sf-username-form">
+        <div id="sf-character-panel" role="tabpanel" aria-labelledby="sf-character-tab">
+          <p id="sf-character-level" class="sf-guild-status">Level 1</p>
+          <p id="sf-character-resources" class="sf-character-resources" hidden></p>
+          <div class="sf-pvp-option">
+            <label
+              ><input id="sf-pvp-enabled" type="checkbox" aria-describedby="sf-pvp-status" /> Enable
+              PvP</label
+            ><small id="sf-pvp-status" role="status"
+              >Both players must opt in. Wait 30 seconds before disabling PvP.</small
+            >
+            <p>On death, you drop only your coins, iPhone, and sandwiches.</p>
+          </div>
+          <div class="sf-character-body">
+            <div class="sf-character-fields">
+              <label
+                >Gender
+                <select data-character="gender">
+                  <option value="man">Man</option>
+                  <option value="woman">Woman</option>
+                </select></label
+              >
+              <label>Skin <input data-character="skin" type="color" value="#bd9369" /></label>
+              <label>Hair <input data-character="hair" type="color" value="#453a30" /></label>
+              <label
+                >Hairstyle
+                <select data-character="hairstyle">
+                  <option value="short">Short</option>
+                  <option value="crop">Close crop</option>
+                  <option value="side-part">Side part</option>
+                  <option value="short-curls">Curls</option>
+                  <option value="broccoli">Broccoli cut</option>
+                </select></label
+              >
+              <label>Shirt <input data-character="shirt" type="color" value="#707b4b" /></label>
+              <label>Trousers <input data-character="pants" type="color" value="#626955" /></label>
+              <label>Shoes <input data-character="shoes" type="color" value="#3c3d36" /></label>
+              <label class="sf-hat-option"
+                >Hat
+                <select data-character="hat" aria-describedby="sf-hat-hint">
+                  <option value="none">No hat</option>
+                </select></label
+              >
+              <label class="sf-hat-option"
+                >Footwear
+                <select data-character="boots">
+                  <option value="false">Regular shoes</option>
+                </select></label
+              >
+              <label class="sf-hat-option"
+                >Weapon
+                <select data-character="weapon">
+                  <option value="unarmed">Fist</option>
+                </select></label
+              >
+              <label class="sf-hat-option"
+                >Back
+                <select data-character="back">
+                  <option value="none">Nothing on back</option>
+                </select></label
+              >
+              <label class="sf-hat-option"
+                >Necklace
+                <select data-character="neck">
+                  <option value="none">No necklace</option>
+                </select></label
+              >
+              <label class="sf-hat-option"
+                >Torso
+                <select data-character="torso">
+                  <option value="shirt">Regular shirt</option>
+                </select></label
+              >
+              <label class="sf-hat-option"
+                >Legs
+                <select data-character="legs">
+                  <option value="trousers">Regular trousers</option>
+                </select></label
+              >
+              <small id="sf-equipment-hint" class="sf-sunglasses-hint"></small>
+              <small id="sf-hat-hint" class="sf-sunglasses-hint"></small>
+              <label class="sf-sunglasses-option"
+                ><input
+                  id="sf-iphone-equipped"
+                  type="checkbox"
+                  aria-describedby="sf-iphone-hint"
+                  disabled
+                />
+                Equip iPhone</label
+              >
+              <small id="sf-iphone-hint" class="sf-sunglasses-hint"></small>
+              <label class="sf-sunglasses-option"
+                ><input data-character="sunglasses" type="checkbox" disabled /> Wear
+                sunglasses</label
+              >
+              <small id="sf-cape-hint" class="sf-sunglasses-hint"></small>
+            </div>
+          </div>
+        </div>
+        <div
+          id="sf-account-panel"
+          class="sf-username-form"
+          role="tabpanel"
+          aria-labelledby="sf-account-tab"
+          hidden
+        >
           <label
             >Username <input id="sf-username" type="text" maxlength="12" autocomplete="username"
           /></label>
@@ -746,99 +947,8 @@
               maxlength="256"
             />
           </label>
-          <small id="sf-character-save-status" role="status"></small>
         </div>
-        <div class="sf-character-body">
-          <div class="sf-character-fields">
-            <label
-              >Gender
-              <select data-character="gender">
-                <option value="man">Man</option>
-                <option value="woman">Woman</option>
-              </select></label
-            >
-            <label>Skin <input data-character="skin" type="color" value="#bd9369" /></label>
-            <label>Hair <input data-character="hair" type="color" value="#453a30" /></label>
-            <label
-              >Hairstyle
-              <select data-character="hairstyle">
-                <option value="short">Short</option>
-                <option value="crop">Close crop</option>
-                <option value="side-part">Side part</option>
-                <option value="short-curls">Curls</option>
-                <option value="broccoli">Broccoli cut</option>
-              </select></label
-            >
-            <label>Shirt <input data-character="shirt" type="color" value="#707b4b" /></label>
-            <label>Trousers <input data-character="pants" type="color" value="#626955" /></label>
-            <label>Shoes <input data-character="shoes" type="color" value="#3c3d36" /></label>
-            <label class="sf-hat-option"
-              >Hat
-              <select data-character="hat" aria-describedby="sf-hat-hint">
-                <option value="none">No hat</option>
-              </select></label
-            >
-            <label class="sf-hat-option"
-              >Footwear
-              <select data-character="boots">
-                <option value="false">Regular shoes</option>
-              </select></label
-            >
-            <label class="sf-hat-option"
-              >Weapon
-              <select data-character="weapon">
-                <option value="unarmed">Fist</option>
-              </select></label
-            >
-            <label class="sf-hat-option"
-              >Back
-              <select data-character="back">
-                <option value="none">Nothing on back</option>
-              </select></label
-            >
-            <label class="sf-hat-option"
-              >Necklace
-              <select data-character="neck">
-                <option value="none">No necklace</option>
-              </select></label
-            >
-            <label class="sf-hat-option"
-              >Torso
-              <select data-character="torso">
-                <option value="shirt">Regular shirt</option>
-              </select></label
-            >
-            <label class="sf-hat-option"
-              >Legs
-              <select data-character="legs">
-                <option value="trousers">Regular trousers</option>
-              </select></label
-            >
-            <small id="sf-equipment-hint" class="sf-sunglasses-hint"></small>
-            <small id="sf-hat-hint" class="sf-sunglasses-hint"></small>
-            <label class="sf-sunglasses-option"
-              ><input
-                id="sf-iphone-equipped"
-                type="checkbox"
-                aria-describedby="sf-iphone-hint"
-                disabled
-              />
-              Equip iPhone</label
-            >
-            <small id="sf-iphone-hint" class="sf-sunglasses-hint"></small>
-            <label class="sf-sunglasses-option"
-              ><input
-                data-character="sunglasses"
-                type="checkbox"
-                aria-describedby="sf-sunglasses-hint"
-                disabled
-              />
-              Wear sunglasses</label
-            >
-            <small id="sf-sunglasses-hint" class="sf-sunglasses-hint"></small>
-            <small id="sf-cape-hint" class="sf-sunglasses-hint"></small>
-          </div>
-        </div>
+        <small id="sf-character-save-status" role="status"></small>
         <button id="sf-character-done" class="sf-primary" type="button">Save</button>
       </section>
       <section
@@ -846,12 +956,10 @@
         class="sf-help"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="sf-help-title"
+        aria-label="Help"
+        tabindex="-1"
         hidden
       >
-        <button id="sf-close-help" aria-label="Close guide">×</button>
-        <span class="sf-eyebrow">HELP</span>
-        <h2 id="sf-help-title">Controls &amp; interface</h2>
         <p>Click the world to move. Right-click an object or person to choose an action.</p>
         <dl>
           <dt>Click / tap</dt>
@@ -867,7 +975,7 @@
           <dt>Minimap</dt>
           <dd>
             Click to choose a destination. Arrow keys select map icons when the minimap is focused;
-            Enter confirms.
+            Enter confirms. Use Shops to find sellers and Tasks to find quests and chores.
           </dd>
           <dt>Alt / Command on Mac</dt>
           <dd>Hold to show Take labels for nearby items.</dd>
@@ -881,7 +989,7 @@
           <dt>V · Forward roll</dt>
           <dd>Roll in your movement direction.</dd>
           <dt>X · Sit</dt>
-          <dd>Sit or stand up.</dd>
+          <dd>Choose how to sit, or stand up if you’re seated.</dd>
           <dt>D · Dance</dt>
           <dd>Start or stop dancing.</dd>
           <dt>S · Speak</dt>
@@ -954,6 +1062,7 @@
       role="dialog"
       aria-modal="true"
       aria-labelledby="sf-server-required-title"
+      tabindex="-1"
       hidden
     >
       <div class="sf-server-required-card">
@@ -985,11 +1094,6 @@
       <div class="sf-loading-card">
         <div class="sf-loading-illustration" aria-hidden="true">
           <canvas class="sf-loading-npc" width="288" height="312" data-loading-npc></canvas>
-          <div class="sf-loading-clock" data-loading-clock>
-            <span class="sf-loading-clock-hour"></span>
-            <span class="sf-loading-clock-minute"></span>
-            <span class="sf-loading-clock-second"></span>
-          </div>
         </div>
         <strong id="sf-loading-title">Explore San Francisco</strong
         ><span data-loading-percent aria-live="polite">0% loaded</span

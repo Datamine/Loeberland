@@ -67,7 +67,7 @@ test('shared peptides spawn once every five minutes and two collectors cannot bo
   game.tick(0.05);
   const vial = [...game.shared.loot.values()][0];
   assert.equal(vial.lootKind, 'peptides');
-  assert.equal(vial.wallExpiresAt, 1000000 + (5 + 20) * 60 * 1000);
+  assert.equal(vial.wallExpiresAt, 1000000 + PEPTIDE_SPAWN_MS + 60_000);
   assert.equal(game.shared.snapshot(b.p).peptideSpawnAt, 1000000 + 2 * PEPTIDE_SPAWN_MS);
   game.broadcast();
   assert.equal(

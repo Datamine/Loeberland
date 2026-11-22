@@ -1,4 +1,10 @@
 {$GAME_DOMAIN} {
-    reverse_proxy game:8787
     encode zstd gzip
+    redir /admin /admin/ 308
+    handle_path /admin/* {
+        reverse_proxy admin:8788
+    }
+    handle {
+        reverse_proxy game:8787
+    }
 }

@@ -11,10 +11,18 @@ import {
   bolinasBlocks,
   BOLINAS_PATH,
 } from './bolinas.ts';
-import { drawGoblinTown, goblinHutBlocks } from './goblin-town.ts';
+import {
+  drawGoblinTown,
+  FURNITURE_FACTORY,
+  GOBLIN_INCUBATOR,
+  goblinHutBlocks,
+  incubatorPitRadius,
+} from './goblin-town.ts';
 import { ATV_JUMP_LANE, ATV_RENTAL } from './atv.ts';
+import { FROG_FARM, frogFarmBlocks, frogFarmGrade, inFrogFarm } from './frog-farm.ts';
 import { createNavigationGrid } from './navigation.ts';
 import { Mesh, unit, rayTriangle, rayBox, rand } from './geometry.ts';
+import type { RenderedSite } from './types/world.ts';
 
 const marinInside = (x: number, z: number, poly: number[][]) => {
   let inside = false;
@@ -26,8 +34,11 @@ const marinInside = (x: number, z: number, poly: number[][]) => {
   }
   return inside;
 };
+const mudColor = [0.33, 0.22, 0.14];
+
 function drawMarinSurface(
-  m: Mesh,
+  terrain: Mesh,
+  mud: Mesh,
   polygon: number[][],
   scale: number,
   height: (x: number, z: number) => number,
@@ -98,7 +109,15 @@ function drawMarinSurface(
       for (let i = 0; i < unique.length; i++) {
         const a = unique[i],
           b = unique[(i + 1) % unique.length];
-        const start = m.data.length,
+        const xMid = (center[0] + a[0] + b[0]) / 3,
+          zMid = (center[1] + a[1] + b[1]) / 3;
+        const muddy = incubatorPitRadius(xMid, zMid) < 1.16;
+        const worn =
+          inFrogFarm(xMid, zMid, -0.12) &&
+          Math.hypot((xMid - FROG_FARM.x) / 2.2, (zMid - FROG_FARM.z) / 2.1) <
+            0.85 + 0.13 * Math.sin(xMid * 4 + zMid * 3);
+        const m = muddy ? mud : terrain,
+          start = m.data.length,
           h = marinHeight(center[0], center[1]),
           slope =
             Math.hypot(
@@ -111,11 +130,13 @@ function drawMarinSurface(
           [b[0], marinHeight(b[0], b[1]), b[1]],
           [a[0], marinHeight(a[0], a[1]), a[1]],
           '#899775',
-          bolinasBeachBlend(center[0], center[1]) > 0.3
-            ? 'sand'
-            : exposed
-              ? 'marinRock'
-              : 'marinScrub',
+          muddy || worn
+            ? 'dirt'
+            : bolinasBeachBlend(center[0], center[1]) > 0.3
+              ? 'sand'
+              : exposed
+                ? 'marinRock'
+                : 'marinScrub',
         );
         for (let v = start; v < m.data.length; v += 11) {
           const x = m.data[v],
@@ -131,18 +152,24 @@ function drawMarinSurface(
               0.15 * Math.sin(z * 0.53 - x * 0.19) +
               0.08 * Math.sin(x * 1.21 - z * 0.72),
             coastal = Math.min(1, Math.max(0, (-x + 12) / 29)),
-            rock = exposed ? Math.min(0.92, 0.48 + 0.6 * (slope - 0.45)) : 0,
+            rock = exposed && !worn ? Math.min(0.92, 0.48 + 0.6 * (slope - 0.45)) : 0,
             grass = [
               0.4 + dry * 0.25 + coastal * 0.035,
               0.48 + dry * 0.12,
               0.31 + dry * 0.11 + coastal * 0.028,
             ] satisfies [number, number, number];
           const sand = bolinasBeachBlend(x, z);
+          const mudWeight = muddy
+            ? Math.max(0, Math.min(1, (1 - incubatorPitRadius(x, z)) / 0.27 + 0.15))
+            : 0;
           for (let k = 0; k < 3; k++) {
             m.data[v + 3 + k] = n[k];
-            m.data[v + 6 + k] =
+            const landColor =
               (grass[k] * (1 - rock) + ([0.67, 0.62, 0.53] as const)[k] * rock) * (1 - sand) +
               ([0.82, 0.73, 0.54] as const)[k] * sand;
+            m.data[v + 6 + k] = worn
+              ? ([0.6, 0.51, 0.36] as const)[k] * (0.88 + dry * 0.21)
+              : landColor + (mudColor[k] - landColor) * mudWeight;
           }
         }
       }
@@ -178,11 +205,14 @@ export function createMarinLand({
   const onLand = (x: number, z: number) => marinInside(x, z, polygon),
     ground = (x: number, z: number) => {
       const natural = detention.terrain(x, z);
-      return natural + (bolinasBeachHeight(x, z) - natural) * bolinasBeachBlend(x, z);
+      const land = natural + (bolinasBeachHeight(x, z) - natural) * bolinasBeachBlend(x, z);
+      const radius = incubatorPitRadius(x, z);
+      return frogFarmGrade(x, z, land) - 0.94 * Math.max(0, 1 - radius ** 2) ** 2;
     };
   const freeWorld = (x: number, z: number) =>
     onLand(x, z) &&
     !goblinHutBlocks(x, z) &&
+    !frogFarmBlocks(x, z) &&
     !bolinasBlocks(x, z) &&
     ![
       [-0.18, 0] satisfies [number, number],
@@ -247,12 +277,16 @@ export function createMarinLand({
       });
     return found ? logical(found) : null;
   }
-  let surface: Mesh | null = null,
+  let surface: Mesh | null = null;
+  const mud = new Mesh();
+  let mudStart = 0,
     pickLength = 0;
   function surfaceMesh() {
     if (!surface) {
       surface = new Mesh();
-      drawMarinSurface(surface, polygon, scale, ground);
+      drawMarinSurface(surface, mud, polygon, scale, ground);
+      mudStart = surface.data.length;
+      for (const value of mud.data) surface.data.push(value);
       drawGoblinTown(surface, ground);
       drawBolinas(surface, ground);
       // Shrubs and canopies are visual scenery. Walking clicks project to
@@ -269,6 +303,8 @@ export function createMarinLand({
             z = patch.z + (rand(seed + 1, 73) - 0.5) * patch.depth;
           if (
             bolinasBeachBlend(x, z) > 0.28 ||
+            incubatorPitRadius(x, z) < 1.42 ||
+            inFrogFarm(x, z, 1.05) ||
             !freeWorld(x, z) ||
             !freeWorld(x + 0.36, z - 0.35) ||
             !freeWorld(x - 0.36, z + 0.35) ||
@@ -284,8 +320,9 @@ export function createMarinLand({
               return Math.hypot(x - ax - dx * t, z - az - dz * t) < 1.48;
             }) ||
             (!patch.coastal &&
-              ((Math.abs(x - 30) < 1.8 && z > -29.4 && z < -16.3) ||
+              ((Math.abs(x - 30) < 1.8 && z > FURNITURE_FACTORY.front + 0.2 && z < -16.3) ||
                 (x >= 30 && x < 41.5 && z > -22.6 && z < -19.6) ||
+                (x >= 41.5 && x < 47.7 && z > -21.3 && z < -18.25) ||
                 (Math.abs(x - 33.7) < 1.55 && z > -17 && z < -8))) ||
             (patch.coastal && x > -10.5 && x < -2 && z > -58 && z < -43)
           )
@@ -370,6 +407,30 @@ export function createMarinLand({
     }
     return surface;
   }
+  function drawIncubator(m: Mesh): RenderedSite {
+    surfaceMesh();
+    const start = m.data.length;
+    for (const value of mud.data) m.data.push(value);
+    const lo = [Infinity, Infinity, Infinity];
+    const hi = [-Infinity, -Infinity, -Infinity];
+    for (let i = 0; i < mud.data.length; i += 11)
+      for (let axis = 0; axis < 3; axis++) {
+        lo[axis] = Math.min(lo[axis], mud.data[i + axis]);
+        hi[axis] = Math.max(hi[axis], mud.data[i + axis]);
+      }
+    const { id, name, entry } = GOBLIN_INCUBATOR;
+    return {
+      id,
+      kind: id,
+      label: name,
+      entry,
+      start,
+      count: mud.data.length,
+      lo,
+      hi,
+      description: 'A muddy hole in the ground. The Goblin Founder does business at the rim.',
+    };
+  }
   // Group terrain faces once. Ordinary city clicks reject every headland
   // box without allocating or testing tens of thousands of triangles.
   let pickGroups: MarinPickGroup[] | null = null;
@@ -425,8 +486,12 @@ export function createMarinLand({
     path,
     nearest,
     raycast,
+    drawIncubator,
     draw(m: { data: number[] }) {
-      for (const v of surfaceMesh().data) m.data.push(v);
+      const { data } = surfaceMesh();
+      // The incubator has its own scene object so its mud can be examined.
+      for (let i = 0; i < mudStart; i++) m.data.push(data[i]);
+      for (let i = mudStart + mud.data.length; i < data.length; i++) m.data.push(data[i]);
     },
   };
 }

@@ -13,7 +13,6 @@ interface QuestMenuOptions {
   element: HTMLElement;
   content: HTMLElement;
   button: HTMLElement;
-  closeButton: HTMLElement;
   shade: HTMLElement;
   canvas: HTMLElement;
   quests: { entries: () => readonly QuestJournalEntry[] };
@@ -24,7 +23,6 @@ export function createQuestMenu({
   element,
   content,
   button,
-  closeButton,
   shade,
   canvas,
   quests,
@@ -97,10 +95,9 @@ export function createQuestMenu({
     render();
     element.hidden = false;
     shade.hidden = false;
-    closeButton.focus({ preventScroll: true });
+    element.focus({ preventScroll: true });
   }
   button.addEventListener('click', open);
-  closeButton.addEventListener('click', close);
   render();
   return {
     open,

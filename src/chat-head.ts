@@ -12,7 +12,7 @@ const tilt = 0.12;
 
 export function drawNPCChatHead(canvas: HTMLCanvasElement, npc: Partial<Actor>, revealed: boolean) {
   const mesh = new Mesh();
-  const modelVariant = goblinModelVariant(npc.kind);
+  const modelVariant = goblinModelVariant(npc);
   const pose = { x: 0, z: 0, base: 0, angle: facingCamera };
   if (modelVariant || npc.combatKind === 'goblin-maker')
     drawGoblinHead(mesh, {

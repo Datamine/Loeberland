@@ -105,6 +105,33 @@ test('shared cow death, loot claims and respawn have exactly one owner and timel
   assert.equal(cow.hp, 20);
   await game.close();
 });
+test('monster and PvP drops expire at 60 seconds and cannot be collected between ticks', async () => {
+  const { game, advance } = await fixture();
+  const a = await player(game, 12);
+  try {
+    const cow = game.shared.cows[0];
+    cow.hp = 1;
+    await command(game, a.p, 'teleport', { x: cow.x, z: cow.z + 1 });
+    await command(game, a.p, 'attack', { id: cow.id });
+    assert.equal(cow.hp, 0);
+    const [coins] = game.shared.dropInventory(a.p, null, [{ lootKind: 'coins', amount: 1 }]);
+    assert.equal(game.shared.snapshot().loot.length, 2);
+    assert.ok(game.shared.snapshot().loot.every((item) => item.expires === game.shared.clock + 60));
+
+    advance(59_999);
+    assert.equal(game.shared.snapshot().loot.length, 2);
+    advance(1);
+    assert.equal(game.shared.snapshot().loot.length, 0);
+    await command(game, a.p, 'collect', { id: coins });
+    assert.equal(requiredResult(a.messages).ok, false);
+    assert.equal(a.p.inventory.economy.state.coins, 25);
+    game.tick(0.05);
+    assert.equal(game.shared.loot.size, 0);
+  } finally {
+    await game.close();
+  }
+});
+
 test('the airship is shared, passengers cannot steer and a hook boards an occupied ship', async () => {
   const { game } = await fixture(),
     pilot = await player(game, 20),

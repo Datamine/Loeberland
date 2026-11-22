@@ -29,7 +29,7 @@ import { drawTahoeGroundCover, drawTahoeTree } from './tahoe-scenery.ts';
 import { drawCharacter } from './characters.ts';
 import { drawPlaque } from './southern-district.ts';
 import { drawRocketPad } from './rocket.ts';
-import { EAST_BAY_COAST_X } from './geography.ts';
+import { EAST_BAY_COAST_X, EAST_BAY_SHORE, eastBayShoreX } from './geography.ts';
 import { drawFacadeWindow } from './windows.ts';
 
 // Mid-lake coordinates: https://waterdata.usgs.gov/monitoring-location/USGS-390618120021101/
@@ -1231,6 +1231,53 @@ export function drawSkiRider(
 
 /** Coarse California ground is generated only around the camera. Tahoe uses
  * its own detailed mesh; the intervening countryside never expands the city grid. */
+/** The renderer and countryside queries share these beach and bluff triangles. */
+export function eastBayShoreStrip(north: number) {
+  const row = (z: number) => {
+    const west = eastBayShoreX(z);
+    const end = EAST_BAY_SHORE.east;
+    const a = Math.floor(z / 16) * 16;
+    const h0 = regionalGroundHeight(end, a);
+    const height = h0 + (regionalGroundHeight(end, a + 16) - h0) * ((z - a) / 16);
+    const fade = Math.min(1, (z - EAST_BAY_SHORE.north) / 12, (EAST_BAY_SHORE.south - z) / 12);
+    const mainland = regionalGroundHeight(119, z);
+    return [
+      [west, mainland + (-0.04 - mainland) * fade, z],
+      [west + 1.55, mainland + (0.44 - mainland) * fade, z],
+      [119, mainland, z],
+      [end, height, z],
+    ] satisfies [number, number, number][];
+  };
+  const a = row(north),
+    b = row(north + EAST_BAY_SHORE.step);
+  return [0, 1, 2].map((i) => [a[i], b[i], b[i + 1], a[i + 1]]);
+}
+
+export function drawEastBayShoreDetails(m: Mesh, height: (x: number, z: number) => number) {
+  for (let i = 0; i < 36; i++) {
+    const z = -24 + i * 2.16;
+    if (Math.abs(z - 26) < 2) continue;
+    const x = eastBayShoreX(z) + 0.55 + ((i * 7) % 13) * 0.28;
+    const y = height(x, z);
+    if (i % 5 < 2) {
+      m.sphere(x, y, z, 0.25 + (i % 3) * 0.07, 0.2, 0.34, '#929289', 8, 4, 'stone');
+      m.sphere(x + 0.31, y - 0.03, z + 0.24, 0.17, 0.14, 0.16, '#a59f8a', 7, 4, 'stone');
+    } else {
+      for (let j = 0; j < 5; j++) {
+        const u = x - 0.14 + j * 0.075,
+          lean = (j - 2) * 0.067;
+        m.rod(
+          [u, y - 0.055, z],
+          [u + lean, y + 0.28 + (j % 3) * 0.13, z + 0.08],
+          0.013,
+          j % 2 ? '#808f57' : '#9b975c',
+          4,
+        );
+      }
+    }
+  }
+}
+
 export function drawRegionalBackdrop(m: Mesh, x: number, z: number, viewerHeight = 0) {
   const altitude = Math.max(viewerHeight, regionalGroundHeight(x, z)),
     step = altitude > 80 ? 32 : 16,
@@ -1254,6 +1301,19 @@ export function drawRegionalBackdrop(m: Mesh, x: number, z: number, viewerHeight
       const x0 = Math.max(EAST_BAY_COAST_X, xx),
         x1 = xx + step,
         z1 = zz + step;
+      if (x0 === EAST_BAY_COAST_X && zz < EAST_BAY_SHORE.south && z1 > EAST_BAY_SHORE.north) {
+        for (
+          let coastZ = Math.max(zz, EAST_BAY_SHORE.north);
+          coastZ < Math.min(z1, EAST_BAY_SHORE.south);
+          coastZ += EAST_BAY_SHORE.step
+        )
+          for (const [i, [a, b, c, d]] of eastBayShoreStrip(coastZ).entries())
+            m.quad(a, b, c, d, ['#bca183', '#a4a17d', '#a7ac87'][i], i === 0 ? 'sand' : 'grass');
+        rect(EAST_BAY_SHORE.east, zz, x1, z1);
+        if (zz < EAST_BAY_SHORE.north) rect(x0, zz, EAST_BAY_SHORE.east, EAST_BAY_SHORE.north);
+        if (z1 > EAST_BAY_SHORE.south) rect(x0, EAST_BAY_SHORE.south, EAST_BAY_SHORE.east, z1);
+        continue;
+      }
       if (x0 === EAST_BAY_COAST_X)
         m.quad(
           [x0, -0.65, zz] satisfies [number, number, number],

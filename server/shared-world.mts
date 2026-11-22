@@ -8,7 +8,7 @@ import {
 import { isYardFighter } from '../src/fighter-yard-layout.ts';
 import { hasFighterYardPass } from './fighter-yard.mts';
 import { contentText } from '../src/content-runtime.ts';
-import { GAMEPLAY } from '../src/config/gameplay.ts';
+import { GAMEPLAY, ENERGY_BOLT_SECONDS, SCIENTIST_EXPLOSIVE } from '../src/config/gameplay.ts';
 import { isFiniteNumber } from '../src/types/json.ts';
 import type { WildernessPerson, WildernessActor } from '../src/types/monsters.ts';
 import type { CommandResult, AirshipSnapshot } from '../src/types/network.ts';
@@ -57,9 +57,13 @@ import {
   weaponOwned,
 } from '../src/item-stats.ts';
 import { MONSTER_STATS, rollMonsterDrops } from '../src/monster-drops.ts';
-import { ENERGY_BOLT_SECONDS, SCIENTIST_EXPLOSIVE } from '../src/config/gameplay.ts';
+import {
+  groundItemDeadline,
+  groundItemExpired,
+  GROUND_ITEM_LIFETIME_SECONDS,
+} from '../src/ground-items.ts';
 
-const PEPTIDE_LIFETIME_SECONDS = 20 * 60;
+const LOOT_OWNER_CLAIM_SECONDS = 15;
 const near = (a: WorldPoint, b: WorldPoint) => Math.hypot(a.x - b.x, a.z - b.z);
 const LEGACY_RAPTOR_MAX_HP = 40;
 function restoredMonsterHealth(hp: number, savedMax: number | undefined, currentMax: number) {
@@ -147,9 +151,20 @@ export function createSharedWorld({
         x: p.x + 0.5,
         z: p.y + 0.5,
       }));
-  for (const item of saved.loot || [])
-    if (item.expires > clock && (!item.wallExpiresAt || item.wallExpiresAt > now()))
-      loot.set(item.id, item);
+  const restoredAt = now();
+  for (const item of saved.loot || []) {
+    // Older drops without a wall deadline stored their spawn time as unlockAt minus the claim window.
+    // Older market vials had a wall deadline and unlocked immediately.
+    const droppedAt =
+      item.unlockAt - (item.wallExpiresAt === undefined ? LOOT_OWNER_CLAIM_SECONDS : 0);
+    const expires = Math.min(item.expires, droppedAt + GROUND_ITEM_LIFETIME_SECONDS);
+    const wallExpiresAt =
+      item.wallExpiresAt === undefined
+        ? restoredAt + Math.round((expires - clock) * 1000)
+        : item.wallExpiresAt - Math.round((item.expires - expires) * 1000);
+    const restored = { ...item, expires, wallExpiresAt };
+    if (!groundItemExpired(restored, clock, restoredAt)) loot.set(item.id, restored);
+  }
   for (const cow of cows) {
     const previous = saved.cows?.find((c) => c.id === cow.id);
     if (previous) {
@@ -512,8 +527,8 @@ export function createSharedWorld({
       x,
       z,
       owner,
-      unlockAt: clock + 15,
-      expires: clock + 120,
+      unlockAt: clock + LOOT_OWNER_CLAIM_SECONDS,
+      ...groundItemDeadline(clock, now()),
     };
     loot.set(item.id, item);
     return item;
@@ -751,19 +766,31 @@ export function createSharedWorld({
       };
     if (action === 'airshipStatus' || action === 'airshipRecall')
       return airshipRental.command(p, action, args);
-    if (action === 'talkCultist') {
-      const cultist = wilderness.actors.find(
-        (n) => n.id === args.id && n.combatKind === 'bolinas-cultist' && n.hp > 0,
+    if (action === 'talkCultist' || action === 'confrontPastor') {
+      const pastor = action === 'confrontPastor';
+      const kind = pastor ? 'unusual-pastor' : 'bolinas-cultist';
+      const target = wilderness.actors.find(
+        (n) => n.id === args.id && n.combatKind === kind && n.hp > 0,
       );
       if (
         !eligible(p) ||
-        !cultist ||
-        near(p, cultist) > GAMEPLAY.interactionRange ||
-        !creatureSegment(p, cultist)
+        !target ||
+        near(p, target) > GAMEPLAY.interactionRange ||
+        !creatureSegment(p, target)
       )
-        return { ok: false, message: contentText('world-message.bolinas.approach-cultist') };
-      wilderness.provoke(cultist, p);
-      return { ok: true, message: contentText('world-message.bolinas.cultist-refuses') };
+        return {
+          ok: false,
+          message: pastor
+            ? 'Get closer to the Unusual Pastor.'
+            : contentText('world-message.bolinas.approach-cultist'),
+        };
+      wilderness.provoke(target, p);
+      return {
+        ok: true,
+        message: pastor
+          ? 'The Unusual Pastor attacks!'
+          : contentText('world-message.bolinas.cultist-attacks'),
+      };
     }
     if (action === 'attack') {
       const target = [...cows, raptor, ...wilderness.actors].find((n) => n.id === args.id),
@@ -926,13 +953,15 @@ export function createSharedWorld({
     }
     if (action === 'collect') {
       const item = loot.get(typeof args.id === 'string' ? args.id : '');
-      if (!item)
+      if (!item || groundItemExpired(item, clock, now())) {
+        if (item) loot.delete(item.id);
         return {
           ok: false,
           message: contentText(
             'world-message.server.shared-world.someone-already-collected-that-loot',
           ),
         };
+      }
       if (
         !(eligible(p) || (p.hp > 0 && p.airship && item.ship)) ||
         inBerkeleyLab(item.x, item.z) !== labPlayer(p) ||
@@ -1260,8 +1289,6 @@ export function createSharedWorld({
           'A tiny vial with a very large social network. Donate it to Ray at the Freemasons’ Guild to gain one rank.',
         base: geometry.characterGround(point.x, point.z) + 0.025,
         unlockAt: clock,
-        expires: clock + PEPTIDE_LIFETIME_SECONDS,
-        wallExpiresAt: now() + PEPTIDE_LIFETIME_SECONDS * 1000,
       });
       nextPeptideAt = now() + PEPTIDE_SPAWN_MS;
     }
@@ -1278,9 +1305,8 @@ export function createSharedWorld({
         clear: geometry.landClearAt,
         travel: geometry.canTravel,
       });
-    for (const [id, item] of loot)
-      if (item.expires <= clock || (item.wallExpiresAt && item.wallExpiresAt <= now()))
-        loot.delete(id);
+    const lootTime = now();
+    for (const [id, item] of loot) if (groundItemExpired(item, clock, lootTime)) loot.delete(id);
     for (const p of players.values()) {
       if (!p.attack) continue;
       const target =
@@ -1535,7 +1561,6 @@ export function createSharedWorld({
         transfer: true,
         description: 'Dropped by ' + victim.name + ' after a defeat.',
         base: victim.y + 0.02,
-        expires: clock + 300,
       });
       if (victim.airship && deck)
         Object.assign(item, {
@@ -1591,6 +1616,7 @@ export function createSharedWorld({
   }
   function snapshot(observer?: ServerPlayer) {
     const npcs = observer ? npcIndex.near(observer.x, observer.z, 38, 32) : npcList;
+    const lootTime = now();
     return {
       clock,
       peptideSpawnAt: nextPeptideAt,
@@ -1621,7 +1647,10 @@ export function createSharedWorld({
       },
       airship: airshipSnapshot(),
       loot: [...loot.values()]
-        .filter((item) => !observer || near(observer, item) < 45)
+        .filter(
+          (item) =>
+            !groundItemExpired(item, clock, lootTime) && (!observer || near(observer, item) < 45),
+        )
         .slice(0, observer ? 64 : Infinity)
         .map((item) => {
           const { owner, ...visible } = item;

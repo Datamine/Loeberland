@@ -98,11 +98,24 @@ export function drawGoblinSpaceProgram(m: Mesh, signs: SignAtlas, ground: Ground
       const depth = 0.47 - ((height - 0.39) * 0.66) / 1.97;
       m.rod([-0.24, height, depth], [0.24, height, depth], 0.029, '#bd975e', 6);
     }
-    m.box(-1.1, -0.25, 0.88, 0.1, 0.9, 0.1, '#634426', 'wood');
-    m.box(0.99, -0.25, 0.88, 0.1, 0.9, 0.1, '#634426', 'wood');
-    m.box(-1.24, 0.37, 0.85, 2.48, 0.34, 0.12, '#422d24', 'wood');
-    drawPlaque(m, signs, name, 0, 0.435, 0.973, 2.27, 0.21);
   });
+  const signZ = z - 1.6,
+    signY = Math.max(base, ground(x, signZ)) + 3.2;
+  for (const offset of [-1.35, 1.35]) {
+    const foot = ground(x + offset, signZ) - 0.12;
+    m.box(
+      x + offset - 0.075,
+      foot,
+      signZ - 0.075,
+      0.15,
+      signY + 0.22 - foot,
+      0.15,
+      '#634426',
+      'wood',
+    );
+  }
+  m.box(x - 1.6, signY, signZ - 0.04, 3.2, 0.48, 0.15, '#422d24', 'wood');
+  drawPlaque(m, signs, name, x, signY + 0.08, signZ + 0.115, 3, 0.32);
   return finishSite(m, start, {
     id,
     label: name,
@@ -116,42 +129,49 @@ export function drawGoblinSpaceProgram(m: Mesh, signs: SignAtlas, ground: Ground
 }
 
 export function drawMudBath(m: Mesh, signs: SignAtlas, ground: Ground): RenderedSite {
-  const { x, z, id, name, entry } = MUD_BATH;
-  const base = ground(x, z);
+  const { basin, id, name, entry } = MUD_BATH;
+  const { x, z, rx, rz, surface } = basin;
   const start = m.data.length;
-  pose(m, x, base, z, 0, () => {
-    const edge = (a: number, scale: number) => {
-      const u = Math.cos(a) * 1.16 * scale,
-        v = Math.sin(a) * 0.91 * scale;
-      return [u, ground(x + u, z + v) - base, v] as [number, number, number];
+  pose(m, x, surface, z, 0, () => {
+    const ring = (a: number) => {
+      const u = Math.cos(a) * rx,
+        v = Math.sin(a) * rz,
+        edgeGround = ground(x + u, z + v) - surface;
+      return {
+        inner: [u * 0.77, 0, v * 0.77],
+        bank: [
+          u * 0.86,
+          Math.max(0.11, ground(x + u * 0.86, z + v * 0.86) - surface + 0.04),
+          v * 0.86,
+        ],
+        outer: [u, edgeGround + 0.15, v],
+        skirt: [u, edgeGround - 0.07, v],
+      };
     };
-    const n = 26;
+    const n = 40;
     for (let i = 0; i < n; i++) {
-      const a = (i * Math.PI * 2) / n,
-        b = ((i + 1) * Math.PI * 2) / n;
-      const outer = edge(a, 1),
-        outerNext = edge(b, 1);
-      const inner = edge(a, 0.84),
-        innerNext = edge(b, 0.84);
-      inner[1] = innerNext[1] = 0.14;
-      outer[1] += 0.015;
-      outerNext[1] += 0.015;
-      m.quad(inner, innerNext, outerNext, outer, ['#795342', '#87654b', '#8c6e52'][i % 3], 'dirt');
-      m.tri([0, 0.14, 0], innerNext, inner, ['#685041', '#6b5344', '#6e5645'][i % 3], 'dirt');
+      const a = (i * Math.PI * 2) / n;
+      const { inner, bank, outer, skirt } = ring(a);
+      const next = ring(((i + 1) * Math.PI * 2) / n);
+      m.quad(inner, next.inner, next.bank, bank, '#76523d', 'dirt');
+      m.quad(bank, next.bank, next.outer, outer, '#8c6e52', 'dirt');
+      m.quad(outer, next.outer, next.skirt, skirt, '#8c6e52', 'dirt');
+      m.tri([0, 0, 0], next.inner, inner, '#71503d');
       if (i % 2 === 0 && Math.cos(a) < 0.48) {
-        const [u, y, v] = edge(a, 0.93);
-        m.sphere(u, Math.max(y, 0.03) + 0.1, v, 0.14, 0.09, 0.11, '#8b867a', 7, 4);
+        const [u, y, v] = bank;
+        m.sphere(u, y + 0.025, v, 0.12 + (i % 3) * 0.02, 0.09, 0.12, '#8b867a', 7, 4);
       }
     }
-    for (let i = 0; i < 10; i++) {
-      const u = Math.sin(i * 2.4) * 0.63,
-        v = Math.cos(i * 2.4) * 0.58;
-      m.sphere(u, 0.142, v, 0.025 + (i % 3) * 0.014, 0.017, 0.031, '#98745c', 7, 4);
+    for (let i = 0; i < 16; i++) {
+      const r = 0.68 * Math.sqrt((i + 0.5) / 16);
+      const u = Math.sin(i * 2.4) * rx * r,
+        v = Math.cos(i * 2.4) * rz * r;
+      m.sphere(u, 0.002, v, 0.025 + (i % 3) * 0.014, 0.017, 0.031, '#98745c', 7, 4);
     }
-    const boardGround = ground(x - 0.63, z + 0.93) - base;
-    m.box(-0.7, boardGround - 0.1, 0.88, 0.1, 0.77, 0.09, '#70533a', 'wood');
-    m.box(-1.08, boardGround + 0.48, 0.86, 0.87, 0.23, 0.11, '#644430', 'wood');
-    drawPlaque(m, signs, name, -0.645, boardGround + 0.53, 0.974, 0.78, 0.13);
+    const boardGround = ground(x + 0.82, z + 1.28) - surface;
+    m.box(0.77, boardGround - 0.1, 1.24, 0.1, 0.77, 0.09, '#70533a', 'wood');
+    m.box(0.385, boardGround + 0.48, 1.22, 0.87, 0.23, 0.11, '#644430', 'wood');
+    drawPlaque(m, signs, name, 0.82, boardGround + 0.53, 1.334, 0.78, 0.13);
   });
   return finishSite(m, start, {
     id,
@@ -159,7 +179,7 @@ export function drawMudBath(m: Mesh, signs: SignAtlas, ground: Ground): Rendered
     kind: id,
     x,
     z,
-    base,
+    base: surface,
     entry,
     description: 'A shallow mud bath. Sit in it to collect one mud every five seconds.',
   });

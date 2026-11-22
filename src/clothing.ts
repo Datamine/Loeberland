@@ -24,7 +24,13 @@ export function clothingSelection(input: unknown = {}) {
         ? 'black-cloak-top'
         : 'shirt';
   const legs = isOneOf(
-    ['trousers', 'ice-pants', 'black-cloak-bottom', 'decorative-robe-bottom'] as const,
+    [
+      'trousers',
+      'ice-pants',
+      'black-cloak-bottom',
+      'decorative-robe-bottom',
+      'iron-armor-legs',
+    ] as const,
     value.legs,
   )
     ? value.legs

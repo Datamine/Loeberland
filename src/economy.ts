@@ -7,7 +7,7 @@ import { MERCHANTS } from './config/npcs.ts';
 import { GAMEPLAY } from './config/gameplay.ts';
 import { hatById } from './hat-catalog.ts';
 import { ITEM_STATS, EQUIPMENT_IDS } from './item-stats.ts';
-import { TRADE_PRICES } from './config/economy.ts';
+import { COIN_REWARD_TRADES, TRADE_PRICES } from './config/economy.ts';
 import { FISH_PER_MUD } from './goblin-space-layout.ts';
 export { MERCHANTS };
 export { TRADE_PRICES };
@@ -21,6 +21,7 @@ export function createEconomy(
   const state: EconomyState = {
     coins: integer(saved.coins, GAMEPLAY.startingCoins),
     equity: integer(saved.equity, 0),
+    incubatorEquityBought: saved.incubatorEquityBought === true,
     grain: integer(saved.grain, 0),
     bouquets: integer(saved.bouquets, 0),
     fuelCans: integer(saved.fuelCans, 0),
@@ -134,50 +135,38 @@ export function createEconomy(
       [K in keyof EconomyState]: EconomyState[K] extends number ? K : never;
     }[keyof EconomyState];
     const stock: Record<string, Partial<Record<Counter, number>>> = {
+      ...COIN_REWARD_TRADES,
       'sales-software-buy': { coins: -TRADE_PRICES.salesSoftware, softwareCopies: 1 },
-      'sales-software-sale': { coins: TRADE_PRICES.salesSoftwareResale, softwareCopies: -1 },
       'salt-letter-collect': { saltLetters: 1 },
-      'salt-letter-deliver': {
-        saltLetters: -1,
-        saltLettersDelivered: 1,
-        coins: TRADE_PRICES.saltLetter,
-      },
       'collect-sand': { sand: 1 },
-      'sand-sale': { coins: TRADE_PRICES.sand, sand: -1 },
       'catch-fish': { fish: 1 },
-      'fish-sale': { coins: TRADE_PRICES.fish, fish: -1 },
       'collect-mud': { mud: 1 },
       'mud-for-fish': { mud: -quantity, fish: quantity * FISH_PER_MUD },
-      'ai-lab-wage': { coins: 1 },
       'sandwich-pickup': { coins: -ITEM_STATS.sandwich.pickupPrice },
       'sandwich-in-n-out': { coins: -ITEM_STATS.sandwich.inNOutPrice },
       'sandwich-delivery': { coins: -ITEM_STATS.sandwich.deliveryPrice },
       beer: { coins: -1 },
       'motorcycle-rental': { coins: -5 },
-      coffee: { coins: -1 },
+      coffee: { coins: -TRADE_PRICES.coffee },
       'busker-tip': { coins: -1 },
       equity: { coins: -TRADE_PRICES.equity, equity: 1 },
       'incubator-equity': { coins: -TRADE_PRICES.incubatorEquity, fish: 1 },
-      secondary: { coins: TRADE_PRICES.secondary, equity: -1 },
       grain: { coins: -TRADE_PRICES.grain, grain: 1 },
       feed: { grain: -1 },
-      passenger: { coins: TRADE_PRICES.passenger },
       rocket: { coins: -1 },
       skis: { coins: -1 },
       tax: { coins: -state.coins },
       extortion: { coins: -state.coins },
-      capital: { coins: 1000 },
-      'monkey-quest': { coins: 25 },
       'fuel-can': { coins: -state.coins, fuelCans: 1 },
       'free-fuel-can': { fuelCans: 1 },
       'use-fuel-can': { fuelCans: -1 },
     };
-    const changes = stock[kind];
-    if (!changes)
+    if (!Object.hasOwn(stock, kind))
       return {
         ok: false,
         message: contentText('world-message.src.economy.that-trade-is-unavailable'),
       };
+    const changes = { ...stock[kind] };
     const award = (changes.coins || 0) > 0 ? income(changes.coins!) : null;
     if (award) changes.coins = award.earned;
     if (
@@ -201,6 +190,7 @@ export function createEconomy(
                 : contentText('world-message.src.economy.you-do-not-have-enough-coins'),
       };
     for (const [key, delta] of Object.entries(changes) as [Counter, number][]) state[key] += delta;
+    if (kind === 'incubator-equity') state.incubatorEquityBought = true;
     if (award) state.incomeQuarters = award.remainder;
     onChange({ ...state });
     return award ? { ok: true, earned: award.earned, bonus: award.bonus } : { ok: true };

@@ -6,14 +6,23 @@ import { TRADE_PRICES } from './config/economy.ts';
 import { GOBLIN_INCUBATOR } from './goblin-town.ts';
 import { ITEM_STATS } from './item-stats.ts';
 import type { RuntimeDialogue, RuntimeChoice, ActionReceipt } from './types/world.ts';
-import type { ServiceNode, TextValues, TextSpec, JSONValue } from './types/content.ts';
+import type {
+  EconomyState,
+  ServiceNode,
+  TextValues,
+  TextSpec,
+  JSONValue,
+} from './types/content.ts';
 import { resolveContentText } from './content-game.ts';
 
 const dialogueDefaults = {
   equityPrice: TRADE_PRICES.equity,
   secondaryPrice: TRADE_PRICES.secondary,
   grainPrice: TRADE_PRICES.grain,
+  coffeePrice: TRADE_PRICES.coffee,
   fishPrice: TRADE_PRICES.fish,
+  crowbarPrice: ITEM_STATS.crowbar.price,
+  uniPrice: TRADE_PRICES.uni,
   sandPrice: TRADE_PRICES.sand,
   passengerPrice: TRADE_PRICES.passenger,
   rocketPrice: 1,
@@ -121,5 +130,38 @@ export function configuredDialogue<T extends RuntimeDialogue>(
     ...person,
     decline: contentText('dialogue-config.configuredDialogue.decline-1', {}),
     ...resolve(template),
+  };
+}
+
+export function bolinasCultistDialogue(npc: RuntimeDialogue, confront: () => void) {
+  return configuredDialogue('bolinas-cultist', npc, {
+    confront: () => ({ ok: true, after: confront }),
+  });
+}
+
+export function goblinFounderDialogue(
+  npc: RuntimeDialogue,
+  purse: Pick<EconomyState, 'incubatorEquityBought'>,
+  buyEquity: () => ActionReceipt | Promise<ActionReceipt>,
+): RuntimeDialogue {
+  return {
+    ...npc,
+    contentResolved: true,
+    repeat: true,
+    decline: 'Leave',
+    intro: 'Early-stage equity. Ten coins buys you a stake in the future.',
+    choices: [
+      {
+        label: 'Buy startup equity · ' + TRADE_PRICES.incubatorEquity + ' coins',
+        serverReceipt: true,
+        accept: buyEquity,
+      },
+      {
+        label: 'I thought I was going to get equity?',
+        available: () => purse.incubatorEquityBought,
+        receipt:
+          'We don’t have good legal infrastructure. A live fish is the best contractual instrument we have.',
+      },
+    ],
   };
 }

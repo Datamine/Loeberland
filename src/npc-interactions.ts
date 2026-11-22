@@ -25,10 +25,13 @@ export function npcOffersAttack(npc: ActorMetadata = {}) {
     npc.kind === 'atv-rental' ||
     npc.kind === 'goblin-scientist' ||
     npc.kind === 'goblin-plumber' ||
+    npc.kind === 'goblin-frog-farmer' ||
     npc.kind === 'goblin-space-engineer' ||
     npc.kind === 'goblin-industrialist' ||
     npc.kind === 'decorative-robe-seller' ||
     npc.kind === 'fighter-yard-host' ||
+    npc.kind === 'construction-foreman' ||
+    npc.kind === 'mud-bath-regular' ||
     npc.kind === 'enterprising-industrialist' ||
     npc.kind === 'legacy-developer' ||
     npc.kind === 'biomed-entrepreneur' ||
@@ -93,7 +96,9 @@ export function npcPrimaryVerb(npc: ActorMetadata, revealed = false) {
   if (npc.wilderness)
     return npc.combatKind === 'bear'
       ? 'pet'
-      : npc.combatKind === 'goblin-maker' || npc.combatKind === 'bolinas-cultist'
+      : npc.combatKind === 'goblin-maker' ||
+          npc.combatKind === 'bolinas-cultist' ||
+          npc.combatKind === 'unusual-pastor'
         ? 'talk'
         : 'attack';
   if (npc.police) return 'examine';
@@ -122,7 +127,9 @@ export function npcContextActions(
     actions =
       npc.combatKind === 'bear'
         ? ['pet', 'attack']
-        : npc.combatKind === 'goblin-maker' || npc.combatKind === 'bolinas-cultist'
+        : npc.combatKind === 'goblin-maker' ||
+            npc.combatKind === 'bolinas-cultist' ||
+            npc.combatKind === 'unusual-pastor'
           ? ['talk', 'attack']
           : ['attack'];
   else if (
@@ -130,11 +137,7 @@ export function npcContextActions(
   )
     actions = ['attack'];
   else if (!npcOffersAttack(npc)) actions = ['talk'];
-  else
-    actions =
-      primary === 'attack'
-        ? (['attack', 'talk', 'steal'] satisfies [string, string, string])
-        : (['talk', 'attack', 'steal'] satisfies [string, string, string]);
+  else actions = primary === 'attack' ? ['attack', 'talk'] : ['talk', 'attack'];
   return [...actions, 'walk', 'examine'];
 }
 export function promoteWalkAction(menu: HTMLDivElement) {

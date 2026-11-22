@@ -37,5 +37,24 @@
         "receipt": "The simulation. The others call it the last service. We think Goose Corp means to keep it running forever. I voted yes, but I still lie awake wondering who gets to decide when everyone else’s world ends."
       }
     ]
+  },
+  "pastor": {
+    "intro": "Welcome. Tea is after the service. If the bell rings twice, wait for the third. The first two are usually an echo.",
+    "choices": [
+      {
+        "label": "What do you preach about?",
+        "receipt": "How to be kind when you suspect the world was made carelessly. Last Sunday the reading was a bug report. Mara thought it needed a better ending.",
+        "repeat": true
+      },
+      {
+        "label": "Why are there Goose Corp posters in a church?",
+        "receipt": "Goose Corp supplied the hymnals. The posters arrived in the same box. I hang them where I can look the words in the eye while I preach.",
+        "repeat": true
+      },
+      {
+        "label": "Are you wearing a Goose Pendant?",
+        "receipt": "Who told you to look under my collar? Put your hands where I can see them."
+      }
+    ]
   }
 }

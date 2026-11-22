@@ -1,4 +1,3 @@
-import { WAYMO_RENTAL } from '../waymo-rental.ts';
 import { ATV_RENTAL, hasATVRental } from '../atv.ts';
 import { MOTORCYCLE_TRICKS } from '../motorcycle.ts';
 import type { GameElements } from '../types/ui.ts';
@@ -32,20 +31,23 @@ import { HAIRSTYLES } from '../config/hairstyles.ts';
 import { TAHOE_PELTS } from '../config/tahoe-pelts.ts';
 
 import { SURF_TRICKS } from '../surfing.ts';
+import { WAYMO_RENTAL } from '../waymo-rental.ts';
 
 /** Hud services for the browser scene.
  * Dependencies are explicit live scene bindings, preserving initialization
  * order without globals. This module only reads bindings when a method runs. */
-function skillProgressText(skill: ReturnType<typeof skillStatus>) {
-  const xp = Math.floor(skill.xp).toLocaleString('en-US');
-  return (
-    'Level ' +
-    skill.level +
-    ' · ' +
-    (skill.nextXP === null
-      ? xp + ' XP'
-      : xp + ' / ' + skill.nextXP.toLocaleString('en-US') + ' XP for level ' + skill.next)
-  );
+function updateSkillProgress(
+  bar: HTMLProgressElement,
+  label: HTMLElement,
+  skillName: string,
+  skill: ReturnType<typeof skillStatus>,
+) {
+  if (bar.value !== skill.percent) bar.value = skill.percent;
+  const progress =
+    skill.next === null ? 'Max level' : skill.percent.toFixed(2) + '% to Level ' + skill.next;
+  const text = skillName + ' Level ' + skill.level + ' · ' + progress;
+  if (label.textContent !== text) label.textContent = text;
+  if (bar.getAttribute('aria-valuetext') !== progress) bar.setAttribute('aria-valuetext', progress);
 }
 
 export function createHud(context: WorldContext) {
@@ -88,7 +90,7 @@ export function createHud(context: WorldContext) {
     $('sf-rope-button').textContent = context.rope.climbing
       ? 'Climbing…'
       : context.rope.onGround
-        ? 'Climb rope'
+        ? 'Climb up'
         : context.rope.state.deployed
           ? 'Rope options'
           : 'Drop rope';
@@ -211,13 +213,23 @@ export function createHud(context: WorldContext) {
   function renderAdventureUI() {
     if (context.headless) return;
     updateATVControls();
+    const purse = context.economy.state;
+    for (const button of $('sf-chairs').querySelectorAll<HTMLButtonElement>('[data-chair]')) {
+      const chair = button.dataset.chair;
+      if (chair && chair !== 'normal') button.hidden = !equipmentOwned(purse, chair);
+    }
     const tablets = context.tabletService?.inventory() || {};
+    const canTeleport = !context.tabletService?.state.active && context.canUseTablet();
     for (const id of TABLET_PLACES) {
-      const b = $('sf-tablet-' + id) as HTMLButtonElement;
-      b.hidden = !tablets[id];
-      b.disabled = !!context.tabletService?.state.active || !context.canUseTablet();
-      b.textContent = ITEM_STATS[id + '-tablet'].name;
-      b.title = (tablets[id] || 0) + ' available';
+      const button = $('sf-tablet-' + id) as HTMLButtonElement;
+      const count = tablets[id] || 0;
+      button.disabled = !count || !canTeleport;
+      const label = button.querySelector('span')!;
+      const quantity = '· ' + count;
+      if (label.textContent !== quantity) {
+        label.textContent = quantity;
+        button.title = ITEM_STATS[id + '-tablet'].name + ' · ' + count + ' available';
+      }
     }
     const coffee = context.bankService?.snapshot().coffee || 0;
     $('sf-drink-coffee').hidden = !coffee;
@@ -225,13 +237,6 @@ export function createHud(context: WorldContext) {
       context.capture.state.active ||
       !!context.secretWorld?.bomber.state.active ||
       !!context.chase?.state.jailed;
-    const bankBalance = context.bankService?.snapshot().balance || 0;
-    const purse = context.economy.state;
-    $('sf-character-balance').textContent =
-      purse.coins.toLocaleString('en-US') +
-      ' coins | ' +
-      bankBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) +
-      ' banked';
     const resources = [
       [purse.grain, 'grain'],
       [purse.fish, 'live fish'],
@@ -334,23 +339,17 @@ export function createHud(context: WorldContext) {
         context.currentInterior)
     )
       context.motorcycle.park(context.player.x, context.player.y, context.player.angle);
-    const motor = $('sf-motorcycle-button');
-    motor.hidden = !context.motorcycle?.state.rented;
-    motor.disabled = !!(
-      context.capture.state.active ||
-      context.chase?.state.jailed ||
-      context.rocket.state.active
-    );
-    motor.setAttribute('aria-pressed', String(!!context.motorcycle?.state.riding));
-    const motorText = context.motorcycle?.state.riding ? 'Park motorcycle · M' : 'Motorcycle · M';
-    if (motor.textContent !== motorText) motor.textContent = motorText;
     const motorcycleTricks = $('sf-motorcycle-tricks');
     motorcycleTricks.hidden =
       !context.motorcycle?.state.riding || context.multiplayerWorld?.selfMode !== 'motorcycle';
     if (!motorcycleTricks.hidden) {
       const busy = MOTORCYCLE_TRICKS.some(({ id }) => id === context.multiplayerWorld?.selfGesture);
       for (const button of motorcycleTricks.querySelectorAll('button'))
-        button.disabled = motor.disabled || busy;
+        button.disabled =
+          busy ||
+          context.capture.state.active ||
+          !!context.chase?.state.jailed ||
+          context.rocket.state.active;
     }
     if (
       context.skateboard.riding &&
@@ -371,8 +370,9 @@ export function createHud(context: WorldContext) {
     const { pelts, uni } = context.multiplayer?.state.inventory || {};
     const q = context.quests.theyLive.state,
       items = [
+        purse.sand > 0 ? 'Sand ×' + purse.sand.toLocaleString('en-US') : null,
         q.evidence && !q.permit ? 'Alien Evidence Certificate' : null,
-        q.permit ? 'Alien-removal permit' : null,
+        q.started && q.permit && !q.completed ? 'Alien-removal permit' : null,
         q.bayonet ? 'Bayonet' : null,
         equipmentOwned(context.economy.state, 'goblin-phone') ? 'Goblin Phone' : null,
         q.skateboard ? 'Skateboard' : null,
@@ -416,26 +416,20 @@ export function createHud(context: WorldContext) {
       button.textContent = (trim ? 'Trim iron armor' : 'Break Bind Tablet') + ' · ' + count;
     }
     const supplyStatus = $('sf-combat-supplies');
-    const launcher =
-      equipmentOwned(context.economy.state, 'missile-launcher') || !!supplies.missiles;
-    supplyStatus.hidden = !(
-      launcher ||
-      supplies.akimboAmmo ||
-      supplies.railgunBatteries ||
-      equipmentOwned(context.economy.state, 'akibo') ||
-      equipmentOwned(context.economy.state, 'railgun')
-    );
-    supplyStatus.textContent =
-      'Ammo: ' +
-      (supplies.akimboAmmo || 0) +
-      ' · Railgun charge: ' +
-      (supplies.railgunCharge || 0) +
-      '/25' +
-      (launcher ? ' · Missiles: ' + (supplies.missiles || 0) : '');
+    const weapon = context.playerWeapon();
+    const railgun = weapon === 'railgun';
+    const railgunCharge = supplies.railgunCharge || 0;
+    const batteries = supplies.railgunBatteries || 0;
+    const weaponSupplies: Record<string, string> = {
+      railgun: 'Railgun charge: ' + railgunCharge + '/25 · Batteries: ' + batteries,
+      akibo: 'Ammo: ' + (supplies.akimboAmmo || 0),
+      'missile-launcher': 'Missiles: ' + (supplies.missiles || 0),
+    };
+    supplyStatus.textContent = weaponSupplies[weapon] || '';
+    supplyStatus.hidden = !supplyStatus.textContent;
     const charge = $('sf-charge-railgun');
-    charge.hidden = !supplies.railgunBatteries;
-    charge.disabled = (supplies.railgunCharge || 0) >= 25;
-    charge.textContent = 'Fit battery · ' + (supplies.railgunBatteries || 0) + ' spare';
+    charge.hidden = !railgun || !batteries;
+    charge.disabled = railgunCharge >= 25;
     updateDecorativeRocketControl();
     const hpText = 'Hitpoints ' + context.health.state.hp + '/' + context.health.state.max,
       enemy =
@@ -444,7 +438,7 @@ export function createHud(context: WorldContext) {
         (context.expeditions.state.target?.max ? context.expeditions.state.target : null);
     if ($('sf-hitpoints-text').textContent !== hpText) $('sf-hitpoints-text').textContent = hpText;
     const hps = skillStatus(context.health.state.xp);
-    $('sf-hp-level').textContent = 'Hitpoints ' + skillProgressText(hps);
+    updateSkillProgress($('sf-hp-level'), $('sf-hp-level-text'), 'Hitpoints', hps);
     $('sf-enemy-health').hidden = !enemy;
     if (enemy)
       $('sf-enemy-health').textContent =
@@ -495,11 +489,10 @@ export function createHud(context: WorldContext) {
           ? 'Board Waymo · ' + seconds + 's'
           : rental?.phase === 'dispatch'
             ? 'Waymo en route…'
-            : 'Call a Waymo · ' + WAYMO_RENTAL.price + ' coins';
+            : 'Waymo · ' + WAYMO_RENTAL.price + ' coins';
     if (waymo.textContent !== waymoLabel) waymo.textContent = waymoLabel;
-    const s = context.strength.status,
-      text = 'Strength ' + skillProgressText(s);
-    if ($('sf-strength-text').textContent !== text) $('sf-strength-text').textContent = text;
+    const s = context.strength.status;
+    updateSkillProgress($('sf-strength-progress'), $('sf-strength-level-text'), 'Strength', s);
     const characterLevel = 'Level ' + playerLevel(s.level, hps.level);
     if ($('sf-character-level').textContent !== characterLevel)
       $('sf-character-level').textContent = characterLevel;
@@ -517,10 +510,6 @@ export function createHud(context: WorldContext) {
     input.disabled = !context.sunglasses.state.owned;
     input.closest('label')!.hidden = !context.sunglasses.state.owned;
     input.checked = context.playerLook.sunglasses;
-    $('sf-sunglasses-hint').hidden = !context.sunglasses.state.owned;
-    $('sf-sunglasses-hint').textContent = context.sunglasses.state.owned
-      ? 'Change whether you are wearing your sunglasses.'
-      : '';
   }
 
   function updatePhoneControl() {
@@ -622,6 +611,7 @@ export function createHud(context: WorldContext) {
     const time = Date.now() + (context.multiplayer?.state.serverOffset || 0),
       onFoot =
         context.playerLook.back === 'new-year-rocket' &&
+        context.multiplayerWorld?.selfMode !== 'depotLaunch' &&
         !context.player.sitting &&
         !context.training &&
         !context.forwardRoll.state.active &&
@@ -636,6 +626,7 @@ export function createHud(context: WorldContext) {
   function canRocketHop() {
     return (
       context.playerLook.back === 'new-year-rocket' &&
+      context.multiplayerWorld?.selfMode !== 'depotLaunch' &&
       !context.player.sitting &&
       !context.training &&
       !context.forwardRoll.state.active &&
@@ -662,35 +653,31 @@ export function createHud(context: WorldContext) {
 
   function updateDecorativeRocketControl() {
     if (context.headless) return;
-    const button = $('sf-light-decorative-rocket'),
-      status: Partial<InventorySnapshot['decorativeRocket']> =
-        context.multiplayer?.state.inventory?.decorativeRocket || {},
-      seconds = Math.max(
-        0,
-        Math.ceil(
-          ((status.readyAt || 0) - (Date.now() + (context.multiplayer?.state.serverOffset || 0))) /
-            1000,
-        ),
-      );
-    button.hidden =
-      context.playerLook.back !== 'new-year-rocket' ||
-      !equipmentOwned(context.economy.state, 'new-year-rocket');
+    const button = $('sf-light-decorative-rocket');
+    const status = context.multiplayer?.state.inventory?.decorativeRocket;
+    const now = Date.now() + (context.multiplayer?.state.serverOffset || 0);
+    const seconds = Math.max(0, Math.ceil(((status?.readyAt || 0) - now) / 1000));
+    const burning = Math.max(0, Math.ceil(((status?.burningUntil || 0) - now) / 1000));
+    const equipped =
+      context.playerLook.back === 'new-year-rocket' &&
+      equipmentOwned(context.economy.state, 'new-year-rocket');
     button.disabled =
+      !equipped ||
       !context.multiplayer?.state.connected ||
       context.lightingDecorativeRocket ||
       context.capture.state.active ||
       !!context.chase?.state.jailed ||
-      seconds > 0;
-    button.textContent = context.lightingDecorativeRocket
-      ? 'Lighting…'
-      : seconds
-        ? 'Rocket ready in ' + seconds + 's'
-        : 'Light rocket · 10 seconds';
+      seconds > 0 ||
+      burning > 0;
+    const countdown = $('sf-rocket-countdown');
+    countdown.hidden = !equipped || (!seconds && !burning);
+    const label = burning ? burning + 's burning' : 'Ready in ' + seconds + 's';
+    if (countdown.textContent !== label) countdown.textContent = label;
   }
 
   async function lightDecorativeRocket() {
     const button = $('sf-light-decorative-rocket');
-    if (button.disabled || button.hidden || !context.multiplayer?.state.connected) return;
+    if (button.disabled || !context.multiplayer?.state.connected) return;
     context.lightingDecorativeRocket = true;
     updateDecorativeRocketControl();
     try {
@@ -811,7 +798,8 @@ export function createHud(context: WorldContext) {
     $('sf-pvp-enabled').checked = context.multiplayer.state.pvp?.enabled === true;
     $('sf-character-save-status').textContent = '';
     showPasswordStatus(context.multiplayer.state.hasCharacterPassword === true);
-    $('sf-close-character').focus({ preventScroll: true });
+    $('sf-character-tab').click();
+    $('sf-character-tab').focus({ preventScroll: true });
   }
 
   function closeCharacter() {
@@ -844,7 +832,7 @@ export function createHud(context: WorldContext) {
     context.player.speed = 0;
     $('sf-help').hidden = false;
     $('sf-reader-shade').hidden = false;
-    $('sf-close-help').focus({ preventScroll: true });
+    $('sf-help').focus({ preventScroll: true });
   }
 
   function closeHelp() {

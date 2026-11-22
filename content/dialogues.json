@@ -1,6 +1,24 @@
 {
   "schema": 1,
   "services": {
+    "bolinas-cultist": {
+      "id": "service.bolinas-cultist.root",
+      "intro": "Afternoon. Good day for a walk. The geese usually come in around four. I count them from the porch. Most days I get the same number.",
+      "choices": [
+        {
+          "id": "service.bolinas-cultist.count",
+          "label": "What happens when the count is off?",
+          "receipt": "I count again. Last Tuesday, eleven went out and twelve came back. The extra one looked right at my window. Wait. Who told you to ask about the count? I have nothing to tell you.",
+          "action": "confront"
+        },
+        {
+          "id": "service.bolinas-cultist.cottage",
+          "label": "Is that your cottage?",
+          "receipt": "Has been for years. The geese used to walk straight past it. Lately one stops at the gate, right where you’re standing. Did somebody send you to ask about the house? I have nothing to tell you.",
+          "action": "confront"
+        }
+      ]
+    },
     "yohji": {
       "intro": {
         "text": "service.yohji.root.intro"
@@ -274,6 +292,42 @@
         }
       ],
       "id": "service.chef.root"
+    },
+    "coffee-stall-vendor": {
+      "id": "service.coffee-stall-vendor.root",
+      "intro": "Fresh coffee, brewed right here. Want a cup?",
+      "repeat": true,
+      "choices": [
+        {
+          "id": "service.coffee-stall-vendor.root.choices.0",
+          "label": "Buy a coffee · {coffeePrice} coin",
+          "trade": "coffee"
+        }
+      ]
+    },
+    "hardware-clerk": {
+      "id": "service.hardware-clerk.root",
+      "intro": "Need a little leverage? I carry steel crowbars.",
+      "repeat": true,
+      "choices": [
+        {
+          "id": "service.hardware-clerk.root.choices.0",
+          "label": "Buy a crowbar · {crowbarPrice} coins",
+          "trade": "crowbar"
+        }
+      ]
+    },
+    "rich-table-chef": {
+      "id": "service.rich-table-chef.root",
+      "intro": "I buy fresh uni for the kitchen. Bring me any sea urchin roe you find along the coast.",
+      "repeat": true,
+      "choices": [
+        {
+          "id": "service.rich-table-chef.root.choices.0",
+          "label": "Sell Uni · {uniPrice} coins",
+          "trade": "sell-uni"
+        }
+      ]
     },
     "gpu-buyer": {
       "intro": {

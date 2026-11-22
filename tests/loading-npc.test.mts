@@ -60,8 +60,23 @@ test('waiting preserves the game rig limb lengths and stays within the small vie
     assert.ok(data.every(Number.isFinite));
     assert.ok(data.length / 33 > 1000 && data.length / 33 < 3000);
     for (let i = 0; i < data.length; i += 11) {
-      assert.ok(Math.hypot(data[i], data[i + 2]) < 1.1);
-      assert.ok(data[i + 1] > -0.04 && data[i + 1] < 2.25);
+      assert.ok(Math.hypot(data[i], data[i + 2]) < 1.35);
+      assert.ok(data[i + 1] > -0.08 && data[i + 1] < 2.25);
     }
   }
+});
+
+test('the white pedestal and working clock share the waiting scene geometry', () => {
+  const mesh = createLoadingNPCMesh();
+  const frame = mesh(0, new Date(2020, 0, 1, 10, 0, 0)).data;
+  const next = mesh(0, new Date(2020, 0, 1, 10, 0, 15)).data;
+  const changed = [];
+  let whiteBase = false;
+  for (let i = 0; i < frame.length; i += 11) {
+    if (frame[i + 1] < 0 && frame[i + 6] === 1 && frame[i + 7] === 1 && frame[i + 8] === 1)
+      whiteBase = true;
+    if (frame[i] !== next[i] || frame[i + 1] !== next[i + 1]) changed.push(frame[i]);
+  }
+  assert.ok(whiteBase);
+  assert.ok(changed.length && changed.every((x) => x > 0.6));
 });

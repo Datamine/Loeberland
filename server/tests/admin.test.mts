@@ -344,6 +344,41 @@ test('read-only admin permits inspection but rejects authenticated writes', asyn
   assert.match(html, /Read-only inspection/);
 });
 
+test('the configured public host requires authentication and exposes only read-only admin', async (t) => {
+  const { filename } = await fixture(t);
+  const store = await openAdminStore({ filename, redisURL: '' });
+  const host = 'admin.example.test';
+  const admin = await startAdmin({
+    store,
+    port: 0,
+    readOnly: true,
+    publicHost: host,
+    ...credentials,
+  });
+  t.after(() => admin.close());
+
+  function requestRecords(headers: Record<string, string>) {
+    return new Promise((resolve, reject) => {
+      const req = request(
+        admin.origin + '/api/records',
+        { headers: { Host: host, ...headers } },
+        (res) => {
+          res.resume();
+          resolve(res.statusCode);
+        },
+      );
+      req.on('error', reject);
+      req.end();
+    });
+  }
+
+  assert.equal(await requestRecords({}), 401);
+  const headers = { Authorization: authorization, 'X-Admin-Token': admin.token };
+  assert.equal(await requestRecords({ ...headers, Origin: `https://${host}` }), 200);
+  assert.equal(await requestRecords({ ...headers, Origin: `http://${host}` }), 403);
+  assert.equal(await requestRecords({ ...headers, Host: 'elsewhere.example.test' }), 403);
+});
+
 test('admin CLI loads a selected env file, honors environment overrides and validates without opening storage', async (t) => {
   const dir = await mkdtemp(join(tmpdir(), 'loeberland-admin-env-'));
   t.after(() => rm(dir, { recursive: true, force: true }));

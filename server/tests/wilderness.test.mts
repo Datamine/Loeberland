@@ -19,7 +19,7 @@ import {
   createTahoe,
   tahoeHeight,
 } from '../../src/tahoe.ts';
-import { wildernessSpawns } from '../../src/wilderness.ts';
+import { createWilderness, wildernessSpawns } from '../../src/wilderness.ts';
 import { rollMonsterDrops } from '../../src/monster-drops.ts';
 import { TAHOE_PELTS, TAHOE_PELT_PRICES } from '../../src/config/tahoe-pelts.ts';
 import { ROBE_SELLER } from '../../src/goblin-industrialist.ts';
@@ -61,6 +61,21 @@ async function act(
   await p.p.queue;
   return latestResult(p.messages);
 }
+test('black bears and red foxes pursue and attack nearby players without provocation', () => {
+  for (const combatKind of ['tahoe-bear', 'tahoe-fox']) {
+    const player = { id: 'visitor', x: 2.6, z: 0 };
+    let damage = 0;
+    const world = createWilderness({
+      spawns: [{ id: combatKind, combatKind, x: 0, z: 0 }],
+      onDamage: (_player, amount) => (damage += amount),
+    });
+    world.update(0.1, [player]);
+    assert.equal(world.actors[0].enemy, player.id, combatKind);
+    for (let i = 0; i < 15; i++) world.update(0.1, [player]);
+    assert.ok(damage > 0, combatKind);
+  }
+});
+
 test('Tahoe wildlife pelts are rare, collectible and sell only to the nearby robe clothier', async () => {
   const species = [
     ['tahoe-bear', 'bear-pelt', 20],
