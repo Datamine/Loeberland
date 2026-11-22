@@ -659,10 +659,10 @@
       "template": "Heirloom produce, black coats and exceptionally small sunglasses. The farmers grow the future, mostly in vials."
     },
     "guild.guildDialogue.intro-8.yes": {
-      "template": "Welcome back. The lodge, the library, and the geometrically arranged biscuits are yours."
+      "template": "Ray closes the ledger. “Full member. The library is yours, and the biscuits are in the usual place.”"
     },
     "guild.guildDialogue.intro-8.no": {
-      "template": "Ray, admissions. We like to get to know our applicants. You are currently Rank {v0}, with {v1} peptides carried."
+      "template": "Ray turns the ledger toward you. “Rank {v0}. I keep the admissions book. What did you want to know?”"
     },
     "guild.guildDialogue.decline-10": {
       "template": "Leave"
@@ -671,10 +671,10 @@
       "template": "Review membership"
     },
     "guild.guildDialogue.label-12.no": {
-      "template": "Check in · request promotion"
+      "template": "Sign the admissions ledger"
     },
     "guild.guildDialogue.label-15": {
-      "template": "Donate 1 peptide"
+      "template": "Slip Ray 1 peptide · gain 1 rank"
     },
     "gym-exercises.module.label-1": {
       "template": "Bench press"
@@ -1448,7 +1448,7 @@
       "template": "Palmetto Pottery"
     },
     "southern-craft.module.label-3": {
-      "template": "Juniper Books"
+      "template": "Menotti’s"
     },
     "southern-craft.module.label-4": {
       "template": "Garden Market"
@@ -3029,7 +3029,7 @@
       "template": "Welcome back. Make yourself comfortable."
     },
     "service.square-coffee.root.intro": {
-      "template": "Welcome to Square Coffee. The espresso is local. The skyline is undergoing a somewhat dramatic identity crisis."
+      "template": "Welcome to Blue Bottle. The espresso is local. The skyline is undergoing a somewhat dramatic identity crisis."
     },
     "service.square-coffee.root.choices.0.label": {
       "template": "A coffee, please · 1 coin"
@@ -3537,6 +3537,33 @@
     },
     "service.guild-rumours.root.choices.0.receipt": {
       "template": "Ray lowers his voice. “The Powerful and Evil Goose Corporation. An old arrangement. Please don’t repeat it near the biscuits.”"
+    },
+    "guild.guildDialogue.shortcut.label": {
+      "template": "Is there any way to move things along?"
+    },
+    "guild.guildDialogue.private-trade.intro": {
+      "template": "Ray glances toward the lodge door. “The Freemasons don’t ask for peptides. I do make a private trade, though. Slip me one vial and I can put you up a rank today. It stays between us.” You have {v0} peptides."
+    },
+    "service.guild-admissions.root.choices.0.label": {
+      "template": "What are the official requirements?"
+    },
+    "service.guild-admissions.root.choices.0.receipt": {
+      "template": "“Sign in to get started, then come back after a full hour for each promotion. Twenty-four promotions make you a member. You can do the whole thing without ever bringing a peptide.”"
+    },
+    "service.neighborhood-menottis.root.intro": {
+      "template": "Welcome to Menotti’s. What can I pour you? If you want to earn a coin, I could use a hand clearing the tables."
+    },
+    "service.neighborhood-menottis.root.coffee.label": {
+      "template": "Buy a coffee · 1 coin"
+    },
+    "service.neighborhood-menottis.root.coffee.receipt": {
+      "template": "You drink a fresh espresso. It can restore 1 HP."
+    },
+    "service.neighborhood-menottis.root.bus-tables.label": {
+      "template": "Clear the café tables · earn 1 coin"
+    },
+    "service.neighborhood-menottis.root.bus-tables.receipt": {
+      "template": "You clear the cups and wipe down the tables."
     }
   }
 }

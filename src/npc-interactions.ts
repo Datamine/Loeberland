@@ -6,6 +6,7 @@ export function npcOffersAttack(npc: ActorMetadata = {}) {
   if (
     npc.networkPlayer ||
     npc.id === 'nia' ||
+    npc.kind === 'cafe-patron' ||
     (typeof npc.id === 'string' &&
       (npc.id.startsWith('cotogna-diner-') || npc.id.startsWith('rich-table-diner-')))
   )

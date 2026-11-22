@@ -39,6 +39,14 @@ async function setup() {
       neighborhoodService: 'flowers',
     },
     { label: 'books', id: 'books', x: 92.2, z: 120, base: 1.15, neighborhoodService: 'books' },
+    {
+      label: 'Menotti’s barista',
+      id: 'menottis-barista',
+      x: 92.2,
+      z: 120,
+      base: 1.15,
+      neighborhoodService: 'menottis',
+    },
     { label: 'jurassic-scientist', id: 'jurassic-scientist', x: 92.2, z: 120, base: 1.15 },
   ];
   const game = await createGame({ geometry, store: createMemoryStore(), random: () => 0.5 });
@@ -61,6 +69,31 @@ test('picking up a sandwich grants the food without a loot announcement', async 
   assert.equal(result.ok, true);
   assert.equal(result.message, undefined);
   assert.equal(a.p.inventory.snapshot().sandwiches, 1);
+});
+
+test('Menotti’s charges for coffee and pays for clearing tables once per cooldown', async (t) => {
+  const { game } = await setup();
+  t.after(() => game.close());
+  const { p, messages } = await player(game, 28105, { 'sf-purse-v1': '{"coins":1}' });
+  const order = (offer: string) =>
+    command(game, p, 'playerAction', {
+      verb: 'neighborhoodService',
+      id: 'menottis-barista',
+      offer,
+    });
+  p.hp = 10;
+  await order('coffee');
+  assert.equal(requiredResult(messages).ok, true);
+  assert.equal(p.inventory.economy.state.coins, 0);
+  assert.equal(p.hp, 11);
+  await order('coffee');
+  assert.equal(requiredResult(messages).ok, false);
+  await order('bus-tables');
+  assert.equal(requiredResult(messages).ok, true);
+  assert.equal(p.inventory.economy.state.coins, 1);
+  await order('bus-tables');
+  assert.equal(requiredResult(messages).ok, false);
+  assert.equal(p.inventory.economy.state.coins, 1);
 });
 
 test('shopkeepers validate proximity, prices and options; tea heals and sobers, bouquets persist and books are free', async () => {

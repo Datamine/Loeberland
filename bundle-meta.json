@@ -84,7 +84,7 @@
       "format": "esm"
     },
     "content/entities.json": {
-      "bytes": 586524,
+      "bytes": 586522,
       "imports": [],
       "format": "esm",
       "with": {
@@ -121,7 +121,7 @@
       "format": "esm"
     },
     "content/texts.json": {
-      "bytes": 146400,
+      "bytes": 146398,
       "imports": [],
       "format": "esm",
       "with": {
@@ -474,7 +474,7 @@
       "format": "esm"
     },
     "src/dialogues/services.json": {
-      "bytes": 32476,
+      "bytes": 32474,
       "imports": [],
       "format": "esm",
       "with": {
@@ -5601,7 +5601,7 @@
       "format": "esm"
     },
     "src/times-square-life.ts": {
-      "bytes": 7951,
+      "bytes": 8636,
       "imports": [
         {
           "path": "src/content-runtime.ts",
@@ -9694,7 +9694,7 @@
       "imports": [],
       "exports": [],
       "inputs": {},
-      "bytes": 9333607
+      "bytes": 9334806
     },
     "explore.js": {
       "imports": [],
@@ -9744,7 +9744,7 @@
           "bytesInOutput": 1568
         },
         "content/entities.json": {
-          "bytesInOutput": 336911
+          "bytesInOutput": 336909
         },
         "content/dialogues.json": {
           "bytesInOutput": 257688
@@ -9759,7 +9759,7 @@
           "bytesInOutput": 236
         },
         "content/texts.json": {
-          "bytesInOutput": 122191
+          "bytesInOutput": 122189
         },
         "content/world-messages.json": {
           "bytesInOutput": 88405
@@ -9825,7 +9825,7 @@
           "bytesInOutput": 2280
         },
         "src/dialogues/services.json": {
-          "bytesInOutput": 23872
+          "bytesInOutput": 23870
         },
         "content/dialogues/other/goose-corp-lore.json": {
           "bytesInOutput": 7055
@@ -10482,7 +10482,7 @@
           "bytesInOutput": 1620
         },
         "src/times-square-life.ts": {
-          "bytesInOutput": 4109
+          "bytesInOutput": 4561
         },
         "src/rooftops.ts": {
           "bytesInOutput": 6998
@@ -10722,7 +10722,7 @@
           "bytesInOutput": 573
         }
       },
-      "bytes": 4282613
+      "bytes": 4283059
     }
   }
 }

@@ -190,19 +190,7 @@ export function guildDialogue(
     ...ray,
     intro: info.member
       ? contentText('guild.guildDialogue.intro-8.yes', {})
-      : contentText('guild.guildDialogue.intro-8.no', { v0: info.rank, v1: info.peptides || 0 }),
-    question: () => {
-      const current = status();
-      return current.member
-        ? 'Your membership is confirmed. Welcome to the lodge.'
-        : 'Rank ' +
-            current.rank +
-            ' · ' +
-            current.visits +
-            ' promotions. Peptides carried: ' +
-            (current.peptides || 0) +
-            '.';
-    },
+      : contentText('guild.guildDialogue.intro-8.no', { v0: info.rank }),
     decline: contentText('guild.guildDialogue.decline-10', {}),
     repeat: true,
     choices: [
@@ -218,19 +206,38 @@ export function guildDialogue(
         labelTextValues: info.member ? {} : {},
         actionId: 'guild.guildDialogue.action-13',
       },
-      {
-        label: contentText('guild.guildDialogue.label-15', {}),
-        accept: () => act('donate'),
-        contentNodeId: 'guild.guildDialogue.node-14',
-        labelTextId: 'guild.guildDialogue.label-15',
-        labelTextValues: {},
-        actionId: 'guild.guildDialogue.action-16',
-      },
+      ...configuredDialogue('guild-admissions').choices!,
+      ...(info.member
+        ? []
+        : [
+            {
+              label: contentText('guild.guildDialogue.shortcut.label', {}),
+              contentNodeId: 'guild.guildDialogue.shortcut',
+              next: {
+                intro: contentText('guild.guildDialogue.private-trade.intro', {
+                  v0: info.peptides || 0,
+                }),
+                introTextId: 'guild.guildDialogue.private-trade.intro',
+                introTextValues: { v0: info.peptides || 0 },
+                contentNodeId: 'guild.guildDialogue.private-trade',
+                choices: [
+                  {
+                    label: contentText('guild.guildDialogue.label-15', {}),
+                    accept: () => act('donate'),
+                    contentNodeId: 'guild.guildDialogue.node-14',
+                    labelTextId: 'guild.guildDialogue.label-15',
+                    labelTextValues: {},
+                    actionId: 'guild.guildDialogue.action-16',
+                  },
+                ],
+              },
+            },
+          ]),
       ...(configuredDialogue('guild-rumours').choices || []),
     ],
     contentNodeId: 'guild.guildDialogue.node-7',
     introTextId: info.member ? 'guild.guildDialogue.intro-8.yes' : 'guild.guildDialogue.intro-8.no',
-    introTextValues: info.member ? {} : { v0: info.rank, v1: info.peptides || 0 },
+    introTextValues: info.member ? {} : { v0: info.rank },
     declineTextId: 'guild.guildDialogue.decline-10',
     declineTextValues: {},
   };

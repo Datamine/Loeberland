@@ -21,6 +21,10 @@ import { DOG_PONY_SHOW } from '../dog-pony-layout.ts';
 /** Authoritative service prices and effects. Spoken copy is in ../dialogues/services.json. */
 const SERVICE_EFFECTS: Record<string, ServiceEffect[]> = {
   mazarine: [{ id: 'sweep', reward: 1, cooldownMs: 180000 }],
+  menottis: [
+    { id: 'coffee', price: 1, heal: 1 },
+    { id: 'bus-tables', reward: 1, cooldownMs: 180000 },
+  ],
   'dog-pony': [{ id: 'watch', price: DOG_PONY_SHOW.price, showMs: DOG_PONY_SHOW.durationMs }],
   tea: [
     {

@@ -1078,7 +1078,7 @@ export function createPlayerState({
       if (offer.showMs) shopkeeper.showStartedAt = Math.max(1, now());
       if (offer.heal) r.health.heal(offer.heal);
       if (offer.sober) r.inebriation.set(Math.max(0, r.inebriation.state.percent - offer.sober));
-      p.gesture = offer.reward ? 'work' : service === NEIGHBORHOOD_SERVICES.tea ? 'drink' : 'talk';
+      p.gesture = offer.reward ? 'work' : offer.heal ? 'drink' : 'talk';
       p.gestureUntil = now() + (offer.reward ? 2200 : 1200);
       result = {
         ok: true,

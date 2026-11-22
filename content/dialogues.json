@@ -1622,6 +1622,54 @@
         }
       ],
       "id": "service.guild-rumours.root"
+    },
+    "guild-admissions": {
+      "id": "service.guild-admissions.root",
+      "choices": [
+        {
+          "id": "service.guild-admissions.root.choices.0",
+          "label": {
+            "text": "service.guild-admissions.root.choices.0.label"
+          },
+          "receipt": {
+            "text": "service.guild-admissions.root.choices.0.receipt"
+          }
+        }
+      ],
+      "skipIntro": true
+    },
+    "neighborhood-menottis": {
+      "intro": {
+        "text": "service.neighborhood-menottis.root.intro"
+      },
+      "repeat": true,
+      "choices": [
+        {
+          "id": "coffee",
+          "label": {
+            "text": "service.neighborhood-menottis.root.coffee.label"
+          },
+          "action": "service",
+          "args": ["coffee"],
+          "receipt": {
+            "text": "service.neighborhood-menottis.root.coffee.receipt"
+          },
+          "serverReceipt": true
+        },
+        {
+          "id": "bus-tables",
+          "label": {
+            "text": "service.neighborhood-menottis.root.bus-tables.label"
+          },
+          "action": "service",
+          "args": ["bus-tables"],
+          "receipt": {
+            "text": "service.neighborhood-menottis.root.bus-tables.receipt"
+          },
+          "serverReceipt": true
+        }
+      ],
+      "id": "service.neighborhood-menottis.root"
     }
   },
   "variants": {
@@ -7066,184 +7114,39 @@
         "Equipment and rentals available"
       ],
       "placements": ["actor:southern-corner-57-neighbor"],
-      "root": "service.neighborhood-books.root",
+      "root": "service.neighborhood-menottis.root",
       "nodes": {
-        "service.neighborhood-books.root": {
-          "id": "service.neighborhood-books.root",
+        "service.neighborhood-menottis.root": {
+          "id": "service.neighborhood-menottis.root",
           "choices": [
             {
-              "id": "garden",
+              "id": "coffee",
               "label": {
-                "text": "garden.label"
+                "text": "service.neighborhood-menottis.root.coffee.label"
               },
               "receipt": {
-                "text": "garden.receipt"
+                "text": "service.neighborhood-menottis.root.coffee.receipt"
               },
-              "action": "service.neighborhood-books.service:[\"garden\"]"
+              "action": "service.neighborhood-menottis.service:[\"coffee\"]"
             },
             {
-              "id": "mind",
+              "id": "bus-tables",
               "label": {
-                "text": "mind.label"
+                "text": "service.neighborhood-menottis.root.bus-tables.label"
               },
               "receipt": {
-                "text": "mind.receipt"
+                "text": "service.neighborhood-menottis.root.bus-tables.receipt"
               },
-              "action": "service.neighborhood-books.service:[\"mind\"]"
-            },
-            {
-              "id": "coast",
-              "label": {
-                "text": "coast.label"
-              },
-              "receipt": {
-                "text": "coast.receipt"
-              },
-              "action": "service.neighborhood-books.service:[\"coast\"]"
+              "action": "service.neighborhood-menottis.service:[\"bus-tables\"]"
             }
           ],
           "repeat": true,
-          "skipIntro": false,
           "intro": {
-            "text": "service.neighborhood-books.root.intro"
+            "text": "service.neighborhood-menottis.root.intro"
           },
+          "decline": "Leave",
           "question": "",
-          "decline": "Leave"
-        }
-      },
-      "sampleValues": {
-        "service.neighborhood-books.root:intro": {
-          "equityPrice": 10,
-          "secondaryPrice": 20,
-          "grainPrice": 1,
-          "fishPrice": 5,
-          "sandPrice": 20,
-          "passengerPrice": 5,
-          "rocketPrice": 1,
-          "skiPrice": 1,
-          "tabletPrice": 20,
-          "sandwichPrice": 3,
-          "deliveryPrice": 15,
-          "healing": 15,
-          "burgerPrice": 2,
-          "softwarePrice": 10,
-          "softwareResalePrice": 20,
-          "phonePrice": 100,
-          "robotaxiPrice": 100
-        },
-        "garden:label": {
-          "equityPrice": 10,
-          "secondaryPrice": 20,
-          "grainPrice": 1,
-          "fishPrice": 5,
-          "sandPrice": 20,
-          "passengerPrice": 5,
-          "rocketPrice": 1,
-          "skiPrice": 1,
-          "tabletPrice": 20,
-          "sandwichPrice": 3,
-          "deliveryPrice": 15,
-          "healing": 15,
-          "burgerPrice": 2,
-          "softwarePrice": 10,
-          "softwareResalePrice": 20,
-          "phonePrice": 100,
-          "robotaxiPrice": 100
-        },
-        "garden:receipt": {
-          "equityPrice": 10,
-          "secondaryPrice": 20,
-          "grainPrice": 1,
-          "fishPrice": 5,
-          "sandPrice": 20,
-          "passengerPrice": 5,
-          "rocketPrice": 1,
-          "skiPrice": 1,
-          "tabletPrice": 20,
-          "sandwichPrice": 3,
-          "deliveryPrice": 15,
-          "healing": 15,
-          "burgerPrice": 2,
-          "softwarePrice": 10,
-          "softwareResalePrice": 20,
-          "phonePrice": 100,
-          "robotaxiPrice": 100
-        },
-        "mind:label": {
-          "equityPrice": 10,
-          "secondaryPrice": 20,
-          "grainPrice": 1,
-          "fishPrice": 5,
-          "sandPrice": 20,
-          "passengerPrice": 5,
-          "rocketPrice": 1,
-          "skiPrice": 1,
-          "tabletPrice": 20,
-          "sandwichPrice": 3,
-          "deliveryPrice": 15,
-          "healing": 15,
-          "burgerPrice": 2,
-          "softwarePrice": 10,
-          "softwareResalePrice": 20,
-          "phonePrice": 100,
-          "robotaxiPrice": 100
-        },
-        "mind:receipt": {
-          "equityPrice": 10,
-          "secondaryPrice": 20,
-          "grainPrice": 1,
-          "fishPrice": 5,
-          "sandPrice": 20,
-          "passengerPrice": 5,
-          "rocketPrice": 1,
-          "skiPrice": 1,
-          "tabletPrice": 20,
-          "sandwichPrice": 3,
-          "deliveryPrice": 15,
-          "healing": 15,
-          "burgerPrice": 2,
-          "softwarePrice": 10,
-          "softwareResalePrice": 20,
-          "phonePrice": 100,
-          "robotaxiPrice": 100
-        },
-        "coast:label": {
-          "equityPrice": 10,
-          "secondaryPrice": 20,
-          "grainPrice": 1,
-          "fishPrice": 5,
-          "sandPrice": 20,
-          "passengerPrice": 5,
-          "rocketPrice": 1,
-          "skiPrice": 1,
-          "tabletPrice": 20,
-          "sandwichPrice": 3,
-          "deliveryPrice": 15,
-          "healing": 15,
-          "burgerPrice": 2,
-          "softwarePrice": 10,
-          "softwareResalePrice": 20,
-          "phonePrice": 100,
-          "robotaxiPrice": 100
-        },
-        "coast:receipt": {
-          "equityPrice": 10,
-          "secondaryPrice": 20,
-          "grainPrice": 1,
-          "fishPrice": 5,
-          "sandPrice": 20,
-          "passengerPrice": 5,
-          "rocketPrice": 1,
-          "skiPrice": 1,
-          "tabletPrice": 20,
-          "sandwichPrice": 3,
-          "deliveryPrice": 15,
-          "healing": 15,
-          "burgerPrice": 2,
-          "softwarePrice": 10,
-          "softwareResalePrice": 20,
-          "phonePrice": 100,
-          "robotaxiPrice": 100
+          "skipIntro": false
         }
       }
     },
@@ -9970,11 +9873,20 @@
               "action": "guild.guildDialogue.action-13"
             },
             {
-              "id": "guild.guildDialogue.node-14",
+              "id": "service.guild-admissions.root.choices.0",
               "label": {
-                "text": "guild.guildDialogue.label-15"
+                "text": "service.guild-admissions.root.choices.0.label"
               },
-              "action": "guild.guildDialogue.action-16"
+              "receipt": {
+                "text": "service.guild-admissions.root.choices.0.receipt"
+              }
+            },
+            {
+              "id": "guild.guildDialogue.shortcut",
+              "label": {
+                "text": "guild.guildDialogue.shortcut.label"
+              },
+              "next": "guild.guildDialogue.private-trade"
             },
             {
               "id": "service.guild-rumours.root.choices.0",
@@ -9991,16 +9903,34 @@
           "intro": {
             "text": "guild.guildDialogue.intro-8.no"
           },
-          "question": "Rank 1 · 0 promotions. Peptides carried: 0.",
           "decline": {
             "text": "guild.guildDialogue.decline-10"
-          }
+          },
+          "question": ""
+        },
+        "guild.guildDialogue.private-trade": {
+          "id": "guild.guildDialogue.private-trade",
+          "intro": {
+            "text": "guild.guildDialogue.private-trade.intro"
+          },
+          "choices": [
+            {
+              "id": "guild.guildDialogue.node-14",
+              "label": {
+                "text": "guild.guildDialogue.label-15"
+              },
+              "action": "guild.guildDialogue.action-16"
+            }
+          ],
+          "question": "",
+          "skipIntro": false,
+          "repeat": false,
+          "decline": "Leave"
         }
       },
       "sampleValues": {
         "guild.guildDialogue.node-7:intro": {
-          "v0": 1,
-          "v1": 0
+          "v0": 1
         },
         "guild.guildDialogue.node-7:decline": {},
         "guild.guildDialogue.node-11:label": {},
@@ -10042,6 +9972,9 @@
           "softwareResalePrice": 20,
           "phonePrice": 100,
           "robotaxiPrice": 100
+        },
+        "guild.guildDialogue.private-trade:intro": {
+          "v0": 0
         }
       }
     },
@@ -10062,11 +9995,20 @@
               "action": "guild.guildDialogue.action-13"
             },
             {
-              "id": "guild.guildDialogue.node-14",
+              "id": "service.guild-admissions.root.choices.0",
               "label": {
-                "text": "guild.guildDialogue.label-15"
+                "text": "service.guild-admissions.root.choices.0.label"
               },
-              "action": "guild.guildDialogue.action-16"
+              "receipt": {
+                "text": "service.guild-admissions.root.choices.0.receipt"
+              }
+            },
+            {
+              "id": "guild.guildDialogue.shortcut",
+              "label": {
+                "text": "guild.guildDialogue.shortcut.label"
+              },
+              "next": "guild.guildDialogue.private-trade"
             },
             {
               "id": "service.guild-rumours.root.choices.0",
@@ -10083,16 +10025,34 @@
           "intro": {
             "text": "guild.guildDialogue.intro-8.no"
           },
-          "question": "Rank 8 · 7 promotions. Peptides carried: 0.",
           "decline": {
             "text": "guild.guildDialogue.decline-10"
-          }
+          },
+          "question": ""
+        },
+        "guild.guildDialogue.private-trade": {
+          "id": "guild.guildDialogue.private-trade",
+          "intro": {
+            "text": "guild.guildDialogue.private-trade.intro"
+          },
+          "choices": [
+            {
+              "id": "guild.guildDialogue.node-14",
+              "label": {
+                "text": "guild.guildDialogue.label-15"
+              },
+              "action": "guild.guildDialogue.action-16"
+            }
+          ],
+          "question": "",
+          "skipIntro": false,
+          "repeat": false,
+          "decline": "Leave"
         }
       },
       "sampleValues": {
         "guild.guildDialogue.node-7:intro": {
-          "v0": 8,
-          "v1": 0
+          "v0": 8
         },
         "guild.guildDialogue.node-7:decline": {},
         "guild.guildDialogue.node-11:label": {},
@@ -10134,6 +10094,9 @@
           "softwareResalePrice": 20,
           "phonePrice": 100,
           "robotaxiPrice": 100
+        },
+        "guild.guildDialogue.private-trade:intro": {
+          "v0": 0
         }
       },
       "when": {
@@ -10166,11 +10129,13 @@
               "action": "guild.guildDialogue.action-13"
             },
             {
-              "id": "guild.guildDialogue.node-14",
+              "id": "service.guild-admissions.root.choices.0",
               "label": {
-                "text": "guild.guildDialogue.label-15"
+                "text": "service.guild-admissions.root.choices.0.label"
               },
-              "action": "guild.guildDialogue.action-16"
+              "receipt": {
+                "text": "service.guild-admissions.root.choices.0.receipt"
+              }
             },
             {
               "id": "service.guild-rumours.root.choices.0",
@@ -10187,17 +10152,16 @@
           "intro": {
             "text": "guild.guildDialogue.intro-8.yes"
           },
-          "question": "Your membership is confirmed. Welcome to the lodge.",
           "decline": {
             "text": "guild.guildDialogue.decline-10"
-          }
+          },
+          "question": ""
         }
       },
       "sampleValues": {
         "guild.guildDialogue.node-7:intro": {},
         "guild.guildDialogue.node-7:decline": {},
         "guild.guildDialogue.node-11:label": {},
-        "guild.guildDialogue.node-14:label": {},
         "service.guild-rumours.root.choices.0:label": {
           "equityPrice": 10,
           "secondaryPrice": 20,

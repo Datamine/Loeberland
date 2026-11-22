@@ -9,8 +9,10 @@ import { SQUARE_DIGSITE } from './square-construction-layout.ts';
 import { TIMES_SQUARE } from './southern-layout.ts';
 import type { SignAtlas } from './types/world.ts';
 
+const BLUE_BOTTLE_SIGN = 'BLUE BOTTLE';
+
 export const SQUARE_LIFE_SIGNS = Object.freeze([
-  'SQUARE COFFEE',
+  BLUE_BOTTLE_SIGN,
   'USED BOOKS',
   'HILLSBOROUGH WORKS',
   'NOTICE · PUBLIC PLAZA',
@@ -97,7 +99,7 @@ export function createSquareNPCs() {
     ),
     make(
       'square-diner',
-      'Square Coffee patron',
+      'Blue Bottle patron',
       'square-diner',
       63.5,
       157.2,
@@ -153,7 +155,27 @@ export function drawSquareStreetLife(m: Mesh, signs: SignAtlas) {
     m.box(-0.18, 0.97, 0.08, 0.34, 0.11, 0.025, '#344b4c');
     for (const x of [-0.38, 0.33] satisfies [number, number])
       m.cylinder(x, 0.85, 0.25, 0.045, 0.07, '#ede7d1', 12);
-    drawPlaque(m, signs, 'SQUARE COFFEE', 0, 1.43, 0.54, 1.1, 0.18);
+    drawPlaque(m, signs, BLUE_BOTTLE_SIGN, 0.095, 1.43, 0.54, 0.91, 0.18);
+    m.box(-0.55, 1.43, 0.53, 0.19, 0.18, 0.01, '#f6efe3');
+    const blue = '#008fcb';
+    const bottleX = -0.455;
+    const face = 0.542;
+    m.quad(
+      [bottleX - 0.037, 1.449, face],
+      [bottleX + 0.037, 1.449, face],
+      [bottleX + 0.037, 1.531, face],
+      [bottleX - 0.037, 1.531, face],
+      blue,
+    );
+    m.quad(
+      [bottleX - 0.037, 1.531, face],
+      [bottleX + 0.037, 1.531, face],
+      [bottleX + 0.016, 1.552, face],
+      [bottleX - 0.016, 1.552, face],
+      blue,
+    );
+    m.box(bottleX - 0.016, 1.552, 0.54, 0.032, 0.028, 0.002, blue);
+    m.box(bottleX - 0.022, 1.58, 0.54, 0.044, 0.01, 0.002, blue);
   });
   // Dog-eared stock, little wheels, and a handwritten sign at the book cart.
   pose(m, 65, y, 152, 0, () => {

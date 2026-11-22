@@ -3165,7 +3165,8 @@ export function createInteractions(context: WorldContext) {
     npc: import('../types/world.ts').InteractiveActor | null | undefined,
     verb: string,
   ): unknown {
-    if (!npc) return false;
+    if (!npc || (npc.kind === 'cafe-patron' && (verb === 'attack' || verb === 'steal')))
+      return false;
     if (npc.networkPlayer) {
       if (verb === 'attack') return context.multiplayerWorld.attackPlayer(npc);
       if (verb === 'follow') return context.multiplayerWorld.followPlayer(npc);

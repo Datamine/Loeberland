@@ -4,6 +4,7 @@ import type { ParcelTerrain } from './types/parcels.ts';
 import type { PlantTree, PlaceBench } from './types/scenery.ts';
 import type { SignAtlas, WorldObject } from './types/world.ts';
 import type { CraftPlot } from './southern-craft-layout.ts';
+import type { Diner } from './restaurants.ts';
 interface NeighborhoodOptions {
   mesh: Mesh;
   terrain: ParcelTerrain;
@@ -79,7 +80,8 @@ export function populateSouthernNeighborhood({
   registerEstate = () => {},
 }: NeighborhoodOptions) {
   const houses: Partial<WorldObject>[] = [],
-    craftSites: import('./types/world.ts').RenderedSite[] = [];
+    craftSites: import('./types/world.ts').RenderedSite[] = [],
+    diners: Diner[] = [];
   for (const [i, p] of SOUTHERN_HOUSING.entries()) {
     if (isWizardHousePlot(p) || isSearchHousePlot(p)) continue;
     if (!p.settlement && inEstateDistrict(p.x, p.z)) {
@@ -137,6 +139,7 @@ export function populateSouthernNeighborhood({
       plot.entry = { x: entry[0] - 0.5, y: entry[1] - 0.5 };
       const site = drawSouthernCraftSite(mesh, plot, terrain, signs, shop);
       craftSites.push(site);
+      diners.push(...site.diners);
       houses.push({ ...site, houses: [], homes: 0 });
     } else
       houses.push(
@@ -287,7 +290,7 @@ export function populateSouthernNeighborhood({
       drawPeninsulaDetails(mesh, terrain, signs, tree),
       ...woods.sites,
     ],
-    diners: [],
+    diners,
     cupertino: null as ReturnType<
       typeof import('./cupertino-gardens.ts').drawCupertinoGardens
     > | null,

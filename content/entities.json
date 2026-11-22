@@ -6963,10 +6963,10 @@
     },
     "sight:southern-corner-57": {
       "id": "sight:southern-corner-57",
-      "name": "Juniper Books",
+      "name": "Menotti’s",
       "category": "object",
       "kind": "neighborhood-shop",
-      "description": "We organize by the sort of afternoon you would like to have. The carefully kept storefront has a little terrace and a lived-in upper floor.",
+      "description": "A seaside café on Ocean Esplanade. The espresso machine is always busy, and regulars linger at the little pavement terrace.",
       "menus": [
         {
           "id": "sight:southern-corner-57.menu-1",
@@ -7017,10 +7017,10 @@
     },
     "actor:southern-corner-57-neighbor": {
       "id": "actor:southern-corner-57-neighbor",
-      "name": "Juniper Books shopkeeper",
+      "name": "Menotti’s barista",
       "category": "npc",
       "kind": "person",
-      "description": "A local shopkeeper. The window display changes with the seasons; the welcome does not.",
+      "description": "The barista keeps the espresso going and pays a coin for help clearing the tables.",
       "menus": [
         {
           "id": "actor:southern-corner-57-neighbor.menu-1",
@@ -7086,9 +7086,8 @@
         "npc.walk",
         "npc.talk",
         "npc.examine",
-        "service.neighborhood-books.service:[\"garden\"]",
-        "service.neighborhood-books.service:[\"mind\"]",
-        "service.neighborhood-books.service:[\"coast\"]"
+        "service.neighborhood-menottis.service:[\"coffee\"]",
+        "service.neighborhood-menottis.service:[\"bus-tables\"]"
       ]
     },
     "sight:jurassic-biosciences": {
@@ -12678,7 +12677,7 @@
     },
     "actor:square-diner": {
       "id": "actor:square-diner",
-      "name": "Square Coffee patron",
+      "name": "Blue Bottle patron",
       "category": "npc",
       "kind": "person",
       "description": "She came for coffee and stayed to watch an entire neighborhood change its mind.",

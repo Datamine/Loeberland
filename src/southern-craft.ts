@@ -12,6 +12,14 @@ import { drawPlaque } from './southern-district.ts';
 import { intersectTilePolygons, tileArea } from './tiles.ts';
 import { SOUTHERN_CRAFT, craftPoint, craftFootprint } from './southern-craft-layout.ts';
 import type { SignAtlas } from './types/world.ts';
+import type { Diner } from './restaurants.ts';
+
+const MENOTTIS = {
+  label: contentText('southern-craft.module.label-3', {}),
+  sign: "MENOTTI'S",
+  kind: 'arcade',
+  line: 'A seaside café with a little pavement terrace and an espresso machine that rarely gets a rest.',
+};
 
 export const CRAFT_SHOPS = Object.freeze([
   {
@@ -26,12 +34,7 @@ export const CRAFT_SHOPS = Object.freeze([
     kind: 'studio',
     line: 'Every mug is a little different. The one with the wobble is about the nature of certainty.',
   },
-  {
-    label: contentText('southern-craft.module.label-3', {}),
-    sign: 'JUNIPER BOOKS',
-    kind: 'arcade',
-    line: 'We organize by the sort of afternoon you would like to have.',
-  },
+  MENOTTIS,
   {
     label: contentText('southern-craft.module.label-4', {}),
     sign: 'GARDEN MARKET',
@@ -394,7 +397,8 @@ export function drawSouthernCraftSite(
     front = craftPoint(p, 0, p.d / 2 - 0.18),
     base = terrain.height(...front) + 0.04,
     navigationPolygons = [],
-    seats: ReturnType<typeof makeNeighborhoodBench>[] = [];
+    seats: ReturnType<typeof makeNeighborhoodBench>[] = [],
+    diners: Diner[] = [];
   drawCraftGround(m, terrain, craftFootprint(p), garden ? '#c6bca0' : '#c2aa8d');
   if (garden) {
     pose(m, p.x, 0, p.z, p.rotation, () => {
@@ -456,6 +460,40 @@ export function drawSouthernCraftSite(
         navigationPolygons.push(craftFootprint({ ...p, x: crate[0], z: crate[1] }, 0.42, 0.26));
       }
     }
+    if (shop === MENOTTIS) {
+      const u = 0.88,
+        v = front + 0.55,
+        [x, z] = craftPoint(p, u, v),
+        floor = terrain.height(x, z);
+      navigationPolygons.push(craftFootprint({ ...p, x, z }, 1.04, 0.39));
+      pose(m, x, floor, z, p.rotation, () => {
+        m.cylinder(0, 0, 0, 0.045, 0.66, '#434e4a', 10);
+        m.cylinder(0, 0.66, 0, 0.21, 0.045, '#b89b73', 16);
+        for (const side of [-1, 1]) {
+          const seat = side * 0.36;
+          m.box(seat - 0.13, 0, -0.13, 0.26, 0.4, 0.26, '#677e75', 'wood');
+          m.box(seat + side * 0.1 - 0.02, 0.4, -0.13, 0.04, 0.3, 0.26, '#677e75', 'wood');
+          m.cylinder(side * 0.1, 0.705, 0, 0.036, 0.055, '#ede0c8', 10);
+        }
+      });
+      for (const [index, side] of [-1, 1].entries()) {
+        const [x, z] = craftPoint(p, u + side * 0.36, v);
+        diners.push({
+          id: p.id + '-diner-' + index,
+          kind: 'cafe-patron',
+          label: 'Menotti’s patron',
+          description: 'A regular taking their time over an espresso.',
+          x,
+          z,
+          base: floor,
+          angle: p.rotation + (side < 0 ? 0 : Math.PI),
+          height: 1.55,
+          seated: true,
+          index,
+          seed: index * 0.217,
+        });
+      }
+    }
   }
   const lo = [Infinity, Infinity, Infinity] satisfies [number, number, number],
     hi = [-Infinity, -Infinity, -Infinity] satisfies [number, number, number];
@@ -468,7 +506,12 @@ export function drawSouthernCraftSite(
     ...p,
     entry: requiredValue(p.entry, 'Craft site entrance'),
     seats,
-    neighborhoodService: garden ? null : neighborhoodServiceFor(shop.label),
+    diners,
+    neighborhoodService: garden
+      ? null
+      : shop === MENOTTIS
+        ? 'menottis'
+        : neighborhoodServiceFor(shop.label),
     label: garden ? 'Neighborhood garden' : shop.label,
     kind: garden ? 'neighborhood-garden' : 'neighborhood-shop',
     neighborLine: garden
