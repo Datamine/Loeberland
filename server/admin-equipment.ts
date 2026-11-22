@@ -1,7 +1,7 @@
 import { equipmentOptions } from '../src/equipment-options.ts';
 import { clothingSelection } from '../src/clothing.ts';
 import { HAT_CATALOG } from '../src/hat-catalog.ts';
-import { EQUIPMENT_IDS, railgunUnlocked } from '../src/item-stats.ts';
+import { EQUIPMENT_IDS, normalizeBoots } from '../src/item-stats.ts';
 import { isRecord } from '../src/types/json.ts';
 
 const strings = (value: unknown): string[] =>
@@ -14,7 +14,7 @@ const eyewear = [
 export const adminEquipmentOptions = {
   ...equipmentOptions(
     { ownedEquipment: [...EQUIPMENT_IDS], ownedHats: HAT_CATALOG.map((hat) => hat.id) },
-    { bayonet: true, railgun: true, cape: true },
+    { cape: true },
   ),
   sunglasses: eyewear,
 };
@@ -26,7 +26,6 @@ export type AdminEquipmentDraft = {
 };
 export function unlockedEquipment({ inventory, quests }: AdminEquipmentDraft) {
   const economy = object(inventory.economy);
-  const aliens = object(quests.theyLive);
   const expeditions = object(quests.expeditions);
   return {
     ...equipmentOptions(
@@ -35,10 +34,6 @@ export function unlockedEquipment({ inventory, quests }: AdminEquipmentDraft) {
         ownedHats: strings(economy.ownedHats),
       },
       {
-        bayonet: [aliens.started, aliens.evidence, aliens.permit, aliens.bayonet].every(
-          (flag) => flag === true,
-        ),
-        railgun: railgunUnlocked(expeditions),
         cape: expeditions.cape === true,
       },
     ),
@@ -58,28 +53,17 @@ export function grantAndEquip(
       inventory.sunglasses = { ...object(inventory.sunglasses), owned: true };
     } else if (slot === 'back' && value === 'cape') {
       quests.expeditions = { ...object(quests.expeditions), cape: true };
-    } else if (slot === 'weapon' && value === 'bayonet') {
-      quests.theyLive = {
-        ...object(quests.theyLive),
-        started: true,
-        evidence: true,
-        permit: true,
-        bayonet: true,
-      };
-    } else if (slot === 'weapon' && value === 'railgun') {
-      const expedition = { ...object(quests.expeditions), railgun: true, equipped: true };
-      if (!railgunUnlocked(expedition)) Object.assign(expedition, { raptor: 'escaped' });
-      quests.expeditions = expedition;
     } else {
       const economy = object(inventory.economy);
       const list = slot === 'hat' ? 'ownedHats' : 'ownedEquipment';
-      const item = slot === 'boots' ? 'combat-boots' : value;
+      const item = slot === 'boots' && value === 'true' ? 'combat-boots' : value;
       const owned = strings(economy[list]);
       if (!owned.includes(item)) inventory.economy = { ...economy, [list]: [...owned, item] };
     }
   }
   const appearance = { ...object(player.appearance) };
-  appearance[slot] = slot === 'boots' || slot === 'sunglasses' ? value === 'true' : value;
+  appearance[slot] =
+    slot === 'boots' ? normalizeBoots(value) : slot === 'sunglasses' ? value === 'true' : value;
   if (slot === 'torso' || slot === 'legs') Object.assign(appearance, clothingSelection(appearance));
   if (slot === 'back') appearance.cape = value === 'cape';
   player.appearance = appearance;

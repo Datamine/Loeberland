@@ -1,3 +1,4 @@
+import { contentText } from './content-runtime.ts';
 import { isSafeInteger, isFiniteNumber, isRecord } from './types/json.ts';
 import type { Economy, Health } from './types/controllers.ts';
 
@@ -78,7 +79,12 @@ export function createDeli({
     },
     pickup(store = 'lucindas') {
       if (state.sandwiches + (state.pending ? 1 : 0) >= capacity())
-        return { ok: false, message: 'Your sandwich bag is full (' + capacity() + ').' };
+        return {
+          ok: false,
+          message: contentText('world-message.src.deli.your-sandwich-bag-is-full', {
+            value1: String(capacity()),
+          }),
+        };
       const burger = store === 'in-n-out',
         result = economy.trade(burger ? 'sandwich-in-n-out' : 'sandwich-pickup');
       if (!result.ok) return result;
@@ -86,27 +92,39 @@ export function createDeli({
       save();
       return {
         ok: true,
-        message:
-          'A fresh ' +
-          (burger
-            ? 'In-N-Out sandwich, yours for ' + DELI_PRICES.inNOut
-            : 'Lucinda’s sandwich, yours for ' + DELI_PRICES.pickup) +
-          ' coins. Eat it to restore up to ' +
-          ITEM_STATS.sandwich.healing +
-          ' hitpoints.',
+        message: contentText(
+          'world-message.src.deli.a-fresh-coins-eat-it-to-restore-up-to-hitpoints',
+          {
+            value1: String(
+              burger
+                ? 'In-N-Out sandwich, yours for ' + DELI_PRICES.inNOut
+                : 'Lucinda’s sandwich, yours for ' + DELI_PRICES.pickup,
+            ),
+            healing: String(ITEM_STATS.sandwich.healing),
+          },
+        ),
       };
     },
     order(target: { x: number; y: number }) {
       if (state.sandwiches >= capacity())
-        return { ok: false, message: 'Your sandwich bag is full (' + capacity() + ').' };
+        return {
+          ok: false,
+          message: contentText('world-message.src.deli.your-sandwich-bag-is-full', {
+            value1: String(capacity()),
+          }),
+        };
       if (state.pending)
-        return { ok: false, message: 'Your DoorDash cooler is already on its way.' };
+        return {
+          ok: false,
+          message: contentText('world-message.src.deli.your-doordash-cooler-is-already-on-its-way'),
+        };
       state.position = { ...origin };
       if (!findRoute(target))
         return {
           ok: false,
-          message:
-            'The cooler needs a route to you. Order from a street, park, or other walkable ground.',
+          message: contentText(
+            'world-message.src.deli.the-cooler-needs-a-route-to-you-order-from-a-street-park-or-ot',
+          ),
         };
       const result = economy.trade('sandwich-delivery');
       if (!result.ok) {
@@ -119,25 +137,34 @@ export function createDeli({
       save();
       return {
         ok: true,
-        message:
-          'DoorDash ordered · 4 coins. A little cooler on wheels is bringing your Lucinda’s sandwich.',
+        message: contentText(
+          'world-message.src.deli.doordash-ordered-coins-a-little-cooler-on-wheels-is-bringing-y',
+          { delivery: String(DELI_PRICES.delivery) },
+        ),
       };
     },
     eat() {
       if (!state.sandwiches)
         return {
           ok: false,
-          message: 'You do not have a sandwich.',
+          message: contentText('world-message.src.deli.you-do-not-have-a-sandwich'),
         };
       if (health.state.hp >= health.state.max)
         return {
           ok: false,
-          message: 'You already have full hitpoints. Save the sandwich for later.',
+          message: contentText(
+            'world-message.src.deli.you-already-have-full-hitpoints-save-the-sandwich-for-later',
+          ),
         };
       const healed = health.heal();
       state.sandwiches--;
       save();
-      return { ok: true, message: 'You eat a sandwich and restore ' + healed + ' hitpoints.' };
+      return {
+        ok: true,
+        message: contentText('world-message.src.deli.you-eat-a-sandwich-and-restore-hitpoints', {
+          healed: String(healed),
+        }),
+      };
     },
     update(
       dt: unknown,
@@ -183,7 +210,9 @@ export function createDeli({
         state.path = [];
         save();
         onMessage(
-          'Your DoorDash cooler arrives! One Lucinda’s sandwich is in your bag. Eat it whenever you need hitpoints.',
+          contentText(
+            'world-message.src.deli.your-doordash-cooler-arrives-one-lucindas-sandwich-is-in-your',
+          ),
         );
       }
     },

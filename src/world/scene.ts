@@ -1,3 +1,8 @@
+import { bindHighScores } from '../high-scores.ts';
+import { bindTradeDialog } from '../trade-dialog.ts';
+import { LAKE_MERCED_SHORE, distanceToLakeMerced } from '../lake-merced.ts';
+import { ATV_RENTAL } from '../atv.ts';
+import { marketStreetcarPose, marketStreetcarRoute } from '../market-streetcar.ts';
 import { requirePlacedBuilding } from '../building-placement.ts';
 import { hasPhysicalBounds } from '../picking.ts';
 import type {
@@ -45,6 +50,7 @@ import { gameElement } from '../types/ui.ts';
 import { attachSceneBindings } from '../types/scene-bindings.ts';
 // CONTENT-BINDINGS-MIGRATED
 import { contentText } from '../content-runtime.ts';
+import { burningManEntry } from '../burning-man.ts';
 import { createClientControllerFactory } from '../client/controllers.ts';
 import { createNetwork } from './network.ts';
 import { createRuntime } from './runtime.ts';
@@ -217,9 +223,8 @@ import '../stealth-bomber.ts';
 import '../multiplayer-actions.ts';
 import '../multiplayer-protocol.ts';
 import '../config/hairstyles.ts';
-import { npcDisplayLabel } from '../npc-interactions.ts';
+import { npcDisplayLabel, npcPrimaryVerb } from '../npc-interactions.ts';
 import '../south-bay-layout.ts';
-import { sightPrimaryVerb } from '../descriptions.ts';
 import '../building-interactions.ts';
 import { merchant } from '../commerce-world.ts';
 import { createWhales } from '../wildlife.ts';
@@ -237,7 +242,7 @@ import '../transit-models.ts';
 import '../gpu-layout.ts';
 import '../gpu-factory.ts';
 import '../characters.ts';
-import { normalizeCharacter, drawCharacterPreview } from '../character-config.ts';
+import { normalizeCharacter } from '../character-config.ts';
 import { createCaptureAnimation } from '../capture-animation.ts';
 import '../zoo-animals.ts';
 
@@ -348,9 +353,6 @@ export function createSFWorld({
     },
     set alienCombat(value: typeof alienCombat) {
       alienCombat = value;
-    },
-    get alongStreet() {
-      return alongStreet;
     },
     get alpineState(): NonNullable<typeof alpineState> {
       return alpineState!;
@@ -570,6 +572,9 @@ export function createSFWorld({
     },
     get clicked() {
       return clicked;
+    },
+    get goToSight() {
+      return goToSight;
     },
     get closeCharacter() {
       return closeCharacter;
@@ -1024,6 +1029,12 @@ export function createSFWorld({
     get market() {
       return market;
     },
+    streetcarPose() {
+      return marketStreetcarPose(
+        streetcarRoute,
+        Date.now() + (multiplayer?.state.serverOffset || 0),
+      );
+    },
     get materialState(): NonNullable<typeof materialState> {
       return materialState!;
     },
@@ -1038,6 +1049,9 @@ export function createSFWorld({
     },
     get mc(): NonNullable<typeof mc> {
       return mc!;
+    },
+    get mercedOutline() {
+      return mercedOutline;
     },
     get mercedValue() {
       return mercedValue;
@@ -1351,6 +1365,12 @@ export function createSFWorld({
     get rehabilitation() {
       return rehabilitation;
     },
+    get cancelMovingInteraction() {
+      return cancelMovingInteraction;
+    },
+    get updateMovingInteraction() {
+      return updateMovingInteraction;
+    },
     get releaseNPC() {
       return releaseNPC;
     },
@@ -1473,12 +1493,6 @@ export function createSFWorld({
     },
     set secretWorld(value: typeof secretWorld) {
       secretWorld = value;
-    },
-    get sentMultiplayerCustody() {
-      return sentMultiplayerCustody;
-    },
-    set sentMultiplayerCustody(value: typeof sentMultiplayerCustody) {
-      sentMultiplayerCustody = value;
     },
     get setCamera() {
       return setCamera;
@@ -1871,16 +1885,16 @@ export function createSFWorld({
   const {
     guildStatus,
     sightById,
+    goToSight,
     playerWeapon,
     expeditionEvent,
     nearestExpeditionPoint,
-    collectExpeditionLoot,
-    toggleRailgun,
     beginCapture,
     respawnAtHospital,
     airshipUnavailable,
-    walkInBasket,
     useTahoeActivity,
+    cancelMovingInteraction,
+    updateMovingInteraction,
     releaseNPC,
     parkMotorcycle,
     useMotorcycle,
@@ -1894,8 +1908,8 @@ export function createSFWorld({
     climbUnavailable,
     descendSutro,
     climbSutro,
-    goToSight,
-    walkAtSight,
+    worldTarget,
+    primaryWorldAction,
     orderDoorDash,
     eatSandwich,
     parkBike,
@@ -1905,7 +1919,6 @@ export function createSFWorld({
     catchPacificaWave,
     performSurfTrick,
     useSurf,
-    talkRehabilitation,
     arrestPlayer,
     interactCitizen,
     debugTeleport,
@@ -1916,8 +1929,6 @@ export function createSFWorld({
     closeReader,
     closeMenu,
     clicked,
-    walkToActor,
-    examine,
     showMenu,
     nearestFuel,
     driveFerrari,
@@ -1953,6 +1964,7 @@ export function createSFWorld({
     hopRocket,
     lightDecorativeRocket,
     changeCharacter,
+    saveCharacter,
     showCharacter,
     closeCharacter,
     sayPhrase,
@@ -1970,7 +1982,6 @@ export function createSFWorld({
   } = createMinimap(context);
   const {
     insidePolygon,
-    alongStreet,
     occupy,
     pavingInArea,
     signNames,
@@ -2283,6 +2294,7 @@ export function createSFWorld({
       startX: number;
       startY: number;
       npc: import('../types/world.ts').InteractiveActor | null;
+      sight: import('../types/world.ts').InteractionSight | null;
     }
   >();
   let pressTimer: ReturnType<typeof setTimeout> | 0 = 0,
@@ -2441,7 +2453,6 @@ export function createSFWorld({
       level: () => strength.status.level,
       inebriation: () => inebriation.state.percent,
       sharedWorld: () => !!multiplayer,
-      hasBayonet: () => quests.theyLive.state.bayonet,
       food: (n: number | undefined) => deli?.storeSandwich(n),
       player: (): { x: number; z: number; base: number; isPlayer: boolean; eligible: boolean } => ({
         x: player.x + 0.5,
@@ -2484,6 +2495,7 @@ export function createSFWorld({
   const existingQuestEntries = quests.entries;
   quests.entries = () => [
     ...existingQuestEntries(),
+    burningManEntry(multiplayer?.state.playerState?.quests.burningMan?.stage ?? 'not-started'),
     ...expeditions.entries(),
     ...saltMail.entries(),
     ...(secretWorld ? [secretWorld.questEntry(guildStatus())] : []),
@@ -3046,6 +3058,7 @@ export function createSFWorld({
   ] satisfies [string, number[][]][])
     street(name, mapPolygon(points), 0.24, 'path');
   const market = streets[0],
+    streetcarRoute = marketStreetcarRoute(market.points),
     POND = { x: 23.3, y: 32, rx: 1.9, ry: 0.8 },
     PALACE_LAGOON = { x: 34.6, y: 13.1, rx: 1.4, ry: 0.8 };
   for (const p of [POND, PALACE_LAGOON])
@@ -3084,14 +3097,8 @@ export function createSFWorld({
   });
   const pondValue = (x: number, y: number) =>
     ((x - POND.x) / POND.rx) ** 2 + ((y - POND.y) / POND.ry) ** 2;
-  const mercedValue = (wx: number, wy: number) => {
-    const x = wx / MAP_SCALE,
-      y = wy / MAP_SCALE;
-    return Math.min(
-      ((x - 16) / 1.7) ** 2 + ((y - 56) / 2.7) ** 2,
-      ((x - 18.5) / 1.7) ** 2 + ((y - 58.3) / 2.2) ** 2,
-    );
-  };
+  const mercedOutline = mapPolygon(LAKE_MERCED_SHORE);
+  const mercedValue = (x: number, z: number) => 1 + distanceToLakeMerced(mercedOutline, x, z) / 4;
   const palaceWater = (x: number, y: number) =>
     ((x - PALACE_LAGOON.x) / PALACE_LAGOON.rx) ** 2 +
     ((y - PALACE_LAGOON.y) / PALACE_LAGOON.ry) ** 2;
@@ -3666,21 +3673,7 @@ export function createSFWorld({
       combat,
     });
   const npcPrimary = (npc: import('../types/world.ts').ActorMetadata) =>
-    npc.wilderness
-      ? npc.combatKind === 'bear'
-        ? 'pet'
-        : npc.combatKind === 'goblin-maker'
-          ? 'talk'
-          : 'attack'
-      : npc.police
-        ? 'examine'
-        : npc.networkPlayer
-          ? 'walk'
-          : (['raptor', 'cow', 'kraken'] satisfies [string, string, string]).includes(
-                npc.combatKind || '',
-              ) || npcRevealed(npc)
-            ? 'attack'
-            : 'talk';
+    npcPrimaryVerb(npc, npcRevealed(npc));
 
   let worldTiles: WorldTileMap | null = null;
   // BEGIN TILE BUILDER
@@ -3822,8 +3815,6 @@ export function createSFWorld({
   // Eight-way A* with corner clearance, followed by line-of-sight string pulling.
   // Routing starts at the live position, so a new click never snaps back to a tile.
 
-  let sentMultiplayerCustody = false;
-
   let clickAttempt: { worked: boolean; walking: boolean } | null = null,
     clickAnimation: Animation | null = null;
 
@@ -3895,6 +3886,7 @@ export function createSFWorld({
         sutroClimb,
         rocket,
         slowBus: slowBus!,
+        streetcarRoute,
         expeditions: expeditions!,
         surf: surf!,
         waveSurf: waveSurf!,
@@ -4037,8 +4029,22 @@ export function createSFWorld({
       if (result.message) announce(result.message, 'You');
     }),
   );
-  $('sf-railgun-button').addEventListener('click', toggleRailgun);
   $('sf-order-doordash').addEventListener('click', orderDoorDash);
+  $('sf-stop-construction').addEventListener('click', () =>
+    multiplayerWorld?.command('playerAction', { verb: 'constructionStop' }),
+  );
+  $('sf-exit-streetcar').addEventListener('click', () =>
+    multiplayerWorld?.command('travel', { kind: 'streetcarExit' }),
+  );
+  $('sf-exit-swing').addEventListener('click', () =>
+    multiplayerWorld?.command('travel', { kind: 'swingExit' }),
+  );
+  $('sf-call-waymo').addEventListener('click', () => {
+    const phase = multiplayer?.state.personal?.travel?.waymo?.phase;
+    multiplayerWorld?.command('travel', {
+      kind: phase === 'riding' ? 'waymoExit' : phase === 'parked' ? 'waymoBoard' : 'waymoCall',
+    });
+  });
   $('sf-eat-sandwich').addEventListener('click', eatSandwich);
   $('sf-fuel-can-button').addEventListener('click', useFuelCan);
   $('sf-refuel-button').addEventListener('click', () => {
@@ -4050,9 +4056,34 @@ export function createSFWorld({
   for (const button of world.querySelectorAll<HTMLButtonElement>('[data-skate-trick]'))
     button.addEventListener('click', () => performSkateTrick(button.dataset.skateTrick || ''));
   $('sf-motorcycle-button').addEventListener('click', () => useMotorcycle());
+  const motorcycleTricks = [
+    ...$('sf-motorcycle-tricks').querySelectorAll<HTMLButtonElement>('[data-motorcycle-trick]'),
+  ];
+  for (const button of motorcycleTricks)
+    button.addEventListener('click', () =>
+      multiplayerWorld?.command('travel', {
+        kind: 'motorcycleTrick',
+        trick: button.dataset.motorcycleTrick,
+      }),
+    );
   $('sf-climb-button').addEventListener('click', descendSutro);
   $('sf-rope-button').addEventListener('click', showRopeMenu);
   $('sf-ski-button').addEventListener('click', useTahoeActivity);
+  $('sf-atv-rent').addEventListener('click', () =>
+    interactCitizen(
+      merchants.find((npc) => npc.id === ATV_RENTAL.npcId),
+      'talk',
+    ),
+  );
+  for (const button of $('sf-atv-controls').querySelectorAll<HTMLButtonElement>(
+    '[data-atv-action]',
+  ))
+    button.addEventListener('click', () =>
+      multiplayerWorld?.command('travel', {
+        kind: button.dataset.atvAction,
+        trick: button.dataset.atvTrick,
+      }),
+    );
   $('sf-wave-catch').addEventListener('click', catchPacificaWave);
   for (const button of world.querySelectorAll<HTMLButtonElement>('[data-surf-trick]'))
     button.addEventListener('click', () => performSurfTrick(button.dataset.surfTrick || ''));
@@ -4096,26 +4127,42 @@ export function createSFWorld({
   $('sf-sit-button').addEventListener('click', sit);
   $('sf-character-button').addEventListener('click', showCharacter);
   $('sf-close-character').addEventListener('click', closeCharacter);
-  $('sf-character-done').addEventListener('click', closeCharacter);
+  $('sf-character-done').addEventListener('click', saveCharacter);
   $('sf-light-decorative-rocket').addEventListener('click', lightDecorativeRocket);
   $('sf-rocket-hop').addEventListener('click', hopRocket);
   for (const field of world.querySelectorAll<HTMLInputElement | HTMLSelectElement>(
     '[data-character]',
   ))
     field.addEventListener('input', () => changeCharacter(field));
-  $('sf-iphone-equipped').addEventListener('input', (e) => {
-    const result = tech.equipPhone($('sf-iphone-equipped').checked);
-    if (!result.ok) announce(result.message, 'iPhone');
-    updatePhoneControl();
-    drawCharacterPreview($('sf-character-preview'), {
-      ...playerLook,
-      rocketBurnUntil: multiplayer?.state.inventory?.decorativeRocket?.burningUntil || 0,
-      phone: economy.state.iphoneEquipped,
+  bindHighScores(world, () => multiplayer?.command('highScores') ?? Promise.resolve({ ok: false }));
+  const tradePanel = world.querySelector<HTMLDialogElement>('.sf-player-trade')!;
+  if (multiplayer)
+    bindTradeDialog(tradePanel, multiplayer, {
+      opened: () => {
+        keys.clear();
+        closeMenu();
+      },
+      message: (text) => announce(text, 'Trade'),
+      appearance: (look) => {
+        playerLook = normalizeCharacter(look);
+        updateAdventureUI();
+      },
     });
-  });
+  for (const button of world.querySelectorAll<HTMLButtonElement>('[data-inventory-action]')) {
+    button.addEventListener('click', async () => {
+      const op = button.dataset.inventoryAction;
+      if (op === 'breakBind') multiplayerWorld?.command('breakBind');
+      else {
+        const result = await multiplayerWorld?.command('inventory', { op });
+        if (result?.ok && result.appearance) {
+          playerLook = normalizeCharacter(result.appearance);
+          updateAdventureUI();
+        }
+      }
+    });
+  }
   $('sf-help-button').addEventListener('click', showHelp);
   $('sf-close-help').addEventListener('click', closeHelp);
-  $('sf-help-start').addEventListener('click', closeHelp);
   $('sf-zoom-slider').addEventListener('input', (e) =>
     setZoom(Number($('sf-zoom-slider').value) / 100),
   );
@@ -4143,9 +4190,8 @@ export function createSFWorld({
     if (e.button !== 0) return;
     closeMenu();
     canvas.focus({ preventScroll: true });
-    const npc = hitCitizen(e.clientX, e.clientY);
-    // Keep a walking actor selected between press and release, even when
-    // another NPC crosses the cursor or the character changes pose.
+    const { npc, sight } = worldTarget(e.clientX, e.clientY);
+    // Keep moving actors and vehicles selected between press and release.
     if (npc && isFiniteNumber(npc.hold)) npc.hold = Math.max(npc.hold, 0.35);
     pointers.set(e.pointerId, {
       x: e.clientX,
@@ -4153,6 +4199,7 @@ export function createSFWorld({
       startX: e.clientX,
       startY: e.clientY,
       npc,
+      sight,
     });
     canvas.setPointerCapture(e.pointerId);
     longPressed = false;
@@ -4184,41 +4231,24 @@ export function createSFWorld({
       return;
     }
     if (e.pointerType === 'touch') return;
-    const citizen = hitCitizen(e.clientX, e.clientY);
-    hovered = citizen || hitSight(e.clientX, e.clientY) || hitPlace(e.clientX, e.clientY);
+    const target = worldTarget(e.clientX, e.clientY);
+    const { npc: citizen, sight, place } = target;
+    hovered = citizen || sight || place;
     const tip = $('sf-hover');
     tip.hidden = !hovered || !$('sf-context').hidden;
+    tip.toggleAttribute('data-ground-take', sight?.kind === 'loot' || sight?.kind === 'sunglasses');
     if (hovered) {
-      const tipText = citizen
-        ? citizen.networkPlayer
-          ? npcLabel(citizen)
-          : {
-              talk: 'Talk-To',
-              attack: 'Attack',
-              examine: 'Examine',
-              pet: 'Pet',
-              walk: 'Walk here',
-            }[npcPrimary(citizen)] +
-            ' ' +
-            npcLabel(citizen, npcPrimary(citizen) !== 'examine')
-        : (hovered.kind === 'house-storage'
-            ? 'Search'
-            : hovered.source
-              ? currentInterior === hovered && !hovered.activityBuilding
-                ? 'Browse'
-                : 'Enter'
-              : hovered.id === 'sutro' && sutroClimb.state.active
-                ? 'Climb down'
-                : sightPrimaryVerb(hovered)) +
-          ' ' +
-          hovered.label;
+      const tipText =
+        sutroClimb.state.active && sight?.id === 'sutro'
+          ? 'Climb down ' + sight.label
+          : primaryWorldAction(target).label;
       setActionText(
         tip,
         tipText,
         citizen
           ? [
-              { label: npcLabel(citizen), kind: 'npc' },
-              { label: npcLabel(citizen, false), kind: 'npc' },
+              { label: npcLabel(citizen), kind: citizen.editorCategory || 'npc' },
+              { label: npcLabel(citizen, false), kind: citizen.editorCategory || 'npc' },
             ]
           : [{ label: hovered.label, kind: actionTargetKind(hovered) }],
       );
@@ -4243,56 +4273,12 @@ export function createSFWorld({
     )
       return;
     clicked(e.clientX, e.clientY, () => {
-      const tile = tileAt(e.clientX, e.clientY),
-        selectedPlayer = p.npc?.networkPlayer ? p.npc : hitCitizen(e.clientX, e.clientY);
-      if (selectedPlayer?.networkPlayer) return walkToActor(selectedPlayer);
-      if (selectedPlayer?.police) return examine(selectedPlayer);
-      if (secretWorld?.bomber.state.active) return walkTo(tile.x, tile.y);
-      if (multiplayerWorld?.selfMode === 'atv' || multiplayerWorld?.selfMode === 'roof')
-        return walkTo(tile.x, tile.y);
-      const selectedItem = hitSight(e.clientX, e.clientY);
-      if (selectedItem?.kind === 'loot') return collectExpeditionLoot(selectedItem);
-      if (chase?.state.jailed) {
-        const npc = p.npc || hitCitizen(e.clientX, e.clientY);
-        return npc?.rehabilitation && !npc.networkPlayer
-          ? talkRehabilitation(npc)
-          : walkTo(tile.x, tile.y);
-      }
-      if (ferrari?.state.riding) {
-        const npc = p.npc || hitCitizen(e.clientX, e.clientY);
-        if (npc?.kind === 'fuel-attendant') return interactCitizen(npc, 'talk');
-        return driveFerrari(tile.x, tile.y);
-      }
+      const target = worldTarget(e.clientX, e.clientY, p);
       if (sutroClimb.state.active) {
-        if (hitSight(e.clientX, e.clientY)?.id === 'sutro') return descendSutro();
+        if (target.sight?.id === 'sutro') return descendSutro();
         return climbUnavailable();
       }
-      if (flying()) {
-        const floor = basket.pick(
-          mouseRay(e.clientX, e.clientY),
-          requiredValue(airship.state.position, 'Airship deck position'),
-          airship.state.heading,
-        );
-        if (floor) return walkInBasket(floor);
-        return walkTo(tile.x, tile.y);
-      }
-      const npc = p.npc || hitCitizen(e.clientX, e.clientY);
-      if (npc) return interactCitizen(npc, npcPrimary(npc));
-      if (selectedItem?.kind === 'waymo' || selectedItem?.kind === 'robotaxi')
-        return goToSight(selectedItem);
-      const roadTarget =
-        goldenGate?.targetAt(tile.x + 0.5, tile.y + 0.5) ||
-        regionalRoad?.targetAt(tile.x + 0.5, tile.y + 0.5);
-      if (roadTarget) return walkTo(roadTarget.x, roadTarget.y);
-      const place = hitPlace(e.clientX, e.clientY),
-        sight = hitSight(e.clientX, e.clientY);
-      if (walkAtSight(sight, tile, !!pick(e.clientX, e.clientY)?.researchRoom))
-        return walkTo(tile.x, tile.y);
-      if (sight?.id === 'sutro') return climbSutro();
-      if (sight) goToSight(sight);
-      else if (place && !(place === currentInterior && isWalkable(tile.x, tile.y)))
-        goToPlace(place);
-      else walkTo(tile.x, tile.y);
+      return primaryWorldAction(target).run();
     });
   });
   canvas.addEventListener('pointercancel', (e) => {
@@ -4312,7 +4298,18 @@ export function createSFWorld({
     )
       closeMenu();
   });
+  const useCommandForGroundItems = /Mac/i.test(navigator.platform);
+  const updateGroundItemModifier = (e: KeyboardEvent) =>
+    world.toggleAttribute(
+      'data-show-ground-items',
+      useCommandForGroundItems ? e.metaKey : e.altKey,
+    );
   document.addEventListener('keydown', (e) => {
+    if (active && built && !loading?.visible) {
+      updateGroundItemModifier(e);
+      if (!useCommandForGroundItems && e.key === 'Alt' && !e.ctrlKey) e.preventDefault();
+    }
+    if (tradePanel.open) return;
     if (
       !active ||
       !built ||
@@ -4367,6 +4364,11 @@ export function createSFWorld({
         context.questMenu.close();
         return;
       }
+      if (!$('sf-context').hidden) {
+        closeMenu();
+        canvas.focus({ preventScroll: true });
+        return;
+      }
       if (training) {
         stopTraining();
         return;
@@ -4385,20 +4387,18 @@ export function createSFWorld({
         context.dialogue.close();
         return;
       }
-      if (!$('sf-context').hidden) {
-        closeMenu();
-        canvas.focus({ preventScroll: true });
-      } else if (!$('sf-help').hidden) closeHelp();
+      if (!$('sf-help').hidden) closeHelp();
       else if (!$('sf-reader').hidden) closeReader();
       else if (fishing.state.active) {
         fishing.cancel();
-        announce('You reel in your line.', 'Fishing');
+        announce(contentText('world-message.src.world.scene.you-reel-in-your-line'), 'Fishing');
       } else if (sutroClimb.state.active) descendSutro();
       else if (airship.state.active) {
         airship.stop();
         destination = null;
         updateAirshipButton();
       } else {
+        cancelMovingInteraction();
         player.path = [];
         player.speed = 0;
         action = null;
@@ -4484,7 +4484,7 @@ export function createSFWorld({
       }
     }
     if (multiplayerWorld?.selfMode === 'atv') {
-      if (!e.repeat && (key === 'r' || key === 't')) {
+      if (!e.repeat && (key === 'r' || key === 't') && multiplayerWorld.selfGesture === 'atv-air') {
         e.preventDefault();
         multiplayerWorld.command('travel', {
           kind: 'atvTrick',
@@ -4510,6 +4510,14 @@ export function createSFWorld({
         );
       return;
     }
+    const motorcycleTrick = !$('sf-motorcycle-tricks').hidden
+      ? motorcycleTricks.find((button) => button.getAttribute('aria-keyshortcuts') === key)
+      : undefined;
+    if (motorcycleTrick) {
+      e.preventDefault();
+      if (!e.repeat) motorcycleTrick.click();
+      return;
+    }
     if (!e.repeat && skateboard.riding && SKATE_TRICKS.some((t) => t.key === key)) {
       e.preventDefault();
       performSkateTrick(
@@ -4526,11 +4534,6 @@ export function createSFWorld({
       return;
     }
     if (e.repeat) return;
-    if (key === 'g' && !$('sf-railgun-button').hidden) {
-      e.preventDefault();
-      toggleRailgun();
-      return;
-    }
     if (key === 'q') {
       e.preventDefault();
       context.questMenu.open();
@@ -4620,7 +4623,9 @@ export function createSFWorld({
       if (p) enter(requirePlacedBuilding(p));
       else
         announce(
-          'Walk closer to a storefront to enter. Click a content icon on the minimap to visit a storefront.',
+          contentText(
+            'world-message.src.world.scene.walk-closer-to-a-storefront-to-enter-click-a-content-icon-on-t',
+          ),
         );
     }
     if (key === '+' || key === '=') {
@@ -4633,8 +4638,12 @@ export function createSFWorld({
     }
     if (key === '?') showHelp();
   });
-  document.addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
+  document.addEventListener('keyup', (e) => {
+    updateGroundItemModifier(e);
+    keys.delete(e.key.toLowerCase());
+  });
   window.addEventListener('blur', () => {
+    world.removeAttribute('data-show-ground-items');
     keys.clear();
     clearTimeout(pressTimer);
     pointers.clear();
@@ -4644,6 +4653,7 @@ export function createSFWorld({
     context.multiplayer.checkpoint(true);
     keys.clear();
     if (document.hidden) {
+      world.removeAttribute('data-show-ground-items');
       cancelAnimationFrame(raf);
     } else if (active) startLoop();
   });

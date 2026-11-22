@@ -238,14 +238,14 @@ export function createCountryside({
       ? q[0][1] + v * (q[1][1] - q[0][1]) + u * (q[2][1] - q[1][1])
       : q[0][1] + u * (q[3][1] - q[0][1]) + v * (q[2][1] - q[3][1]);
   }
-  function raycast(ray: Ray) {
-    let best = 220,
+  function raycast(ray: Ray, maxDistance = 220) {
+    let best = maxDistance,
       hit: {
         distance: number;
         point: number[] | Float64Array<ArrayBuffer> | Float32Array<ArrayBuffer>;
       } | null = null;
     const seen = new Set();
-    for (let t = 0; t <= 220; t += 4) {
+    for (let t = 0; t <= maxDistance; t += 4) {
       const x = ray.origin[0] + ray.dir[0] * t,
         z = ray.origin[2] + ray.dir[2] * t,
         key = Math.floor(x / 16) + ',' + Math.floor(z / 16);

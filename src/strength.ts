@@ -1,3 +1,4 @@
+import { contentText } from './content-runtime.ts';
 import { isFiniteNumber, isRecord } from './types/json.ts';
 import type { Economy } from './types/controllers.ts';
 import type { PlayerDocument } from './types/content.ts';
@@ -41,9 +42,19 @@ export function createStrength(
     },
     claim(economy: Economy) {
       if (strengthStatus(state.xp).level < 10)
-        return { ok: false, message: 'Reach strength level 10 at SF Fitness before we invest.' };
+        return {
+          ok: false,
+          message: contentText(
+            'world-message.src.strength.reach-strength-level-10-at-sf-fitness-before-we-invest',
+          ),
+        };
       if (state.funded)
-        return { ok: false, message: 'We have already funded you. Make those 1,000 coins count.' };
+        return {
+          ok: false,
+          message: contentText(
+            'world-message.src.strength.we-have-already-funded-you-make-those-1-000-coins-count',
+          ),
+        };
       const result = economy.trade('capital');
       if (result.ok) {
         state.funded = true;

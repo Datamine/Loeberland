@@ -58,44 +58,71 @@ export function createTheyLiveQuest(
     save();
     return {
       ok: true,
-      message: 'Quest started: They Live.',
+      message: contentText('world-message.src.they-live.quest-started-they-live'),
     };
   }
   function certificate() {
     if (!state.started)
-      return { ok: false, message: 'You have no unusual observations to report.' };
+      return {
+        ok: false,
+        message: contentText(
+          'world-message.src.they-live.you-have-no-unusual-observations-to-report',
+        ),
+      };
     if (state.evidence)
-      return { ok: false, message: 'Your Alien Evidence Certificate is already on file.' };
+      return {
+        ok: false,
+        message: contentText(
+          'world-message.src.they-live.your-alien-evidence-certificate-is-already-on-file',
+        ),
+      };
     state.evidence = true;
     save();
     return {
       ok: true,
-      message: 'You receive an Alien Evidence Certificate.',
+      message: contentText('world-message.src.they-live.you-receive-an-alien-evidence-certificate'),
     };
   }
   function permit() {
     if (!state.started || !state.evidence)
       return {
         ok: false,
-        message: 'The clerk requires documentary evidence.',
+        message: contentText('world-message.src.they-live.the-clerk-requires-documentary-evidence'),
       };
-    if (state.permit) return { ok: false, message: 'Your alien-removal permit is already valid.' };
+    if (state.permit)
+      return {
+        ok: false,
+        message: contentText(
+          'world-message.src.they-live.your-alien-removal-permit-is-already-valid',
+        ),
+      };
     state.permit = true;
     save();
     return {
       ok: true,
-      message: 'The clerk stamps your alien-removal permit. It covers revealed aliens only.',
+      message: contentText(
+        'world-message.src.they-live.the-clerk-stamps-your-alien-removal-permit-it-covers-revealed',
+      ),
     };
   }
   function weapon() {
     if (!state.permit)
-      return { ok: false, message: 'The armorer needs to see your alien-removal permit first.' };
-    if (state.bayonet) return { ok: false, message: 'You already have your bayonet.' };
+      return {
+        ok: false,
+        message: contentText(
+          'world-message.src.they-live.the-armorer-needs-to-see-your-alien-removal-permit-first',
+        ),
+      };
+    if (state.bayonet)
+      return {
+        ok: false,
+        message: contentText('world-message.src.they-live.you-already-have-your-bayonet'),
+      };
     state.bayonet = true;
     save();
     return {
       ok: true,
-      message: 'The armorer gives you a bayonet.',
+      message: contentText('world-message.src.they-live.the-armorer-gives-you-a-bayonet'),
     };
   }
   function attack(id: unknown, { revealed = false } = {}) {
@@ -103,10 +130,15 @@ export function createTheyLiveQuest(
       return {
         ok: false,
         illegal: true,
-        message: 'You attack a citizen without valid authorization. The police are on their way!',
+        message: contentText(
+          'world-message.src.they-live.you-attack-a-citizen-without-valid-authorization-the-police-ar',
+        ),
       };
     if (typeof id === 'string' && state.defeated.includes(id))
-      return { ok: false, message: 'This alien has already been defeated.' };
+      return {
+        ok: false,
+        message: contentText('world-message.src.they-live.this-alien-has-already-been-defeated'),
+      };
     return { ok: true };
   }
   function defeat(id: unknown, options: { revealed?: boolean | undefined }) {
@@ -116,28 +148,38 @@ export function createTheyLiveQuest(
     save();
     return {
       ok: true,
-      message:
-        'Alien defeated (' +
-        state.defeated.length +
-        '/' +
-        ALIEN_TARGETS.length +
-        '). ' +
-        (clear()
-          ? 'Return to the City Hall clerk for your reward.'
-          : 'Your permit is in order. The police leave you alone.'),
+      message: contentText('world-message.src.they-live.alien-defeated', {
+        length: String(state.defeated.length),
+        value2: String(ALIEN_TARGETS.length),
+        value3: String(
+          clear()
+            ? 'Return to the City Hall clerk for your reward.'
+            : 'Your permit is in order. The police leave you alone.',
+        ),
+      }),
     };
   }
   function reward() {
-    if (state.completed) return { ok: false, message: 'You already received your skateboard.' };
+    if (state.completed)
+      return {
+        ok: false,
+        message: contentText('world-message.src.they-live.you-already-received-your-skateboard'),
+      };
     if (!state.permit || !clear())
-      return { ok: false, message: 'The clerk is waiting for you to defeat all six aliens.' };
+      return {
+        ok: false,
+        message: contentText(
+          'world-message.src.they-live.the-clerk-is-waiting-for-you-to-defeat-all-six-aliens',
+        ),
+      };
     state.completed = true;
     state.skateboard = true;
     save();
     return {
       ok: true,
-      message:
-        'Quest complete: They Live! The clerk thanks you and gives you a skateboard. Ride it with K or the Skateboard button. You keep the sunglasses. The American Industrial Center’s full stock is now unlocked.',
+      message: contentText(
+        'world-message.src.they-live.quest-complete-they-live-the-clerk-thanks-you-and-gives-you-a',
+      ),
     };
   }
   function entry() {
@@ -378,7 +420,9 @@ export function theyLiveDialogue(
             buyBattleaxe ||
             (() => ({
               ok: false,
-              message: 'Speak to the armorer at the American Industrial Center.',
+              message: contentText(
+                'world-message.src.they-live.speak-to-the-armorer-at-the-american-industrial-center',
+              ),
             })),
           contentNodeId: 'they-live.theyLiveDialogue.node-50',
           labelTextId: 'they-live.theyLiveDialogue.label-51',

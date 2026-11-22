@@ -5,10 +5,27 @@ import { normalizeCharacter, characterAppearance } from '../src/character-config
 import { getCharacterMesh, drawCharacter } from '../src/characters.ts';
 import { Mesh } from '../src/geometry.ts';
 import { npcOffersAttack, npcDisplayLabel, promoteWalkAction } from '../src/npc-interactions.ts';
+import { equipmentOptions } from '../src/equipment-options.ts';
 
-test('each gender has four distinct, animated hairstyles with safe saved-value fallbacks', () => {
+test('a cashmere turtleneck changes the knit collar geometry and is offered to owners', () => {
+  const look = characterAppearance(normalizeCharacter({ torso: 'cashmere-turtleneck' }));
+  assert.equal(look.torso, 'cashmere-turtleneck');
+  assert.notEqual(getCharacterMesh(look), getCharacterMesh());
+  const sweater = new Mesh();
+  drawCharacter(sweater, 0, 0, 0, 0, 0, false, undefined, '#ff0000', look);
+  assert.ok(sweater.data.length > 0 && sweater.data.every(Number.isFinite));
+  assert.ok(
+    equipmentOptions({ ownedEquipment: ['cashmere-turtleneck'] }).torso.some(
+      (choice) => choice.value === 'cashmere-turtleneck',
+    ),
+  );
+  assert.ok(equipmentOptions().torso.every((choice) => choice.value !== 'cashmere-turtleneck'));
+});
+
+test('hairstyle menus offer a broccoli cut and ponytail with distinct animated meshes', () => {
+  assert.ok(HAIRSTYLES.man.some((style) => style.id === 'broccoli'));
+  assert.ok(HAIRSTYLES.woman.some((style) => style.id === 'ponytail'));
   for (const [gender, styles] of Object.entries(HAIRSTYLES)) {
-    assert.equal(styles.length, 4);
     const meshes: import('../src/characters.ts').CharacterMesh[] = [];
     for (const style of styles) {
       const look = normalizeCharacter({ gender, hairstyle: style.id });

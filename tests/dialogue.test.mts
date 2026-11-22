@@ -7,6 +7,9 @@ import { rehabilitationDialogue } from '../src/rehabilitation.ts';
 import { bankerDialogue } from '../src/banking.ts';
 import { taxDialogue } from '../src/southern-district.ts';
 import { createEconomy } from '../src/economy.ts';
+import { drawCharacter } from '../src/characters.ts';
+import { Mesh } from '../src/geometry.ts';
+import { drawHumanNPC, drawHumanNPCHead } from '../src/human-npc.ts';
 
 import { dialogueFixture as fixture } from './helpers/dialogue-fixture.mts';
 
@@ -39,13 +42,63 @@ test('speaker names appear above the matching portrait and player turns use the 
   }
 });
 
+test('an NPC chathead uses the head and outfit of the rendered actor', () => {
+  const npc = { x: 42, z: 12, skin: '#bd9369' };
+  const appearance = { topHat: true, sunglasses: true, hair: '#774936' };
+  const renderedSkin = '#8f5e41';
+  drawHumanNPC(new Mesh(), npc, 0, { skin: renderedSkin, appearance });
+  const portrait = new Mesh();
+  const expected = new Mesh();
+  drawHumanNPCHead(portrait, npc, Math.PI / 2);
+  drawCharacter(expected, 0, 0, 0, Math.PI / 2, 0, false, renderedSkin, undefined, {
+    ...appearance,
+    mode: 'idle',
+    headOnly: true,
+  });
+  assert.ok(portrait.data.length > 0);
+  assert.deepEqual(portrait.data, expected.data);
+  assert.ok(portrait.data.every((value, i) => i % 11 !== 1 || value > 1.4));
+});
+
+test('dialogue branches retain the NPC portrait and player choices use a separate portrait', () => {
+  const f = fixture();
+  let portraits = 0;
+  try {
+    f.dialogue.open(
+      {
+        name: 'Haberdasher',
+        intro: 'Hello.',
+        choices: [{ label: 'Hats', next: { intro: 'Of course.' } }],
+      },
+      () => portraits++,
+    );
+    assert.equal(portraits, 1);
+    f.advance();
+    assert.equal(portraits, 1);
+    f.click('Hats');
+    assert.equal(portraits, 2);
+    f.dialogue.close();
+    f.dialogue.open({ name: 'Someone else', intro: 'Hi.' });
+    assert.equal(portraits, 2);
+  } finally {
+    f.restore();
+  }
+});
+
 test('every fixed conversation has data-only, unambiguous branches and resolvable actions/templates', () => {
   const dynamic = new Set(['haberdasher', 'growth-capital'] satisfies [string, string]);
   let count = 0;
-  const walk = (node: import('../src/types/content.ts').LegacyServiceNode, id: string) => {
+  const walk = (
+    node: import('../src/types/content.ts').LegacyServiceNode,
+    id: string,
+    nested = false,
+  ) => {
     assert.ok(node.intro || node.skipIntro, id + ' needs a spoken opening or explicit topic menu');
     if (!node.choices) {
-      assert.ok(dynamic.has(id), id + ' has no choices');
+      assert.ok(
+        dynamic.has(id) || (nested && node.intro && node.repeat === false && !node.skipIntro),
+        id + ' has no choices or terminal line',
+      );
       return;
     }
     assert.ok(node.choices.length, id + ' has an empty menu');
@@ -64,7 +117,7 @@ test('every fixed conversation has data-only, unambiguous branches and resolvabl
         choice.next || choice.action || choice.trade || choice.receipt,
         id + ' has a dead end',
       );
-      if (choice.next) walk(choice.next, id);
+      if (choice.next) walk(choice.next, id, true);
     }
   };
   const noFunctions = (value: unknown) => {
@@ -283,7 +336,8 @@ test('Ahab waits for boarding authorization and displays a refusal instead of un
     f = fixture();
   let resolve!: (value: import('../src/types/world.ts').ActionReceipt) => void;
   const game = {
-    state: { railgun: true },
+    state: {},
+    hasRailgun: () => true,
     ship: { aboard: false },
     board: () => new Promise<import('../src/types/world.ts').ActionReceipt>((r) => (resolve = r)),
   };
@@ -302,9 +356,7 @@ test('Ahab waits for boarding authorization and displays a refusal instead of un
     assert.doesNotMatch(f.element.textContent, /unfurls/);
     f.advance();
     assert.equal(f.dialogue.active, false);
-    f.dialogue.open(
-      ahabDialogue({ name: 'Ahab' }, { ...game, state: { railgun: true, krakenReward: true } }),
-    );
+    f.dialogue.open(ahabDialogue({ name: 'Ahab' }, { ...game, state: { krakenReward: true } }));
     f.advance();
     assert.ok(!f.buttons().some((b) => /Board the Pequod/.test(b.textContent)));
   } finally {

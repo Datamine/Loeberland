@@ -2,12 +2,26 @@ import type { CharacterAppearance } from './characters.ts';
 import { Mesh } from './geometry.ts';
 import { rigidCharacterMesh } from './rendering/character-gpu.ts';
 
-let decorativeRocketMesh: number[] | null = null,
+let heldRailgunMesh: number[] | null = null,
+  decorativeRocketMesh: number[] | null = null,
   clockSecond: number | null = null,
   clockData: number[] | null = null,
   flameFrame: number | null = null,
   flameData: number[] | null = null;
 const wearablePalette = new Float32Array(17 * 4);
+
+function railgunMesh() {
+  if (heldRailgunMesh) return heldRailgunMesh;
+  const m = new Mesh();
+  // Built in the right hand's bind pose, with the muzzle along character forward.
+  m.box(0.165, 0.73, -0.11, 0.16, 0.14, 0.65, '#4c626b', { metal: 0.45 });
+  for (const x of [0.128, 0.327])
+    m.box(x, 0.76, 0.07, 0.035, 0.045, 0.72, '#9cbabd', { metal: 0.5 });
+  m.box(0.205, 0.775, 0.26, 0.08, 0.05, 0.56, '#85ddeb', { emissive: 0.65 });
+  m.box(0.2, 0.56, -0.06, 0.09, 0.2, 0.1, '#45535c');
+  return (heldRailgunMesh = m.data);
+}
+
 function rocketMesh() {
   if (decorativeRocketMesh) return decorativeRocketMesh;
   const m = new Mesh(),
@@ -56,6 +70,55 @@ function rocketMesh() {
     );
   }
   return (decorativeRocketMesh = m.data);
+}
+let recoilMesh: number[] | undefined, launcherMesh: number[] | undefined;
+function recoilAmulet() {
+  if (recoilMesh) return recoilMesh;
+  const m = new Mesh();
+  for (const side of [-1, 1])
+    m.rod([side * 0.12, 1.4, 0.09], [0, 1.235, 0.181], 0.007, '#9ea6a9', 7);
+  m.sphere(0, 1.225, 0.187, 0.077, 0.087, 0.022, '#6a697b', 12, 7, { metal: 0.62 });
+  m.sphere(0, 1.225, 0.205, 0.05, 0.059, 0.016, '#e69589', 8, 5, { emissive: 0.32 });
+  return (recoilMesh = m.data);
+}
+function missileLauncher() {
+  if (launcherMesh) return launcherMesh;
+  const m = new Mesh();
+  const x = 0.221,
+    y = 1.4;
+  m.rod([x, y, -0.39], [x, y, 0.53], 0.092, '#56634d', 12, { metal: 0.5 });
+  for (const z of [-0.32, 0.04, 0.47])
+    m.rod([x, y, z - 0.032], [x, y, z + 0.032], 0.104, '#323c3f', 12, { metal: 0.55 });
+  m.rod([x, y, 0.531], [x, y, 0.535], 0.066, '#1b252a', 12);
+  m.box(x - 0.062, 1.31, 0.12, 0.124, 0.079, 0.23, '#333c36');
+  m.box(x - 0.023, 1.5, 0.27, 0.046, 0.06, 0.09, '#353c41');
+  m.box(x - 0.015, 1.52, 0.266, 0.03, 0.023, 0.01, '#ecc172', { emissive: 0.55 });
+  return (launcherMesh = m.data);
+}
+const armorMeshes = new Map<string, number[]>();
+function ironArmor(trimmed: boolean) {
+  const metal = '#454a50',
+    edge = trimmed ? '#dbab4c' : '#626973';
+  const cached = armorMeshes.get(edge);
+  if (cached) return cached;
+  const m = new Mesh();
+  m.sphere(0, 1.23, 0.065, 0.19, 0.24, 0.145, metal, 14, 7, { metal: 0.55 });
+  m.sphere(0, 1.23, -0.063, 0.18, 0.232, 0.11, metal, 14, 7, { metal: 0.49 });
+  for (const side of [-1, 1]) {
+    m.sphere(side * 0.19, 1.4, 0, 0.106, 0.097, 0.155, metal, 13, 7, { metal: 0.58 });
+    m.rod([side * 0.15, 1.46, 0.125], [side * 0.249, 1.36, 0.125], 0.012, edge, 7, { metal: 0.47 });
+    m.rod([side * 0.05, 1.445, 0.18], [side * 0.149, 1.31, 0.172], 0.009, edge, 7, { metal: 0.47 });
+    m.rod([side * 0.149, 1.31, 0.172], [side * 0.125, 1.15, 0.182], 0.009, edge, 7, {
+      metal: 0.47,
+    });
+    for (let i = 0; i < 3; i++)
+      m.sphere(side * 0.13, 1.17 + i * 0.067, 0.186, 0.013, 0.013, 0.008, edge, 7, 5, {
+        metal: 0.5,
+      });
+  }
+  m.rod([-0.125, 1.15, 0.182], [0.125, 1.15, 0.182], 0.01, edge, 7, { metal: 0.47 });
+  armorMeshes.set(edge, m.data);
+  return m.data;
 }
 function clockMesh(time: number) {
   const second = Math.floor(time);
@@ -147,7 +210,17 @@ export function drawWearableAccessories(
     cpu?: boolean;
   },
 ) {
-  if (look.headOnly || (look.back !== 'new-year-rocket' && look.neck !== 'clock-amulet')) return;
+  const armor = look.torso === 'iron-armor' || look.torso === 'gold-trimmed-iron-armor';
+  if (
+    look.headOnly ||
+    (!armor &&
+      !look.railgun &&
+      look.weapon !== 'missile-launcher' &&
+      look.back !== 'new-year-rocket' &&
+      look.neck !== 'clock-amulet' &&
+      look.neck !== 'recoil-amulet')
+  )
+    return;
   const si = Math.sin(angle),
     co = Math.cos(angle),
     attach = (data: number[] | Float32Array, bone: number, cacheKey: string) => {
@@ -196,6 +269,7 @@ export function drawWearableAccessories(
         );
       }
     };
+  if (look.railgun) attach(railgunMesh(), 9, 'held-railgun');
   if (look.back === 'new-year-rocket') {
     attach(rocketMesh(), 1, 'wearable-rocket');
     if ((look.rocketBurnUntil || 0) > (look.serverTime ?? Date.now())) {
@@ -229,6 +303,9 @@ export function drawWearableAccessories(
       attach(flameData!, 1, 'wearable-flame');
     }
   }
+  if (armor) attach(ironArmor(look.torso === 'gold-trimmed-iron-armor'), 2, look.torso!);
+  if (look.neck === 'recoil-amulet') attach(recoilAmulet(), 2, 'wearable-recoil');
+  if (look.weapon === 'missile-launcher') attach(missileLauncher(), 2, 'wearable-launcher');
   if (look.neck === 'clock-amulet')
     attach(clockMesh((look.serverTime ?? Date.now()) / 1000), 2, 'wearable-clock');
 }

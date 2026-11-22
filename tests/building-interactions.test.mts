@@ -1,7 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildingNPCService, serviceStaffPosition } from '../src/building-interactions.ts';
+import { placeEntryVerb } from '../src/context-menu.ts';
 import { sightPrimaryVerb } from '../src/descriptions.ts';
+
+test('a house can be entered from outside but has no entry action when already inside', () => {
+  const house = { id: 'explorable-home-1', searchHome: true, activityBuilding: true };
+  assert.equal(placeEntryVerb(house, null), 'Enter');
+  assert.equal(placeEntryVerb(house, { id: 'explorable-home-2' }), 'Enter');
+  assert.equal(placeEntryVerb(house, { id: house.id }), null);
+  assert.equal(placeEntryVerb({ id: 'shop' }, { id: 'shop' }), 'Browse');
+});
 
 test('conversation services belong to NPCs; their building hover action is always Examine', () => {
   const sites: [Parameters<typeof sightPrimaryVerb>[0], string][] = [

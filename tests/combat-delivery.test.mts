@@ -109,9 +109,9 @@ test('pickup costs less, deliveries follow routed segments and grant exactly one
   assert.equal(deli.order({ x: -1, y: 0 }).ok, false);
   assert.equal(economy.state.coins, 22);
   assert.ok(deli.order(target).ok);
-  assert.equal(economy.state.coins, 18);
+  assert.equal(economy.state.coins, 7);
   assert.equal(deli.order(target).ok, false);
-  assert.equal(economy.state.coins, 18);
+  assert.equal(economy.state.coins, 7);
   deli.update(0.2, target);
   assert.equal(deli.state.position.x, 0);
   assert.ok(deli.state.position.y > 0);

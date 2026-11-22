@@ -32,6 +32,11 @@ export const MP_MODES = Object.freeze([
   'gondola',
   'atv',
   'roof',
+  'depotLaunch',
+  'waymo',
+  'construction',
+  'streetcar',
+  'swing',
 ]);
 export const MP_GESTURES = Object.freeze([
   '',
@@ -53,6 +58,14 @@ export const MP_GESTURES = Object.freeze([
   'fish',
   'eat',
   'chair',
+  'atv-air',
+  'atv-trick',
+  'atv-donut',
+  'eames-chair',
+  'bertoia-chair',
+  'motorcycle-wheelie',
+  'motorcycle-endo',
+  'motorcycle-hop',
 ]);
 export const MP_FRAME_HEADER = 12,
   MP_PLAYER_BYTES = 32;

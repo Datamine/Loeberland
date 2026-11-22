@@ -77,6 +77,7 @@ function splitWaterPolygon(polygon: number[][], a: number[], b: number[]) {
 }
 
 export function lakeOutline(lake: Lake, segments = 64) {
+  if (lake.outline) return lake.outline;
   return Array.from({ length: segments }, (_, i) => {
     const a = (i * Math.PI * 2) / segments;
     return [lake.x + Math.cos(a) * lake.rx, lake.z + Math.sin(a) * lake.rz];

@@ -1,3 +1,4 @@
+import { contentText } from './content-runtime.ts';
 import type { CommandResult, MultiplayerState, ServerEvent } from './types/network.ts';
 export interface UsernameClient {
   state: Pick<
@@ -63,7 +64,9 @@ export function createUsernameForm(
     const state = client?.state,
       name = field.value.trim();
     if (!state?.connected) {
-      message = 'Connect to the server before saving your name.';
+      message = contentText(
+        'world-message.src.username-form.connect-to-the-server-before-saving-your-name',
+      );
       messageUntil = now() + 6000;
       isError = true;
       update();
@@ -72,15 +75,27 @@ export function createUsernameForm(
     if (name === state.name || (allowBlank && !name))
       return { ok: true, name: state.name, unchanged: true };
     if (form.reportValidity?.() === false)
-      return { ok: false, message: 'Use 1–12 letters, numbers or underscores.' };
+      return {
+        ok: false,
+        message: contentText(
+          'world-message.src.username-form.use-1-12-letters-numbers-or-underscores',
+        ),
+      };
     pending = Promise.resolve()
       .then(() => client!.command('rename', { name }))
-      .catch(() => ({ ok: false, message: 'Unable to save your name. Please try again.' }));
+      .catch(() => ({
+        ok: false,
+        message: contentText(
+          'world-message.src.username-form.unable-to-save-your-name-please-try-again',
+        ),
+      }));
     update();
     const result = await pending;
     pending = null;
     isError = !result.ok;
-    message = result.ok ? 'Username saved.' : result.message || 'Unable to save your name.';
+    message = result.ok
+      ? contentText('world-message.src.username-form.username-saved')
+      : result.message || contentText('world-message.src.username-form.unable-to-save-your-name');
     messageUntil = now() + (result.ok ? 1800 : 6000);
     if (result.ok) {
       dirty = false;

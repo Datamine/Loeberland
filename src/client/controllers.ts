@@ -1,3 +1,4 @@
+import { contentText } from '../content-runtime.ts';
 import type { ActionReceipt, Actor } from '../types/world.ts';
 
 export interface ControllerSources {
@@ -59,13 +60,23 @@ export function createClientControllerFactory({
       if (result.message) announce(result.message, result.ok ? 'You' : 'Server');
       return result;
     });
-    return { ok: true, pending: true, message: 'Waiting for the server…', promise };
+    return {
+      ok: true,
+      pending: true,
+      message: contentText('world-message.src.client.controllers.waiting-for-the-server'),
+      promise,
+    };
   }
   const personal = (verb: string, args = {}) => request('playerAction', { verb, ...args });
   const inventory = (op: string, args = {}) => request('inventory', { op, ...args });
   const moveTo = (x: number, z: number) =>
     getWorld()?.moveTo(x, z) ?? (request('moveTo', { x, z }), true);
-  const denied = () => ({ ok: false, message: 'Game state is determined by the server.' });
+  const denied = () => ({
+    ok: false,
+    message: contentText(
+      'world-message.src.client.controllers.game-state-is-determined-by-the-server',
+    ),
+  });
   const simulation = new Set([
     'update',
     'advanceTo',
@@ -236,11 +247,6 @@ export function createClientControllerFactory({
       finishQuest: () => personal('finishRaptor'),
       returnShip: () => personal('returnShip'),
       recover: denied,
-      toggleWeapon: () => {
-        const on = !source.state.equipped;
-        personal('equipRailgun', { on });
-        return true;
-      },
       attack: (target: Actor, weapon?: string): ActionReceipt => {
         const personalTarget =
           !target.wilderness &&

@@ -39,7 +39,7 @@ import {
   partitionSouthernLake,
 } from './southern-countryside-layout.ts';
 import { partitionRunoff } from './runoff-surface.ts';
-import { BOTTLE_STREAM, TWITTER_HQ, SALES_CONFERENCE } from './social-layout.ts';
+import { BOTTLE_STREAM, TWITTER_HQ, SALES_CONFERENCE, socialFootprint } from './social-layout.ts';
 import { SALT_FLATS, SALT_PONDS, inSaltFlats, saltPondAt } from './salt-layout.ts';
 import { estateGroundColor } from './estate-layout.ts';
 import { minimapGroundColor } from './map-colors.ts';
@@ -651,15 +651,7 @@ export function createSouthernTerrain({
         );
     }
     for (const room of [TWITTER_HQ, SALES_CONFERENCE])
-      polygon(
-        [
-          [room.x - room.w / 2, room.z - room.d / 2] satisfies [number, number],
-          [room.x + room.w / 2, room.z - room.d / 2] satisfies [number, number],
-          [room.x + room.w / 2, room.z + room.d / 2] satisfies [number, number],
-          [room.x - room.w / 2, room.z + room.d / 2] satisfies [number, number],
-        ],
-        room.id === 'twitter-hq' ? '#789394' : '#b29a80',
-      );
+      polygon(socialFootprint(room), room.id === 'twitter-hq' ? '#789394' : '#be786d');
     ctx.strokeStyle = '#667b5140';
     ctx.lineWidth = 0.7;
     for (const level of [3, 5, 7, 9] satisfies [number, number, number, number])

@@ -87,14 +87,23 @@ vec3 alpineSwatch(float slot,vec2 uv){
 vec3 alpineSurface(vec3 p,vec3 n,float groom){
     vec3 weights=pow(abs(n),vec3(4.));weights/=max(dot(weights,vec3(1.)),.001);
     vec3 granite=alpineSwatch(2.,p.zy*.22)*weights.x+alpineSwatch(2.,p.xz*.22)*weights.y+alpineSwatch(2.,p.xy*.22)*weights.z;
-    vec3 powder=alpineSwatch(0.,p.xz*.18),piste=alpineSwatch(1.,p.xz*.35);
-    vec3 forest=alpineSwatch(3.,p.xz*.26);
-    float snowLine=smoothstep(24.,60.,p.y),cliff=1.-smoothstep(.48,.86,n.y);
-    // The maintained piste stays snowy all the way to the valley station.
-    float cover=max(snowLine*(1.-cliff*.88),groom);
-    vec3 base=mix(forest,granite,smoothstep(18.,48.,p.y));
-    vec3 snow=mix(powder,piste,clamp(groom,0.,1.)*.8);
-    float detail=alpineSwatch(0.,p.xz*1.7).r; snow*=.985+detail*.02;
+    vec3 powder=alpineSwatch(0.,p.xz*.24);
+    vec3 piste=alpineSwatch(1.,p.xz*.35);
+    vec3 forest=alpineSwatch(3.,p.xz*.4);
+    float aspect=dot(n.xz,vec2(.55,-.83));
+    float pockets=sin(p.x*.145+p.z*.09)*sin(p.z*.124-p.x*.077);
+    float scree=sin(p.x*.28+p.z*.31)*sin(p.z*.24-p.x*.09);
+    float cliff=1.-smoothstep(.5,.91,n.y);
+    float snowLine=smoothstep(31.,70.,p.y+12.*aspect+8.*pockets);
+    float cover=max(snowLine*(1.-cliff*.86),groom);
+    vec3 woods=mix(forest*vec3(.76,.87,.8),forest*vec3(1.18,1.06,.88),smoothstep(-.6,.64,pockets));
+    float rock=max(smoothstep(24.,67.,p.y),cliff*smoothstep(-.4,.86,scree));
+    vec3 base=mix(woods,granite,rock);
+    float sand=(1.-smoothstep(10.15,11.65,p.y))*(1.-cliff);
+    base=mix(base,granite*vec3(1.19,1.12,.94),sand*.78);
+    vec3 snow=mix(powder,piste,clamp(groom,0.,1.)*.9);
+    float detail=alpineSwatch(0.,p.xz*1.7).r;
+    snow*=.945+detail*.065;
     return mix(base,snow,cover);
 }
 `;

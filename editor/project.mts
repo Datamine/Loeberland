@@ -9,12 +9,14 @@ import type {
   EditorDialogueNode,
   SharedEditorRecord,
   EditorCatalog,
+  WorldMessageRecord,
 } from '../src/types/editor.ts';
 import type { TextSpec, TextValues, DialogueVariant, ContentBundle } from '../src/types/content.ts';
 import { isRecord } from '../src/types/json.ts';
 import { validatePlayerDocument } from '../content/validate.js';
 import { renderContentText } from '../src/content-runtime.ts';
 import defaults from '../content/player-state-defaults.json' with { type: 'json' };
+import { WORLD_MESSAGE_PREFIX } from '../content/world-message-sources.ts';
 
 /** IDs in source paths address maps or array members, never display text or array offsets. */
 export function sourceValue(
@@ -328,6 +330,18 @@ export function projectCatalog(bundle: ContentBundle, revision = bundle.revision
     fingerprint: revision,
     records,
     sharedDialogue,
+    worldMessages: Object.entries(texts.texts)
+      .filter(([id]) => id.startsWith(WORLD_MESSAGE_PREFIX))
+      .map(([id, { template }]) => {
+        const record: WorldMessageRecord = {
+          key: id,
+          name: id.slice(WORLD_MESSAGE_PREFIX.length),
+          bindings: {},
+          template: '',
+        };
+        record.template = bind(record, ['template'], 'texts', ['texts', id, 'template'], template);
+        return record;
+      }),
     playerState: structuredClone(validatePlayerDocument(defaults)),
   };
 }

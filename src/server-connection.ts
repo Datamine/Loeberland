@@ -22,9 +22,8 @@ interface ConnectionGateOptions {
   locationObject?: Pick<Location, 'href'>;
 }
 import { multiplayerEndpoint } from './multiplayer-client.ts';
+import { contentText } from './content-runtime.ts';
 
-export const SERVER_REQUIRED_MESSAGE =
-  'Connection required. Gameplay resumes when the server reconnects.';
 export function serverConnected<T extends { state: { connected: boolean } }>(
   client: T | null | undefined,
 ): client is T {
@@ -37,7 +36,7 @@ export function serverCommand(
 ): Promise<CommandResult> {
   return serverConnected(client)
     ? client.command(action, args)
-    : Promise.resolve({ ok: false, message: SERVER_REQUIRED_MESSAGE });
+    : Promise.resolve({ ok: false, message: contentText('world-message.connection.required') });
 }
 
 /** Connection settings remain usable while the entire game is inert. */

@@ -83,7 +83,10 @@ test('the Old Man charges exactly 250,000 coins once and requires physical guild
   a.p.x = 80;
   assert.equal(requiredFixture(await act(game, a, 'joinIlluminati')).ok, false);
   a.p.x = 92.2;
-  assert.equal(requiredFixture(await act(game, a, 'joinIlluminati')).ok, true);
+  const joined = requiredFixture(await act(game, a, 'joinIlluminati'));
+  assert.equal(joined.ok, true);
+  assert.match(joined.message || '', /stairway/);
+  assert.doesNotMatch(joined.message || '', /hangar|aircraft|bomber/i);
   assert.equal(a.p.inventory.economy.state.coins, 749999);
   await act(game, a, 'joinIlluminati');
   assert.equal(a.p.inventory.economy.state.coins, 749999);
@@ -389,6 +392,7 @@ test('Ahab sails to the kraken and returns to the saved beach with only authorit
   assert.equal(a.p.y, PEQUOD.deck);
   assert.equal(a.p.mode, 'hidden');
   a.p.x += 2;
+  game.personal.runtime(a.p).expeditions.state.equipped = false;
   assert.equal(
     requiredFixture(await act(game, a, 'playerAction', { verb: 'attackKraken', weapon: 'railgun' }))
       .ok,
@@ -396,6 +400,9 @@ test('Ahab sails to the kraken and returns to the saved beach with only authorit
     'the attack uses the deck position rather than a stale player coordinate',
   );
   assert.equal(a.p.inventory.meta.railgunCharge, 24);
+  await act(game, a, 'equipAppearance', { look: { weapon: 'railgun' } });
+  await act(game, a, 'equipAppearance', { look: { weapon: 'unarmed' } });
+  assert.equal(game.personal.runtime(a.p).expeditions.state.target, null);
   assert.equal(
     requiredFixture(await act(game, a, 'playerAction', { verb: 'returnShip' })).ok,
     true,
@@ -423,4 +430,104 @@ test('Ahab rejects completed hunts before entering an instance instead of silent
   for (let i = 0; i < 5; i++) game.tick(0.05);
   assert.equal(a.p.instance.kind, 'world');
   assert.deepEqual({ x: a.p.x, z: a.p.z }, shore);
+});
+
+test('a Kraken death leaves time for the collapse aboard and does not announce an early respawn', async (t) => {
+  const { game, advance, geometry } = await fixture();
+  t.after(() => game.close());
+  const a = await member(game, 517);
+  assert.equal(requiredFixture(await act(game, a, 'instanceEnter', { kind: 'kraken' })).ok, true);
+  a.p.hp = 1;
+  for (let i = 0; i < 250 && a.p.hp > 0; i++) game.tick(0.05);
+  assert.equal(a.p.hp, 0);
+  assert.equal(a.p.instance.kind, 'kraken');
+  assert.equal(a.messages.filter((m) => m.type === 'caught').length, 1);
+  assert.ok(
+    !a.messages.some((m) => m.type === 'notice' && /Ahab:|died and respawned/.test(m.message)),
+  );
+  assert.equal(requiredFixture(await act(game, a, 'respawn')).ok, false);
+  advance(3000);
+  assert.equal(requiredFixture(await act(game, a, 'respawn')).ok, true);
+  assert.equal(a.p.instance.kind, 'world');
+  assert.equal(a.p.x, requiredFixture(geometry.hospital).x + 0.5);
+});
+
+test('Berkeley lab requires both icy pieces and supports movement, combat and loot', async () => {
+  const { LAB_ENTRANCE, LAB_SPAWNS, LAB_INSTANCE, LAB_FLOOR } =
+    await import('../../src/berkeley-lab.ts');
+  const { HOT_TRAPDOOR } = await import('../../src/berkeley-campus.ts');
+  const { createWilderness } = await import('../../src/wilderness.ts');
+  const geometry = fixtureGeometry();
+  const trapdoor = { x: 92, y: 119.5 };
+  geometry.sights = [
+    { id: HOT_TRAPDOOR, kind: 'hot-trapdoor', label: 'Hot trapdoor', entry: trapdoor },
+  ];
+  geometry.wilderness = createWilderness({ spawns: LAB_SPAWNS, ground: () => LAB_FLOOR + 0.025 });
+  let time = 1000000;
+  const game = await createGame({
+    geometry,
+    store: createMemoryStore(),
+    now: () => time,
+    random: () => 0,
+  });
+  const person = await player(game, 599, {
+    'sf-purse-v1': JSON.stringify({
+      ownedEquipment: ['ice-top', 'ice-pants', 'missile-launcher', 'recoil-amulet'],
+    }),
+  });
+  const { p } = person;
+  Object.assign(p, { x: trapdoor.x + 0.5, z: trapdoor.y + 0.5 });
+  const command = (action: string, args?: Record<string, unknown>) =>
+    act(game, person, action, args);
+  const enter = async () =>
+    requiredFixture(await command('instanceEnter', { kind: LAB_INSTANCE.kind }));
+  assert.match((await enter()).message || '', /too hot/i);
+  p.appearance.iceTop = true;
+  assert.equal((await enter()).ok, false);
+  p.appearance.icePants = true;
+  assert.equal((await enter()).ok, true);
+  assert.equal(p.instance.id, LAB_INSTANCE.id);
+  assert.equal(p.x, LAB_ENTRANCE.x);
+  assert.equal(p.y, LAB_FLOOR + 0.025);
+  p.hp = p.max = 200;
+  const scientist = LAB_SPAWNS.find((n) => n.combatKind === 'madder-scientist')!;
+  const attack = await command('attack', { id: scientist.id, weapon: 'unarmed' });
+  assert.equal(attack?.ok, true, attack?.message);
+  for (let step = 0; step < 45; step++) {
+    time += 100;
+    game.tick(0.1);
+  }
+  assert.ok(
+    Math.hypot(p.x - scientist.x, p.z - scientist.z) < 2,
+    'attacking walks up to the scientist',
+  );
+  assert.equal((await command('instanceLeave'))?.ok, false);
+
+  const target = game.shared.wilderness.actors.find((actor) => actor.id === scientist.id)!;
+  for (let step = 0; step < 20; step++) {
+    time += 100;
+    game.tick(0.1);
+  }
+  const launch = person.messages.findIndex((message) => message.type === 'scientistExplosive');
+  const impact = person.messages.findIndex(
+    (message) => message.type === 'damage' && message.attacker === scientist.id,
+  );
+  assert.ok(launch >= 0 && impact > launch, 'the scientist throws before the hit lands');
+  game.shared.wilderness.damage(target.id, target.hp, p);
+  const launcher = [...game.shared.loot.values()].find(
+    (item) => item.itemId === 'missile-launcher',
+  )!;
+  assert.ok(launcher, 'the rare drop uses the ordinary shared loot ledger');
+  Object.assign(p, { x: launcher.x, z: launcher.z });
+  p.inventory.economy.state.ownedEquipment = p.inventory.economy.state.ownedEquipment.filter(
+    (id) => id !== 'missile-launcher',
+  );
+  assert.equal((await command('collect', { id: launcher.id }))?.ok, true);
+  assert.ok(p.inventory.economy.state.ownedEquipment.includes('missile-launcher'));
+
+  Object.assign(p, LAB_ENTRANCE);
+  assert.equal((await command('instanceLeave'))?.ok, true);
+  assert.equal(p.instance.kind, 'world');
+  assert.equal(p.x, trapdoor.x + 0.5);
+  assert.equal((await command('attack', { id: scientist.id, weapon: 'unarmed' }))?.ok, false);
 });

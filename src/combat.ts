@@ -104,6 +104,7 @@ export function createAlienBattle({
   health,
   level = () => 1,
   defense = () => 0,
+  reflect = () => 0,
   bayonet = false,
   hp = ALIEN_HITPOINTS,
   beforePlayerHit = () => ({ ok: true }),
@@ -114,6 +115,7 @@ export function createAlienBattle({
   health: Health;
   level?: () => number;
   defense?: () => number;
+  reflect?: (damage: number) => number;
   bayonet?: boolean | (() => boolean);
   hp?: number;
   beforePlayerHit?: () => Pick<ActionReceipt, 'ok' | 'message'>;
@@ -158,6 +160,15 @@ export function createAlienBattle({
           const damage = health.damage(rollEnemyDamage(7, level(), random, defense()));
           state.nextAlien += 1.25;
           events.push({ type: 'alien-hit', damage, hp: health.state.hp });
+          const reflected = Math.min(state.hp, reflect(damage));
+          if (reflected) {
+            state.hp -= reflected;
+            events.push({ type: 'player-hit', damage: reflected, hp: state.hp });
+          }
+          if (!state.hp) {
+            state.ended = true;
+            events.push({ type: 'victory' });
+          }
           if (health.state.hp === 0) {
             state.ended = true;
             events.push({ type: 'death' });

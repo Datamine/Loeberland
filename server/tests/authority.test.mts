@@ -4,9 +4,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame } from '../game.mts';
 import { createMemoryStore } from '../store.mts';
-import { fixtureGeometry, player, latestResult } from './fixtures.mts';
+import { fixtureGeometry, player, latestResult, storedPlayerFixture } from './fixtures.mts';
 import { MP_PROTOCOL } from '../../src/multiplayer-protocol.ts';
+import { POLICE_PURSUIT_SECONDS } from '../../src/encounters.ts';
 import { SF_FITNESS } from '../../src/southern-layout.ts';
+import { CAPTURE_DURATION } from '../../src/capture-animation.ts';
 
 async function fixture() {
   let time = 1000000;
@@ -35,6 +37,57 @@ async function act(
   await a.p.queue;
   return latestResult(a.messages);
 }
+
+test('seizing a nearby NPC bicycle mounts it, saves it, and rolls the standard police pursuit', async () => {
+  const geometry = fixtureGeometry();
+  const at = { x: geometry.spawn.x + 0.5, z: geometry.spawn.y + 0.5 };
+  geometry.merchants.push(
+    { ...at, id: 'cyclist-a', label: 'Cyclist', rider: true },
+    { ...at, id: 'cyclist-b', label: 'Cyclist', rider: true },
+    { ...at, id: 'walker', label: 'Pedestrian' },
+  );
+  let time = 1_000_000;
+  let roll = 0.3;
+  const store = createMemoryStore();
+  const game = await createGame({ geometry, store, now: () => time, random: () => roll });
+  try {
+    const a = await player(game, 901);
+    const b = await player(game, 902);
+    const seize = (who: TestPlayer, id: string) =>
+      act(game, who, 'playerAction', { verb: 'seizeBicycle', id });
+    assert.equal((await seize(a, 'walker'))?.ok, false);
+    a.p.x = at.x + 6;
+    assert.equal((await seize(a, 'cyclist-a'))?.retryApproach, true);
+
+    Object.assign(a.p, at);
+    Object.assign(b.p, at);
+    assert.equal((await seize(a, 'cyclist-a'))?.ok, true);
+    assert.equal(a.p.mode, 'bike');
+    assert.deepEqual(a.p.profile.bicycle, geometry.spawn);
+    const saved = await storedPlayerFixture(store, 'player:' + a.p.owner);
+    assert.deepEqual(saved.playerState.vehicles.bicycle, geometry.spawn);
+    assert.equal(game.personal.runtime(a.p).police.state.wanted, false);
+    assert.equal(
+      game.shared.snapshot().npcs.find((npc) => npc.id === 'cyclist-a')?.bicycleTaken,
+      true,
+    );
+    assert.equal((await seize(b, 'cyclist-a'))?.ok, false);
+
+    roll = 0.29;
+    assert.equal((await seize(b, 'cyclist-b'))?.ok, true);
+    const police = game.personal.runtime(b.p).police.state;
+    assert.equal(police.wanted, true);
+    police.officers.length = 0;
+    time += POLICE_PURSUIT_SECONDS * 1000 - 50;
+    game.tick(POLICE_PURSUIT_SECONDS - 0.05);
+    assert.equal(police.wanted, true);
+    time += 50;
+    game.tick(0.05);
+    assert.equal(police.wanted, false);
+  } finally {
+    await game.close();
+  }
+});
 
 test('new identities cannot import money, XP, food, weapons or quest completion from local storage', async () => {
   const { game } = await fixture(),
@@ -215,6 +268,36 @@ test('interviews keep answers and scores on the server and cannot be shortened b
     await game.close();
   }
 });
+test('detention waits for the arrest animation even if a client requests early transfer', async () => {
+  const { game, geometry, advance } = await fixture();
+  const a = await player(game, 907);
+  const { x, z } = a.p;
+  try {
+    const { police } = game.personal.runtime(a.p);
+    police.state.wanted = true;
+    police.state.officers.push({
+      x: x - 0.5,
+      y: z - 0.5,
+      angle: 0,
+      phase: 0,
+      repath: 1,
+      index: 0,
+      path: [],
+    });
+    game.tick(0.05);
+    assert.ok(a.p.detainAt);
+    await act(game, a, 'personalTransit', { kind: 'jail' });
+    advance(CAPTURE_DURATION * 1000 - 1);
+    game.tick(0.05);
+    assert.deepEqual([a.p.x, a.p.z], [x, z]);
+    advance(1);
+    game.tick(0.05);
+    assert.ok(geometry.detention.walkable(a.p.x, a.p.z));
+  } finally {
+    await game.close();
+  }
+});
+
 test('detention and police pursuit survive reconnecting instead of becoming an escape hatch', async () => {
   const { game, geometry } = await fixture(),
     a = await player(game, 905);

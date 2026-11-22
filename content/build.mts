@@ -4,8 +4,29 @@ import { resolve } from 'node:path';
 import { validateContent } from './validate.js';
 import type { PathLike } from 'fs';
 import type { ContentBundle } from '../src/types/content.ts';
+import { mergeDialogueSources, type SharedChains } from './dialogue-sources.ts';
+import {
+  mergeWorldMessages,
+  splitWorldMessages,
+  type WorldMessageSources,
+} from './world-message-sources.ts';
 
-export const contentFiles = ['entities', 'dialogues', 'texts'] as const;
+const contentFiles = ['entities', 'dialogues', 'texts'] as const;
+export const contentSourcePaths = {
+  entities: 'entities.json',
+  dialogues: 'dialogues.json',
+  texts: 'texts.json',
+  worldMessages: 'world-messages.json',
+  tweetDerived: 'dialogues/tweet-derived/chains.json',
+  other: 'dialogues/other/chains.json',
+} as const;
+type ContentSources = Pick<ContentBundle, 'entities' | 'texts'> & {
+  dialogues: Omit<ContentBundle['dialogues'], 'shared'>;
+  tweetDerived: SharedChains;
+  other: SharedChains;
+  worldMessages: WorldMessageSources;
+};
+export const contentSourceKeys = Object.keys(contentSourcePaths) as (keyof ContentSources)[];
 export const gameRoot = new URL('../', import.meta.url).pathname;
 export function contentRevision(bundle: ContentBundle) {
   return createHash('sha256')
@@ -13,15 +34,42 @@ export function contentRevision(bundle: ContentBundle) {
     .digest('hex')
     .slice(0, 20);
 }
-export async function readContent(root = gameRoot) {
+export function writableContentSources(
+  bundle: ContentBundle,
+  tweetIds: Iterable<string>,
+): ContentSources {
+  const ids = new Set(tweetIds);
+  const { shared, ...dialogues } = bundle.dialogues;
+  const tweetDerived: SharedChains = {},
+    other: SharedChains = {};
+  for (const [id, chain] of Object.entries(shared))
+    (ids.has(id) ? tweetDerived : other)[id] = chain;
+  return {
+    entities: bundle.entities,
+    dialogues,
+    ...splitWorldMessages(bundle.texts),
+    tweetDerived,
+    other,
+  };
+}
+export async function readAuthoredContent(root = gameRoot) {
   const values = await Promise.all(
-    contentFiles.map(async (key) => [
+    contentSourceKeys.map(async (key) => [
       key,
-      JSON.parse(await readFile(resolve(root, 'content', key + '.json'), 'utf8')),
+      JSON.parse(await readFile(resolve(root, 'content', contentSourcePaths[key]), 'utf8')),
     ]),
   );
-  const bundle = validateContent(Object.fromEntries(values));
-  return Object.assign(bundle, { revision: contentRevision(bundle) });
+  const sources = Object.fromEntries(values) as ContentSources;
+  const { entities, dialogues, texts, worldMessages, tweetDerived, other } = sources;
+  const bundle = validateContent({
+    entities,
+    dialogues: mergeDialogueSources(dialogues, tweetDerived, other),
+    texts: mergeWorldMessages(texts, worldMessages),
+  });
+  return { sources, bundle: Object.assign(bundle, { revision: contentRevision(bundle) }) };
+}
+export async function readContent(root = gameRoot) {
+  return (await readAuthoredContent(root)).bundle;
 }
 export async function atomicWrite(
   path: PathLike,

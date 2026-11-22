@@ -3,12 +3,17 @@ import { isRecord, isOneOf } from './types/json.ts';
 export function clothingSelection(input: unknown = {}) {
   const value = isRecord(input) ? input : {};
   const torso = isOneOf(
-    ['shirt', 'ice-top', 'black-cloak-top', 'tinfoil-suit'] satisfies [
-      string,
-      string,
-      string,
-      string,
-    ],
+    [
+      'shirt',
+      'ice-top',
+      'black-cloak-top',
+      'tinfoil-suit',
+      'decorative-robe-top',
+      'cashmere-turtleneck',
+      'goose-corp-shirt',
+      'iron-armor',
+      'gold-trimmed-iron-armor',
+    ] as const,
     value.torso,
   )
     ? value.torso
@@ -18,7 +23,7 @@ export function clothingSelection(input: unknown = {}) {
         ? 'black-cloak-top'
         : 'shirt';
   const legs = isOneOf(
-    ['trousers', 'ice-pants', 'black-cloak-bottom'] satisfies [string, string, string],
+    ['trousers', 'ice-pants', 'black-cloak-bottom', 'decorative-robe-bottom'] as const,
     value.legs,
   )
     ? value.legs

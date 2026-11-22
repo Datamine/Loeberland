@@ -25,29 +25,42 @@ export class MenuElement {
     this.classList = { add() {}, remove() {} };
   }
   set textContent(value: string | null) {
+    this.replaceChildren();
     this.value = String(value);
-    this.children = [];
   }
   get textContent(): string {
     return this.value + this.children.map((n) => n.textContent).join('');
   }
   append(...nodes: MenuElement[]) {
-    for (const n of nodes) n.parent = this;
-    this.children.push(...nodes);
+    for (const node of nodes) this.insertBefore(node, null);
   }
   get firstChild() {
     return this.children[0];
   }
+  get nextElementSibling(): MenuElement | null {
+    const parent = this.parent;
+    return parent?.children[parent.children.indexOf(this) + 1] || null;
+  }
   remove() {
-    if (this.parent) this.parent.children = this.parent.children.filter((n) => n !== this);
+    if (!this.parent) return;
+    this.parent.children = this.parent.children.filter((node) => node !== this);
+    this.parent = undefined;
   }
   replaceChildren(...nodes: MenuElement[]) {
     this.value = '';
-    this.children = nodes;
+    for (const child of this.children) child.parent = undefined;
+    this.children = [];
+    this.append(...nodes);
   }
-  insertBefore(node: MenuElement, before: MenuElement) {
-    this.children = this.children.filter((n) => n !== node);
-    this.children.splice(this.children.indexOf(before), 0, node);
+  insertBefore(node: MenuElement, before: MenuElement | null) {
+    if (node === before) return;
+    node.remove();
+    node.parent = this;
+    const at = before ? this.children.indexOf(before) : this.children.length;
+    this.children.splice(at, 0, node);
+  }
+  contains(node: MenuElement): boolean {
+    return this === node || this.children.some((child) => child.contains(node));
   }
   setAttribute(key: string, value: unknown) {
     Reflect.set(this, key, value);

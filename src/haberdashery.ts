@@ -34,10 +34,14 @@ export function haberdasherDialogue(
         wear(h.id);
         return {
           ok: true,
-          message:
-            (owned ? 'You put on your ' : 'You purchase and put on your ') +
-            h.name +
-            '. You can wear any owned hat from the Character menu.',
+          message: contentText(
+            'world-message.src.haberdashery.you-can-wear-any-owned-hat-from-the-character-menu',
+            {
+              value1: String(
+                (owned ? 'You put on your ' : 'You purchase and put on your ') + h.name,
+              ),
+            },
+          ),
         };
       },
       contentNodeId: 'haberdashery.haberdasherDialogue.node-2',

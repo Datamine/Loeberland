@@ -194,14 +194,24 @@ test('all wizard dialogue choices purchase tablets from the authored house appro
     const result = await choice.accept();
     assert.equal(requiredFixture(await result).ok, true, requiredFixture(await result).message);
   }
-  assert.deepEqual(tablets.inventory(), { downtown: 1, tahoe: 1, cupertino: 1 });
+  assert.deepEqual(tablets.inventory(), {
+    downtown: 1,
+    tahoe: 1,
+    cupertino: 1,
+    'goblin-village': 0,
+  });
   assert.equal(a.p.inventory.economy.state.coins, before - 60);
   const poor = await visitor(point, { 'sf-purse-v1': '{"coins":19}' }),
     denied = await act(poor, 'buyTablet', { destination: 'tahoe' });
   assert.equal(requiredFixture(denied).ok, false);
   assert.match(requiredFixture(requiredFixture(denied).message), /20 coins/);
   assert.equal(poor.p.inventory.economy.state.coins, 19);
-  assert.deepEqual(poor.p.inventory.snapshot().tablets, { downtown: 0, tahoe: 0, cupertino: 0 });
+  assert.deepEqual(poor.p.inventory.snapshot().tablets, {
+    downtown: 0,
+    tahoe: 0,
+    cupertino: 0,
+    'goblin-village': 0,
+  });
 });
 
 test('roaming rocket attendants accept direct conversation positions as well as their walking approaches', async () => {

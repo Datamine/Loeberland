@@ -1,7 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Mesh, pose } from '../src/geometry.ts';
-import { drawCharacter, getCharacterMesh, characterPalette } from '../src/characters.ts';
+import {
+  CHARACTER_BONES,
+  drawCharacter,
+  getCharacterMesh,
+  characterPalette,
+} from '../src/characters.ts';
 import {
   createCharacterBatch,
   createCharacterGPU,
@@ -54,6 +59,30 @@ const outfit = Object.assign(
   ),
   { serverTime: 100000 },
 );
+
+test('the equipped railgun follows the hand in the shared character renderer', () => {
+  const look = characterAppearance(normalizeCharacter({ weapon: 'railgun' }));
+  const render = (mode: string, action?: string) => {
+    const cpu = new Mesh();
+    const gpu = new Mesh();
+    gpu.characters = createCharacterBatch().begin();
+    for (const m of [cpu, gpu])
+      drawCharacter(m, 3, 5, 2, 0.7, 1, false, look.skin, look.shirt, {
+        ...look,
+        mode,
+        action,
+        actionT: 0.4,
+      });
+    compare(cpu.data, reconstructed(gpu), mode + ' ' + (action || ''));
+    return gpu.characters.records.find((record) => record.mesh.cacheKey === 'held-railgun');
+  };
+  assert.ok(render('idle'));
+  const aimed = render('move', 'attack');
+  assert.ok(aimed);
+  assert.ok(aimed.mesh.bonesA.every((bone) => bone === CHARACTER_BONES.rightHand));
+  assert.equal(render('cycle'), undefined);
+  assert.equal(render('idle', 'rocket-hop'), undefined);
+});
 
 test('GPU draw records preserve body, clothing, head, colors, wearables and terrain IK', () => {
   for (const mode of ['idle', 'move', 'rest', 'cycle', 'climb'] satisfies [

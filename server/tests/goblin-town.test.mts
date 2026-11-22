@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { fixture, player, command, latestResult, requiredResult } from './fixtures.mts';
 import { AIRSHIP_TERMINAL } from '../../src/airship.ts';
 import { MP_PROTOCOL } from '../../src/multiplayer-protocol.ts';
+import { FACTORY_CHAIRS } from '../../src/goblin-town.ts';
 
 test('a genuinely new profile gets 25 coins and cannot equip a railgun or boots from client preferences', async () => {
   const { game } = await fixture(),
@@ -45,21 +46,29 @@ test('a genuinely new profile gets 25 coins and cannot equip a railgun or boots 
   }
 });
 
-test('the ball chair requires its drop and sitting survives ticks until movement clears it', async () => {
+test('each owned chair seats the player until they move', async () => {
   const { game } = await fixture(),
     a = await player(game, 99001);
   try {
-    await command(game, a.p, 'activity', { mode: 'sit', chair: true });
-    assert.equal(requiredResult(a.messages).ok, false);
-    a.p.inventory.receive({ amount: 1, lootKind: 'equipment', itemId: 'ball-chair' });
-    await command(game, a.p, 'activity', { mode: 'sit', chair: true });
-    assert.equal(requiredResult(a.messages).ok, true);
-    game.tick(0.2);
-    assert.equal(a.p.mode, 'sit');
-    assert.equal(a.p.gesture, 'chair');
-    await command(game, a.p, 'moveTo', { x: a.p.x + 1, z: a.p.z });
-    assert.equal(a.p.mode, 'walk');
-    assert.notEqual(a.p.gesture, 'chair');
+    for (const chair of FACTORY_CHAIRS) {
+      const sit = (id: string | boolean = chair.id) =>
+        command(game, a.p, 'activity', { mode: 'sit', chair: id });
+      await sit();
+      assert.equal(requiredResult(a.messages).ok, false);
+      a.p.inventory.receive({ amount: 1, lootKind: 'equipment', itemId: chair.id });
+      await sit();
+      assert.equal(requiredResult(a.messages).ok, true);
+      if (chair.id === 'ball-chair') {
+        await sit(true);
+        assert.equal(requiredResult(a.messages).ok, true);
+      }
+      game.tick(0.2);
+      assert.equal(a.p.mode, 'sit');
+      assert.equal(a.p.gesture, chair.gesture);
+      await command(game, a.p, 'moveTo', { x: a.p.x + 1, z: a.p.z });
+      assert.equal(a.p.mode, 'walk');
+      assert.notEqual(a.p.gesture, chair.gesture);
+    }
   } finally {
     await game.close();
   }

@@ -363,9 +363,9 @@ function matrixMultiply(a: NumericVector, b: NumericVector) {
       for (let i = 0; i < 4; i++) out[col * 4 + row] += a[i * 4 + row] * b[col * 4 + i];
   return out;
 }
-function rayBox(ray: Ray, lo: NumericVector, hi: NumericVector) {
+function rayBox(ray: Ray, lo: NumericVector, hi: NumericVector, maxDistance = Infinity) {
   let near = 0,
-    far = 220;
+    far = maxDistance;
   for (let i = 0; i < 3; i++) {
     if (Math.abs(ray.dir[i]) < 1e-9) {
       if (ray.origin[i] < lo[i] || ray.origin[i] > hi[i]) return null;

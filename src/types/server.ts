@@ -56,6 +56,10 @@ export interface MapInstance {
   bounds?: { west: number; east: number; north: number; south: number };
 }
 export interface ServerPlayer {
+  characterPlaying?: boolean;
+  hasCharacterPassword?: boolean;
+  depotLaunch?: { base: number; elapsed: number; trampoline?: boolean };
+  depotTriggered?: boolean;
   id: number;
   owner: string;
   profile: PlayerProfile;
@@ -124,14 +128,16 @@ export interface ServerPlayer {
   respawnReadyAt?: number;
   personalJailed?: boolean;
   pvpDying?: boolean;
+  boundUntil?: number;
   pvpNextHit?: number;
   pvpProtectedUntil?: number;
   pvpTarget?: number | null;
   training?: boolean;
+  constructing?: boolean;
   talkingTo?: string | null;
   deathTask?: Promise<unknown>;
   instanceReturn?: NetworkPosition | null;
-  seat?: { id: string; exit: WorldPoint } | null;
+  seat?: { id: string; exit: WorldPoint; soakSeconds?: number } | null;
   surfShore?: Point | null;
   deckTarget?: WorldPoint | null;
   moveGoal?: WorldPoint | null;

@@ -1,3 +1,4 @@
+import { setupCombatSimulator } from '../editor/combat-simulator.ts';
 import { requiredElement } from '../src/types/ui.ts';
 import { errorMessage, isRecord } from '../src/types/json.ts';
 import { fillEquipmentSelect } from '../src/equipment-options.ts';
@@ -264,3 +265,5 @@ controls();
 refresh().catch((error) => status(errorMessage(error), 'error'));
 
 export {};
+
+setupCombatSimulator();

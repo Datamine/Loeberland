@@ -354,8 +354,8 @@ new builds use a separate cache generation and prune old browser entries. The
 build keeps the previous disk generation for already-open clients. If storage
 is unavailable, streaming still works without persistent caching.
 
-**Help → Refresh map data** clears only the static-world database and reloads
-with a cache-busting URL. The loading error screen offers the same recovery.
+**Reload map data** on the loading error screen clears only the static-world
+database and reloads with a cache-busting URL.
 Character identity, inventory and server progress are unaffected. Inspect
 `SFMapDiagnostics.streaming` for the active version, cache hits, downloads and
 resident chunk/triangle counts.

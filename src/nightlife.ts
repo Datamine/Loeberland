@@ -89,6 +89,7 @@ export function buildNightlife(
   const diners = [
     {
       label: contentText('nightlife.buildNightlife.label-1', {}),
+      gender: 'man',
       x: 58.3,
       z: 90.3,
       skin: '#a77a5b',
@@ -96,6 +97,7 @@ export function buildNightlife(
     },
     {
       label: contentText('nightlife.buildNightlife.label-2', {}),
+      gender: 'woman',
       x: 60.5,
       z: 90.3,
       skin: '#bd8b6b',

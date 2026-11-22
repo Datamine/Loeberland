@@ -316,10 +316,34 @@ function drawEichlerEstate(m: Mesh, p: EstatePlan) {
       roof,
       'roof',
     );
-    m.box(a, h + 0.08, front + 0.035, b - a, 0.1, 0.045, '#d9d1b9', 'cedar');
+    // Close the roof fascia along the same slope as the upper surface.
+    for (const edge of [z - 0.06, front + 0.06])
+      m.quad(
+        [a, h + 0.08, edge],
+        [b, h + 0.08, edge],
+        [b, h + 0.32, edge],
+        [a, h + 0.13, edge],
+        '#c2b69c',
+        'cedar',
+      );
+    for (const [side, top] of [
+      [a, h + 0.13],
+      [b, h + 0.32],
+    ])
+      m.quad(
+        [side, h + 0.08, z - 0.06],
+        [side, top, z - 0.06],
+        [side, top, front + 0.06],
+        [side, h + 0.08, front + 0.06],
+        '#4b514d',
+        'cedar',
+      );
   }
-  m.box(mid - atrium / 2, h + 0.25, z - 0.06, atrium, 0.07, d * 0.18, estateBronze, 'cedar');
-  m.box(mid - atrium / 2, h + 0.25, z + d * 0.68, atrium, 0.07, d * 0.35, estateBronze, 'cedar');
+  for (const [back, face] of [
+    [z - 0.06, z + d * 0.24],
+    [z + d * 0.65, front + 0.06],
+  ])
+    m.box(mid - atrium / 2, h + 0.08, back, atrium, 0.07, face - back, estateBronze, 'cedar');
   m.box(mid - atrium / 2, 0.09, ay, atrium, 0.035, d * 0.3, '#6d8051', 'grass');
   m.cylinder(mid, 0.12, ay + d * 0.13, 0.026, 0.72, '#88775a', 8);
   m.sphere(mid, 0.91, ay + d * 0.13, 0.23, 0.25, 0.24, '#78945e', 14, 8);

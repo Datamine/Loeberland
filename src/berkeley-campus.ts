@@ -11,10 +11,39 @@ import {
 import { drawPlaque } from './southern-district.ts';
 import type { SignAtlas } from './types/world.ts';
 
+export const MAD_HOUSE = Object.freeze({
+  id: 'mad-scientist-house',
+  x: 12.75,
+  z: 9.2,
+  w: 4.4,
+  d: 3.75,
+  base: 0,
+  front: -1,
+  rotation: 0,
+});
+export const BERKELEY_HOMES = [
+  { id: 'claremont-bungalow', rect: [10.4, 3.75, 14.7, 6.6], color: '#d3ac78' },
+  {
+    id: MAD_HOUSE.id,
+    rect: [
+      MAD_HOUSE.x - MAD_HOUSE.w / 2,
+      MAD_HOUSE.z - MAD_HOUSE.d / 2,
+      MAD_HOUSE.x + MAD_HOUSE.w / 2,
+      MAD_HOUSE.z + MAD_HOUSE.d / 2,
+    ],
+    color: '#9aaca0',
+  },
+  { id: 'berkeley-craftsman', rect: [10.6, 13.1, 15.6, 16.55], color: '#8da18a' },
+  { id: 'eucalyptus-cottage', rect: [-14.2, 5.6, -10.5, 8.85], color: '#c49a86' },
+  { id: 'oak-bungalow', rect: [-14.6, 12.1, -10.7, 15.25], color: '#b8b380' },
+];
+export const HOT_TRAPDOOR = 'berkeley-hot-trapdoor';
+
 // The same parcels place the models, exclude solid ground, and color the map.
 export const BERKELEY_CAMPUS = Object.freeze({
-  bounds: [-9, 1.6, 9, 18.5] satisfies [number, number, number, number],
+  bounds: [-16, 1.6, 17, 18.5] satisfies [number, number, number, number],
   buildings: [
+    ...BERKELEY_HOMES,
     {
       id: 'institute',
       rect: [-3.6, 5.7, 3.6, 10.6] satisfies [number, number, number, number],
@@ -35,16 +64,36 @@ export const BERKELEY_CAMPUS = Object.freeze({
       rect: [6.3, 7, 8.1, 12] satisfies [number, number, number, number],
       color: '#bbad96',
     },
+    {
+      id: 'unusual-church',
+      rect: [-8.55, 12.9, -6.15, 15.65] satisfies [number, number, number, number],
+      color: '#e2d4b6',
+    },
   ],
   paths: [
     [-0.55, -0.25, 0.55, 3.5] satisfies [number, number, number, number],
-    [-7.8, 2.1, 7.8, 4.3] satisfies [number, number, number, number],
+    [-14.7, 2.1, 16, 3.25] satisfies [number, number, number, number],
+    [-7.8, 2.1, 7.8, 4.3],
+    [9.1, 2.8, 10.1, 17.9],
+    [-10.45, 2.8, -9.5, 17.8],
+    [9.8, 6.45, 13.2, 7.3],
+    [9.8, 12.05, 13.4, 13.1],
+    [-12.7, 4.65, -9.9, 5.6],
+    [-12.9, 11.1, -9.9, 12.1],
     [-5.8, 3.6, -4.2, 15.3] satisfies [number, number, number, number],
     [4.2, 3.6, 5.8, 15.3] satisfies [number, number, number, number],
     [-5.8, 11.4, 5.8, 15.3] satisfies [number, number, number, number],
     [-1.5, 4.3, 1.5, 5.7] satisfies [number, number, number, number],
   ],
   trees: [
+    [-15.2, 5.2],
+    [-12.15, 10.2],
+    [-14.8, 16.9],
+    [-10.7, 17.2],
+    [15.8, 5.25],
+    [15.9, 9.3],
+    [15.4, 12.05],
+    [12.3, 17.5],
     [-8, 4.8] satisfies [number, number],
     [-8, 11.8] satisfies [number, number],
     [-7.5, 16.3] satisfies [number, number],

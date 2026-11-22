@@ -1,3 +1,6 @@
+import { LAB_FLOOR, LAB_NAV } from '../berkeley-lab.ts';
+import { DYNAMITE_DEPOT } from '../config/dynamite-depot.ts';
+import { contentText } from '../content-runtime.ts';
 import type { PickTarget } from '../types/scene-state.ts';
 import type { StreamRange } from '../types/world-stream.ts';
 import { isPickTarget, hasPhysicalBounds } from '../picking.ts';
@@ -29,10 +32,12 @@ import { preferHouseStorage } from '../search-houses.ts';
 import '../motorcycle.ts';
 import { ROCKET_RIDER_CENTER } from '../rocket.ts';
 import { nearTahoe, raycastTahoe, fitTahoeCamera } from '../tahoe.ts';
-import { ILLUMINATI_CAVE } from '../map-instances.ts';
+import { ILLUMINATI_CAVE, ILLUMINATI_INSTANCE, instanceTile } from '../map-instances.ts';
 import '../characters.ts';
 import { raycastNightlife } from '../nightlife.ts';
 import type { Ray } from '../types/geometry.ts';
+
+const CAMERA_FAR = 850;
 
 /** Runtime services for the browser scene.
  * Dependencies are explicit live scene bindings, preserving initialization
@@ -44,8 +49,7 @@ export function createRuntime(context: WorldContext) {
     context.growthTicker?.update(context.multiplayer.state.finance);
     const drunkUI = context.$('sf-inebriation');
     if (drunkUI) {
-      drunkUI.hidden = context.inebriation.state.percent <= 0;
-      drunkUI.textContent = Math.ceil(context.inebriation.state.percent) + '% inebriated';
+      drunkUI.textContent = Math.floor(context.inebriation.state.percent) + '% inebriated';
       drunkUI.title = 'Inebriation';
     }
   });
@@ -58,15 +62,25 @@ export function createRuntime(context: WorldContext) {
     const angle = Math.PI / 4 + context.camera.yaw,
       sa = Math.sin(angle),
       ca = Math.cos(angle),
-      sp = Math.sin(context.camera.pitch),
-      cp = Math.cos(context.camera.pitch),
-      distance = 27 / context.zoom;
+      launchHeight =
+        context.multiplayerWorld?.selfMode === 'depotLaunch'
+          ? Math.max(
+              0,
+              context.playerGround() - context.characterGround(DYNAMITE_DEPOT.x, DYNAMITE_DEPOT.z),
+            )
+          : 0,
+      aerial = Math.min(1, launchHeight / DYNAMITE_DEPOT.height),
+      pitch = context.camera.pitch + (Math.PI / 3 - context.camera.pitch) * aerial,
+      sp = Math.sin(pitch),
+      cp = Math.cos(pitch),
+      distance = 27 / context.zoom + launchHeight * 0.95;
     context.camera.right = [ca, 0, -sa] satisfies [number, number, number];
     context.camera.up = [-sa * sp, cp, -ca * sp] satisfies [number, number, number];
     context.camera.back = [sa * cp, sp, ca * cp] satisfies [number, number, number];
     context.camera.target = [
       context.player.x + 0.5,
-      context.playerGround() +
+      context.playerGround() -
+        launchHeight * 0.25 +
         context.playerRocketHop().height +
         (context.surf.state.riding && context.surf.state.mode === 'surf'
           ? 0.23 + 0.67 * context.waveSurf.pose.stand
@@ -85,7 +99,7 @@ export function createRuntime(context: WorldContext) {
       );
     }
     context.camera.eye = context.camera.target.map((v, i) => v + context.camera.back[i] * distance);
-    let focalScale = 1;
+    let focalScale = 1 + aerial * 0.18;
     if (nearTahoe(context.player.x + 0.5, context.player.y + 0.5, 360)) {
       const fit = fitTahoeCamera(
         context.camera.target,
@@ -125,7 +139,7 @@ export function createRuntime(context: WorldContext) {
     context.camera.tan = Math.tan((Math.PI * 34) / 360) * focalScale;
     const f = 1 / context.camera.tan,
       near = 0.15,
-      far = 850,
+      far = CAMERA_FAR,
       proj = new Float32Array([
         f / (context.width / context.height),
         0,
@@ -214,8 +228,12 @@ export function createRuntime(context: WorldContext) {
   }
 
   function update(dt: number, t: number) {
-    if (!serverConnected(context.multiplayer)) return;
+    if (!serverConnected(context.multiplayer)) {
+      context.cancelMovingInteraction(false);
+      return;
+    }
     if (context.capture.state.active) {
+      context.cancelMovingInteraction();
       context.multiplayerWorld?.beforeUpdate(dt, true);
       context.capture.update(dt);
       updateCamera();
@@ -268,7 +286,10 @@ export function createRuntime(context: WorldContext) {
       !context.$('sf-context').hidden ||
       context.dialogue.active ||
       context.questMenu?.active;
-    if (!blocked) context.waveTime += dt;
+    if (!blocked) {
+      context.updateMovingInteraction(t);
+      context.waveTime += dt;
+    }
     if (!blocked && !context.chase?.state.jailed)
       context.expeditions.state.beams = context.expeditions.state.beams
         .map((beam) => ({ ...beam, ttl: beam.ttl - dt }))
@@ -365,9 +386,19 @@ export function createRuntime(context: WorldContext) {
           context.motorcycle.park(institute.entry.x, institute.entry.y, context.player.angle);
         context.skateboard.riding = false;
         context.visited.add(institute.id);
-        context.announce('You enter ' + institute.sight.label + '.', 'You');
+        context.announce(
+          contentText('world-message.src.world.runtime.you-enter', {
+            label: String(institute.sight.label),
+          }),
+          'You',
+        );
       } else if (previous)
-        context.announce('You leave ' + previous.sight.label + ' and return to the campus.', 'You');
+        context.announce(
+          contentText('world-message.src.world.runtime.you-leave-and-return-to-the-campus', {
+            label: String(previous.sight.label),
+          }),
+          'You',
+        );
     }
     const interior =
       jailed ||
@@ -387,7 +418,12 @@ export function createRuntime(context: WorldContext) {
       }
       if (interior) context.enter(interior);
       else if (previous)
-        context.announce('You leave ' + previous.label + ' and return to the street.', 'You');
+        context.announce(
+          contentText('world-message.src.world.runtime.you-leave-and-return-to-the-street', {
+            label: String(previous.label),
+          }),
+          'You',
+        );
     }
   }
 
@@ -405,59 +441,80 @@ export function createRuntime(context: WorldContext) {
     };
   }
 
-  function terrainIntersection(ray: Ray) {
+  // The projection clips by depth, while intersections measure distance
+  // along the ray. At the screen edges those are different lengths.
+  function rayLimit(ray: Ray) {
+    return CAMERA_FAR / -dot(ray.dir, context.camera.back);
+  }
+
+  function terrainIntersection(ray: Ray, maxDistance = rayLimit(ray)) {
+    if (context.secretWorld?.kind === 'berkeley-lab') {
+      const t = (LAB_FLOOR + 0.025 - ray.origin[1]) / ray.dir[1];
+      if (t <= 0 || t >= maxDistance || !Number.isFinite(t)) return null;
+      const point = ray.origin.map((v, i) => v + ray.dir[i] * t);
+      return LAB_NAV.free(point[0] - 0.5, point[2] - 0.5) ? { point, distance: t } : null;
+    }
     if (context.secretWorld?.kind === 'illuminati' || context.secretWorld?.kind === 'kraken') {
       const floor =
           context.secretWorld.kind === 'illuminati' ? ILLUMINATI_CAVE.floor + 0.025 : 0.025,
         t = (floor - ray.origin[1]) / ray.dir[1];
-      return t > 0 && Number.isFinite(t)
-        ? { point: ray.origin.map((v, i) => v + ray.dir[i] * t), distance: t }
-        : null;
+      if (t <= 0 || t >= maxDistance || !Number.isFinite(t)) return null;
+      const point = ray.origin.map((v, i) => v + ray.dir[i] * t);
+      if (context.secretWorld.kind === 'illuminati') {
+        const tile = instanceTile(ILLUMINATI_INSTANCE, point[0], point[2]);
+        if (!tile || tile.type === 'rock') return null;
+      }
+      return { point, distance: t };
     }
     if (context.chase?.state.jailed) {
       const t = (context.detention.base + 0.18 - ray.origin[1]) / ray.dir[1];
-      return t > 0 && Number.isFinite(t)
+      return t > 0 && t < maxDistance
         ? { point: ray.origin.map((v, i) => v + ray.dir[i] * t), distance: t }
         : null;
     }
-    const countrysideHit = context.countryside?.raycast(ray),
+    const countrysideHit = context.countryside?.raycast(ray, maxDistance),
       marinHit = context.marinLand?.raycast(ray),
       campusHit = context.esotericCampus?.raycast(ray),
       bridgeHit = context.goldenGate?.raycast(ray),
-      highwayHit = context.regionalRoad?.raycast(ray),
+      highwayHit = context.regionalRoad?.raycast(ray, maxDistance),
       clubHit = context.nightclub
         ? raycastNightlife(ray, context.nightclub, context.terrainHeight)
         : null,
       instituteHit = context.activeInstituteRoom()
         ? raycastInstituteFloor(context.activeInstituteRoom()!, ray)
         : null,
-      roadHit = [countrysideHit, marinHit, campusHit, bridgeHit, highwayHit, clubHit, instituteHit]
-        .filter((hit) => hit !== null && hit !== undefined)
-        .sort((a, b) => a.distance - b.distance)[0],
-      southHit = context.southernTerrain?.raycast(ray);
-    if (nearTahoe(context.player.x + 0.5, context.player.y + 0.5, 400)) {
-      const hit = raycastTahoe(ray);
-      if (hit) return roadHit && roadHit.distance < hit.distance ? roadHit : hit;
-    }
+      southHit = context.southernTerrain?.raycast(ray, maxDistance),
+      tahoeHit = nearTahoe(context.player.x + 0.5, context.player.y + 0.5, 500)
+        ? raycastTahoe(ray, maxDistance)
+        : null;
     // Traverse terrain grid cells and intersect the actual rendered triangles.
     // This remains exact at shorelines and steep hills, where ray marching can skip a ridge.
     const o = ray.origin,
       d = ray.dir,
       water = (0.02 - o[1]) / d[1];
-    let best = Math.min(
-        water > 0 ? water : 220,
-        roadHit?.distance || 220,
-        southHit?.distance || 220,
-      ),
-      near = 0;
+    let best = water > 0 ? Math.min(water, maxDistance) : maxDistance;
+    for (const hit of [
+      countrysideHit,
+      marinHit,
+      campusHit,
+      bridgeHit,
+      highwayHit,
+      clubHit,
+      instituteHit,
+      southHit,
+      tahoeHit,
+    ])
+      if (hit && hit.distance < best) best = hit.distance;
+    const result = () =>
+      best < maxDistance ? { point: o.map((v, i) => v + d[i] * best), distance: best } : null;
+    let near = 0;
     const apron = (AIRSHIP_TERMINAL.base + 0.03 - o[1]) / d[1];
     if (apron > 0 && onAirportApron(o[0] + d[0] * apron, o[2] + d[2] * apron))
       best = Math.min(best, apron);
-    let far = Math.min(220, best);
+    let far = best;
     for (const axis of [0, 2] satisfies [number, number]) {
       if (Math.abs(d[axis]) < 1e-9) {
-        if (o[axis] < 0 || o[axis] > context.N)
-          return best < 220 ? { point: o.map((v, i) => v + d[i] * best), distance: best } : null;
+        if (o[axis] < 0 || o[axis] > context.N) return result();
       } else {
         let a = (0 - o[axis]) / d[axis],
           b = (context.N - o[axis]) / d[axis];
@@ -543,7 +600,7 @@ export function createRuntime(context: WorldContext) {
         z += sz;
       }
     }
-    return best < 220 ? { point: o.map((v, i) => v + d[i] * best), distance: best } : null;
+    return result();
   }
 
   function tileAt(sx: number, sy: number) {
@@ -552,7 +609,7 @@ export function createRuntime(context: WorldContext) {
     if (hit) return { x: hit.point[0] - 0.5, y: hit.point[2] - 0.5 };
     if (context.ferrari?.state.riding && ray.dir[1] < -1e-8) {
       const t = (context.ferrari.position.y - ray.origin[1]) / ray.dir[1];
-      if (t > 0)
+      if (t > 0 && t < rayLimit(ray))
         return { x: ray.origin[0] + ray.dir[0] * t - 0.5, y: ray.origin[2] + ray.dir[2] * t - 0.5 };
     }
     return { x: NaN, y: NaN };
@@ -567,12 +624,12 @@ export function createRuntime(context: WorldContext) {
     )
       return context.pickedCache.result;
     const ray = mouseRay(sx, sy),
-      ground = terrainIntersection(ray);
-    let distance = ground ? ground.distance + 0.12 : 220,
+      maxDistance = rayLimit(ray),
+      ground = terrainIntersection(ray, maxDistance);
+    let distance = ground ? Math.min(maxDistance, ground.distance + 0.12) : maxDistance,
       result: PickTarget | null = null;
     const test = (o: PickTarget) => {
-      const near = rayBox(ray, o.lo, o.hi);
-      if (near === null || near > distance) return;
+      if (rayBox(ray, o.lo, o.hi, distance) === null) return;
       const instituteHidden = o.researchRoom
           ? instituteHiddenSections(
               o.researchRoom,
@@ -589,7 +646,8 @@ export function createRuntime(context: WorldContext) {
         ? context.worldStream.ranges(o.mesh, o.start, o.count)
         : [{ data: o.mesh.data, start: o.start, count: o.count, sourceStart: 0, localStart: 0 }];
       for (const range of ranges) {
-        if (range.part && rayBox(ray, range.part.chunk.lo, range.part.chunk.hi) === null) continue;
+        if (range.part && rayBox(ray, range.part.chunk.lo, range.part.chunk.hi, distance) === null)
+          continue;
         for (let vertex = range.start; vertex < range.start + range.count; vertex += 3) {
           const data = range.data,
             localVertex = range.localStart + vertex - range.sourceStart,
@@ -752,9 +810,11 @@ export function createRuntime(context: WorldContext) {
       }
     if (item) return item;
     if (hit || context.secretWorld?.kind !== 'world') return null;
-    const tower = requiredValue(context.sightById('sutro'), 'Missing authored entity: sutro'),
+    const tower = context.sightById('sutro'),
       ray = mouseRay(sx, sy),
-      near = isPickTarget(tower.object) ? rayBox(ray, tower.object.lo, tower.object.hi) : null;
+      near = isPickTarget(tower?.object)
+        ? rayBox(ray, tower.object.lo, tower.object.hi, rayLimit(ray))
+        : null;
     if (near !== null) {
       const ground = terrainIntersection(ray);
       if (!ground || near < ground.distance + 0.1) return tower;
@@ -811,10 +871,13 @@ export function createRuntime(context: WorldContext) {
       context.render(performance.now(), 0);
       await context.loading?.done();
       context.world.inert = !serverConnected(context.multiplayer);
+      context.multiplayer.command('beginPlay');
       context.canvas.focus({ preventScroll: true });
       startLoop();
       context.worldStream?.start();
     } else {
+      context.multiplayer.command('pausePlay');
+      context.cancelMovingInteraction();
       context.setSitting(false);
       context.player.sitBlend = 0;
       context.fishing.cancel();

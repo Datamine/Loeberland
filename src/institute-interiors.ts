@@ -23,6 +23,10 @@ export function instituteLocalPoint(room: RoomGeometry, x: number, z: number) {
 export function insideInstitute(room: RoomGeometry, x: number, z: number) {
   const dx = x - room.x,
     dz = z - room.z;
+  if (room.ellipse) {
+    const { u, v } = instituteLocalPoint(room, x, z);
+    return (u / (room.w / 2 - 0.12)) ** 2 + (v / (room.d / 2 - 0.12)) ** 2 < 1;
+  }
   if (!room.rotation) return Math.abs(dx) < room.w / 2 - 0.12 && Math.abs(dz) < room.d / 2 - 0.12;
   if (dx * dx + dz * dz > (room.w * room.w + room.d * room.d) / 4) return false;
   const p = instituteLocalPoint(room, x, z);
@@ -50,7 +54,12 @@ export function raycastInstituteFloor(room: RoomGeometry, ray: Ray) {
     .filter((t) => t !== null);
   if (!hits.length) return null;
   const distance = Math.min(...hits);
-  return { distance, point: ray.origin.map((v, i) => v + ray.dir[i] * distance) };
+  const point = ray.origin.map((v, i) => v + ray.dir[i] * distance);
+  if (room.ellipse) {
+    const { u, v } = instituteLocalPoint(room, point[0], point[2]);
+    if ((u / (room.w / 2)) ** 2 + (v / (room.d / 2)) ** 2 > 1) return null;
+  }
+  return { distance, point };
 }
 export function instituteFixtures(room: RoomGeometry) {
   const w = room.w,

@@ -4,6 +4,8 @@ import type { PlayerDocument } from './content.ts';
 export interface PlayerProfile {
   playerState: PlayerDocument;
   stateRevision: number;
+  characterPlaySeconds?: number;
+  characterReminderAt?: number;
   privateState: Record<string, string>;
   position: PlayerDocument['position'];
   inventory: PlayerDocument['inventory']['ledger'];

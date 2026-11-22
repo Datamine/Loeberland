@@ -5,6 +5,7 @@ import type { DetachedInterior, InstituteRoom, InteriorSection } from './interio
 import type { Mesh } from '../geometry.ts';
 import type { Point, WorldPoint, NumericVector, TextureUV } from './geometry.ts';
 import type { Appearance, TextValues } from './content.ts';
+import type { FactoryChair } from '../goblin-town.ts';
 export type SignAtlas = Map<string, number[][]>;
 export interface ActionReceipt {
   cooldown?: boolean;
@@ -161,6 +162,8 @@ export interface Actor extends RuntimeDialogue {
   researcher?: boolean;
   estateResident?: boolean;
   rider?: boolean;
+  bicycleTaken?: boolean;
+  bicycleTakenUntil?: number;
   dogSurfJudge?: boolean;
   rehabilitation?: boolean;
   medical?: boolean;
@@ -414,8 +417,11 @@ export interface LocalPlayer extends Point {
   gesture?: ActorGesture | null;
   dancing?: boolean;
   danceBlend?: number;
-  ballChair?: boolean;
+  chair?: FactoryChair;
   benchSeat?: boolean;
+  atvTravel?: number;
+  motorcycleTrick?: Pick<import('./animation.ts').AnimationFrame, 'action' | 'actionT'>;
+  waymoCab?: import('../waymo-rental.ts').WaymoRentalView | null;
   serverWorking?: boolean;
   serverEating?: boolean;
   serverRolling?: boolean;

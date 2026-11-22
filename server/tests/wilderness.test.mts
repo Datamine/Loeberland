@@ -20,6 +20,9 @@ import {
   tahoeHeight,
 } from '../../src/tahoe.ts';
 import { wildernessSpawns } from '../../src/wilderness.ts';
+import { rollMonsterDrops } from '../../src/monster-drops.ts';
+import { TAHOE_PELTS, TAHOE_PELT_PRICES } from '../../src/config/tahoe-pelts.ts';
+import { ROBE_SELLER } from '../../src/goblin-industrialist.ts';
 import type { CombatPoint } from '../../src/combat-navigation.ts';
 import { combatLineClear } from '../../src/combat-navigation.ts';
 
@@ -58,6 +61,62 @@ async function act(
   await p.p.queue;
   return latestResult(p.messages);
 }
+test('Tahoe wildlife pelts are rare, collectible and sell only to the nearby robe clothier', async () => {
+  const species = [
+    ['tahoe-bear', 'bear-pelt', 20],
+    ['tahoe-fox', 'fox-pelt', 16],
+  ] as const;
+  const geometry = fixtureGeometry();
+  geometry.wilderness = {
+    actors: species.map(([kind], i) => ({ id: kind, combatKind: kind, x: 93 + i, z: 120 })),
+  };
+  geometry.merchants = [{ id: ROBE_SELLER, label: 'Clothier', x: 110, z: 130, base: 1.15 }];
+  const store = createMemoryStore();
+  const game = await createGame({ geometry, store, random: () => 0 });
+  const a = await player(game, 742);
+  try {
+    const purse = a.p.inventory.economy.state;
+    const before = purse.coins;
+    for (const [kind, pelt, oneIn] of species) {
+      assert.deepEqual(
+        rollMonsterDrops(kind, () => 1 / oneIn),
+        [],
+      );
+      assert.equal(rollMonsterDrops(kind, () => 1 / oneIn - 0.001)[0].lootKind, pelt);
+      const animal = requiredFixture(game.shared.wilderness.actors.find((n) => n.id === kind));
+      animal.hp = 1;
+      a.p.shotAt = 0;
+      Object.assign(a.p, { x: animal.x - 0.6, z: animal.z, y: animal.base });
+      assert.equal(
+        requiredFixture(await act(game, a, 'attack', { id: animal.id, weapon: 'unarmed' })).ok,
+        true,
+      );
+      const loot = requiredFixture(
+        [...game.shared.loot.values()].find((item) => item.lootKind === pelt),
+      );
+      assert.equal(requiredFixture(await act(game, a, 'collect', { id: loot.id })).ok, true);
+      assert.equal(a.p.inventory.snapshot().pelts?.[pelt], 1);
+      const sale = () => act(game, a, 'inventory', { op: 'trade', kind: 'sell-' + pelt });
+      assert.equal(requiredFixture(await sale()).ok, false);
+      assert.equal(a.p.inventory.snapshot().pelts?.[pelt], 1);
+      await game.flush();
+      const saved = await storedPlayerFixture(store, 'player:' + a.p.owner);
+      assert.equal(saved.playerState.inventory.ledger?.pelts?.[pelt], 1);
+      assert.ok(saved.playerState.inventory.collection.includes(pelt));
+      Object.assign(a.p, { x: 110, z: 130, y: 1.15 });
+      assert.equal(requiredFixture(await sale()).ok, true);
+      assert.equal(a.p.inventory.snapshot().pelts?.[pelt], 0);
+      assert.equal(requiredFixture(await sale()).ok, false);
+    }
+    assert.equal(
+      purse.coins,
+      before + TAHOE_PELTS.reduce((sum, pelt) => sum + TAHOE_PELT_PRICES[pelt], 0),
+    );
+  } finally {
+    await game.close();
+  }
+});
+
 test('the authoritative server accepts five-tile shots on Tahoe slopes and tree safespots without moving the player', async () => {
   const tahoe = createTahoe(),
     geometry = fixtureGeometry(),
@@ -134,6 +193,45 @@ test('the authoritative server accepts five-tile shots on Tahoe slopes and tree 
     await game.close();
   }
 });
+test('both robots broadcast shots from range and only fire with a clear line', async () => {
+  const robots = [
+    { kind: 'terminator', weapon: 'akimbo', distance: 6 },
+    { kind: 'robocop', weapon: 'robocop-laser', distance: 2.75 },
+  ] as const;
+  for (const { kind, weapon, distance } of robots) {
+    let clear = false;
+    const geometry = fixtureGeometry();
+    geometry.lineClear = () => clear;
+    geometry.canTravel = () => false;
+    const game = await createGame({ geometry, store: createMemoryStore(), random: () => 0.15 });
+    try {
+      const a = await player(game, 781);
+      const robot = game.shared.wilderness.dispatch(
+        { id: kind, combatKind: kind, x: a.p.x + distance, z: a.p.z },
+        a.p,
+      );
+      const start = robot.x;
+      const hp = a.p.hp;
+      const shot = () => a.messages.find((message) => message.type === 'robotShot');
+      for (let i = 0; i < 10; i++) game.tick(0.05);
+      assert.equal(shot(), undefined, kind + ' cannot shoot through cover');
+      assert.equal(a.p.hp, hp);
+      clear = true;
+      game.tick(0.05);
+      const projectile = requiredFixture(shot());
+      assert.equal(projectile.weapon, weapon);
+      assert.equal(projectile.to.x, a.p.x);
+      assert.equal(projectile.to.z, a.p.z);
+      assert.equal(robot.x, start, kind + ' shoots without closing to melee range');
+      assert.equal(a.p.hp, hp, 'the shot is visible before damage lands');
+      for (let i = 0; i < 5; i++) game.tick(0.05);
+      assert.ok(a.p.hp < hp, kind + ' deals ranged damage');
+    } finally {
+      await game.close();
+    }
+  }
+});
+
 test('shared bear kill has one peptide roll, a first-claim owner and durable collection', async () => {
   const { game, store } = await setup(),
     a = await player(game, 701),
@@ -255,7 +353,7 @@ test('battleaxe is quest/proximity gated, costs 50 exactly once, and cannot be f
     privateState: { 'sf-purse-v1': '{"coins":999,"ownedEquipment":["ice-top"]}' },
   });
   await a.p.queue;
-  assert.deepEqual(a.p.inventory.economy.state.ownedEquipment, ['battleaxe']);
+  assert.deepEqual(a.p.inventory.economy.state.ownedEquipment, ['railgun', 'battleaxe']);
   await game.close();
 });
 test('In-N-Out pickup gives the food ledger a sandwich for two coins, requiring the counter', async () => {

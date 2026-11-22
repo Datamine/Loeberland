@@ -1,0 +1,1979 @@
+{
+  "world-message.goblin-space.approach": {
+    "template": "Take your mud to the chief engineer at the Goblin Space Program."
+  },
+  "world-message.goblin-space.need-mud": {
+    "template": "I need mud. Try the mud bath in South San Francisco."
+  },
+  "world-message.goblin-space.exchanged": {
+    "template": "Here are your {fish} live fish. I was able to add one more plank to the pile. Feel free to bring me more mud anytime."
+  },
+  "world-message.goblin-space.repeat-exchange": {
+    "template": "Here are your {fish} live fish. Keep the mud coming!"
+  },
+  "world-message.goblin-space.shirt": {
+    "template": "Here are your {fish} live fish. And here, take this Goose Corp T-shirt. We had a few left over."
+  },
+  "world-message.goblin-space.fish-full": {
+    "template": "You don’t have room for that many live fish."
+  },
+  "world-message.mud-bath.approach": {
+    "template": "Walk to the edge of the mud bath before sitting down."
+  },
+  "world-message.mud-bath.soaking": {
+    "template": "You sit in the mud bath. You collect one mud every five seconds."
+  },
+  "world-message.burning-man.started": {
+    "template": "Yes, please. Ask the clerk at In-N-Out for a cup of water."
+  },
+  "world-message.burning-man.water": {
+    "template": "Here you go. A cup of water is free."
+  },
+  "world-message.burning-man.water-delivered": {
+    "template": "Oh, thank you. Now that I can think, I’ve realized we don’t have a DJ. Could you ask the DJ at Nightlife in San Francisco to come?"
+  },
+  "world-message.burning-man.invited": {
+    "template": "I’m in. Tell Matilda I’ll bring the records."
+  },
+  "world-message.burning-man.ready": {
+    "template": "You got us a DJ! Now we need to light The Man. Wear your back rocket, stand on one of the straw squares around him, and light the rocket."
+  },
+  "world-message.burning-man.ignited": {
+    "template": "The straw catches. Flames climb the wicker."
+  },
+  "world-message.burning-man.reward": {
+    "template": "These are my Party Boots. I think they’ll suit you. You can put them on from your Character menu."
+  },
+  "world-message.burning-man.approach": {
+    "template": "Walk up to the person you need to speak to."
+  },
+  "world-message.burning-man.unavailable": {
+    "template": "Check the Burning Man entry in your quest journal."
+  },
+  "world-message.burning-man.wait": {
+    "template": "Give it a moment. The Man is still burning."
+  },
+  "world-message.swing.too-far": {
+    "template": "Walk over to the swing first."
+  },
+  "world-message.swing.occupied": {
+    "template": "Someone is already using this swing."
+  },
+  "world-message.stochastic-parrot.started": {
+    "template": "Quest started: Stochastic Parrot."
+  },
+  "world-message.stochastic-parrot.visit-scientist": {
+    "template": "Speak to the Goblin Scientist at the Goblin AI Lab."
+  },
+  "world-message.stochastic-parrot.visit-grove": {
+    "template": "Walk up to a parrot in the grove north of Coit Tower."
+  },
+  "world-message.stochastic-parrot.needs-sandwich": {
+    "template": "You need a sandwich to lure the parrot."
+  },
+  "world-message.stochastic-parrot.caught": {
+    "template": "You catch a parrot. It says ‘Hooray!’ at a seemingly random interval."
+  },
+  "world-message.stochastic-parrot.lured": {
+    "template": "The parrot takes your sandwich and climbs onto your arm."
+  },
+  "world-message.stochastic-parrot.delivered": {
+    "template": "The Goblin Scientist takes the parrot and hands you a proof of the Collatz conjecture."
+  },
+  "world-message.stochastic-parrot.visit-buyer": {
+    "template": "Speak to the buyer in person to sell the proof."
+  },
+  "world-message.stochastic-parrot.sold": {
+    "template": "You sell the Collatz proof for {price}."
+  },
+  "world-message.stochastic-parrot.unavailable": {
+    "template": "Check the Stochastic Parrot entry in your quest journal."
+  },
+  "world-message.character.password-reminder": {
+    "template": "Set a password in Character to save access to your progress and log in later."
+  },
+  "world-message.connection.required": {
+    "template": "Connection required. Gameplay resumes when the server reconnects."
+  },
+  "world-message.dynamite-depot.launch": {
+    "template": "Phoooosh! The South Mission Dynamite Depot sends you skyward."
+  },
+  "world-message.loot.goose-card-disintegrates": {
+    "template": "The Goose Corp membership card disintegrates in your hands."
+  },
+  "world-message.server.airship-rental.please-wait-for-the-hourly-airship-price-reset": {
+    "template": "Please wait for the hourly airship price reset."
+  },
+  "world-message.server.airship-rental.speak-to-the-airship-attendant-at-the-private-jet-terminal": {
+    "template": "Speak to the airship attendant at the private jet terminal."
+  },
+  "world-message.server.airship-rental.the-airship-is-at-the-terminal-the-next-rental-costs-coins": {
+    "template": "The airship is at the terminal. The next rental costs {value1} coins."
+  },
+  "world-message.server.airship-rental.the-airship-is-reserved-for-pay-coins-at-the-attendant-to-outb": {
+    "template": "The airship is reserved for {name}. Pay {value2} coins at the attendant to outbid them."
+  },
+  "world-message.server.airship-rental.the-airship-price-has-changed-the-next-rental-costs-coins-ask": {
+    "template": "The airship price has changed. The next rental costs {cost} coins. Ask the attendant for a new quote."
+  },
+  "world-message.server.airship-rental.this-rental-costs-coins-you-do-not-have-enough-in-your-purse": {
+    "template": "This rental costs {cost} coins. You do not have enough in your purse."
+  },
+  "world-message.server.airship-rental.unknown-airship-rental-action": {
+    "template": "Unknown airship rental action."
+  },
+  "world-message.server.airship-rental.you-are-already-directing-the-airship": {
+    "template": "You are already directing the airship."
+  },
+  "world-message.server.airship-rental.you-have-already-paid-for-the-reserved-rental-walk-to-the-bask": {
+    "template": "You have already paid for the reserved rental. Walk to the basket to board."
+  },
+  "world-message.server.airship-rental.you-pay-coins-the-airship-and-its-passengers-have-returned-saf": {
+    "template": "You pay {paid} coins. The airship and its passengers have returned safely. You have {value2} seconds to board at no additional cost, unless someone outbids you for {value3} coins. Click OK to walk to the basket."
+  },
+  "world-message.server.banking.find-a-moment-to-enjoy-your-coffee-safely": {
+    "template": "Find a moment to enjoy your coffee safely."
+  },
+  "world-message.server.banking.of-course-one-fresh-coffee-on-the-house-you-can-drink-it-from": {
+    "template": "Of course! One fresh coffee, on the house. You can drink it from your inventory. It is lovely to have you here."
+  },
+  "world-message.server.banking.visit-the-friendly-banker-at-green-bank-first": {
+    "template": "Visit the friendly banker at Green Bank first."
+  },
+  "world-message.server.banking.you-already-have-a-fresh-coffee-enjoy-that-one-first": {
+    "template": "You already have a fresh coffee. Enjoy that one first!"
+  },
+  "world-message.server.banking.you-have-no-coffee-to-drink": {
+    "template": "You have no coffee to drink."
+  },
+  "world-message.server.banking.you-recover-hp-you-sip-your-complimentary-coffee-warm-excellen": {
+    "template": "You recover {healed} HP. You sip your complimentary coffee. Warm, excellent, and somehow served exactly how you like it."
+  },
+  "world-message.server.combat-supplies.that-supply-is-unavailable": {
+    "template": "That supply is unavailable."
+  },
+  "world-message.server.combat-supplies.the-chef-folds-an-extravagant-roll-of-foil-into-a-full-suit-eq": {
+    "template": "The chef folds an extravagant roll of foil into a full suit. Equip it in Character settings."
+  },
+  "world-message.server.combat-supplies.the-railgun-is-already-fully-charged": {
+    "template": "The railgun is already fully charged."
+  },
+  "world-message.server.combat-supplies.visit-the-battery-seller": {
+    "template": "Visit the battery seller."
+  },
+  "world-message.server.combat-supplies.visit-the-cotogna-counter": {
+    "template": "Visit the Cotogna counter."
+  },
+  "world-message.server.combat-supplies.visit-the-industrial-center-armorer": {
+    "template": "Visit the industrial center armorer."
+  },
+  "world-message.server.combat-supplies.you-already-own-a-tinfoil-suit": {
+    "template": "You already own a tinfoil suit."
+  },
+  "world-message.server.combat-supplies.you-buy-20-rounds": {
+    "template": "You buy 20 rounds."
+  },
+  "world-message.server.combat-supplies.you-buy-a-spare-battery": {
+    "template": "You buy a spare battery."
+  },
+  "world-message.server.combat-supplies.you-cannot-carry-more-ammo": {
+    "template": "You cannot carry more ammo."
+  },
+  "world-message.server.combat-supplies.you-cannot-carry-more-batteries": {
+    "template": "You cannot carry more batteries."
+  },
+  "world-message.server.combat-supplies.you-fit-a-fresh-battery": {
+    "template": "You fit a fresh battery."
+  },
+  "world-message.server.combat-supplies.you-have-no-spare-battery": {
+    "template": "You have no spare battery."
+  },
+  "world-message.server.combat-supplies.you-need-20-coins": {
+    "template": "You need 20 coins."
+  },
+  "world-message.server.combat-supplies.you-need-5-coins": {
+    "template": "You need 5 coins."
+  },
+  "world-message.server.combat-supplies.your-akimbos-are-out-of-ammo": {
+    "template": "Your akimbos are out of ammo."
+  },
+  "world-message.server.combat-supplies.your-railgun-battery-is-empty": {
+    "template": "Your railgun battery is empty."
+  },
+  "world-message.server.duels.accept-the-exact-stake-shown-in-the-offer": {
+    "template": "Accept the exact stake shown in the offer."
+  },
+  "world-message.server.duels.both-players-must-stand-at-the-duel-arena-out-of-combat": {
+    "template": "Both players must stand at the Duel Arena, out of combat."
+  },
+  "world-message.server.duels.both-players-need-enough-coins-for-this-stake": {
+    "template": "Both players need enough coins for this stake."
+  },
+  "world-message.server.duels.choose-a-positive-whole-coin-stake": {
+    "template": "Choose a positive whole-coin stake."
+  },
+  "world-message.server.duels.finish-or-decline-the-existing-offer-first": {
+    "template": "Finish or decline the existing offer first."
+  },
+  "world-message.server.duels.offer-sent-no-coins-move-until-your-opponent-accepts": {
+    "template": "Offer sent. No coins move until your opponent accepts."
+  },
+  "world-message.server.duels.one-player-can-no-longer-cover-the-stake": {
+    "template": "One player can no longer cover the stake."
+  },
+  "world-message.server.duels.that-offer-has-expired": {
+    "template": "That offer has expired."
+  },
+  "world-message.server.duels.the-winners-purse-could-overflow": {
+    "template": "The winner’s purse could overflow."
+  },
+  "world-message.server.finance.unknown-market-action": {
+    "template": "Unknown market action."
+  },
+  "world-message.server.finance.visit": {
+    "template": "Visit {value1}"
+  },
+  "world-message.server.following.following-click-the-ground-to-stop": {
+    "template": "Following {name}. Click the ground to stop."
+  },
+  "world-message.server.following.no-walkable-route-to-that-player": {
+    "template": "No walkable route to that player."
+  },
+  "world-message.server.following.that-player-is-too-far-away-to-follow": {
+    "template": "That player is too far away to follow."
+  },
+  "world-message.server.game.a-grappling-hook-costs-5-coins": {
+    "template": "A grappling hook costs 5 coins."
+  },
+  "world-message.server.game.debug-teleporting-is-disabled-on-this-server": {
+    "template": "Debug teleporting is disabled on this server."
+  },
+  "world-message.server.game.detention-is-controlled-by-the-server": {
+    "template": "Detention is controlled by the server."
+  },
+  "world-message.server.game.finish-your-teleport-first": {
+    "template": "Finish your teleport first."
+  },
+  "world-message.server.game.invalid-action-arguments": {
+    "template": "Invalid action arguments."
+  },
+  "world-message.server.game.no-respawn-is-pending": {
+    "template": "No respawn is pending."
+  },
+  "world-message.server.game.that-equipment-is-not-available-for-purchase": {
+    "template": "That equipment is not available for purchase."
+  },
+  "world-message.server.game.that-personal-journey-is-unavailable": {
+    "template": "That personal journey is unavailable."
+  },
+  "world-message.server.game.that-point-is-blocked": {
+    "template": "That point is blocked."
+  },
+  "world-message.server.game.unable-to-complete-this-action-try-again": {
+    "template": "Unable to complete this action. Try again."
+  },
+  "world-message.server.game.unable-to-save-that-username-please-try-again": {
+    "template": "Unable to save that username. Please try again."
+  },
+  "world-message.server.game.visit-the-airship-outfitter-at-the-private-jet-terminal": {
+    "template": "Visit the airship outfitter at the private jet terminal."
+  },
+  "world-message.server.game.wait-for-the-collapse-to-finish": {
+    "template": "Wait for the collapse to finish."
+  },
+  "world-message.server.game.you-already-own-a-grappling-hook": {
+    "template": "You already own a grappling hook."
+  },
+  "world-message.server.game.you-buy-a-grappling-hook-use-it-within-six-tiles-beneath-the-a": {
+    "template": "You buy a grappling hook. Use it within six tiles beneath the airship."
+  },
+  "world-message.server.game.your-inventory-changed-please-try-again": {
+    "template": "Your inventory changed. Please try again."
+  },
+  "world-message.server.game.your-inventory-changed-try-again": {
+    "template": "Your inventory changed. Try again."
+  },
+  "world-message.server.guild.speak-to-ray-at-the-freemasons-guild-first": {
+    "template": "Speak to Ray at the Freemasons’ Guild first."
+  },
+  "world-message.server.instances.board-with-captain-ahab-on-the-beach-carrying-your-railgun": {
+    "template": "Board with Captain Ahab on the beach, carrying your railgun."
+  },
+  "world-message.server.instances.board-your-personal-b-2-first": {
+    "template": "Board your personal B-2 first."
+  },
+  "world-message.server.instances.bomb-bay-reloading-seconds": {
+    "template": "Bomb bay reloading: {value1} seconds."
+  },
+  "world-message.server.instances.fly-closer-to-land-before-parachuting-out": {
+    "template": "Fly closer to land before parachuting out."
+  },
+  "world-message.server.instances.initiation-costs-250-000-coins-the-old-man-does-not-accept-ins": {
+    "template": "Initiation costs 250,000 coins. The Old Man does not accept installments."
+  },
+  "world-message.server.instances.join-the-illuminati-with-the-old-man-then-use-the-stairway-ins": {
+    "template": "Join the Illuminati with the Old Man, then use the stairway inside the guild."
+  },
+  "world-message.server.instances.speak-to-the-old-man-inside-the-freemasons-guild": {
+    "template": "Speak to the Old Man inside the Freemasons’ Guild."
+  },
+  "world-message.server.instances.the-old-man-accepts-250-000-coins-you-join-the-illuminati-take": {
+    "template": "The Old Man accepts 250,000 coins. You join the Illuminati. He nods toward the stairway. ‘Go on. You’ll see.’"
+  },
+  "world-message.server.instances.the-pequod-enters-your-private-kraken-hunting-waters": {
+    "template": "The Pequod enters your private kraken-hunting waters."
+  },
+  "world-message.server.instances.unknown-instance-action": {
+    "template": "Unknown instance action."
+  },
+  "world-message.server.instances.unknown-map-instance": {
+    "template": "Unknown map instance."
+  },
+  "world-message.server.instances.use-the-stairs-at-the-southern-end-of-the-cave": {
+    "template": "Use the stairs at the southern end of the cave."
+  },
+  "world-message.server.instances.walk-to-your-b-2-in-the-underground-hangar": {
+    "template": "Walk to your B-2 in the underground hangar."
+  },
+  "world-message.server.instances.you-are-already-in-the-city": {
+    "template": "You are already in the city."
+  },
+  "world-message.server.instances.you-are-already-initiated-the-underground-passage-is-open-to-y": {
+    "template": "You are already initiated. The underground passage is open to you."
+  },
+  "world-message.server.instances.you-are-not-flying-your-b-2": {
+    "template": "You are not flying your B-2."
+  },
+  "world-message.server.instances.you-descend-below-the-guild-into-the-underground-hangar": {
+    "template": "You descend below the guild into the underground hangar."
+  },
+  "world-message.server.instances.you-have-already-claimed-the-krakens-spoils-ahab-is-still-writ": {
+    "template": "You have already claimed the kraken’s spoils. Ahab is still writing the incident report."
+  },
+  "world-message.server.instances.you-land-gently": {
+    "template": "You land gently. {BOMBER_REPLACEMENT_MESSAGE}"
+  },
+  "world-message.server.instances.you-parachute-out-as-the-b-2-flies-on-to-a-spectacularly-small": {
+    "template": "You parachute out as the B-2 flies on to a spectacularly small crash. {BOMBER_REPLACEMENT_MESSAGE}"
+  },
+  "world-message.server.instances.you-return-to-the-city": {
+    "template": "You return to the city."
+  },
+  "world-message.server.instances.you-take-your-personal-b-2-out-over-the-pacific-click-to-fly-h": {
+    "template": "You take your personal B-2 out over the Pacific. Click to fly; hold Shift for rocket speed. R performs a barrel roll. Space drops a bomb. Land by parachuting out."
+  },
+  "world-message.server.instances.your-b-2-returns-to-its-underground-hangar": {
+    "template": "Your B-2 returns to its underground hangar."
+  },
+  "world-message.server.inventory.you-already-own-an-iphone": {
+    "template": "You already own an iPhone."
+  },
+  "world-message.server.inventory.you-already-own-that-hat": {
+    "template": "You already own that hat."
+  },
+  "world-message.server.inventory.you-already-own-this-equipment-or-it-is-unavailable": {
+    "template": "You already own this equipment, or it is unavailable."
+  },
+  "world-message.server.inventory.you-cannot-carry-any-more-bison-hides": {
+    "template": "You cannot carry any more bison hides."
+  },
+  "world-message.server.inventory.your-coin-purse-is-full": {
+    "template": "Your coin purse is full."
+  },
+  "world-message.server.inventory.your-peptide-case-is-full": {
+    "template": "Your peptide case is full."
+  },
+  "world-message.server.inventory.your-sandwich-bag-is-full": {
+    "template": "Your sandwich bag is full ({value1})."
+  },
+  "world-message.server.movement.atv-rental-ready": {
+    "template": "Your rental has started. Click the parked ATV to mount it."
+  },
+  "world-message.server.movement.atv-rental-still-active": {
+    "template": "Your rental still has time left. Click the parked ATV to mount it."
+  },
+  "world-message.server.movement.click-to-drive-right-click-for-the-roof-jump-donuts-and-air-tr": {
+    "template": "Click the ground to drive. Use the right-hand controls for roof jumps, donuts, and air tricks."
+  },
+  "world-message.server.movement.drive-closer-to-the-goblin-village-ramps": {
+    "template": "Drive closer to the goblin village ramps."
+  },
+  "world-message.server.movement.earn-your-skateboard-first": {
+    "template": "Earn your skateboard first."
+  },
+  "world-message.server.movement.find-a-safe-place-on-foot-before-sitting": {
+    "template": "Find a safe place on foot before sitting."
+  },
+  "world-message.server.movement.find-an-open-patch-of-ground-for-a-donut": {
+    "template": "Find an open patch of ground for a donut."
+  },
+  "world-message.server.movement.finish-your-current-roll-first": {
+    "template": "Finish your current roll first."
+  },
+  "world-message.server.movement.go-to-the-ladder-by-the-front-door": {
+    "template": "Go to the ladder by the front door."
+  },
+  "world-message.server.movement.invalid-destination": {
+    "template": "Invalid destination."
+  },
+  "world-message.server.movement.keep-the-atv-on-marin-land": {
+    "template": "Keep the ATV on Marin land."
+  },
+  "world-message.server.movement.land-before-dismounting": {
+    "template": "Land before dismounting."
+  },
+  "world-message.server.movement.rent-an-atv-first": {
+    "template": "Rent an ATV first."
+  },
+  "world-message.server.movement.rent-skis-at-the-summit-first": {
+    "template": "Rent skis at the summit first."
+  },
+  "world-message.server.movement.rent-your-motorcycle-and-walk-to-it-first": {
+    "template": "Rent your motorcycle and walk to it first."
+  },
+  "world-message.server.movement.somebody-is-already-sitting-there": {
+    "template": "Somebody is already sitting there."
+  },
+  "world-message.server.movement.speak-to-the-industrious-goblin-on-foot": {
+    "template": "Speak to the Industrious Goblin on foot."
+  },
+  "world-message.server.movement.that-movement-activity-is-unavailable": {
+    "template": "That movement activity is unavailable."
+  },
+  "world-message.server.movement.the-atv-needs-a-clear-route": {
+    "template": "The ATV needs a clear route."
+  },
+  "world-message.server.movement.the-guild-admits-members-only": {
+    "template": "The guild admits members only."
+  },
+  "world-message.server.movement.there-is-no-reachable-ground-nearby": {
+    "template": "There is no reachable ground nearby."
+  },
+  "world-message.server.movement.this-activity-starts-on-foot-in-the-city": {
+    "template": "This activity starts on foot in the city."
+  },
+  "world-message.server.movement.unknown-journey": {
+    "template": "Unknown journey."
+  },
+  "world-message.server.movement.walk-up-to-the-parked-atv": {
+    "template": "Walk up to the parked ATV to mount it."
+  },
+  "world-message.server.movement.use-the-ladder-to-climb-down": {
+    "template": "Use the ladder to climb down."
+  },
+  "world-message.server.movement.visit-the-spacex-attendant": {
+    "template": "Visit the SpaceX attendant."
+  },
+  "world-message.server.movement.walk-to-a-surf-launch-first": {
+    "template": "Walk to a surf launch first."
+  },
+  "world-message.server.movement.walk-to-the-front-of-the-bench-first": {
+    "template": "Walk to the front of the bench first."
+  },
+  "world-message.server.movement.walk-to-the-gondola-station": {
+    "template": "Walk to the gondola station."
+  },
+  "world-message.server.movement.walk-to-the-sutro-service-ladder": {
+    "template": "Walk to the Sutro service ladder."
+  },
+  "world-message.server.movement.walk-to-your-bicycle": {
+    "template": "Walk to your bicycle."
+  },
+  "world-message.server.movement.walk-to-your-ferrari": {
+    "template": "Walk to your Ferrari."
+  },
+  "world-message.server.movement.you-are-already-on-the-sutro-ladder": {
+    "template": "You are already on the Sutro ladder."
+  },
+  "world-message.server.movement.you-are-detained": {
+    "template": "You are detained."
+  },
+  "world-message.server.movement.you-are-not-on-sutro-tower": {
+    "template": "You are not on Sutro Tower."
+  },
+  "world-message.server.movement.you-need-coins": {
+    "template": "You need {price} coins."
+  },
+  "world-message.server.movement.your-atv-rental-has-expired": {
+    "template": "Your ATV rental has expired."
+  },
+  "world-message.server.player-state.a-chair-costs-200-coins": {
+    "template": "A chair costs 200 coins."
+  },
+  "world-message.server.player-state.board-the-pequod-first": {
+    "template": "Board the Pequod first."
+  },
+  "world-message.server.player-state.choose-a-chair": {
+    "template": "Choose a chair."
+  },
+  "world-message.server.player-state.choose-a-trade-first": {
+    "template": "Choose a trade first."
+  },
+  "world-message.server.player-state.collect-sand-at-ocean-beach": {
+    "template": "Collect sand at Ocean Beach."
+  },
+  "world-message.server.player-state.come-back-in-seconds-for-more-work": {
+    "template": "Come back in {value1} seconds for more work."
+  },
+  "world-message.server.player-state.find-a-parent-pushing-a-stroller-in-noe-valley": {
+    "template": "Find a parent pushing a stroller in Noe Valley."
+  },
+  "world-message.server.player-state.find-your-feet-first": {
+    "template": "Find your feet first."
+  },
+  "world-message.server.player-state.finish-filling-your-sack-first": {
+    "template": "Finish filling your sack first."
+  },
+  "world-message.server.player-state.i-need-a-bison-hide-for-that-commission": {
+    "template": "I need a bison hide for that commission."
+  },
+  "world-message.server.player-state.move-closer-to-your-target": {
+    "template": "Move closer to your target."
+  },
+  "world-message.server.player-state.obtain-a-bayonet-first": {
+    "template": "Obtain a bayonet first."
+  },
+  "world-message.server.player-state.obtain-a-railgun-first": {
+    "template": "Obtain a railgun first."
+  },
+  "world-message.server.player-state.obtain-that-weapon-first": {
+    "template": "Obtain that weapon first."
+  },
+  "world-message.server.player-state.railgun-issued-and-charged-equip-it-in-character-then-follow-t": {
+    "template": "Railgun issued, charged, and equipped. Follow the raptor south."
+  },
+  "world-message.server.player-state.rewards-and-timed-activities-are-calculated-by-the-server": {
+    "template": "Rewards and timed activities are calculated by the server."
+  },
+  "world-message.server.player-state.speak-to-a-nearby-salesman": {
+    "template": "Speak to a nearby salesman."
+  },
+  "world-message.server.player-state.speak-to-the-appropriate-npc-nearby": {
+    "template": "Speak to the appropriate NPC nearby."
+  },
+  "world-message.server.player-state.speak-to-the-jurassic-scientist": {
+    "template": "Speak to the Jurassic scientist."
+  },
+  "world-message.server.player-state.speak-to-the-rehabilitation-specialist-from-inside-your-cell": {
+    "template": "Speak to the rehabilitation specialist from inside your cell."
+  },
+  "world-message.server.player-state.speak-to-the-shopkeeper-nearby": {
+    "template": "Speak to the shopkeeper nearby."
+  },
+  "world-message.server.player-state.that-inventory-operation-is-not-a-user-action": {
+    "template": "That inventory operation is not a user action."
+  },
+  "world-message.server.player-state.that-loot-is-not-nearby": {
+    "template": "That loot is not nearby."
+  },
+  "world-message.server.player-state.the-ferrari-is-too-far-from-this-pump-buy-a-fuel-can-and-carry": {
+    "template": "The Ferrari is too far from this pump. Buy a fuel can and carry it back instead."
+  },
+  "world-message.server.player-state.the-pequod-turns-toward-the-coast": {
+    "template": "The Pequod turns toward the coast."
+  },
+  "world-message.server.player-state.the-police-are-on-their-way": {
+    "template": "The police are on their way!"
+  },
+  "world-message.server.player-state.the-rental-desk-is-closed-while-a-pursuit-is-in-progress": {
+    "template": "The rental desk is closed while a pursuit is in progress."
+  },
+  "world-message.server.player-state.the-show-is-already-underway-enjoy-this-one-then-ask-for-an-en": {
+    "template": "The show is already underway. Enjoy this one, then ask for an encore."
+  },
+  "world-message.server.player-state.the-tailor-is-not-nearby": {
+    "template": "The tailor is not nearby."
+  },
+  "world-message.server.player-state.the-zookeeper-recovers-the-monkey": {
+    "template": "The zookeeper recovers the monkey."
+  },
+  "world-message.server.player-state.try-that-answer-again": {
+    "template": "Try that answer again."
+  },
+  "world-message.server.player-state.unknown-player-action": {
+    "template": "Unknown player action."
+  },
+  "world-message.server.player-state.visit-a-gas-station": {
+    "template": "Visit a gas station."
+  },
+  "world-message.server.player-state.visit-sf-fitness": {
+    "template": "Visit SF Fitness."
+  },
+  "world-message.server.player-state.visit-shanghai-kellys-bartender": {
+    "template": "Visit Shanghai Kelly’s bartender."
+  },
+  "world-message.server.player-state.visit-the-ai-lab-recruiter": {
+    "template": "Visit the AI Lab recruiter."
+  },
+  "world-message.server.player-state.visit-the-cotogna-counter": {
+    "template": "Visit the Cotogna counter."
+  },
+  "world-message.server.player-state.visit-the-furniture-maker-at-the-goblin-furniture-factory-when": {
+    "template": "Visit the furniture maker at the Goblin Furniture Factory when the shop is open."
+  },
+  "world-message.server.player-state.visit-the-haberdasher": {
+    "template": "Visit the haberdasher."
+  },
+  "world-message.server.player-state.visit-the-hiking-supplies-clerk": {
+    "template": "Visit the hiking supplies clerk."
+  },
+  "world-message.server.player-state.visit-the-merchant-on-foot-to-make-that-purchase": {
+    "template": "Visit the merchant on foot to make that purchase."
+  },
+  "world-message.server.player-state.visit-the-robotaxi-dealer": {
+    "template": "Visit the robotaxi dealer."
+  },
+  "world-message.server.player-state.visit-the-sandwich-counter-first": {
+    "template": "Visit the sandwich counter first."
+  },
+  "world-message.server.player-state.visit-tim-apple": {
+    "template": "Visit Tim Apple."
+  },
+  "world-message.server.player-state.wait-until-you-respawn-before-using-your-inventory": {
+    "template": "Wait until you respawn before using your inventory."
+  },
+  "world-message.server.player-state.walk-to-the-ducks": {
+    "template": "Walk to the ducks."
+  },
+  "world-message.server.player-state.walk-to-the-monkey-enclosure": {
+    "template": "Walk to the monkey enclosure."
+  },
+  "world-message.server.player-state.walk-to-the-sunglasses": {
+    "template": "Walk to the sunglasses."
+  },
+  "world-message.server.player-state.walk-to-the-wharf-fishing-spot": {
+    "template": "Walk to the wharf fishing spot."
+  },
+  "world-message.server.player-state.walk-to-your-ferrari": {
+    "template": "Walk to your Ferrari."
+  },
+  "world-message.server.player-state.yohji-takes-the-hide-considers-the-silhouette-and-hands-you-a": {
+    "template": "Yohji takes the hide, considers the silhouette, and hands you a black cloak top and bottom. “Leave room for the air.” Equip them in Character settings."
+  },
+  "world-message.server.player-state.you-already-have-a-hiking-backpack": {
+    "template": "You already have a hiking backpack."
+  },
+  "world-message.server.player-state.you-already-have-the-complete-cloak-wear-it-well": {
+    "template": "You already have the complete cloak. Wear it well."
+  },
+  "world-message.server.player-state.you-already-own-this-chair": {
+    "template": "You already own this chair."
+  },
+  "world-message.server.player-state.you-buy-the-for-200-coins": {
+    "template": "You buy the {name} for 200 coins."
+  },
+  "world-message.server.player-state.you-do-not-own-this-chair": {
+    "template": "You do not own this chair."
+  },
+  "world-message.server.player-state.you-drink-the-coffee-and-recover-hp": {
+    "template": "You drink the coffee and recover {healed} HP."
+  },
+  "world-message.server.player-state.you-need-100-coins": {
+    "template": "You need 100 coins."
+  },
+  "world-message.server.player-state.you-need-coins": {
+    "template": "You need {price} coins."
+  },
+  "world-message.server.player-state.you-sell-the-for-220-coins": {
+    "template": "You sell the {name} for 220 coins."
+  },
+  "world-message.server.player-state.your-coin-purse-is-full": {
+    "template": "Your coin purse is full."
+  },
+  "world-message.server.player-state.your-interview-is-already-running": {
+    "template": "Your interview is already running."
+  },
+  "world-message.server.player-state.your-rental-is-already-paid": {
+    "template": "Your rental is already paid."
+  },
+  "world-message.server.player-state.your-sandwich-bag-is-full": {
+    "template": "Your sandwich bag is full."
+  },
+  "world-message.server.player-state.your-skis-are-already-rented": {
+    "template": "Your skis are already rented."
+  },
+  "world-message.server.pvp.both-players-must-enable-pvp": {
+    "template": "Both players must enable PvP."
+  },
+  "world-message.server.pvp.choose-whether-pvp-is-enabled": {
+    "template": "Choose whether PvP is enabled."
+  },
+  "world-message.server.pvp.move-closer-to-attack": {
+    "template": "Move closer to attack."
+  },
+  "world-message.server.pvp.pvp-disabled": {
+    "template": "PvP disabled."
+  },
+  "world-message.server.pvp.pvp-enabled-you-can-disable-it-in-30-seconds": {
+    "template": "PvP enabled. You can disable it in 30 seconds."
+  },
+  "world-message.server.pvp.that-player-cannot-fight-right-now": {
+    "template": "That player cannot fight right now."
+  },
+  "world-message.server.pvp.that-player-has-just-respawned": {
+    "template": "That player has just respawned."
+  },
+  "world-message.server.pvp.that-player-is-in-another-map-instance": {
+    "template": "That player is in another map instance."
+  },
+  "world-message.server.pvp.that-player-is-no-longer-nearby": {
+    "template": "That player is no longer nearby."
+  },
+  "world-message.server.pvp.there-is-no-clear-line-of-attack": {
+    "template": "There is no clear line of attack."
+  },
+  "world-message.server.pvp.wait-seconds-before-disabling-pvp": {
+    "template": "Wait {value1} seconds before disabling PvP."
+  },
+  "world-message.server.residential-search.find-your-feet-on-the-ground-before-jumping": {
+    "template": "Find your feet on the ground before jumping."
+  },
+  "world-message.server.residential-search.land-before-jumping-again": {
+    "template": "Land before jumping again."
+  },
+  "world-message.server.residential-search.light-the-rocket-on-your-back-before-jumping": {
+    "template": "Light the rocket on your back before jumping."
+  },
+  "world-message.server.residential-search.stand-beside-the-container-first": {
+    "template": "Stand beside the container first."
+  },
+  "world-message.server.residential-search.stand-beside-the-container-inside-the-house-first": {
+    "template": "Stand beside the container inside the house first."
+  },
+  "world-message.server.residential-search.stand-by-the-dog-house-in-the-yard-first": {
+    "template": "Stand by the dog house in the yard first."
+  },
+  "world-message.server.residential-search.the-rocket-needs-more-seconds": {
+    "template": "The rocket needs {value1} more seconds."
+  },
+  "world-message.server.residential-search.wear-your-decorative-rocket-first": {
+    "template": "Wear your decorative rocket first."
+  },
+  "world-message.server.residential-search.you-find-you-already-own-one": {
+    "template": "You find {label}. You already own one."
+  },
+  "world-message.server.residential-search.you-have-already-searched-this-there-is-nothing-else-inside": {
+    "template": "You have already searched this. There is nothing else inside."
+  },
+  "world-message.server.residential-search.you-light-the-rocket-it-gives-you-a-little-lift-press-space-to": {
+    "template": "You light the rocket. It gives you a little lift! Press Space to hop again while it burns."
+  },
+  "world-message.server.residential-search.you-search-the-and-find": {
+    "template": "You search the {value1} and find {value2}."
+  },
+  "world-message.server.shared-world.a-wall-of-static-forces-you-back": {
+    "template": "A wall of static forces you back."
+  },
+  "world-message.server.shared-world.accept-the-scientists-recovery-quest-before-collecting-the-rem": {
+    "template": "Accept the scientist’s recovery quest before collecting the remains."
+  },
+  "world-message.server.shared-world.find-your-feet-before-petting-the-bear": {
+    "template": "Find your feet before petting the bear."
+  },
+  "world-message.server.shared-world.go-to-the-tiger-enclosure-first": {
+    "template": "Go to the tiger enclosure first."
+  },
+  "world-message.server.shared-world.hover-over-walkable-ground-before-lowering-a-rope": {
+    "template": "Hover over walkable ground before lowering a rope."
+  },
+  "world-message.server.shared-world.invalid-destination": {
+    "template": "Invalid destination."
+  },
+  "world-message.server.shared-world.lower-the-rope-and-invite-one-traveler-at-a-time": {
+    "template": "Lower the rope and invite one traveler at a time."
+  },
+  "world-message.server.shared-world.lower-the-rope-first": {
+    "template": "Lower the rope first."
+  },
+  "world-message.server.shared-world.only-the-current-pilot-can-steer-you-can-walk-around-the-baske": {
+    "template": "Only the current pilot can steer. You can walk around the basket."
+  },
+  "world-message.server.shared-world.only-the-pilot-can-lower-or-retract-the-shared-rope": {
+    "template": "Only the pilot can lower or retract the shared rope."
+  },
+  "world-message.server.shared-world.recover-the-velociraptors-remains-or-check-back-when-the-cage": {
+    "template": "Recover the velociraptor’s remains, or check back when the cage is ready again."
+  },
+  "world-message.server.shared-world.retract-the-rope-before-flying": {
+    "template": "Retract the rope before flying."
+  },
+  "world-message.server.shared-world.robocop-is-already-responding": {
+    "template": "Robocop is already responding."
+  },
+  "world-message.server.shared-world.someone-already-collected-that-loot": {
+    "template": "Someone already collected that loot."
+  },
+  "world-message.server.shared-world.stand-beside-the-vehicle-to-kick-it": {
+    "template": "Stand beside the vehicle to kick it."
+  },
+  "world-message.server.shared-world.stand-next-to-the-lowered-rope": {
+    "template": "Stand next to the lowered rope."
+  },
+  "world-message.server.shared-world.stand-within-six-tiles-underneath-the-flying-airship": {
+    "template": "Stand within six tiles underneath the flying airship."
+  },
+  "world-message.server.shared-world.that-shared-world-interaction-is-unavailable-in-this-private-m": {
+    "template": "That shared-world interaction is unavailable in this private map instance."
+  },
+  "world-message.server.shared-world.that-target-is-unavailable": {
+    "template": "That target is unavailable."
+  },
+  "world-message.server.shared-world.the-airship-has-been-recalled-by": {
+    "template": "The airship has been recalled by {name}."
+  },
+  "world-message.server.shared-world.the-airship-is-away-a-grappling-hook-can-reach-its-basket-from": {
+    "template": "The airship is away. A grappling hook can reach its basket from below."
+  },
+  "world-message.server.shared-world.the-basket-is-full": {
+    "template": "The basket is full."
+  },
+  "world-message.server.shared-world.the-gate-opens-follow-the-raptor-south-of-the-lab": {
+    "template": "The gate opens. Follow the raptor south of the lab."
+  },
+  "world-message.server.shared-world.the-hourly-airship-reset-has-returned-the-ship-to-the-terminal": {
+    "template": "The hourly airship reset has returned the ship to the terminal."
+  },
+  "world-message.server.shared-world.the-hunter-has-first-claim-for-more-seconds": {
+    "template": "The hunter has first claim for {value1} more seconds."
+  },
+  "world-message.server.shared-world.the-shared-rope-is-lowered-other-players-can-climb-it-too": {
+    "template": "The shared rope is lowered. Other players can climb it too."
+  },
+  "world-message.server.shared-world.the-taxi-calls-robocop": {
+    "template": "The taxi calls Robocop."
+  },
+  "world-message.server.shared-world.the-tiger-is-already-out-this-affects-everyone": {
+    "template": "The tiger is already out. This affects everyone."
+  },
+  "world-message.server.shared-world.the-traveler-reaches-the-basket-and-pays-you-5-coins": {
+    "template": "The traveler reaches the basket and pays you 5 coins."
+  },
+  "world-message.server.shared-world.the-traveler-starts-climbing-the-fare-is-paid-on-arrival": {
+    "template": "The traveler starts climbing. The fare is paid on arrival."
+  },
+  "world-message.server.shared-world.the-velociraptor-is-already-out-follow-it-toward-the-road-sout": {
+    "template": "The velociraptor is already out. Follow it toward the road south of the lab."
+  },
+  "world-message.server.shared-world.there-is-no-reachable-attack-position": {
+    "template": "There is no reachable attack position."
+  },
+  "world-message.server.shared-world.unknown-world-action": {
+    "template": "Unknown world action."
+  },
+  "world-message.server.shared-world.wait-for-everyone-to-finish-climbing": {
+    "template": "Wait for everyone to finish climbing."
+  },
+  "world-message.server.shared-world.wait-until-the-airship-is-above-walkable-ground": {
+    "template": "Wait until the airship is above walkable ground."
+  },
+  "world-message.server.shared-world.walk-closer-to-the-loot": {
+    "template": "Walk closer to the loot."
+  },
+  "world-message.server.shared-world.walk-to-the-airship-mooring-first": {
+    "template": "Walk to the airship mooring first."
+  },
+  "world-message.server.shared-world.you-are-not-aboard": {
+    "template": "You are not aboard."
+  },
+  "world-message.server.shared-world.you-are-the-airship-pilot": {
+    "template": "{value1}You are the airship pilot."
+  },
+  "world-message.server.shared-world.you-board-as-a-passenger": {
+    "template": "You board as a passenger."
+  },
+  "world-message.server.shared-world.you-collect": {
+    "template": "You collect {value1}."
+  },
+  "world-message.server.shared-world.you-do-not-own-a-grappling-hook": {
+    "template": "You do not own a grappling hook."
+  },
+  "world-message.server.shared-world.you-need-to-own-that-weapon-and-have-both-feet-available": {
+    "template": "You need to own that weapon and have both feet available."
+  },
+  "world-message.server.shared-world.you-return-safely-to-the-mooring": {
+    "template": "{message} You return safely to the mooring."
+  },
+  "world-message.server.shared-world.your-hook-catches-the-basket-hold-on": {
+    "template": "Your hook catches the basket. Hold on!"
+  },
+  "world-message.server.shared-world.your-priority-recall-has-returned-the-airship-to-the-terminal": {
+    "template": "Your priority recall has returned the airship to the terminal."
+  },
+  "world-message.server.teleport-tablets.a-tablet-costs-coins": {
+    "template": "A tablet costs {price} coins."
+  },
+  "world-message.server.teleport-tablets.stand-on-solid-ground-outside-custody-before-using-the-wizards": {
+    "template": "Stand on solid ground, outside custody, before using the wizard’s tablets."
+  },
+  "world-message.server.teleport-tablets.that-destination-is-temporarily-unavailable": {
+    "template": "That destination is temporarily unavailable."
+  },
+  "world-message.server.teleport-tablets.that-tablet-is-unavailable": {
+    "template": "That tablet is unavailable."
+  },
+  "world-message.server.teleport-tablets.visit-orin-the-wizard-inside-his-house-west-of-sand-hill-road": {
+    "template": "Visit Orin the Wizard inside his house west of Sand Hill Road Capital Partners."
+  },
+  "world-message.server.teleport-tablets.visit-the-goblin-scientist-in-the-village": {
+    "template": "Visit the Goblin Scientist in the village."
+  },
+  "world-message.server.teleport-tablets.you-arrive": {
+    "template": "You arrive {value1}."
+  },
+  "world-message.server.teleport-tablets.you-break-a": {
+    "template": "You break a {value1}."
+  },
+  "world-message.server.teleport-tablets.you-buy-a-for-coins": {
+    "template": "You buy a {value1} for {price} coins."
+  },
+  "world-message.server.teleport-tablets.you-do-not-have-that-teleport-visit": {
+    "template": "You do not have that teleport. Visit {value1}"
+  },
+  "world-message.server.teleport-tablets.your-tablet-pouch-is-full": {
+    "template": "Your tablet pouch is full."
+  },
+  "world-message.server.usernames.choose-a-username-with-1-12-letters-numbers-or-underscores": {
+    "template": "Choose a username with 1–12 letters, numbers, or underscores."
+  },
+  "world-message.server.usernames.that-username-is-already-taken": {
+    "template": "That username is already taken."
+  },
+  "world-message.server.usernames.that-username-is-unavailable-please-choose-another": {
+    "template": "That username is unavailable. Please choose another."
+  },
+  "world-message.server.usernames.use-1-12-letters-numbers-or-underscores": {
+    "template": "Use 1–12 letters, numbers, or underscores."
+  },
+  "world-message.server.usernames.wait-seconds-before-changing-your-username": {
+    "template": "Wait {value1} seconds before changing your username."
+  },
+  "world-message.src.ai-interview-ui.score-you-need-40-or-more-for-the-job": {
+    "template": "Score: {score}. You need 40 or more for the job."
+  },
+  "world-message.src.ai-interview-ui.you-got-the-job-welcome-to-the-ai-lab": {
+    "template": "You got the job! Welcome to the AI Lab."
+  },
+  "world-message.src.ai-lab.finish-the-full-two-minute-interview-first": {
+    "template": "Finish the full two-minute interview first."
+  },
+  "world-message.src.ai-lab.score-you-need-40-or-more-for-the-job-you-can-interview-again": {
+    "template": "Score: {score}. You need 40 or more for the job. You can interview again whenever you like."
+  },
+  "world-message.src.ai-lab.you-got-the-job-welcome-to-the-ai-lab": {
+    "template": "You got the job! Welcome to the AI Lab."
+  },
+  "world-message.src.banking.coins": {
+    "template": "{value1} coins. {value2}"
+  },
+  "world-message.src.banking.enter-a-whole-number-of-coins-greater-than-zero": {
+    "template": "Enter a whole number of coins greater than zero."
+  },
+  "world-message.src.banking.you-do-not-have-that-many-coins-in-your-purse": {
+    "template": "You do not have that many coins in your purse."
+  },
+  "world-message.src.banking.you-do-not-have-that-many-whole-coins-deposited": {
+    "template": "You do not have that many whole coins deposited."
+  },
+  "world-message.src.banking.your-bank-account-is-full": {
+    "template": "Your bank account is full."
+  },
+  "world-message.src.banking.your-coin-purse-is-full": {
+    "template": "Your coin purse is full."
+  },
+  "world-message.src.client.controllers.game-state-is-determined-by-the-server": {
+    "template": "Game state is determined by the server."
+  },
+  "world-message.src.client.controllers.waiting-for-the-server": {
+    "template": "Waiting for the server…"
+  },
+  "world-message.src.debug-console.command-completed": {
+    "template": "Command completed."
+  },
+  "world-message.src.debug-console.debug-coordinates-enabled": {
+    "template": "Debug coordinates enabled."
+  },
+  "world-message.src.deli.a-fresh-coins-eat-it-to-restore-up-to-hitpoints": {
+    "template": "A fresh {value1} coins. Eat it to restore up to {healing} hitpoints."
+  },
+  "world-message.src.deli.doordash-ordered-coins-a-little-cooler-on-wheels-is-bringing-y": {
+    "template": "DoorDash ordered · {delivery} coins. A little cooler on wheels is bringing your Lucinda’s sandwich."
+  },
+  "world-message.src.deli.the-cooler-needs-a-route-to-you-order-from-a-street-park-or-ot": {
+    "template": "The cooler needs a route to you. Order from a street, park, or other walkable ground."
+  },
+  "world-message.src.deli.you-already-have-full-hitpoints-save-the-sandwich-for-later": {
+    "template": "You already have full hitpoints. Save the sandwich for later."
+  },
+  "world-message.src.deli.you-do-not-have-a-sandwich": {
+    "template": "You do not have a sandwich."
+  },
+  "world-message.src.deli.you-eat-a-sandwich-and-restore-hitpoints": {
+    "template": "You eat a sandwich and restore {healed} hitpoints."
+  },
+  "world-message.src.deli.your-doordash-cooler-arrives-one-lucindas-sandwich-is-in-your": {
+    "template": "Your DoorDash cooler arrives! One Lucinda’s sandwich is in your bag. Eat it whenever you need hitpoints."
+  },
+  "world-message.src.deli.your-doordash-cooler-is-already-on-its-way": {
+    "template": "Your DoorDash cooler is already on its way."
+  },
+  "world-message.src.deli.your-sandwich-bag-is-full": {
+    "template": "Your sandwich bag is full ({value1})."
+  },
+  "world-message.src.dialogue.done": {
+    "template": "Done."
+  },
+  "world-message.src.dialogue.unable-to-complete-that-action": {
+    "template": "Unable to complete that action."
+  },
+  "world-message.src.dialogue.unable-to-complete-that-action-please-try-again": {
+    "template": "Unable to complete that action. Please try again."
+  },
+  "world-message.src.economy.that-hat-is-found-on-adventures-not-sold-in-the-shop": {
+    "template": "That hat is found on adventures, not sold in the shop."
+  },
+  "world-message.src.economy.that-hat-is-not-in-the-catalog": {
+    "template": "That hat is not in the catalog."
+  },
+  "world-message.src.economy.that-item-is-not-for-sale": {
+    "template": "That item is not for sale."
+  },
+  "world-message.src.economy.that-trade-is-unavailable": {
+    "template": "That trade is unavailable."
+  },
+  "world-message.src.economy.you-already-carry-a-sealed-conservation-letter-deliver-it-to-t": {
+    "template": "You already carry a sealed conservation letter. Deliver it to the City Hall clerk before taking another."
+  },
+  "world-message.src.economy.you-already-own-a-robotaxi-it-is-out-earning-fares": {
+    "template": "You already own a robotaxi. It is out earning fares."
+  },
+  "world-message.src.economy.you-already-own-an-iphone-equip-it-in-character-settings": {
+    "template": "You already own an iPhone. Equip it in Character settings."
+  },
+  "world-message.src.economy.you-already-own-this-hat-wear-it-from-the-character-menu": {
+    "template": "You already own this hat. Wear it from the Character menu."
+  },
+  "world-message.src.economy.you-already-own-this-item": {
+    "template": "You already own this item."
+  },
+  "world-message.src.economy.you-buy-a-equip-it-in-character-settings": {
+    "template": "You buy a {value1}. Equip it in Character settings."
+  },
+  "world-message.src.economy.you-can-only-carry-one-live-fish": {
+    "template": "You already have live fish."
+  },
+  "world-message.src.economy.you-do-not-have-a-live-fish": {
+    "template": "You do not have a live fish."
+  },
+  "world-message.src.economy.you-do-not-have-any-sand-to-sell": {
+    "template": "You do not have any sand to sell."
+  },
+  "world-message.src.economy.you-do-not-have-any-startup-equity-to-sell": {
+    "template": "You do not have any startup equity to sell."
+  },
+  "world-message.src.economy.you-do-not-have-enough-coins": {
+    "template": "You do not have enough coins."
+  },
+  "world-message.src.economy.you-do-not-own-an-iphone": {
+    "template": "You do not own an iPhone."
+  },
+  "world-message.src.economy.you-have-no-conservation-letter-to-deliver": {
+    "template": "You have no conservation letter to deliver."
+  },
+  "world-message.src.economy.you-have-no-sales-software-to-sell": {
+    "template": "You have no sales software to sell."
+  },
+  "world-message.src.economy.you-need-a-fuel-can-pick-one-up-at-a-gas-station": {
+    "template": "You need a fuel can. Pick one up at a gas station."
+  },
+  "world-message.src.economy.you-need-coins": {
+    "template": "You need {price} coins."
+  },
+  "world-message.src.economy.you-need-coins-for-the-your-coins-have-not-been-spent": {
+    "template": "You need {value1} coins for the {name}. Your coins have not been spent."
+  },
+  "world-message.src.economy.you-need-coins-to-buy-a-robotaxi": {
+    "template": "You need {robotaxi} coins to buy a robotaxi."
+  },
+  "world-message.src.economy.you-need-coins-to-buy-an-iphone": {
+    "template": "You need {iphone} coins to buy an iPhone."
+  },
+  "world-message.src.economy.you-need-grain-visit-the-grain-merchant-beside-golden-gate-par": {
+    "template": "You need grain. Visit the grain merchant beside Golden Gate Park."
+  },
+  "world-message.src.finance-ui.a-coin-duel-offer-awaits-your-agreement": {
+    "template": "A {stake} coin duel offer awaits your agreement."
+  },
+  "world-message.src.fishing.you-can-only-carry-one-live-fish": {
+    "template": "Sell or trade your live fish before fishing again."
+  },
+  "world-message.src.fishing.you-cast-your-line-something-is-nibbling": {
+    "template": "You cast your line. Something is nibbling…"
+  },
+  "world-message.src.fishing.you-catch-a-live-fish-and-slip-it-into-a-bucket-of-water": {
+    "template": "You catch a live fish and slip it into a bucket of water."
+  },
+  "world-message.src.fishing.your-line-is-already-in-the-water": {
+    "template": "Your line is already in the water."
+  },
+  "world-message.src.fuel.borrow-the-ferrari-before-using-a-fuel-can": {
+    "template": "Borrow the Ferrari before using a fuel can."
+  },
+  "world-message.src.fuel.one-full-fuel-can-return-to-your-ferrari-and-choose-use-fuel-c": {
+    "template": "One full fuel can. Return to your Ferrari and choose Use fuel can."
+  },
+  "world-message.src.fuel.the-ferrari-already-has-a-full-tank-you-keep-your-fuel-can": {
+    "template": "The Ferrari already has a full tank. You keep your fuel can."
+  },
+  "world-message.src.fuel.the-ferrari-is-too-far-from-this-pump-take-a-fuel-can-back-to": {
+    "template": "The Ferrari is too far from this pump. Take a fuel can back to it instead."
+  },
+  "world-message.src.fuel.you-pour-the-fuel-can-into-the-ferrari-a-full-tank-ready-to-go": {
+    "template": "You pour the fuel can into the Ferrari. A full tank, ready to go!"
+  },
+  "world-message.src.fuel.your-tank-is-full-safe-travels": {
+    "template": "Your tank is full. Safe travels!"
+  },
+  "world-message.src.growth-equity.choose-a-1-000-5-000-or-10-000-coin-batch": {
+    "template": "Choose a 1,000, 5,000 or 10,000 coin batch."
+  },
+  "world-message.src.growth-equity.listing-costs-coins-5-of-purchase-value": {
+    "template": "Listing costs {fee} coins (5% of purchase value)."
+  },
+  "world-message.src.growth-equity.sell-your-listed-shares-before-buying-another-holding": {
+    "template": "Sell your listed shares before buying another holding."
+  },
+  "world-message.src.growth-equity.you-buy-coins-of-growth-equity-visit-the-stockbroker-in-times": {
+    "template": "You buy {value1} coins of growth equity. Visit the stockbroker in Times Square to take it public."
+  },
+  "world-message.src.growth-equity.you-do-not-have-enough-coins-or-this-holding-is-full": {
+    "template": "You do not have enough coins, or this holding is full."
+  },
+  "world-message.src.growth-equity.you-have-no-listed-shares-to-sell": {
+    "template": "You have no listed shares to sell."
+  },
+  "world-message.src.growth-equity.you-have-no-private-growth-equity-to-list": {
+    "template": "You have no private growth equity to list."
+  },
+  "world-message.src.growth-equity.you-receive-coins-after-the-listing-fee": {
+    "template": "{message} You receive {value2} coins ({value3}{profit} after the listing fee)."
+  },
+  "world-message.src.growth-equity.your-coin-purse-cannot-hold-the-proceeds": {
+    "template": "Your coin purse cannot hold the proceeds."
+  },
+  "world-message.src.growth-equity.your-equity-is-public-listing-fee-coins": {
+    "template": "Your equity is public. Listing fee: {fee} coins."
+  },
+  "world-message.src.guild.one-vial-one-promotion-you-are-now-rank-24-promotions": {
+    "template": "One vial, one promotion. You are now Rank {value1} ({visits}/24 promotions)."
+  },
+  "world-message.src.guild.rank-25-twenty-four-promotions-welcome-to-the-freemasons-guild": {
+    "template": "Rank 25. Twenty-four promotions. Welcome to the Freemasons’ Guild!"
+  },
+  "world-message.src.guild.welcome-back-the-lodge-is-open-to-you": {
+    "template": "Welcome back. The lodge is open to you."
+  },
+  "world-message.src.guild.you-are-already-a-member-keep-your-peptides-the-refreshments-c": {
+    "template": "You are already a member. Keep your peptides; the refreshments committee is quite lively enough."
+  },
+  "world-message.src.guild.you-are-now-rank-promotions-completed": {
+    "template": "You are now Rank {value1}. {visits} promotions completed."
+  },
+  "world-message.src.guild.you-are-rank-return-in-minutes-a-full-hour-must-pass-between-q": {
+    "template": "You are Rank {value1}. Return in {value2} minutes; a full hour must pass between qualifying visits."
+  },
+  "world-message.src.guild.you-have-no-peptides-to-donate": {
+    "template": "You have no peptides to donate."
+  },
+  "world-message.src.guild.your-twenty-fourth-promotion-rank-25-welcome-to-the-freemasons": {
+    "template": "Your twenty-fourth promotion. Rank 25! Welcome to the Freemasons’ Guild!"
+  },
+  "world-message.src.haberdashery.you-can-wear-any-owned-hat-from-the-character-menu": {
+    "template": "{value1}. You can wear any owned hat from the Character menu."
+  },
+  "world-message.src.inebriation.a-cold-beer-one-coin-you-are-inebriated": {
+    "template": "A cold beer, one coin. You are {value1}% inebriated."
+  },
+  "world-message.src.inebriation.the-bartender-suggests-a-glass-of-water-you-are-already-100-in": {
+    "template": "The bartender suggests a glass of water. You are already 100% inebriated."
+  },
+  "world-message.src.jurassic.0-the-blue-beam-passes-through-the-alien": {
+    "template": "0 — the blue beam passes through the alien."
+  },
+  "world-message.src.jurassic.100-coins-and-one-lousy-cape": {
+    "template": "100 coins and one lousy cape."
+  },
+  "world-message.src.jurassic.a-citizen-defeats-the-velociraptor": {
+    "template": "A citizen defeats the velociraptor!"
+  },
+  "world-message.src.jurassic.a-citizen-fends-off-the-velociraptor-neither-looks-pleased": {
+    "template": "A citizen fends off the velociraptor. Neither looks pleased."
+  },
+  "world-message.src.jurassic.ahab-is-still-writing-the-incident-report-you-already-claimed": {
+    "template": "Ahab is still writing the incident report. You already claimed the kraken’s reward."
+  },
+  "world-message.src.jurassic.ahab-refuses-to-board-you-without-a-sufficiently-powerful-weap": {
+    "template": "Ahab refuses to board you without a sufficiently powerful weapon."
+  },
+  "world-message.src.jurassic.ahab-turns-the-pequod-toward-the-coast": {
+    "template": "Ahab turns the Pequod toward the coast."
+  },
+  "world-message.src.jurassic.all-aboard-the-pequod": {
+    "template": "All aboard the Pequod."
+  },
+  "world-message.src.jurassic.click-the-kraken-to-fire-stronger-hunters-hit-harder": {
+    "template": "Click the kraken to fire. Stronger hunters hit harder."
+  },
+  "world-message.src.jurassic.equip-your-railgun-to-fight-the-kraken": {
+    "template": "Equip a railgun, Akimbos, or a missile launcher to fight the Kraken."
+  },
+  "world-message.src.jurassic.railgun-issued-the-gate-is-opening-follow-the-velociraptor-sou": {
+    "template": "Railgun issued. The gate is opening. Follow the velociraptor south of the lab."
+  },
+  "world-message.src.jurassic.recover-the-velociraptor-first": {
+    "template": "Recover the velociraptor first."
+  },
+  "world-message.src.jurassic.that-loot-has-already-been-collected": {
+    "template": "That loot has already been collected."
+  },
+  "world-message.src.jurassic.that-weapon-is-unavailable": {
+    "template": "That weapon is unavailable."
+  },
+  "world-message.src.jurassic.the-cow-drops-a-sandwich": {
+    "template": "The cow drops a sandwich."
+  },
+  "world-message.src.jurassic.the-kraken-is-enraged-its-tentacles-strike-faster-and-harder": {
+    "template": "The kraken is enraged! Its tentacles strike faster and harder."
+  },
+  "world-message.src.jurassic.the-kraken-sinks-beneath-the-waves-collect-its-spoils-from-the": {
+    "template": "The kraken sinks beneath the waves. Collect its spoils from the deck."
+  },
+  "world-message.src.jurassic.the-pequod-returns-you-to-the-beach": {
+    "template": "The Pequod returns you to the beach."
+  },
+  "world-message.src.jurassic.the-pequod-sets-sail-into-the-western-pacific": {
+    "template": "The Pequod sets sail into the western Pacific."
+  },
+  "world-message.src.jurassic.the-scientist-hands-you-a-railgun-and-opens-the-cage-the-veloc": {
+    "template": "The scientist hands you a railgun and opens the cage. The velociraptor is loose! Click it to fire from up to five tiles away."
+  },
+  "world-message.src.jurassic.the-velociraptor-attacks-a-coins-fall-to-the-ground": {
+    "template": "The velociraptor attacks a {value1}. Coins fall to the ground."
+  },
+  "world-message.src.jurassic.the-velociraptor-falls": {
+    "template": "The velociraptor falls."
+  },
+  "world-message.src.jurassic.there-is-no-active-target": {
+    "template": "There is no active target."
+  },
+  "world-message.src.jurassic.this-was-a-good-test-of-the-raptor-escape-and-emergency-recove": {
+    "template": "“This was a good test of the raptor escape and emergency recovery protocol.” Quest complete. You keep the railgun."
+  },
+  "world-message.src.jurassic.you-collect-100-coins-and-a-commemorative-cape-equip-it-in-cha": {
+    "template": "You collect 100 coins and a commemorative cape. Equip it in Character settings."
+  },
+  "world-message.src.jurassic.you-do-not-have-a-suitable-weapon-equipped": {
+    "template": "You do not have a suitable weapon equipped."
+  },
+  "world-message.src.jurassic.you-fire-at-a-pedestrian-the-police-are-on-their-way": {
+    "template": "You fire at a pedestrian. The police are on their way!"
+  },
+  "world-message.src.jurassic.you-pick-up-coins": {
+    "template": "You pick up {amount} coins."
+  },
+  "world-message.src.jurassic.you-recover-the-velociraptor-remains": {
+    "template": "You recover the velociraptor remains."
+  },
+  "world-message.src.jurassic.your-recovery-assignment-is-already-in-the-quest-menu": {
+    "template": "Your recovery assignment is already in the Quest Menu."
+  },
+  "world-message.src.motorcycle.the-rental-desk-is-closed-while-a-pursuit-is-in-progress": {
+    "template": "The rental desk is closed while a pursuit is in progress."
+  },
+  "world-message.src.motorcycle.you-rent-the-motorcycle-for-5-coins-click-it-to-ride-or-use-mo": {
+    "template": "You rent the motorcycle for 5 coins. Click it to ride, or use Motorcycle / M."
+  },
+  "world-message.src.motorcycle.your-motorcycle-rental-is-already-paid-for": {
+    "template": "Your motorcycle rental is already paid for."
+  },
+  "world-message.src.multiplayer-actions.waiting-for-the-server": {
+    "template": "Waiting for the server…"
+  },
+  "world-message.src.multiplayer-client.connect-to-the-common-world-first": {
+    "template": "Connect to the common world first."
+  },
+  "world-message.src.multiplayer-client.connection-is-busy-try-again-in-a-moment": {
+    "template": "Connection is busy. Try again in a moment."
+  },
+  "world-message.src.multiplayer-client.connection-lost-please-try-again-once-reconnected": {
+    "template": "Connection lost. Please try again once reconnected."
+  },
+  "world-message.src.multiplayer-client.the-server-did-not-respond-reconnect-before-retrying": {
+    "template": "The server did not respond. Reconnect before retrying."
+  },
+  "world-message.src.multiplayer-world.both-players-must-enable-pvp-in-character-settings": {
+    "template": "Both players must enable PvP in Character settings."
+  },
+  "world-message.src.multiplayer-world.following-stopped": {
+    "template": "Following stopped."
+  },
+  "world-message.src.multiplayer-world.pvp-settings-could-not-be-updated": {
+    "template": "PvP settings could not be updated."
+  },
+  "world-message.src.multiplayer-world.stand-on-the-ground-before-following-another-player": {
+    "template": "Stand on the ground before following another player."
+  },
+  "world-message.src.multiplayer-world.you-defeated-their-possessions-dropped-where-they-fell": {
+    "template": "You defeated {name}. Their possessions dropped where they fell."
+  },
+  "world-message.src.quests.first-bring-a-monkey-from-the-zoo": {
+    "template": "First bring a monkey from the zoo."
+  },
+  "world-message.src.quests.quest-complete-monkey-business-you-receive-25-coins-the-monkey": {
+    "template": "Quest complete: Monkey Business! You receive 25 coins. The monkey has been appointed Visiting Professor of Banana Studies."
+  },
+  "world-message.src.quests.quest-started-monkey-business": {
+    "template": "Quest started: Monkey Business."
+  },
+  "world-message.src.quests.the-monkey-eyes-you-suspiciously": {
+    "template": "The monkey eyes you suspiciously."
+  },
+  "world-message.src.quests.the-monkey-steals-your-hat-then-climbs-onto-your-shoulder": {
+    "template": "The monkey steals your hat, then climbs onto your shoulder."
+  },
+  "world-message.src.quests.the-zookeeper-catches-you-and-returns-the-monkey-to-its-enclos": {
+    "template": "The zookeeper catches you and returns the monkey to its enclosure."
+  },
+  "world-message.src.quests.this-quest-is-already-in-your-journal": {
+    "template": "This quest is already in your journal."
+  },
+  "world-message.src.quests.you-already-have-your-research-assistant": {
+    "template": "You already have your research assistant."
+  },
+  "world-message.src.sales-conference.let-me-think-about-how-this-helps-me-sell-more-sales-software": {
+    "template": "“Let me think about how this helps me sell more sales software…”"
+  },
+  "world-message.src.sales-conference.let-us-circle-back-next-quarter-he-declines-you-keep-your-copy": {
+    "template": "“Let us circle back next quarter.” He declines. You keep your copy and can try another pitch."
+  },
+  "world-message.src.sales-conference.one-salesman-is-already-thinking-about-your-pitch-give-him-ten": {
+    "template": "One salesman is already thinking about your pitch. Give him ten seconds."
+  },
+  "world-message.src.sales-conference.this-will-help-me-sell-more-software-for-selling-software-he-b": {
+    "template": "“This will help me sell more software for selling software!” He buys one copy for {earned} coins{value2}."
+  },
+  "world-message.src.sales-conference.you-have-no-software-to-pitch": {
+    "template": "You have no software to pitch."
+  },
+  "world-message.src.salt-mail.the-clerk-stamps-your-salt-conservation-letter-received-and-pa": {
+    "template": "The clerk stamps your salt-conservation letter RECEIVED and pays you 50 coins from the activist’s campaign fund."
+  },
+  "world-message.src.salt-mail.you-receive-a-sealed-salt-conservation-letter-deliver-it-to-th": {
+    "template": "You receive a sealed salt-conservation letter. Deliver it to the City Hall clerk for 50 coins."
+  },
+  "world-message.src.secret-adventures.ahab-unfurls-the-sails-the-pequod-sets-off-toward-the-kraken": {
+    "template": "Ahab unfurls the sails. The Pequod sets off toward the kraken."
+  },
+  "world-message.src.secret-adventures.quest-complete-illuminatus-your-personal-b-2-and-replacement-p": {
+    "template": "Quest complete: Illuminatus! Your personal B-2 and replacement privileges are unlocked."
+  },
+  "world-message.src.secret-adventures.the-pequod-is-not-ready-to-sail": {
+    "template": "The Pequod is not ready to sail."
+  },
+  "world-message.src.southern-district.you-pay-coins-in-taxes-thank-you-for-your-contribution": {
+    "template": "You pay {amount} coins in taxes. Thank you for your contribution."
+  },
+  "world-message.src.strength.reach-strength-level-10-at-sf-fitness-before-we-invest": {
+    "template": "Reach strength level 10 at SF Fitness before we invest."
+  },
+  "world-message.src.strength.we-have-already-funded-you-make-those-1-000-coins-count": {
+    "template": "We have already funded you. Make those 1,000 coins count."
+  },
+  "world-message.src.sunglasses.you-already-picked-up-the-sunglasses": {
+    "template": "You already picked up the sunglasses."
+  },
+  "world-message.src.sunglasses.you-pick-up-the-sunglasses-open-character-c-to-wear-them-some": {
+    "template": "You pick up the sunglasses. Open Character (C) to wear them. Some things are easier to see through dark lenses."
+  },
+  "world-message.src.tech-ventures.doomscrolling-costs-you-hp-hitpoints": {
+    "template": "Doomscrolling costs you {hit} HP."
+  },
+  "world-message.src.tech-ventures.tim-apple-hands-you-an-equipped-iphone-you-can-put-it-away-in": {
+    "template": "Tim Apple hands you an equipped iPhone. You can put it away in Character settings."
+  },
+  "world-message.src.tech-ventures.you-lose-your-iphone-on-death-the-earnings-boost-is-gone": {
+    "template": "You lose your iPhone on death. The earnings boost is gone."
+  },
+  "world-message.src.tech-ventures.your-iphone-is-confiscated-during-the-arrest-the-earnings-boos": {
+    "template": "Your iPhone is confiscated during the arrest. The earnings boost is gone."
+  },
+  "world-message.src.tech-ventures.your-robotaxi-is-dispatched": {
+    "template": "Your robotaxi is dispatched."
+  },
+  "world-message.src.tech-ventures.your-robotaxi-is-out-finding-fares": {
+    "template": "Your robotaxi is out finding fares."
+  },
+  "world-message.src.teleport-tablets.buy-a-tablet-from-the-wizard-first": {
+    "template": "Buy a tablet from the wizard first."
+  },
+  "world-message.src.teleport-tablets.stand-on-solid-ground-outside-custody-before-breaking-a-tablet": {
+    "template": "Stand on solid ground, outside custody, before breaking a tablet."
+  },
+  "world-message.src.teleport-tablets.that-tablet-is-unavailable": {
+    "template": "That tablet is unavailable."
+  },
+  "world-message.src.they-live.alien-defeated": {
+    "template": "Alien defeated ({length}/{value2}). {value3}"
+  },
+  "world-message.src.they-live.quest-complete-they-live-the-clerk-thanks-you-and-gives-you-a": {
+    "template": "Quest complete: They Live! The clerk thanks you and gives you a skateboard. Ride it with K or the Skateboard button. You keep the sunglasses. The American Industrial Center’s full stock is now unlocked."
+  },
+  "world-message.src.they-live.quest-started-they-live": {
+    "template": "Quest started: They Live."
+  },
+  "world-message.src.they-live.speak-to-the-armorer-at-the-american-industrial-center": {
+    "template": "Speak to the armorer at the American Industrial Center."
+  },
+  "world-message.src.they-live.the-armorer-gives-you-a-bayonet": {
+    "template": "The armorer gives you a bayonet."
+  },
+  "world-message.src.they-live.the-armorer-needs-to-see-your-alien-removal-permit-first": {
+    "template": "The armorer needs to see your alien-removal permit first."
+  },
+  "world-message.src.they-live.the-clerk-is-waiting-for-you-to-defeat-all-six-aliens": {
+    "template": "The clerk is waiting for you to defeat all six aliens."
+  },
+  "world-message.src.they-live.the-clerk-requires-documentary-evidence": {
+    "template": "The clerk requires documentary evidence."
+  },
+  "world-message.src.they-live.the-clerk-stamps-your-alien-removal-permit-it-covers-revealed": {
+    "template": "The clerk stamps your alien-removal permit. It covers revealed aliens only."
+  },
+  "world-message.src.they-live.this-alien-has-already-been-defeated": {
+    "template": "This alien has already been defeated."
+  },
+  "world-message.src.they-live.you-already-have-your-bayonet": {
+    "template": "You already have your bayonet."
+  },
+  "world-message.src.they-live.you-already-received-your-skateboard": {
+    "template": "You already received your skateboard."
+  },
+  "world-message.src.they-live.you-attack-a-citizen-without-valid-authorization-the-police-ar": {
+    "template": "You attack a citizen without valid authorization. The police are on their way!"
+  },
+  "world-message.src.they-live.you-have-no-unusual-observations-to-report": {
+    "template": "You have no unusual observations to report."
+  },
+  "world-message.src.they-live.you-receive-an-alien-evidence-certificate": {
+    "template": "You receive an Alien Evidence Certificate."
+  },
+  "world-message.src.they-live.your-alien-evidence-certificate-is-already-on-file": {
+    "template": "Your Alien Evidence Certificate is already on file."
+  },
+  "world-message.src.they-live.your-alien-removal-permit-is-already-valid": {
+    "template": "Your alien-removal permit is already valid."
+  },
+  "world-message.src.username-form.connect-to-the-server-before-saving-your-name": {
+    "template": "Connect to the server before saving your name."
+  },
+  "world-message.src.username-form.unable-to-save-your-name": {
+    "template": "Unable to save your name."
+  },
+  "world-message.src.username-form.unable-to-save-your-name-please-try-again": {
+    "template": "Unable to save your name. Please try again."
+  },
+  "world-message.src.username-form.use-1-12-letters-numbers-or-underscores": {
+    "template": "Use 1–12 letters, numbers or underscores."
+  },
+  "world-message.src.username-form.username-saved": {
+    "template": "Username saved."
+  },
+  "world-message.src.wilderness.a-wall-of-static-forces-you-back": {
+    "template": "A wall of static forces you back."
+  },
+  "world-message.src.wilderness.move-closer-to-the": {
+    "template": "Move closer to the {value1}."
+  },
+  "world-message.src.wilderness.stand-beside-the-friendly-bear-to-pet-it": {
+    "template": "Stand beside the friendly bear to pet it."
+  },
+  "world-message.src.wilderness.that-creature-is-resting-come-back-after-it-respawns": {
+    "template": "That creature is resting. Come back after it respawns."
+  },
+  "world-message.src.wilderness.you-pet-the-bear-it-leans-into-your-hand-and-makes-a-very-cont": {
+    "template": "You pet the bear. It leans into your hand and makes a very contented huff. What a nice bear."
+  },
+  "world-message.src.world.generation.animal-control-is-on-its-way-nobody-said-there-would-be-cardio": {
+    "template": "Animal control is on its way. “Nobody said there would be cardio.”"
+  },
+  "world-message.src.world.generation.got-you-back-to-your-rent-controlled-enclosure-animal-control": {
+    "template": "“Got you! Back to your rent-controlled enclosure.” Animal control escorts the tiger home."
+  },
+  "world-message.src.world.generation.the-tiger-is-safely-back-in-its-cage-the-latch-has-learned-abs": {
+    "template": "The tiger is safely back in its cage. The latch has learned absolutely nothing."
+  },
+  "world-message.src.world.generation.woof": {
+    "template": "Woof!"
+  },
+  "world-message.src.world.generation.you-open-the-tigers-gate-the-tiger-has-interpreted-this-as-a-d": {
+    "template": "You open the tiger’s gate. The tiger has interpreted this as a dinner invitation. Run!"
+  },
+  "world-message.src.world.interactions.a-traveler-accepts-your-offer-and-starts-climbing-they-will-pa": {
+    "template": "A traveler accepts your offer and starts climbing. They will pay you 5 coins once aboard."
+  },
+  "world-message.src.world.interactions.best-way-to-see-the-city-borrow-the-bicycle-take-market-west-a": {
+    "template": "“Best way to see the city? Borrow the bicycle, take Market west, and go say hello to the ducks.”"
+  },
+  "world-message.src.world.interactions.borrow-a-windsurf-board-at-crissy-field-to-jump-over-the-whale": {
+    "template": "Borrow a windsurf board at Crissy Field to jump over the whales."
+  },
+  "world-message.src.world.interactions.choose-a-whale-with-enough-open-water-around-it-to-jump": {
+    "template": "Choose a whale with enough open water around it to jump."
+  },
+  "world-message.src.world.interactions.equal-coin-stakes-and-a-fair-50-50-flip-both-players-must-agre": {
+    "template": "Equal coin stakes and a fair 50–50 flip. Both players must agree here at the arena."
+  },
+  "world-message.src.world.interactions.equip-your-railgun-to-fight-the-kraken": {
+    "template": "Equip a railgun, Akimbos, or a missile launcher to fight the Kraken."
+  },
+  "world-message.src.world.interactions.find-a-place-on-foot-before-sitting-down": {
+    "template": "Find a place on foot before sitting down."
+  },
+  "world-message.src.world.interactions.find-your-feet-before-dancing": {
+    "template": "Find your feet before dancing."
+  },
+  "world-message.src.world.interactions.flying-northeast-across-california-to-lake-tahoe-this-is-a-lon": {
+    "template": "Flying northeast across California to Lake Tahoe. This is a long continuous flight."
+  },
+  "world-message.src.world.interactions.meet-your-doordash-cooler-on-walkable-ground": {
+    "template": "Meet your DoorDash cooler on walkable ground."
+  },
+  "world-message.src.world.interactions.move-closer-to-the": {
+    "template": "Move closer to the {value1}."
+  },
+  "world-message.src.world.interactions.out-of-gas-park-with-r-walk-to-a-gas-station-for-a-fuel-can-th": {
+    "template": "Out of gas. Park with R, walk to a gas station for a fuel can, then bring it back."
+  },
+  "world-message.src.world.interactions.park-the-ferrari-with-r-before-doing-that": {
+    "template": "Park the Ferrari with R before doing that."
+  },
+  "world-message.src.world.interactions.rehabilitation-complete-you-arrive-outside-ucsf-in-a-completel": {
+    "template": "Rehabilitation complete. You arrive outside UCSF in a completely different outfit, 100% inebriated."
+  },
+  "world-message.src.world.interactions.retract-the-rope-before-flying": {
+    "template": "Retract the rope before flying."
+  },
+  "world-message.src.world.interactions.return-the-airship-to-the-terminal-before-using-a-vehicle-or-e": {
+    "template": "Return the airship to the terminal before using a vehicle or entering a building. Choose Return to terminal from the airship menu."
+  },
+  "world-message.src.world.interactions.return-to-shore-before-climbing-sutro-tower": {
+    "template": "Return to shore before climbing Sutro Tower."
+  },
+  "world-message.src.world.interactions.return-to-shore-before-collecting-the-bicycle": {
+    "template": "Return to shore before collecting the bicycle."
+  },
+  "world-message.src.world.interactions.return-to-shore-before-renting-an-airship": {
+    "template": "Return to shore before renting an airship."
+  },
+  "world-message.src.world.interactions.returning-to-the-private-jet-terminal-the-airship-will-descend": {
+    "template": "Returning to the private jet terminal. The airship will descend onto its mooring."
+  },
+  "world-message.src.world.interactions.speak-to-captain-ahab-to-return-to-shore": {
+    "template": "Speak to Captain Ahab to return to shore."
+  },
+  "world-message.src.world.interactions.stop-that-monkey-has-a-keeper-the-zookeeper-gives-chase": {
+    "template": "“Stop! That monkey has a keeper!” The zookeeper gives chase."
+  },
+  "world-message.src.world.interactions.stop-you-are-under-arrest": {
+    "template": "Stop! You are under arrest!"
+  },
+  "world-message.src.world.interactions.teleport-requested-from-the-server": {
+    "template": "Teleport requested from the server."
+  },
+  "world-message.src.world.interactions.teleported-to": {
+    "template": "Teleported to {value1}, {value2}."
+  },
+  "world-message.src.world.interactions.that-point-is-blocked-or-outside-the-walkable-map-choose-a-roa": {
+    "template": "That point is blocked or outside the walkable map. Choose a road, path, or open ground."
+  },
+  "world-message.src.world.interactions.the-ferrari-does-twenty-times-walking-speed-click-the-road-or": {
+    "template": "The Ferrari does twenty times walking speed. Click the road or minimap to drive, or use Drive to Tahoe. Keep an eye on the gas gauge. R parks."
+  },
+  "world-message.src.world.interactions.the-guild-admits-members-only": {
+    "template": "The guild admits members only."
+  },
+  "world-message.src.world.interactions.the-motorcycle-is-yours-to-ride-click-it-or-press-m-to-get-on": {
+    "template": "The motorcycle is yours to ride. Click it or press M to get on."
+  },
+  "world-message.src.world.interactions.there-is-no-clear-route-to-the-sutro-tower-ladder": {
+    "template": "There is no clear route to the Sutro Tower ladder."
+  },
+  "world-message.src.world.interactions.there-is-no-room-to-roll-forward-face-some-open-ground": {
+    "template": "There is no room to roll forward. Face some open ground."
+  },
+  "world-message.src.world.interactions.unable-to-launch-please-speak-to-the-attendant-again": {
+    "template": "Unable to launch. Please speak to the attendant again."
+  },
+  "world-message.src.world.interactions.wait-for-your-passenger-to-finish-climbing": {
+    "template": "Wait for your passenger to finish climbing."
+  },
+  "world-message.src.world.interactions.walking-south-to-the-private-jet-terminal-and-airship-rental-s": {
+    "template": "Walking south to the private jet terminal and airship rental stand."
+  },
+  "world-message.src.world.interactions.walking-to": {
+    "template": "Walking to {label}…"
+  },
+  "world-message.src.world.interactions.walking-to-the-bicycle": {
+    "template": "Walking to the bicycle…"
+  },
+  "world-message.src.world.interactions.walking-to-the-sutro-tower-service-ladder": {
+    "template": "Walking to the Sutro Tower service ladder…"
+  },
+  "world-message.src.world.interactions.walking-to-the-windsurf-board-at-crissy-field": {
+    "template": "Walking to the windsurf board at Crissy Field…"
+  },
+  "world-message.src.world.interactions.welcome-back-to-the-ai-lab": {
+    "template": "The brain is still floating, and the GPU racks sound like a plane on the taxiway. You’re on the clock while you’re inside."
+  },
+  "world-message.src.world.interactions.you-are-under-arrest-you-have-been-placed-in-the-carceral-urba": {
+    "template": "You are under arrest! You have been placed in the Carceral Urbanist Facility in the Marin Headlands. Click the floor to walk within your cell, or talk through the bars to the rehabilitation specialist."
+  },
+  "world-message.src.world.interactions.you-attack-the-they-call-for-the-police": {
+    "template": "You attack the {value1}. They call for the police."
+  },
+  "world-message.src.world.interactions.you-begin-every-exercise-earns-the-same-strength-xp-choose-ano": {
+    "template": "You begin {value1}. Every exercise earns the same strength XP. Choose another exercise to switch, or Stop training / Escape to finish."
+  },
+  "world-message.src.world.interactions.you-board-the-airships-white-flight-basket-click-its-floor-to": {
+    "template": "You board the airship’s white flight basket. Click its floor to walk around; click the ground or minimap to fly."
+  },
+  "world-message.src.world.interactions.you-board-the-gondola-down-to-the-lakeside-station": {
+    "template": "You board the gondola down to the lakeside station."
+  },
+  "world-message.src.world.interactions.you-board-the-gondola-the-mountain-rises-far-above-the-lake": {
+    "template": "You board the gondola. The mountain rises far above the lake."
+  },
+  "world-message.src.world.interactions.you-board-the-reusable-rocket-next-stop": {
+    "template": "You board the reusable rocket. Next stop: {value1}"
+  },
+  "world-message.src.world.interactions.you-break-off-the-fight": {
+    "template": "You break off the fight."
+  },
+  "world-message.src.world.interactions.you-can-only-carry-one-live-fish": {
+    "template": "Sell or trade your live fish before fishing again."
+  },
+  "world-message.src.world.interactions.you-carry-the-board-back-onto-crissy-field": {
+    "template": "You carry the board back onto Crissy Field."
+  },
+  "world-message.src.world.interactions.you-carry-the-board-back-onto-pacifica-beach": {
+    "template": "You carry the board back onto Pacifica beach."
+  },
+  "world-message.src.world.interactions.you-do-not-have-access-to-this-passage": {
+    "template": "You do not have access to this passage."
+  },
+  "world-message.src.world.interactions.you-do-not-own-a-skateboard": {
+    "template": "You do not own a skateboard."
+  },
+  "world-message.src.world.interactions.you-enter-the-ai-lab": {
+    "template": "A brain floats inside a magnetic ring. The GPU racks make more noise than it does. Ask the recruiter about the two-minute arithmetic interview."
+  },
+  "world-message.src.world.interactions.you-enter-the-lodge-a-checkerboard-floor-brass-compasses-and-e": {
+    "template": "You enter the lodge. A checkerboard floor, brass compasses, and extremely exclusive biscuits."
+  },
+  "world-message.src.world.interactions.you-enter-the-the-farmers-wear-black-coats-and-sunglasses-the": {
+    "template": "You enter the {TECHNOLOGIST_MARKET}. The farmers wear black coats and sunglasses. The produce may know kung fu."
+  },
+  "world-message.src.world.interactions.you-fill-a-sack-with-ocean-beach-sand": {
+    "template": "You fill a sack with Ocean Beach sand."
+  },
+  "world-message.src.world.interactions.you-have-died-and-respawned-at-ucsf-hospital": {
+    "template": "You have died and respawned at UCSF Hospital"
+  },
+  "world-message.src.world.interactions.you-have-no-fuel-can": {
+    "template": "You have no fuel can."
+  },
+  "world-message.src.world.interactions.you-have-no-grain": {
+    "template": "You have no grain."
+  },
+  "world-message.src.world.interactions.you-have-not-rented-this-motorcycle": {
+    "template": "You have not rented this motorcycle."
+  },
+  "world-message.src.world.interactions.you-have-reached-the-maximum-strength-level-50": {
+    "template": "You have reached the maximum strength level, 50."
+  },
+  "world-message.src.world.interactions.you-hop-on-the-bicycle-click-to-ride-press-b-to-park": {
+    "template": "You hop on the bicycle. Click to ride; press B to park."
+  },
+  "world-message.src.world.interactions.you-launch-from-crissy-field-click-the-bay-to-windsurf-f-retur": {
+    "template": "You launch from Crissy Field. Click the bay to windsurf; F returns you to shore."
+  },
+  "world-message.src.world.interactions.you-launch-your-board-over-the-humpback-whale": {
+    "template": "You launch your board over the humpback whale!"
+  },
+  "world-message.src.world.interactions.you-paddle-out-from-pacifica-click-the-water-to-paddle-space-c": {
+    "template": "You paddle out from Pacifica. Click the water to paddle; Space catches a wave. 1 / 2 / 3 perform tricks while riding. U returns to the beach."
+  },
+  "world-message.src.world.interactions.you-park-the-bicycle-it-will-be-waiting-here": {
+    "template": "You park the bicycle. It will be waiting here."
+  },
+  "world-message.src.world.interactions.you-park-the-ferrari-it-will-be-waiting-here": {
+    "template": "You park the Ferrari. It will be waiting here."
+  },
+  "world-message.src.world.interactions.you-park-the-motorcycle-your-rental-remains-valid": {
+    "template": "You park the motorcycle. Your rental remains valid."
+  },
+  "world-message.src.world.interactions.you-pet-the-bunny-its-nose-twitches-approvingly": {
+    "template": "You pet the bunny. Its nose twitches approvingly."
+  },
+  "world-message.src.world.interactions.you-pet-the-dog-its-afternoon-has-improved-considerably": {
+    "template": "You pet the dog. Its afternoon has improved considerably."
+  },
+  "world-message.src.world.interactions.you-pick-up-your-skateboard": {
+    "template": "You pick up your skateboard."
+  },
+  "world-message.src.world.interactions.you-push-off-click-to-steer-and-press-space-while-airborne-to": {
+    "template": "You push off. Click to steer and press Space while airborne to flip!"
+  },
+  "world-message.src.world.interactions.you-sail-into-position-to-jump-the-humpback": {
+    "template": "You sail into position to jump the humpback."
+  },
+  "world-message.src.world.interactions.you-scatter-one-bag-of-grain-quack-the-mallards-and-ducklings": {
+    "template": "You scatter one bag of grain. Quack! The mallards and ducklings paddle over to investigate."
+  },
+  "world-message.src.world.interactions.you-set-down-your-skateboard-click-to-skate-k-puts-it-away": {
+    "template": "You set down your skateboard. Click to skate; K puts it away."
+  },
+  "world-message.src.world.interactions.you-start-climbing-down-sutro-tower": {
+    "template": "You start climbing down Sutro Tower."
+  },
+  "world-message.src.world.interactions.you-start-the-motorcycle-click-to-ride-m-parks": {
+    "template": "You start the motorcycle. Click to ride; M parks."
+  },
+  "world-message.src.world.interactions.you-steal-a-few-coins-from-the-they-raise-the-alarm": {
+    "template": "You steal a few coins from the {value1}. They raise the alarm."
+  },
+  "world-message.src.world.interactions.you-step-inside-orins-house-purple-tablets-and-a-well-worn-arm": {
+    "template": "You step inside Orin’s house. Purple tablets and a well-worn armchair suggest a wizard who dislikes commuting."
+  },
+  "world-message.src.world.interactions.you-switch-to": {
+    "template": "You switch to {value1}."
+  },
+  "world-message.src.world.interactions.you-take-the-service-ladder-up-sutro-tower-press-e-or-climb-do": {
+    "template": "You take the service ladder up Sutro Tower. Press E or Climb down to turn back."
+  },
+  "world-message.src.world.interactions.you-try-to-steal-the-conveniently-parked-motorcycle-its-alarm": {
+    "template": "You try to steal the conveniently parked motorcycle. Its alarm summons the police!"
+  },
+  "world-message.src.world.interactions.your-passenger-has-already-boarded-or-is-still-climbing": {
+    "template": "Your passenger has already boarded or is still climbing."
+  },
+  "world-message.src.world.interactions.your-skis-are-already-rented-for-this-visit": {
+    "template": "Your skis are already rented for this visit."
+  },
+  "world-message.src.world.interactions.your-skis-are-ready-use-ski-down-to-begin-your-descent": {
+    "template": "Your skis are ready. Use Ski down to begin your descent."
+  },
+  "world-message.src.world.network.you-reach-the-upper-platform-of-sutro-tower-use-the-arrows-to": {
+    "template": "You reach the upper platform of Sutro Tower. Use the arrows to look around; Climb down or E returns to the ground."
+  },
+  "world-message.src.world.network.you-step-off-the-sutro-tower-ladder-and-return-to-the-trail": {
+    "template": "You step off the Sutro Tower ladder and return to the trail."
+  },
+  "world-message.src.world.runtime.you-enter": {
+    "template": "You enter {label}."
+  },
+  "world-message.src.world.runtime.you-leave-and-return-to-the-campus": {
+    "template": "You leave {label} and return to the campus."
+  },
+  "world-message.src.world.runtime.you-leave-and-return-to-the-street": {
+    "template": "You leave {label} and return to the street."
+  },
+  "world-message.src.world.scene.walk-closer-to-a-storefront-to-enter-click-a-content-icon-on-t": {
+    "template": "Walk closer to a storefront to enter. Click a content icon on the minimap to visit a storefront."
+  },
+  "world-message.src.world.scene.you-reel-in-your-line": {
+    "template": "You reel in your line."
+  },
+  "world-message.sutro.climb-down-before-walking": {
+    "template": "Climb down from Sutro Tower before walking elsewhere. Use Climb down or press E."
+  },
+  "world-message.welcome": {
+    "template": "Welcome to San Francisco. Make yourself at home."
+  },
+  "world-message.waymo.call-unavailable": {
+    "template": "Call a Waymo while you’re on foot and have no active rental."
+  },
+  "world-message.waymo.no-pickup-route": {
+    "template": "The dispatch depot can’t reach this pickup. Try calling from an open street."
+  },
+  "world-message.waymo.dispatched": {
+    "template": "A Waymo is on its way from the dispatch depot."
+  },
+  "world-message.waymo.arrived": {
+    "template": "Your Waymo is here. Board it to start driving."
+  },
+  "world-message.waymo.walk-up": {
+    "template": "Walk up to your parked Waymo before boarding."
+  },
+  "world-message.waymo.expired": {
+    "template": "Your one-minute Waymo rental has ended."
+  },
+  "world-message.goblin-phone.purchase": {
+    "template": "“It doesn’t do anything,” you say. The industrialist taps the clay. “It’s a good notepad.”"
+  },
+  "world-message.goblin-phone.no-phone": {
+    "template": "You don’t have a Goblin Phone to sell."
+  },
+  "world-message.goblin-phone.sold": {
+    "template": "The farmer pays you {price} coins. “Finally, a phone I can use to prop the stall open.”"
+  },
+  "world-message.fighter-yard.admission-required": {
+    "template": "Talk to Tyler at the Fighter Yard gate to pay for admission."
+  },
+  "world-message.fighter-yard.already-admitted": {
+    "template": "Tyler already has your waiver on file."
+  },
+  "world-message.fighter-yard.admitted": {
+    "template": "Tyler takes 10 coins and records your waiver. “Caveat emptor.”"
+  },
+  "world-message.construction.visit-workbench": {
+    "template": "Walk up to the Construction Site workbench to start work."
+  },
+  "world-message.construction.cooldown": {
+    "template": "You can work at the Construction Site again in {remaining}."
+  },
+  "world-message.construction.shift-ended": {
+    "template": "Your 30-minute construction shift is over. You can start another in one hour."
+  },
+  "world-message.tahoe-pelts.inventory-full": {
+    "template": "You cannot carry any more pelts."
+  },
+  "world-message.tahoe-pelts.none": {
+    "template": "You do not have that pelt."
+  },
+  "world-message.tahoe-pelts.sold": {
+    "template": "The clothier pays {price} coins for the {pelt}."
+  },
+  "world-message.uni.inventory-full": {
+    "template": "You cannot carry any more Uni."
+  },
+  "world-message.uni.visit-rich-table": {
+    "template": "Take your Uni to Rich Table."
+  },
+  "world-message.uni.none": {
+    "template": "Rich Table offers 40 coins per Uni. You don’t have any to sell."
+  },
+  "world-message.uni.sold": {
+    "template": "Rich Table buys one Uni for 40 coins."
+  },
+  "world-message.berkeley-lab.sand-full": {
+    "template": "You cannot carry any more sand."
+  },
+  "world-message.berkeley-lab.approach": {
+    "template": "Walk up to the hot trapdoor."
+  },
+  "world-message.berkeley-lab.too-hot": {
+    "template": "The trapdoor is too hot. Equip both pieces of icy clothing to descend."
+  },
+  "world-message.berkeley-lab.use-stairs": {
+    "template": "Use the stairs near the laboratory entrance."
+  },
+  "world-message.gym.cooldown": {
+    "template": "Your muscles need {minutes} more minutes of rest before you can train again."
+  },
+  "world-message.gym.shift-ended": {
+    "template": "You have trained for 30 minutes. SF Fitness is available again in one hour."
+  },
+  "world-message.biomed.nearby": {
+    "template": "Speak to the Entrepreneur first."
+  },
+  "world-message.biomed.amount": {
+    "template": "Enter a positive whole number of coins."
+  },
+  "world-message.biomed.funds": {
+    "template": "You do not have that many coins."
+  },
+  "world-message.biomed.paid": {
+    "template": "The Entrepreneur pockets your coins. “I’ll put you down for an update next quarter.”"
+  },
+  "world-message.loot.item-full": {
+    "template": "You cannot carry any more of that item."
+  },
+  "world-message.iron-armor.visit": {
+    "template": "Speak to the Enterprising Industrialist at the American Industrial Center."
+  },
+  "world-message.iron-armor.trim-requirements": {
+    "template": "You need plain iron armor and an armor trimming kit."
+  },
+  "world-message.iron-armor.already-trimmed": {
+    "template": "You already own a suit of gold-trimmed iron armor."
+  },
+  "world-message.iron-armor.trimmed": {
+    "template": "You use up the kit edging your iron armor in gold."
+  },
+  "world-message.goblin-incubator.fish": {
+    "template": "The goblin takes your 10 coins and hands you a live fish."
+  },
+  "world-message.trampoline.nearby": {
+    "template": "Walk over to the trampoline first."
+  },
+  "world-message.bind-tablet.requirements": {
+    "template": "You need a Bind Tablet and must have PvP enabled to break it."
+  },
+  "world-message.bind-tablet.immobile": {
+    "template": "You are bound and cannot move yet."
+  },
+  "world-message.bind-tablet.broken": {
+    "template": "The tablet shatters and binds {count} nearby opponents."
+  },
+  "world-message.missiles.empty": {
+    "template": "Your missile launcher is out of missiles. The American Industrial Center armorer sells them."
+  },
+  "world-message.missiles.cost": {
+    "template": "You need {price} coins for a missile."
+  },
+  "world-message.missiles.purchased": {
+    "template": "You buy one missile for {price} coins."
+  },
+  "world-message.player-trade.nearby": {
+    "template": "Stand near the other player and finish any combat or travel before trading."
+  },
+  "world-message.player-trade.busy": {
+    "template": "One of you already has a trade open."
+  },
+  "world-message.player-trade.expired": {
+    "template": "The trade closed because a player left, moved out of range, entered combat, or the request timed out."
+  },
+  "world-message.player-trade.cancelled": {
+    "template": "Trade cancelled."
+  },
+  "world-message.player-trade.changed": {
+    "template": "The offer changed. Review it again before confirming."
+  },
+  "world-message.player-trade.waiting": {
+    "template": "Wait for the other player to accept the trade request."
+  },
+  "world-message.player-trade.invalid-items": {
+    "template": "Some of those items are unavailable. Check your inventory and update your offer."
+  },
+  "world-message.player-trade.empty": {
+    "template": "Add an item to either offer before confirming."
+  },
+  "world-message.player-trade.no-longer-valid": {
+    "template": "The trade cannot fit in both inventories, or an offered item is no longer available."
+  },
+  "world-message.player-trade.save-failed": {
+    "template": "The trade could not be saved. Both inventories are intact."
+  },
+  "world-message.player-trade.complete": {
+    "template": "Trade completed."
+  },
+  "world-message.bicycle-seizure.unavailable": {
+    "template": "This bicycle is unavailable."
+  },
+  "world-message.bicycle-seizure.seized": {
+    "template": "You seize the bicycle and ride off."
+  },
+  "world-message.securities-investigator.arrives": {
+    "template": "A Securities Investigator is coming for you about that listing."
+  }
+}

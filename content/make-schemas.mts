@@ -4,6 +4,7 @@ type SchemaNode = JSONObject & { properties?: Record<string, SchemaNode> };
 const properties = (schema: SchemaNode) =>
   requiredValue(schema.properties, 'Object schema properties');
 import { readFile, writeFile } from 'node:fs/promises';
+import { BURNING_MAN_STAGES } from '../src/burning-man.ts';
 const id = 'https://loeber.land/schemas/';
 const str = { type: 'string' },
   bool = { type: 'boolean' },
@@ -287,6 +288,20 @@ const player = stateSchema(defaults);
 player.$schema = 'http://json-schema.org/draft-07/schema#';
 player.$id = id + 'player-state.schema.json';
 properties(player).schema = { const: 2 };
+properties(
+  requiredValue(
+    properties(requiredValue(properties(player).quests, 'Quest schema')).stochasticParrot,
+    'Stochastic parrot quest schema',
+  ),
+).stage = {
+  enum: ['not-started', 'accepted', 'carrying', 'proof', 'sold'],
+};
+properties(
+  requiredValue(
+    properties(requiredValue(properties(player).quests, 'Quest schema')).burningMan,
+    'Burning Man quest schema',
+  ),
+).stage = { enum: [...BURNING_MAN_STAGES] };
 properties(
   requiredValue(
     properties(requiredValue(properties(player).quests, 'Quest schema')).monkey,

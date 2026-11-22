@@ -1,7 +1,16 @@
+import { drawBackyardDetails, drawHydrant, drawTrampoline } from '../backyard-details.ts';
+import { drawParkSwings, drawTreeSwing } from '../swings.ts';
+import { BURNING_MAN } from '../burning-man.ts';
+import { burningManDJ, drawBurningManGrove } from '../burning-man-models.ts';
+import { drawLegacySoftware } from '../legacy-software.ts';
+import { LEGACY_SOFTWARE } from '../legacy-software-layout.ts';
+import { inBerkeleyLab, LAB_FLOOR, LAB_SPAWNS, LAB_NAV, LAB_SIGN } from '../berkeley-lab.ts';
+import { DYNAMITE_DEPOT } from '../config/dynamite-depot.ts';
+import { drawDynamiteDepot } from '../dynamite-depot.ts';
 import { requirePlacedBuilding } from '../building-placement.ts';
 import type { ParcelRectangle } from '../types/parcels.ts';
 import type { HeightField } from '../southern-terrain.ts';
-import type { RenderedSite, Street, Site, Place, WorldObject } from '../types/world.ts';
+import type { RenderedSite, Site, Place, WorldObject } from '../types/world.ts';
 import { hasPhysicalBounds, isPickTarget, requiredPhysicalObject } from '../picking.ts';
 import type { InstituteRoom, DetachedInterior } from '../types/interiors.ts';
 import { isFiniteNumber, isRecord } from '../types/json.ts';
@@ -16,7 +25,8 @@ import type { DestinationBuilding } from '../types/buildings.ts';
 import type { WorldContext } from './scene.ts';
 // CONTENT-BINDINGS-MIGRATED
 import { contentText, refreshContent, subscribeContent } from '../content-runtime.ts';
-import { BOLINAS } from '../bolinas.ts';
+import { BOLINAS, BOLINAS_BEACH } from '../bolinas.ts';
+import { POINT_REYES } from '../point-reyes.ts';
 import {
   DOG_PONY_SIGN,
   drawDogPonyShowground,
@@ -44,8 +54,15 @@ import { createMarinLand } from '../marin-land.ts';
 import { createCountryside } from '../countryside.ts';
 import { equipmentDefense } from '../item-stats.ts';
 import { createWilderness, wildernessSpawns } from '../wilderness.ts';
+import type { WildernessActor } from '../types/monsters.ts';
 import { drawPirateWreck } from '../wilderness-sites.ts';
 import { createFerrariCityRoads } from '../ferrari-roads.ts';
+import { drawFighterYard } from '../fighter-yard.ts';
+import { drawGirardHouse } from '../girard-house.ts';
+import { GIRARD_HOME } from '../girard-layout.ts';
+import { CONSTRUCTION_SITE } from '../construction-layout.ts';
+import { drawConstructionSite } from '../construction-site.ts';
+import { FIGHTER_YARD } from '../fighter-yard-layout.ts';
 import { drawArmory } from '../armory.ts';
 import { batchInFrustum } from '../static-batches.ts';
 import { SOUTHERN_CRAFT_SIGNS } from '../southern-craft.ts';
@@ -58,8 +75,23 @@ import { SALT_FLATS_SIGNS, drawSaltFlats } from '../salt-flats.ts';
 import { planBlockStreetLights, houseDoorPositions } from '../street-light-layout.ts';
 
 import { drawDogHouse } from '../search-house-models.ts';
-import { FURNITURE_FACTORY } from '../goblin-town.ts';
+import {
+  drawGoblinIncubator,
+  FURNITURE_FACTORY,
+  GOBLIN_INCUBATOR,
+  GOBLIN_TOWN,
+} from '../goblin-town.ts';
+import { drawGoblinAILab, GOBLIN_AI_LAB, GOBLIN_PLUMBERS } from '../goblin-ai-lab.ts';
+import {
+  drawGoblinSpaceProgram,
+  drawMudBath,
+  drawVillageGoose,
+  drawVillagePosters,
+} from '../goblin-space.ts';
+import { GOBLIN_SPACE_PROGRAM, MUD_BATH, VILLAGE_POSTERS } from '../goblin-space-layout.ts';
+import { PARROT_SCIENTIST } from '../stochastic-parrot.ts';
 import { ATV_RENTAL } from '../atv.ts';
+import { drawRentalATV } from '../atv-model.ts';
 import { Mesh, rand, tint } from '../geometry.ts';
 import { gradeStreetHeightField } from '../street-ground.ts';
 import {
@@ -146,6 +178,8 @@ import { SUNGLASSES_BEACH_TARGET, beachSunglassesSite } from '../sunglasses.ts';
 import { SEARCH_HOMES, houseClimb, searchHomeContaining } from '../search-houses.ts';
 import { createLoreBookTarget } from '../world-lore.ts';
 import { TERMINATOR_FACTORY } from '../encounter-layout.ts';
+import { drawGoblinPhoneHut, GOBLIN_INDUSTRIALIST, ROBE_SELLER } from '../goblin-industrialist.ts';
+import { drawWaymoDispatch, WAYMO_DISPATCH_NAME } from '../waymo-dispatch.ts';
 import { drawAbandonedFactory } from '../encounter-buildings.ts';
 import { ALIEN_TARGETS } from '../they-live.ts';
 import {
@@ -211,7 +245,12 @@ import {
 import { ZOO_ENCLOSURES, drawZooEnclosures } from '../zoo-animals.ts';
 
 import { SF_ZOO, UCSF_HOSPITAL, drawZooAndHospital } from '../zoo.ts';
-import { DOG_SURFING, drawDogSurfingBeach } from '../dog-surfing.ts';
+import {
+  DOG_SURFING,
+  dogSurfTrophyZ,
+  drawDogSurfingBeach,
+  drawDogSurfTrophies,
+} from '../dog-surfing.ts';
 import { PACIFICA_SURF_SPOT, drawSurfRack } from '../surfing.ts';
 import { createPoliceChase, drawDetentionFacility } from '../encounters.ts';
 import {
@@ -265,23 +304,6 @@ export function createGeneration(context: WorldContext) {
       }
     });
     return { distance, index };
-  }
-
-  function alongStreet(r: Street, f: number) {
-    r = { ...r, points: r.route || r.points };
-    const lengths = r.points
-      .slice(1)
-      .map((p, i) => Math.hypot(p[0] - r.points[i][0], p[1] - r.points[i][1]));
-    let d = f * lengths.reduce((a, b) => a + b, 0);
-    for (let i = 0; i < lengths.length; i++) {
-      if (d <= lengths[i] || i === lengths.length - 1) {
-        const a = r.points[i],
-          b = r.points[i + 1],
-          t = d / lengths[i];
-        return { x: a[0] + (b[0] - a[0]) * t, y: a[1] + (b[1] - a[1]) * t };
-      }
-      d -= lengths[i];
-    }
   }
 
   function registerInstituteInterior(sight: Site, interior: DetachedInterior) {
@@ -618,6 +640,51 @@ export function createGeneration(context: WorldContext) {
   }
 
   function setupWilderness() {
+    const entrepreneur = { x: 56.5, z: 172.5 };
+    if (!context.merchants.some((npc) => npc.id === 'biomed-entrepreneur'))
+      context.merchants.push({
+        ...entrepreneur,
+        id: 'biomed-entrepreneur',
+        kind: 'biomed-entrepreneur',
+        name: 'Entrepreneur',
+        label: 'Entrepreneur',
+        base: characterGround(entrepreneur.x, entrepreneur.z),
+        female: true,
+        longHair: true,
+        hair: '#e6c77e',
+        shirt: '#444f67',
+        pants: '#373d48',
+        skin: '#d6a786',
+        regional: true,
+        angle: Math.PI / 2,
+        approach: { x: 56.75, y: 172.1 },
+        description: 'She carries a glossy pitch deck with no product photographs.',
+      });
+    const { tyler, entry } = FIGHTER_YARD;
+    if (!context.merchants.some((npc) => npc.id === tyler.id))
+      context.merchants.push({
+        ...tyler,
+        kind: 'fighter-yard-host',
+        name: 'Tyler',
+        label: 'Tyler',
+        base: characterGround(tyler.x, tyler.z),
+        angle: 0,
+        approach: { ...entry },
+        stationary: true,
+        skin: '#b38b70',
+        hair: '#35291f',
+        shirt: '#774c42',
+        pants: '#4f4640',
+        description: 'The man at the gate has an admission ledger and a folder of signed waivers.',
+      });
+    if (!context.sights.some((s) => s.id === BOLINAS_BEACH.id))
+      context.sights.push({
+        ...BOLINAS_BEACH,
+        kind: 'beach',
+        label: 'Bolinas Beach',
+        description: 'A sandy cove below the Bolinas cottages.',
+      });
+    if (!context.sights.some((s) => s.id === POINT_REYES.id)) context.sights.push(POINT_REYES);
     if (!context.sights.some((s) => s.id === 'bolinas'))
       context.sights.push({
         id: 'bolinas',
@@ -654,7 +721,6 @@ export function createGeneration(context: WorldContext) {
           z,
           base: characterGround(x, z),
           regional: true,
-          stationary: true,
           skin: '#b89372',
           shirt: '#75958c',
           hair: '#6c5848',
@@ -697,6 +763,78 @@ export function createGeneration(context: WorldContext) {
         entry: { x: 29.5, y: -17.5 },
         description: contentText('world.generation.setupWilderness.description-24', {}),
       });
+    for (const { id, x, z, line } of GOBLIN_PLUMBERS) {
+      if (context.merchants.some((npc) => npc.id === id)) continue;
+      context.merchants.push({
+        id,
+        kind: 'goblin-plumber',
+        name: 'Goblin Plumber',
+        label: 'Goblin Plumber',
+        localLine: line,
+        x,
+        z,
+        base: characterGround(x, z),
+        angle: Math.PI / 2,
+        stationary: true,
+        regional: true,
+        height: 1.35,
+        description: 'A Goblin AI Lab plumber in soot-streaked overalls.',
+      });
+    }
+    const founder = GOBLIN_INCUBATOR.founder;
+    const industrialist = GOBLIN_INDUSTRIALIST;
+    if (!context.merchants.some((npc) => npc.id === industrialist.id))
+      context.merchants.push({
+        ...industrialist.vendor,
+        id: industrialist.id,
+        kind: industrialist.id,
+        name: 'Goblin Industrialist',
+        label: 'Goblin Industrialist',
+        base: characterGround(industrialist.vendor.x, industrialist.vendor.z),
+        angle: Math.PI / 2,
+        approach: { ...industrialist.entry },
+        stationary: true,
+        regional: true,
+        height: 1.35,
+        skin: '#819955',
+        shirt: '#332e28',
+        hair: '#39332d',
+        description: 'A mud-hut magnate who manufactures clay bricks with rounded corners.',
+      });
+    if (!context.merchants.some((npc) => npc.id === ROBE_SELLER))
+      context.merchants.push({
+        id: ROBE_SELLER,
+        kind: ROBE_SELLER,
+        x: 48.875,
+        z: 55.375,
+        name: 'Robe Seller',
+        label: 'Robe Seller',
+        base: characterGround(48.875, 55.375),
+        angle: 1.2,
+        stationary: true,
+        skin: '#947051',
+        shirt: '#dc6f9c',
+        pants: '#7c4f6e',
+        hair: '#392948',
+        description: 'A tailor selling pink robes with rainbow trim.',
+      });
+    if (!context.merchants.some((npc) => npc.id === founder.id))
+      context.merchants.push({
+        ...founder,
+        kind: 'founder',
+        name: 'Goblin Founder',
+        label: 'Goblin Founder',
+        base: characterGround(founder.x, founder.z),
+        angle: Math.PI / 2,
+        approach: { ...GOBLIN_INCUBATOR.entry },
+        stationary: true,
+        regional: true,
+        height: 1.35,
+        skin: '#789553',
+        shirt: '#795774',
+        hair: '#39332d',
+        description: 'A goblin who can explain the valuation or the business model. Pick one.',
+      });
     if (!context.merchants.some((npc) => npc.id === ATV_RENTAL.npcId)) {
       const { x, z } = ATV_RENTAL.npc;
       context.merchants.push({
@@ -718,6 +856,7 @@ export function createGeneration(context: WorldContext) {
       });
     }
     const spawns = wildernessSpawns({ marin: context.goldenGate.gate('marin'), tahoe: TAHOE.base });
+    spawns.push(context.esotericCampus.madScientistSpawn, ...LAB_SPAWNS);
     const bison = requiredValue(
         spawns.find((n) => n.combatKind === 'bison'),
         'Missing authored world entity: bison',
@@ -747,11 +886,15 @@ export function createGeneration(context: WorldContext) {
       if (clear) Object.assign(p, { x: clear.x + 0.5, z: clear.y + 0.5 });
     }
     for (const p of spawns)
-      if (!context.landClearAt(p.x - 0.5, p.z - 0.5))
+      if (
+        !(inBerkeleyLab(p.x, p.z)
+          ? LAB_NAV.free(p.x - 0.5, p.z - 0.5)
+          : context.landClearAt(p.x - 0.5, p.z - 0.5))
+      )
         throw Error(p.id + ' needs a native walkable spawn');
     context.wilderness = createWilderness({
       spawns,
-      ground: characterGround,
+      ground: (x, z) => (inBerkeleyLab(x, z) ? LAB_FLOOR + 0.025 : characterGround(x, z)),
       canTravel: (a: { x: number; z: number }, b: { x: number; z: number }) =>
         context.canTravel(a.x - 0.5, a.z - 0.5, b.x - 0.5, b.z - 0.5, true),
       route: (a, b) =>
@@ -784,23 +927,26 @@ export function createGeneration(context: WorldContext) {
               equipmentDefense(context.playerLook),
           ),
         );
-        context.expeditionEvent({
-          type: 'damage',
-          damage,
-          hp: context.health.state.hp,
-          max: context.health.state.max,
-          target: actor,
-          message: null,
-        });
-        if (!context.health.state.hp) {
-          context.wildTarget = null;
-          context.expeditionEvent({
-            type: 'death',
-            message: 'You have died and respawned at UCSF Hospital',
-          });
-        }
+        showWildernessDamage(damage, actor);
+      },
+      onReflect: (_attacker, amount, actor) => {
+        if (!context.headless) showWildernessDamage(context.health.damage(amount), actor);
       },
     });
+    function showWildernessDamage(damage: number, actor: WildernessActor) {
+      context.expeditionEvent({
+        type: 'damage',
+        damage,
+        hp: context.health.state.hp,
+        max: context.health.state.max,
+        target: actor,
+        message: null,
+      });
+      if (!context.health.state.hp) {
+        context.wildTarget = null;
+        context.expeditionEvent({ type: 'death' });
+      }
+    }
   }
 
   function setupTigerEncounter() {
@@ -835,22 +981,30 @@ export function createGeneration(context: WorldContext) {
       onEvent: (event, warden) => {
         if (event === 'released')
           context.announce(
-            'You open the tiger’s gate. The tiger has interpreted this as a dinner invitation. Run!',
+            contentText(
+              'world-message.src.world.generation.you-open-the-tigers-gate-the-tiger-has-interpreted-this-as-a-d',
+            ),
             'Zoo',
           );
         if (event === 'dispatched')
           context.announce(
-            'Animal control is on its way. “Nobody said there would be cardio.”',
+            contentText(
+              'world-message.src.world.generation.animal-control-is-on-its-way-nobody-said-there-would-be-cardio',
+            ),
             'Animal Control',
           );
         if (event === 'captured')
           context.announce(
-            '“Got you! Back to your rent-controlled enclosure.” Animal control escorts the tiger home.',
+            contentText(
+              'world-message.src.world.generation.got-you-back-to-your-rent-controlled-enclosure-animal-control',
+            ),
             'Animal Control',
           );
         if (event === 'caged')
           context.announce(
-            'The tiger is safely back in its cage. The latch has learned absolutely nothing.',
+            contentText(
+              'world-message.src.world.generation.the-tiger-is-safely-back-in-its-cage-the-latch-has-learned-abs',
+            ),
             'Zoo',
           );
         if (event === 'missed' && warden) {
@@ -1100,6 +1254,7 @@ export function createGeneration(context: WorldContext) {
     };
     context.specialNPCLife = createNPCRoaming(context.merchants, {
       eligible: (n) =>
+        n.id !== GOBLIN_INCUBATOR.founder.id &&
         !n.socialActor &&
         !n.seated &&
         !n.researcher &&
@@ -1107,6 +1262,14 @@ export function createGeneration(context: WorldContext) {
           n.neighborhood ||
           n.alienId ||
           n.questRole ||
+          n.dogSurfJudge ||
+          n.kind === 'berkeley-mathematician' ||
+          n.kind === 'bolinas-local' ||
+          n.kind === 'churchgoer' ||
+          n.kind === 'battery-seller' ||
+          n.kind === 'goblin-plumber' ||
+          n.kind === GOBLIN_INDUSTRIALIST.id ||
+          n.kind === ROBE_SELLER ||
           n.expeditionRole === 'scientist' ||
           (n.kind && MERCHANTS[n.kind])
         ),
@@ -1327,6 +1490,20 @@ export function createGeneration(context: WorldContext) {
     });
     factory.entry = { ...armorer.approach };
     context.merchants.push(armorer);
+    context.merchants.push(
+      cityPerson('enterprising-industrialist', 84.2, INDUSTRIAL_CENTER.z + 0.65, {
+        kind: 'enterprising-industrialist',
+        name: 'Enterprising Industrialist',
+        label: 'Enterprising Industrialist',
+        shirt: '#252528',
+        pants: '#1d1e21',
+        coat: true,
+        hat: 'top-hat',
+        topHat: true,
+        height: 2.15,
+        description: 'A man in a black suit and top hat, always in the market for an original.',
+      }),
+    );
     const cityAliens = [
       ['alien-civic', hall.entry.x - 1, hall.entry.y + 1.8] satisfies [string, number, number],
       ['alien-ferry', ferry.entry.x - 1.4, ferry.entry.y + 2] satisfies [string, number, number],
@@ -1521,8 +1698,18 @@ export function createGeneration(context: WorldContext) {
         w: site.hi[0] - site.lo[0],
         d: site.hi[2] - site.lo[2],
         base: site.lo[1],
-        arch: 'regional',
-        solid: true,
+        ...(site.id !== DYNAMITE_DEPOT.id &&
+          site.id !== ATV_RENTAL.siteId &&
+          site.id !== GOBLIN_INCUBATOR.id &&
+          site.id !== GOBLIN_INDUSTRIALIST.hutId &&
+          site.id !== GOBLIN_AI_LAB.id &&
+          site.id !== GOBLIN_SPACE_PROGRAM.id &&
+          site.id !== MUD_BATH.id &&
+          site.id !== VILLAGE_POSTERS.id &&
+          site.kind !== 'goose-cage' &&
+          site.kind !== 'swing' &&
+          site.kind !== BURNING_MAN.statue &&
+          site.kind !== 'hot-trapdoor' && { arch: 'regional', solid: true }),
         preserveGround: true,
         footprint: site.footprint,
         navigationPolygons: site.navigationPolygons,
@@ -1532,6 +1719,19 @@ export function createGeneration(context: WorldContext) {
       context.sights.push(sight);
       if (site.interior) registerInstituteInterior(sight, site.interior);
     };
+    register(
+      drawDynamiteDepot(context.sceneMesh, context.signs, characterGround),
+      context.sceneMesh,
+    );
+    const waymo = drawWaymoDispatch(context.sceneMesh, context.signs, characterGround);
+    const depot = context.rectangle(
+      (waymo.lo[0] + waymo.hi[0]) / 2,
+      (waymo.lo[2] + waymo.hi[2]) / 2,
+      2.55,
+      1.72,
+    );
+    claimParcel({ polygon: depot, kind: 'Waymo dispatch' });
+    register(waymo, context.sceneMesh);
     const ruinParcel = context.rectangle(TERMINATOR_FACTORY.x, TERMINATOR_FACTORY.z, 7, 7);
     claimParcel({ polygon: ruinParcel, kind: 'abandoned factory' });
     context.publicSpaces.push(ruinParcel);
@@ -1595,6 +1795,23 @@ export function createGeneration(context: WorldContext) {
       0.25,
     );
     setupSearchHomes();
+    register(drawLegacySoftware(context.sceneMesh, context.signs), context.sceneMesh);
+    const developer = LEGACY_SOFTWARE.developer;
+    context.merchants.push({
+      ...developer,
+      name: 'Software Developer',
+      label: 'Software Developer',
+      kind: 'legacy-developer',
+      base: characterGround(developer.x, developer.z),
+      regional: true,
+      stationary: true,
+      angle: -Math.PI / 2,
+      shirt: '#647173',
+      hair: '#654b37',
+      skin: '#bd9c79',
+      approach: { ...LEGACY_SOFTWARE.entry },
+      description: 'The developer has a lanyard, a pager, and a very long list of known issues.',
+    });
     context.southernNeighborhood = populateSouthernNeighborhood({
       mesh: context.sceneMesh,
       terrain: context.southernTerrain,
@@ -1616,12 +1833,56 @@ export function createGeneration(context: WorldContext) {
         .filter((s) => s.entry)
         .map((s) => ({ x: s.entry!.x + 0.5, z: s.entry!.y + 0.5 })),
     });
+    drawBackyardDetails(context.sceneMesh, characterGround);
+    register(drawMudBath(context.sceneMesh, context.signs, characterGround), context.sceneMesh);
+    register(drawTrampoline(context.sceneMesh, characterGround), context.sceneMesh);
+    register(drawTreeSwing(context.sceneMesh, characterGround), context.sceneMesh);
+    for (const swing of drawParkSwings(context.sceneMesh, characterGround))
+      register(swing, context.sceneMesh);
     register(drawArmory(context.sceneMesh, context.signs, characterGround), context.sceneMesh);
+    const site = drawConstructionSite(context.sceneMesh, context.signs, characterGround);
+    const constructionLot = site.navigationPolygons![0];
+    claimParcel({ polygon: constructionLot, kind: CONSTRUCTION_SITE.id });
+    register(site, context.sceneMesh);
+    const { west, east, north, south } = FIGHTER_YARD;
+    const yard = context.rectangle(
+      (west + east) / 2,
+      (north + south) / 2,
+      east - west,
+      south - north,
+    );
+    claimParcel({ polygon: yard, kind: FIGHTER_YARD.id });
+    context.publicSpaces.push(yard);
+    register(drawFighterYard(context.sceneMesh, context.signs, characterGround), context.sceneMesh);
     register(
       drawRailPit(context.sceneMesh, context.signs, context.southernTerrain),
       context.sceneMesh,
     );
     for (const site of context.southernNeighborhood.sights) register(site, context.sceneMesh);
+    const girard = GIRARD_HOME;
+    const girardLot = context.rectangle(
+      (girard.west + girard.east) / 2,
+      (girard.north + girard.south) / 2,
+      girard.east - girard.west,
+      girard.south - girard.north,
+    );
+    claimParcel({ polygon: girardLot, kind: girard.id });
+    register(drawGirardHouse(context.sceneMesh, context.signs, characterGround), context.sceneMesh);
+    context.merchants.push({
+      ...girard.resident,
+      name: 'René Girard',
+      label: 'René Girard',
+      kind: 'rene-girard',
+      base: characterGround(girard.resident.x, girard.resident.z),
+      regional: true,
+      stationary: true,
+      skin: '#c9a483',
+      shirt: '#646956',
+      pants: '#3d433c',
+      hair: '#d4d2c5',
+      hairstyle: 'side-part',
+      description: 'A professor who seems to take a great interest in what the neighbors want.',
+    });
     const cupertino = drawCupertinoGardens(context.sceneMesh, {
       terrain: context.southernTerrain,
       tree: context.tree,
@@ -1711,6 +1972,8 @@ export function createGeneration(context: WorldContext) {
     foreman.base = characterGround(foreman.x, foreman.z) + 0.025;
     context.nightclub =
       context.southernNeighborhood.sights.find((s) => s.id === 'nightlife') || context.nightclub;
+    const dj = { x: 59.4, z: 89.85 };
+    context.merchants.push(burningManDJ(dj, characterGround(dj.x, dj.z), Math.PI / 2));
     context.merchants.push(
       ...PACIFICA_PARK_RESIDENTS.map((p) => ({ ...p, base: terrainHeight(p.x, p.z) + 0.025 })),
     );
@@ -1827,11 +2090,35 @@ export function createGeneration(context: WorldContext) {
     ))
       register(site, context.highwayMesh);
     context.esotericCampus = createEsotericCampus(context.ferrari);
+    const grove = drawBurningManGrove(context.highwayMesh, context.esotericCampus);
+    register(grove.statue, context.highwayMesh);
+    context.merchants.push(...grove.people);
     register(
       context.esotericCampus.draw(context.highwayMesh, context.signs, { separateInterior: true }),
       context.highwayMesh,
     );
     context.merchants.push(context.esotericCampus.npc);
+    for (const home of context.esotericCampus.drawHomes(context.highwayMesh))
+      register(home, context.highwayMesh);
+    register(context.esotericCampus.drawChurch(context.highwayMesh), context.highwayMesh);
+    context.merchants.push(...context.esotericCampus.churchgoers);
+    const mathematician = context.esotericCampus.point(4.95, 11.3);
+    context.merchants.push({
+      ...mathematician,
+      id: 'berkeley-mathematician',
+      kind: 'berkeley-mathematician',
+      name: 'Berkeley Mathematician',
+      label: 'Berkeley Mathematician',
+      base: context.esotericCampus.ground(),
+      angle: Math.PI / 2,
+      shirt: '#795c4c',
+      pants: '#3e4440',
+      skin: '#bd9573',
+      hair: '#544435',
+      height: 1.85,
+      regional: true,
+      description: 'A mathematician walking around Berkeley with chalk dust on his sleeves.',
+    });
     context.esotericCampus.life = createCityLife({
       ...context.pedestrianNavigation,
       visible: context.actorInView,
@@ -1877,6 +2164,42 @@ export function createGeneration(context: WorldContext) {
       detention: context.detention,
       gate: context.goldenGate.gate('marin'),
     });
+    register(
+      drawGoblinAILab(context.sceneMesh, context.signs, context.marinLand.height),
+      context.sceneMesh,
+    );
+    register(
+      drawGoblinSpaceProgram(context.sceneMesh, context.signs, context.marinLand.height),
+      context.sceneMesh,
+    );
+    register(drawVillageGoose(context.sceneMesh, context.marinLand.height), context.sceneMesh);
+    register(
+      drawVillagePosters(context.sceneMesh, context.signs, context.marinLand.height),
+      context.sceneMesh,
+    );
+    const engineer = GOBLIN_SPACE_PROGRAM.engineer;
+    context.merchants.push({
+      ...engineer,
+      kind: engineer.id,
+      name: 'Chief Engineer',
+      label: 'Chief Engineer',
+      base: characterGround(engineer.x, engineer.z),
+      angle: Math.PI / 2,
+      approach: { ...GOBLIN_SPACE_PROGRAM.entry },
+      regional: true,
+      stationary: true,
+      height: 1.35,
+      description: 'A goblin with wood shavings in his pockets and a sketch of a very long ladder.',
+    });
+    register(drawRentalATV(context.sceneMesh, context.marinLand.height), context.sceneMesh);
+    register(
+      drawGoblinIncubator(context.sceneMesh, context.signs, context.marinLand.height),
+      context.sceneMesh,
+    );
+    register(
+      drawGoblinPhoneHut(context.sceneMesh, context.signs, context.marinLand.height),
+      context.sceneMesh,
+    );
     for (const value of context.goldenGate.mesh().data) context.highwayMesh.data.push(value);
     context.highwayGPU = context.upload(context.highwayMesh);
     context.sights.push({
@@ -2030,31 +2353,7 @@ export function createGeneration(context: WorldContext) {
 
   function setupSocialNPCs() {
     const add = (
-      room:
-        | Readonly<{
-            id: 'twitter-hq';
-            label: string;
-            x: 18.8;
-            z: 114.8;
-            w: 4.4;
-            d: 3.6;
-            base: 3;
-            front: 1;
-            entry: Readonly<{ x: 18.3; y: 117 }>;
-            inside: Readonly<{ x: 18.3; y: 115.6 }>;
-          }>
-        | Readonly<{
-            id: 'sales-conference';
-            label: string;
-            x: 24.8;
-            z: 114.8;
-            w: 4.4;
-            d: 3.6;
-            base: 3;
-            front: 1;
-            entry: Readonly<{ x: 24.3; y: 117 }>;
-            inside: Readonly<{ x: 24.3; y: 115.6 }>;
-          }>,
+      room: typeof TWITTER_HQ | typeof SALES_CONFERENCE,
       kind: string,
       id: string,
       u: number,
@@ -2098,7 +2397,7 @@ export function createGeneration(context: WorldContext) {
       phone: true,
       angle: -Math.PI / 2,
     });
-    add(SALES_CONFERENCE, 'software-vendor', 'software-vendor', -0.72, -0.95, -0.35, -0.2);
+    add(SALES_CONFERENCE, 'software-vendor', 'software-vendor', -0.51, -0.89, -0.3, -0.15);
     add(SALES_CONFERENCE, 'software-buyer', 'software-buyer-1', 0.35, -0.85, 0.2, -0.05, {
       shirt: '#6d7e9b',
       skin: '#b48d70',
@@ -2352,6 +2651,20 @@ export function createGeneration(context: WorldContext) {
       description: contentText('world.generation.setupTabletWizard.description-73', {}),
     };
     context.merchants.push(context.tabletWizard);
+    const scientist = { x: GOBLIN_AI_LAB.x + 0.3, z: GOBLIN_AI_LAB.z + 3.1 };
+    context.merchants.push({
+      ...scientist,
+      id: PARROT_SCIENTIST,
+      kind: 'goblin-scientist',
+      name: 'Goblin Scientist',
+      label: 'Goblin Scientist',
+      base: characterGround(scientist.x, scientist.z),
+      angle: Math.PI,
+      height: 1.35,
+      regional: true,
+      stationary: true,
+      description: 'A goblin checking teleport calculations in the margins of an AI Lab notebook.',
+    });
     const downtown = placedBuilding('links').entry,
       tahoePoint = { x: TAHOE.base.x + 2.5, z: TAHOE.base.z + 3.5 };
     const cupertino = requiredValue(
@@ -2359,6 +2672,11 @@ export function createGeneration(context: WorldContext) {
       'Cupertino gardens',
     ).entry;
     context.tabletDestinations = {
+      'goblin-village': {
+        x: GOBLIN_TOWN.entry.x + 0.5,
+        z: GOBLIN_TOWN.entry.y + 0.5,
+        label: 'in the goblin village',
+      },
       cupertino: { x: cupertino.x + 0.5, z: cupertino.y + 0.5, label: 'at the Cupertino gardens' },
       downtown: {
         x: downtown.x + 0.5,
@@ -3013,19 +3331,59 @@ export function createGeneration(context: WorldContext) {
       }
     if (!route) throw new Error('The skateboarding dog needs a clear route beside Dolores Park');
     context.skateDog = createSkateDog(route, {
-      onWoof: () => context.announce('Woof!', 'Skateboarding dog'),
+      onWoof: () =>
+        context.announce(
+          contentText('world-message.src.world.generation.woof'),
+          'Skateboarding dog',
+        ),
     });
     context.sights.push(context.skateDog.sight);
   }
 
   function setupPacificaSurf() {
-    drawDogSurfingBeach(context.sceneMesh, characterGround, context.signs);
     const judgePoint = context.airship.nearest(
       westernCoastX(DOG_SURFING.z) + 1,
       DOG_SURFING.z + 2,
       4,
     );
     if (!judgePoint) throw new Error('Dog surfing needs a walkable judging area');
+    for (const { id, z, halfLength, draw } of [
+      {
+        id: 'pacifica-dog-surfing',
+        z: DOG_SURFING.z,
+        halfLength: 2.25,
+        draw: (m: Mesh) => drawDogSurfingBeach(m, characterGround, context.signs),
+      },
+      {
+        id: 'pacifica-dog-surf-trophies',
+        z: dogSurfTrophyZ,
+        halfLength: 0.8,
+        draw: (m: Mesh, x: number, y: number, z: number) => drawDogSurfTrophies(m, x, y, z),
+      },
+    ]) {
+      const x = westernCoastX(z) + 1.05;
+      const sight: Site = {
+        id,
+        kind: 'dog-surfing-event',
+        label: contentText('dog-surfing.' + id + '.label'),
+        description: contentText('dog-surfing.' + id + '.description'),
+        entry: { ...judgePoint },
+        mapPoint: { x, y: z },
+        hiddenFromDirectory: id === 'pacifica-dog-surf-trophies',
+      };
+      const object = context.addScenery(
+        null,
+        x - 0.5,
+        z - halfLength,
+        1,
+        2 * halfLength,
+        1.8,
+        (m) => draw(m, x, characterGround(x, z), z),
+      );
+      object.sight = sight;
+      sight.object = object;
+      context.sights.push(sight);
+    }
     context.merchants.push({
       id: 'pacifica-dog-surf-judge',
       kind: 'dog-surfing-judge',
@@ -3036,7 +3394,6 @@ export function createGeneration(context: WorldContext) {
       z: judgePoint.y + 0.5,
       base: characterGround(judgePoint.x + 0.5, judgePoint.y + 0.5),
       regional: true,
-      stationary: true,
       skin: '#b38a64',
       shirt: '#dcaa5e',
       hair: '#604938',
@@ -3738,11 +4095,18 @@ export function createGeneration(context: WorldContext) {
   function signNames() {
     return [
       DOG_PONY_SIGN,
+      DOG_SURFING.sign,
+      DYNAMITE_DEPOT.name,
       ...VILLAGE_SIGNS,
       'THE ARMORY',
+      FIGHTER_YARD.name,
+      GIRARD_HOME.name,
+      CONSTRUCTION_SITE.name,
+      MUD_BATH.name,
       ...SOUTHERN_CRAFT_SIGNS,
       ...SOCIAL_SIGNS,
       ...TECH_SIGNS,
+      WAYMO_DISPATCH_NAME,
       ...HABERDASHER_SIGNS,
       ...SALT_FLATS_SIGNS,
       ...GPU_FACTORY_SIGNS,
@@ -3750,9 +4114,14 @@ export function createGeneration(context: WorldContext) {
       ...JURASSIC_SIGNS,
       ...planningPlaces().flatMap((p) => [p.name, ...(p.signText ? [p.signText] : [])]),
       'Golden Gate Park',
+      'Lake Merced',
       'The Panhandle',
       'Presidio',
       FURNITURE_FACTORY.name,
+      GOBLIN_INCUBATOR.name,
+      GOBLIN_INDUSTRIALIST.name,
+      GOBLIN_AI_LAB.name,
+      GOBLIN_SPACE_PROGRAM.name,
       'Mazarine Coffee',
       'City Lights',
       'FERRY BUILDING',
@@ -3771,6 +4140,8 @@ export function createGeneration(context: WorldContext) {
       ...TIMES_SQUARE_SIGNS,
       ...SQUARE_LIFE_SIGNS,
       ...ALIEN_SITE_SIGNS,
+      LAB_SIGN,
+      LEGACY_SOFTWARE.sign,
       ...RESEARCH_SIGNS,
       ...PENINSULA_SIGNS,
       ...WOODLAND_SIGNS,
@@ -3797,7 +4168,9 @@ export function createGeneration(context: WorldContext) {
       grade = shore * shore * (3 - 2 * shore);
     let y = 0.35 + (sfElevation(x / context.MAP_SCALE, z / context.MAP_SCALE) - 0.35) * grade;
     for (const lake of context.lakes) {
-      const d = ((x - lake.x) / lake.rx) ** 2 + ((z - lake.z) / lake.rz) ** 2;
+      const d = lake.outline
+        ? context.mercedValue(x, z)
+        : ((x - lake.x) / lake.rx) ** 2 + ((z - lake.z) / lake.rz) ** 2;
       if (d < 1.15) y = Math.min(y, lake.level - 0.3 * Math.min(1, (1.15 - d) * 5));
     }
     return y;
@@ -3817,15 +4190,17 @@ export function createGeneration(context: WorldContext) {
         context.PALACE_LAGOON.rx,
         context.PALACE_LAGOON.ry,
       ] satisfies [number, number, number, number],
-      ([16, 56, 1.7, 2.7] satisfies [number, number, number, number]).map(context.mapPosition),
-      ([18.5, 58.3, 1.7, 2.2] satisfies [number, number, number, number]).map(context.mapPosition),
     ])
       context.lakes.push({ x, z, rx, rz, level: rawHeight(x, z) + 0.015 });
-    // Merced's connected lobes share one surface instead of overlapping discs.
-    context.lakes[2].level = context.lakes[3].level = Math.min(
-      context.lakes[2].level,
-      context.lakes[3].level,
-    );
+    const [x, z, rx, rz] = [17.3, 56.9, 2.9, 3.4].map(context.mapPosition);
+    context.lakes.push({
+      x,
+      z,
+      rx,
+      rz,
+      outline: context.mercedOutline,
+      level: rawHeight(x, z) + 0.015,
+    });
     context.heights = Array.from({ length: context.TERRAIN_GRID + 1 }, (_, z) =>
       Array.from({ length: context.TERRAIN_GRID + 1 }, (_, x) =>
         rawHeight(x / context.TERRAIN_RES, z / context.TERRAIN_RES),
@@ -3894,6 +4269,7 @@ export function createGeneration(context: WorldContext) {
 
   function characterGround(x: number, z: number): number {
     if (context.secretWorld?.kind === 'illuminati') return ILLUMINATI_CAVE.floor + 0.025;
+    if (context.secretWorld?.kind === 'berkeley-lab') return LAB_FLOOR + 0.025;
     const home = searchHomeContaining(x, z),
       residence = home && planningPlaces().find((p) => p.id === home.id);
     if (residence?.object) return requiredValue(residence.object.base, 'house floor') + 0.045;
@@ -3934,6 +4310,12 @@ export function createGeneration(context: WorldContext) {
   }
 
   function playerGround(ignoreCustody = false): number {
+    if (
+      (context.multiplayerWorld?.selfMode === 'depotLaunch' ||
+        context.multiplayerWorld?.selfMode === 'streetcar') &&
+      context.multiplayerWorld.followingGround !== null
+    )
+      return context.multiplayerWorld.followingGround;
     if (context.tabletService?.state.active)
       return requiredValue(context.tabletService.state.pose, 'active teleport pose').position.y;
     if (context.secretWorld?.kind === 'kraken' && context.expeditions.ship.aboard)
@@ -3943,6 +4325,7 @@ export function createGeneration(context: WorldContext) {
     if (context.secretWorld?.bomber.state.active)
       return context.secretWorld.bomber.state.position.y;
     if (context.secretWorld?.kind === 'illuminati') return ILLUMINATI_CAVE.floor + 0.025;
+    if (context.secretWorld?.kind === 'berkeley-lab') return LAB_FLOOR + 0.025;
     if (context.multiplayerWorld?.traversing)
       return requiredValue(context.multiplayerWorld.ground, 'multiplayer traversal elevation');
     if (
@@ -3958,8 +4341,8 @@ export function createGeneration(context: WorldContext) {
       return requiredValue(context.tahoe.state.position, 'active ski position').y;
     if (context.rope.climbing)
       return requiredValue(context.rope.state.position, 'active rope position').y;
-    if (context.sutroClimb.state.active)
-      return requiredValue(context.sutroClimb.state.position, 'active climb position').y;
+    if (context.sutroClimb.state.active && context.sutroClimb.state.position)
+      return context.sutroClimb.state.position.y;
     if (context.flying())
       return (
         requiredValue(context.airship.state.position, 'active airship position').y +
@@ -5047,7 +5430,7 @@ export function createGeneration(context: WorldContext) {
     const roads = context.worldTiles.routes.filter(
       (r) => r.kind === 'road' || parkPaths.has(r.name),
     );
-    const avoid = [
+    const avoid: { x: number; z: number; clearance?: number }[] = [
       ...[...planningPlaces(), ...context.sights]
         .filter((s) => s.entry)
         .map((s) => ({
@@ -5072,6 +5455,76 @@ export function createGeneration(context: WorldContext) {
       maxZ: 78,
       maxSpacing: 6,
     });
+    for (const [i, block] of context.cityLightPlan.blocks.entries()) {
+      if (block.kind !== 'road' || rand(i, 91, 83) >= 1 / 8) continue;
+      const dx = block.b[0] - block.a[0],
+        dz = block.b[1] - block.a[1];
+      const n = Math.hypot(dx, dz);
+      if (n < 1.2) continue;
+      let placed = false;
+      for (const t of [0.25, 0.67, 0.5]) {
+        if (placed) break;
+        for (const d of [0.65, -0.65, 0.82, -0.82, 1, -1, 1.16, -1.16]) {
+          const x = block.a[0] + dx * t - (dz / n) * d,
+            z = block.a[1] + dz * t + (dx / n) * d;
+          if (
+            surface(x, z) !== 'sidewalk' ||
+            avoid.some((p) => Math.hypot(x - p.x, z - p.z) < (p.clearance ?? 0.8)) ||
+            context.cityLightPlan.lamps.some((p) => Math.hypot(x - p.x, z - p.z) < 0.35)
+          )
+            continue;
+          drawHydrant(context.sceneMesh, x, terrainHeight(x, z) + 0.085, z);
+          placed = true;
+          break;
+        }
+      }
+    }
+    for (let z = 0; z < context.N; z++)
+      for (let x = 0; x < context.N; x++) {
+        const chance = rand(x, z, 181);
+        if (chance >= 0.035) continue;
+        const px = x + 0.17 + rand(x, z, 182) * 0.62,
+          pz = z + 0.16 + rand(x, z, 183) * 0.66;
+        if (
+          surface(px, pz) !== 'grass' ||
+          avoid.some((p) => Math.hypot(px - p.x, pz - p.z) < (p.clearance ?? 0.8))
+        )
+          continue;
+        const y = terrainHeight(px, pz) + 0.012;
+        if (chance < 0.02) {
+          const h = 0.09 + rand(x, z, 184) * 0.1,
+            color = ['#d29297', '#d7ad59', '#dedbc3', '#aa90bc'][Math.floor(rand(x, z, 185) * 4)];
+          context.sceneMesh.rod([px, y, pz], [px, y + h, pz], 0.008, '#5c7547', 5);
+          for (let i = 0; i < 4; i++) {
+            const a = (i * Math.PI) / 2;
+            context.sceneMesh.sphere(
+              px + 0.019 * Math.cos(a),
+              y + h,
+              pz + 0.019 * Math.sin(a),
+              0.018,
+              0.01,
+              0.018,
+              color,
+              6,
+              4,
+            );
+          }
+          context.sceneMesh.sphere(px, y + h + 0.005, pz, 0.014, 0.009, 0.014, '#b17338', 6, 4);
+        } else {
+          for (let i = 0; i < 3; i++)
+            context.sceneMesh.sphere(
+              px + (i - 1) * 0.088,
+              y + 0.105,
+              pz + (i % 2) * 0.07,
+              0.105,
+              0.12 + i * 0.025,
+              0.095,
+              i % 2 ? '#698051' : '#557047',
+              8,
+              5,
+            );
+        }
+      }
     for (const p of context.cityLightPlan.lamps) {
       const object = context.addScenery(
         null,
@@ -5512,6 +5965,8 @@ export function createGeneration(context: WorldContext) {
 
   async function buildForBrowser() {
     await refreshContent().catch((error) => console.warn('Content refresh:', error));
+    if (!context.$('sf-log').children.length)
+      context.announce(contentText('world-message.welcome'));
     subscribeContent(() => applyWorldEdits(context));
     const contentTimer = setInterval(
       () => refreshContent().catch((error) => console.warn('Content refresh:', error)),
@@ -5925,7 +6380,6 @@ export function createGeneration(context: WorldContext) {
   }
   return {
     insidePolygon,
-    alongStreet,
     occupy,
     pavingInArea,
     signNames,

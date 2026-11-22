@@ -1,4 +1,5 @@
-import { hasPhysicalBounds, requiredPhysicalObject } from '../picking.ts';
+import { LAB_NAV } from '../berkeley-lab.ts';
+import { hasPhysicalBounds } from '../picking.ts';
 import { isFiniteNumber } from '../types/json.ts';
 import type { Actor } from '../types/world.ts';
 import type { Point } from '../types/geometry.ts';
@@ -78,6 +79,7 @@ export function createNavigation(context: WorldContext) {
   }
 
   function clearAt(x: number, y: number): boolean {
+    if (context.secretWorld?.kind === 'berkeley-lab') return LAB_NAV.free(x, y);
     if (context.secretWorld?.kind === 'illuminati') return CAVE_NAVIGATION.free(x, y);
     return context.chase?.state.jailed
       ? context.detention.walkable(x + 0.5, y + 0.5)
@@ -93,6 +95,8 @@ export function createNavigation(context: WorldContext) {
   ): boolean {
     if (context.secretWorld?.kind === 'illuminati')
       return CAVE_NAVIGATION.segment({ x: ax, y: ay }, { x: bx, y: by });
+    if (context.secretWorld?.kind === 'berkeley-lab')
+      return LAB_NAV.segment({ x: ax, y: ay }, { x: bx, y: by });
     const endpointFree = ignoreCustody ? landClearAt : clearAt;
     if (!endpointFree(ax, ay) || !endpointFree(bx, by)) return false;
     if (
@@ -183,11 +187,9 @@ export function createNavigation(context: WorldContext) {
   }
 
   function sutroApproach(from: Point = context.player): Point | null {
-    const tower = requiredPhysicalObject(
-        context.sightById('sutro')!.object,
-        'The Sutro tower footprint is missing.',
-      ),
-      cx = tower.x + tower.w / 2,
+    const tower = context.sightById('sutro')?.object;
+    if (!tower || !hasPhysicalBounds(tower)) return null;
+    const cx = tower.x + tower.w / 2,
       cz = tower.y + tower.d / 2,
       region = navigationRegionAt(from.x, from.y);
     return nearestNavigation(
@@ -231,27 +233,25 @@ export function createNavigation(context: WorldContext) {
     );
   }
 
-  function regionalCitizenApproach(npc: {
-    approach?: Point | null;
-    x: number;
-    z: number;
-  }): Point | null {
+  function regionalCitizenApproach(
+    npc: { approach?: Point | null; x: number; z: number },
+    requireRoute = false,
+  ): Point | null {
     if (npc.approach) return { ...npc.approach };
     const candidates = [];
     for (let i = 0; i < 16; i++) {
       const a = (i * Math.PI) / 8,
         x = npc.x - 0.5 + Math.cos(a),
         y = npc.z - 0.5 + Math.sin(a);
-      if (clearAt(x, y) && context.airship.segment({ x, y }, { x: npc.x - 0.5, y: npc.z - 0.5 }))
+      if (clearAt(x, y) && canTravel(x, y, npc.x - 0.5, npc.z - 0.5, true))
         candidates.push({ x, y });
     }
-    return (
-      candidates.sort(
-        (a, b) =>
-          Math.hypot(a.x - context.player.x, a.y - context.player.y) -
-          Math.hypot(b.x - context.player.x, b.y - context.player.y),
-      )[0] || null
+    candidates.sort(
+      (a, b) =>
+        Math.hypot(a.x - context.player.x, a.y - context.player.y) -
+        Math.hypot(b.x - context.player.x, b.y - context.player.y),
     );
+    return (requireRoute ? candidates.find((p) => pathTo(p.x, p.y)) : candidates[0]) || null;
   }
 
   function navFree(x: number, z: number): boolean {
@@ -356,6 +356,7 @@ export function createNavigation(context: WorldContext) {
   ): Point[] | null {
     if (context.secretWorld?.kind === 'illuminati')
       return CAVE_NAVIGATION.path(from, { x: tx, y: ty });
+    if (context.secretWorld?.kind === 'berkeley-lab') return LAB_NAV.path(from, { x: tx, y: ty });
     const base = (a: Point, b: Point) =>
       context.esotericCampus
         ? context.esotericCampus.path(a, b, (p, q) => basePathTo(q.x, q.y, p, ignoreCustody))
@@ -443,6 +444,7 @@ export function createNavigation(context: WorldContext) {
       return CAVE_NAVIGATION.nearest(x, y, 40, (a, b) =>
         CAVE_NAVIGATION.connected(from, { x: a, y: b }),
       );
+    if (context.secretWorld?.kind === 'berkeley-lab') return LAB_NAV.nearest(x, y, from);
     if (context.secretWorld?.bomber.state.active) return { x, y };
     if (sailing)
       return nearestMinimapPoint(

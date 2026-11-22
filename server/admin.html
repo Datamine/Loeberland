@@ -230,6 +230,7 @@
     <header>
       <h1>Loeberland database editor</h1>
       <p id="source">Connecting…</p>
+      <button id="open-combat-simulator" type="button">Combat simulator</button>
     </header>
     <div class="notice">__ADMIN_NOTICE__</div>
     <div class="layout">
@@ -269,13 +270,6 @@
     <script>
       "use strict";
 (() => {
-  // src/types/ui.ts
-  function requiredElement(id) {
-    const value = document.getElementById(id);
-    if (!value) throw new Error("Missing interface element: " + id);
-    return value;
-  }
-
   // src/types/json.ts
   function isRecord(value) {
     return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -287,10 +281,69 @@
     return values.includes(value);
   }
 
+  // src/config/gameplay.ts
+  var GAMEPLAY = Object.freeze({
+    startingCoins: 25,
+    maxHitpoints: 30,
+    strengthXPPerSecond: 10,
+    strengthLevel10XP: 12e3,
+    monsterHitChance: 0.9,
+    monsterMinMultiplier: 0.25,
+    monsterMaxMultiplier: 1.25,
+    walkSpeed: 4.6,
+    rollSpeed: 4.6 * 1.18,
+    interactionRange: 2.6,
+    fishingSeconds: 3.2,
+    sandCollectSeconds: 1,
+    playerHz: 10,
+    simulationHz: 20,
+    worldHz: 5,
+    maxNearbyPlayers: 32,
+    maxNearbyNPCs: 32,
+    maxNearbyLoot: 64,
+    viewRadius: 38
+  });
+
+  // src/config/progression.ts
+  var PROGRESSION = Object.freeze({
+    maxLevel: 50,
+    strengthXPPerDamage: 10,
+    hitpointsXPPerDamage: 5,
+    baseHitpoints: 30,
+    hitpointsPerLevel: 1
+  });
+
+  // src/progression.ts
+  var skillWeights = Array.from({ length: PROGRESSION.maxLevel - 1 }, (_, i) => (i + 1) ** 1.7);
+  var skillWeightSum = skillWeights.slice(0, 9).reduce((a, b) => a + b, 0);
+  var SKILL_THRESHOLDS = Object.freeze([
+    0,
+    ...skillWeights.map(
+      (_, i) => Math.round(
+        GAMEPLAY.strengthLevel10XP * skillWeights.slice(0, i + 1).reduce((a, b) => a + b, 0) / skillWeightSum
+      )
+    )
+  ]);
+  function skillStatus(value) {
+    const xp = Number.isFinite(Number(value)) ? Math.max(0, Math.min(SKILL_THRESHOLDS.at(-1), Number(value))) : 0;
+    let level = 1;
+    while (level < PROGRESSION.maxLevel && xp >= SKILL_THRESHOLDS[level]) level++;
+    const low = SKILL_THRESHOLDS[level - 1], high = SKILL_THRESHOLDS[level] ?? low;
+    return {
+      level,
+      xp,
+      percent: level === PROGRESSION.maxLevel ? 100 : 100 * (xp - low) / (high - low),
+      nextXP: level === PROGRESSION.maxLevel ? null : high,
+      next: level === PROGRESSION.maxLevel ? null : level + 1,
+      contentNodeId: "progression.skillStatus.node-1"
+    };
+  }
+  var hitpointMaximum = (xp) => PROGRESSION.baseHitpoints + (skillStatus(xp).level - 1) * PROGRESSION.hitpointsPerLevel;
+
   // src/content-runtime.ts
-  var texts = { "config.hats.module.name-1": "Folded paper hat", "config.hats.module.name-2": "Dockside beanie", "config.hats.module.name-3": "Panama", "config.hats.module.name-4": "Velvet beret", "config.hats.module.name-5": "Silk top hat", "config.hats.module.name-6": "Plumed cavalier", "config.hats.module.name-7": "Astronomer\u2019s hat", "config.hats.module.name-8": "Golden laurel", "config.hats.module.name-9": "Stone of Jordan", "config.hats.module.name-10": "Santa Hat", "config.hats.module.name-11": "Blue Partyhat", "config.hats.module.name-12": "Stetson", "config.hats.module.name-13": "Pirate's hat", "config.item-stats.module.name-1": "Tinfoil suit", "config.item-stats.module.description-2": "A crinkling silver suit, folded with restaurant precision.", "config.item-stats.module.name-3": "Railgun accelerator", "config.item-stats.module.description-4": "An electromagnetic accelerator. Railgun fire rate increases by 10% while owned.", "config.item-stats.module.name-5": "Combat boots", "config.item-stats.module.description-6": "Tall black leather boots with chrome buckles, steel toe caps, and heavy soles. Block 2 damage from each incoming combat hit.", "config.item-stats.module.name-7": "Ball chair", "config.item-stats.module.description-8": "A sculptural white sphere with red upholstery and a chrome pedestal. Sit (chair) to settle inside.", "config.item-stats.module.name-9": "Fist", "config.item-stats.module.name-10": "Bayonet", "config.item-stats.module.name-11": "Battleaxe", "config.item-stats.module.name-12": "Railgun", "config.item-stats.module.name-13": "Akibo", "config.item-stats.module.name-14": "New Year\u2019s rocket", "config.item-stats.module.description-15": "An oversized decorative rocket. Light it for ten seconds, once a minute. Press Space while it burns to hop about a character-height into the air.", "config.item-stats.module.name-16": "Clock amulet", "config.item-stats.module.description-17": "A tiny clock on a chain. It keeps its own appointments.", "config.item-stats.module.name-18": "Hiking backpack", "config.item-stats.module.description-19": "A sturdy hiking pack with room for twenty sandwiches.", "config.item-stats.module.name-20": "Bison hide", "config.item-stats.module.description-21": "A heavy, shaggy hide. Yohji could make something remarkable from this.", "config.item-stats.module.name-22": "Black cloak top", "config.item-stats.module.description-23": "An oversized black top with dropped shoulders, generous sleeves and a long, loose hem.", "config.item-stats.module.name-24": "Black cloak bottom", "config.item-stats.module.description-25": "A sweeping black skirt. Enough fabric to consider the wind a collaborator.", "config.item-stats.module.name-26": "Downtown teleportation tablet", "config.item-stats.module.description-27": "A small purple tablet. Break it to return to downtown San Francisco.", "config.item-stats.module.name-28": "Tahoe teleportation tablet", "config.item-stats.module.description-29": "A snowy sigil in purple stone. Break it to appear beside the Tahoe gondola.", "config.item-stats.module.name-30": "Ice top", "config.item-stats.module.description-31": "A crystalline cuirass. While equipped, blocks 2 damage from each incoming combat hit.", "config.item-stats.module.name-32": "Ice pants", "config.item-stats.module.description-33": "Frosted greaves. While equipped, block 2 damage from each incoming combat hit.", "config.item-stats.module.name-34": "Sandwich", "config.item-stats.module.description-35": "A sandwich. Store it in your food bag and eat it to recover hitpoints.", "config.item-stats.module.name-36": "Peptides", "config.item-stats.module.description-37": "A tiny vial with a very large social network. Ray accepts these at the Freemasons\u2019 Guild.", "config.item-stats.module.name-38": "Coins", "config.item-stats.module.description-39": "Loose coins, awaiting a less theoretical owner.", "config.item-stats.module.name-40": "Goose Corp membership card", "config.item-stats.module.description-41": "A very official-looking card. The fine print seems to be turning to dust.", "config.item-stats.module.name-42": "Stetson", "config.item-stats.module.description-43": "A sand-dusted cowboy hat. The shark was keeping it under its hat.", "config.item-stats.module.name-44": "Pirate's hat", "config.item-stats.module.description-45": "A salt-stained tricorn. The previous owner had an unusually flexible interpretation of navigation.", "config.item-stats.module.name-46": "Velociraptor remains", "config.item-stats.module.description-47": "The emergency recovery protocol is now considerably less mobile.", "config.item-stats.module.name-48": "Kraken spoils", "config.item-stats.module.description-49": "The spoils of an extremely unwise maritime expedition." };
+  var texts = { "config.hats.module.name-1": "Folded paper hat", "config.hats.module.name-2": "Dockside beanie", "config.hats.module.name-3": "Panama", "config.hats.module.name-4": "Velvet beret", "config.hats.module.name-5": "Silk top hat", "config.hats.module.name-6": "Plumed cavalier", "config.hats.module.name-7": "Astronomer\u2019s hat", "config.hats.module.name-8": "Golden laurel", "config.hats.module.name-9": "Stone of Jordan", "config.hats.module.name-10": "Santa Hat", "config.hats.module.name-11": "Blue Partyhat", "config.hats.module.name-12": "Stetson", "config.hats.module.name-13": "Pirate's hat", "config.item-stats.module.name-1": "Tinfoil suit", "config.item-stats.module.description-2": "A crinkling silver suit, folded with restaurant precision.", "config.item-stats.module.name-3": "Weaponry upgrade kit", "config.item-stats.module.description-4": "Increases the fire rate of your railgun and Akimbos by 10% while owned.", "config.item-stats.module.name-5": "Combat boots", "config.item-stats.module.description-6": "Tall black leather boots with chrome buckles, steel toe caps, and heavy soles. Block 2 damage from each incoming combat hit.", "config.item-stats.module.name-7": "Ball chair", "config.item-stats.module.description-8": "A sculptural white sphere with red upholstery and a chrome pedestal. Sit (chair) to settle inside.", "config.item-stats.module.name-9": "Fist", "config.item-stats.module.name-10": "Bayonet", "config.item-stats.module.name-11": "Battleaxe", "config.item-stats.module.name-12": "Railgun", "config.item-stats.module.name-13": "Akimbos", "config.item-stats.module.name-14": "New Year\u2019s rocket", "config.item-stats.module.description-15": "An oversized decorative rocket. Light it for ten seconds, once a minute. Press Space while it burns to hop about a character-height into the air.", "config.item-stats.module.name-16": "Clock amulet", "config.item-stats.module.description-17": "A tiny clock on a chain. It keeps its own appointments.", "config.item-stats.module.name-18": "Hiking backpack", "config.item-stats.module.description-19": "A sturdy hiking pack with room for twenty sandwiches.", "config.item-stats.module.name-20": "Bison hide", "config.item-stats.module.description-21": "A heavy, shaggy hide. Yohji could make something remarkable from this.", "config.item-stats.module.name-22": "Black cloak top", "config.item-stats.module.description-23": "An oversized black top with dropped shoulders, generous sleeves and a long, loose hem.", "config.item-stats.module.name-24": "Black cloak bottom", "config.item-stats.module.description-25": "A sweeping black skirt. Enough fabric to consider the wind a collaborator.", "config.item-stats.module.name-26": "Downtown Teleport", "config.item-stats.module.description-27": "A small purple tablet. Break it to return to downtown San Francisco.", "config.item-stats.module.name-28": "Tahoe Teleport", "config.item-stats.module.description-29": "A snowy sigil in purple stone. Break it to appear beside the Tahoe gondola.", "config.item-stats.module.name-30": "Ice top", "config.item-stats.module.description-31": "A crystalline cuirass. While equipped, blocks 2 damage from each incoming combat hit.", "config.item-stats.module.name-32": "Ice pants", "config.item-stats.module.description-33": "Frosted greaves. While equipped, block 2 damage from each incoming combat hit.", "config.item-stats.module.name-34": "Sandwich", "config.item-stats.module.description-35": "A sandwich. Store it in your food bag and eat it to recover hitpoints.", "config.item-stats.module.name-36": "Peptides", "config.item-stats.module.description-37": "A tiny vial with a very large social network. Ray accepts these at the Freemasons\u2019 Guild.", "config.item-stats.module.name-38": "Coins", "config.item-stats.module.description-39": "Loose coins, awaiting a less theoretical owner.", "config.item-stats.module.name-40": "Goose Corp membership card", "config.item-stats.module.description-41": "A very official-looking card. The fine print seems to be turning to dust.", "config.item-stats.module.name-42": "Stetson", "config.item-stats.module.description-43": "A sand-dusted cowboy hat. The shark was keeping it under its hat.", "config.item-stats.module.name-44": "Pirate's hat", "config.item-stats.module.description-45": "A salt-stained tricorn. The previous owner had an unusually flexible interpretation of navigation.", "config.item-stats.module.name-46": "Velociraptor remains", "config.item-stats.module.description-47": "The emergency recovery protocol is now considerably less mobile.", "config.item-stats.module.name-48": "Kraken spoils", "config.item-stats.module.description-49": "The spoils of an extremely unwise maritime expedition.", "config.monster-drops.module.name-1": "Goblin", "config.monster-drops.module.description-2": "A Mount Tam goblin in heavy boots. The morning fog followed him down from the mountain.", "config.monster-drops.module.name-3": "EMF warrior", "config.monster-drops.module.description-4": "A coastal campaigner surrounded by an agitated chorus of radios.", "config.monster-drops.module.name-5": "Lost Goblin", "config.monster-drops.module.description-6": "A Mount Tam resident who took a wrong turn at the redwoods. He blames the trail signs.", "config.monster-drops.module.name-7": "Goblin furniture maker", "config.monster-drops.module.description-8": "Mount Tam\u2019s most temperamental modernist. His ball chairs are round; his customer service is pointed.", "config.monster-drops.module.name-9": "Seagull", "config.monster-drops.module.description-10": "A waterfront regular with strong opinions about unattended sandwiches.", "config.monster-drops.module.name-11": "Cow", "config.monster-drops.module.name-12": "Velociraptor", "config.monster-drops.module.name-13": "Kraken", "config.monster-drops.module.name-14": "Friendly bear", "config.monster-drops.module.name-15": "Bison", "config.monster-drops.module.description-16": "An enormous, shaggy park resident. The haircut is self-maintained.", "config.monster-drops.module.name-17": "Snow giant", "config.monster-drops.module.name-18": "Ice giant", "config.monster-drops.module.name-19": "Terminator", "config.monster-drops.module.description-20": "An abandoned building, a red eye, and a very persistent tenant.", "config.monster-drops.module.name-21": "Landshark", "config.monster-drops.module.description-22": "don't let him ride", "config.monster-drops.module.name-23": "Outlaw", "config.monster-drops.module.description-24": "A woodland entrepreneur whose entire business model is your pockets.", "config.monster-drops.module.name-25": "Lost Pirate", "config.monster-drops.module.description-26": "He followed the treasure map exactly. Unfortunately, it was a restaurant menu." };
   function contentText(id) {
-    if (!Object.hasOwn(texts, id)) throw new Error("Missing equipment text: " + id);
+    if (!Object.hasOwn(texts, id)) throw new Error("Missing admin catalog text: " + id);
     return texts[id];
   }
 
@@ -313,6 +366,11 @@
       slot: "feet",
       defense: 2,
       description: contentText("config.item-stats.module.description-6", {})
+    },
+    "party-boots": {
+      name: "Party Boots",
+      slot: "feet",
+      description: "Matilda\u2019s tall rainbow boots, with platform soles and rows of metal studs."
     },
     "eames-chair": {
       name: "Eames Chair",
@@ -412,6 +470,48 @@
       slot: "back",
       description: contentText("config.item-stats.module.description-15", {})
     },
+    uni: { name: "Uni", description: "Fresh sea urchin roe. Rich Table buys it for 40 coins." },
+    "sand-bucket": { name: "Bucket of sand", description: "A bucket filled with ordinary sand." },
+    "iron-armor": {
+      name: "Iron armor",
+      slot: "torso",
+      defense: 3,
+      price: 120,
+      description: "A dark gray iron breastplate and pauldrons."
+    },
+    "gold-trimmed-iron-armor": {
+      name: "Gold-trimmed iron armor",
+      slot: "torso",
+      defense: 3,
+      description: "A dark iron breastplate edged with polished gold."
+    },
+    "armor-trimming-kit": {
+      name: "Armor trimming kit",
+      description: "Apply it to a suit of iron armor to add gold trim."
+    },
+    "bind-tablet": {
+      name: "Bind Tablet",
+      description: "Binds nearby PvP opponents for ten seconds. Breaking it deals 10 damage to you."
+    },
+    "recoil-amulet": {
+      name: "Recoil Amulet",
+      slot: "neck",
+      description: "Returns one fifth of damage taken to the attacker."
+    },
+    "missile-launcher": {
+      name: "Missile Launcher",
+      slot: "weapon",
+      description: "A heavy shoulder launcher built in the Berkeley lab. Uses one missile per shot.",
+      interval: 2.4,
+      range: 12,
+      min: 17,
+      max: 60,
+      minPerLevel: 0.9,
+      maxPerLevel: 2.95,
+      accuracy: 0.95,
+      accuracyPerLevel: 4e-3,
+      accuracyCap: 0.99
+    },
     "clock-amulet": {
       name: contentText("config.item-stats.module.name-16", {}),
       slot: "neck",
@@ -426,6 +526,46 @@
     "bison-hide": {
       name: contentText("config.item-stats.module.name-20", {}),
       description: contentText("config.item-stats.module.description-21", {})
+    },
+    "bear-pelt": {
+      name: "Bear pelt",
+      description: "Thick, dark Tahoe fur. The decorative robe clothier buys it for trim."
+    },
+    "fox-pelt": {
+      name: "Fox pelt",
+      description: "Russet Tahoe fur with a white underside. The decorative robe clothier buys it for trim."
+    },
+    "fighter-yard-pass": {
+      name: "Fighter Yard pass",
+      description: "A signed waiver and receipt for 10 coins, recorded by Tyler at the Fighter Yard."
+    },
+    "goblin-phone": {
+      name: "Goblin Phone",
+      price: 10,
+      description: "A clay brick. The industrialist says it makes a good notepad."
+    },
+    "decorative-robe-top": {
+      name: "Decorative robe top",
+      slot: "top",
+      price: 10,
+      description: "A pink long-sleeved robe top with rainbow trim."
+    },
+    "cashmere-turtleneck": {
+      name: "Cream cashmere turtleneck",
+      description: "A soft cream cashmere sweater with a thick, folded ribbed collar.",
+      slot: "top",
+      price: 500
+    },
+    "goose-corp-shirt": {
+      name: "Goose Corp T-shirt",
+      description: "A charcoal T-shirt with a white goose logo on the chest.",
+      slot: "top"
+    },
+    "decorative-robe-bottom": {
+      name: "Decorative robe bottom",
+      slot: "legs",
+      price: 10,
+      description: "A pink robe skirt with a rainbow hem."
     },
     "black-cloak-top": {
       name: contentText("config.item-stats.module.name-22", {}),
@@ -443,13 +583,17 @@
       description: contentText("config.item-stats.module.description-27", {})
     },
     "cupertino-tablet": {
-      name: "Cupertino teletab",
+      name: "Cupertino Teleport",
       price: 20
     },
     "tahoe-tablet": {
       name: contentText("config.item-stats.module.name-28", {}),
       price: 20,
       description: contentText("config.item-stats.module.description-29", {})
+    },
+    "goblin-village-tablet": {
+      name: "Goblin Village Teleport",
+      price: 20
     },
     "ice-top": {
       name: contentText("config.item-stats.module.name-30", {}),
@@ -471,7 +615,7 @@
       name: contentText("config.item-stats.module.name-34", {}),
       healing: 15,
       pickupPrice: 3,
-      deliveryPrice: 4,
+      deliveryPrice: 15,
       inNOutPrice: 2,
       description: contentText("config.item-stats.module.description-35", {})
     },
@@ -487,7 +631,7 @@
       name: contentText("config.item-stats.module.name-40", {}),
       description: contentText("config.item-stats.module.description-41", {}),
       pickup: "disintegrate",
-      pickupMessage: "The Goose Corp membership card disintegrates in your hands."
+      pickupMessageId: "world-message.loot.goose-card-disintegrates"
     },
     "stetson-hat": {
       name: contentText("config.item-stats.module.name-42", {}),
@@ -515,9 +659,12 @@
     "tinfoil-suit",
     "railgun-upgrade",
     "combat-boots",
+    "party-boots",
     "ball-chair",
     "eames-chair",
     "bertoia-chair",
+    "bayonet",
+    "railgun",
     "battleaxe",
     "rolling-pin",
     "ice-top",
@@ -526,8 +673,18 @@
     "backpack",
     "new-year-rocket",
     "clock-amulet",
+    "recoil-amulet",
+    "iron-armor",
+    "gold-trimmed-iron-armor",
+    "missile-launcher",
     "black-cloak-top",
-    "black-cloak-bottom"
+    "black-cloak-bottom",
+    "decorative-robe-top",
+    "cashmere-turtleneck",
+    "goose-corp-shirt",
+    "decorative-robe-bottom",
+    "goblin-phone",
+    "fighter-yard-pass"
   ]);
 
   // src/item-stats.ts
@@ -537,12 +694,816 @@
     "bayonet",
     "battleaxe",
     "railgun",
-    "akibo"
+    "akibo",
+    "missile-launcher"
   ];
-  function railgunUnlocked(progress = {}) {
-    return progress.railgun === true && ["escaped", "carrying", "completed"].includes(
-      progress.raptor || ""
-    );
+  function equipmentOwned(purse, id) {
+    return !!purse?.ownedEquipment?.includes(id);
+  }
+  function normalizeBoots(value) {
+    return value === "party-boots" ? value : value === true || value === "true";
+  }
+  function equipmentDefense(look = {}) {
+    return (look.torso === "iron-armor" || look.torso === "gold-trimmed-iron-armor" ? ITEM_STATS[look.torso].defense || 0 : 0) + (look.boots === true ? ITEM_STATS["combat-boots"].defense : 0) + (look.iceTop ? ITEM_STATS["ice-top"].defense : 0) + (look.icePants ? ITEM_STATS["ice-pants"].defense : 0);
+  }
+  function weaponAttackInterval(weapon, purse) {
+    const upgraded = (weapon === "railgun" || weapon === "akibo") && equipmentOwned(purse, "railgun-upgrade");
+    return (ITEM_STATS[weapon]?.interval ?? ITEM_STATS.unarmed.interval) / (upgraded ? 1.1 : 1);
+  }
+
+  // src/combat.ts
+  var MAX_HITPOINTS = GAMEPLAY.maxHitpoints;
+  var SANDWICH_HEALING = ITEM_STATS.sandwich.healing;
+  var combatLevel = (value) => Math.max(1, Math.min(50, Math.floor(value) || 1));
+  var combatRandom = (random) => Math.max(0, Math.min(1 - Number.EPSILON, Number(random()) || 0));
+  function inebriationAccuracyMultiplier(percent = 0) {
+    return 1 - 0.5 * Math.max(0, Math.min(100, Number.isFinite(percent) ? percent : 0)) / 100;
+  }
+  function weaponDamageRange(level = 1, weapon = "unarmed", inebriation = 0) {
+    const bonus = combatLevel(level) - 1;
+    const item = ITEM_STATS[weapon]?.slot === "weapon" ? ITEM_STATS[weapon] : ITEM_STATS.unarmed;
+    return {
+      min: Math.floor(item.min + bonus * item.minPerLevel),
+      max: Math.floor(item.max + bonus * item.maxPerLevel),
+      accuracy: Math.min(item.accuracyCap, item.accuracy + bonus * item.accuracyPerLevel) * inebriationAccuracyMultiplier(inebriation)
+    };
+  }
+  function rollWeaponDamage(level, weapon, random = Math.random, inebriation = 0) {
+    const range = weaponDamageRange(level, weapon, inebriation);
+    return combatRandom(random) >= range.accuracy ? 0 : range.min + Math.floor(combatRandom(random) * (range.max - range.min + 1));
+  }
+  function rollEnemyDamage(base, level = 1, random = Math.random, defense = 0) {
+    const power = Math.max(2, base - Math.floor((combatLevel(level) - 1) / 3)), min = Math.max(1, Math.floor(power * GAMEPLAY.monsterMinMultiplier)), max = Math.ceil(power * GAMEPLAY.monsterMaxMultiplier);
+    const hit = combatRandom(random) >= GAMEPLAY.monsterHitChance ? 0 : min + Math.floor(combatRandom(random) * (max - min + 1));
+    return Math.max(0, hit - (Number.isFinite(defense) ? Math.max(0, Math.floor(defense)) : 0));
+  }
+
+  // src/legacy-software-layout.ts
+  var LEGACY_BUGS = [
+    [2, -1.81, -0.66, "caterpillar"],
+    [5, 1.85, -0.58, "beetle"],
+    [9, -1.06, 0.18, "spider"],
+    [14, 1.08, 0.18, "caterpillar"],
+    [20, -1.91, 0.68, "beetle"],
+    [26, 1.95, 0.69, "spider"]
+  ];
+
+  // src/fighter-yard-layout.ts
+  var FIGHTER_YARD = Object.freeze({
+    id: "fighter-yard",
+    name: "Fighter Yard",
+    west: 67.95,
+    east: 72.2,
+    north: 110.08,
+    south: 112.93,
+    gateZ: 111.52,
+    tyler: { id: "fighter-yard-tyler", x: 72.72, z: 111.02 },
+    entry: { x: 72.93, y: 111.02 },
+    inside: { x: 71.25, y: 111.02 },
+    pass: "fighter-yard-pass",
+    price: 10
+  });
+  var FIGHTER_LEVELS = [3, 5, 8, 12, 16, 20];
+  var fighterSpots = [
+    [71.36, 110.64],
+    [71.14, 112.37],
+    [70.17, 110.62],
+    [69.84, 112.33],
+    [68.68, 110.7],
+    [68.62, 112.35]
+  ];
+  var FIGHTER_SPAWNS = Object.freeze(
+    FIGHTER_LEVELS.map((level, i) => ({
+      id: "fighter-yard-" + level,
+      combatKind: "fighter-" + level,
+      x: fighterSpots[i][0],
+      z: fighterSpots[i][1]
+    }))
+  );
+
+  // src/types/monsters.ts
+  function defineMonsterStats(definitions) {
+    return Object.freeze(definitions);
+  }
+
+  // src/config/monster-drops.ts
+  var COMMON_RESPAWN_SECONDS = 10;
+  var MONSTER_DROPS = Object.freeze({
+    "emf-warrior": [{ item: "railgun-upgrade", oneIn: 1 }],
+    cow: [{ item: "sandwich", oneIn: 1 }],
+    goblin: [
+      { item: "coins", amount: 3, oneIn: 1 },
+      { item: "combat-boots", oneIn: 8 }
+    ],
+    "lost-goblin": [
+      { item: "coins", amount: 3, oneIn: 1 },
+      { item: "combat-boots", oneIn: 8 }
+    ],
+    "goblin-maker": [
+      { item: "coins", amount: 8, oneIn: 1 },
+      { item: "ball-chair", oneIn: 12 },
+      { item: "combat-boots", oneIn: 8 }
+    ],
+    "goblin-guard": [{ item: "coins", amount: 6, oneIn: 1 }],
+    "goblin-veteran": [
+      { item: "coins", amount: 10, oneIn: 1 },
+      { item: "combat-boots", oneIn: 8 }
+    ],
+    ...Object.fromEntries(
+      FIGHTER_LEVELS.map((level) => [
+        "fighter-" + level,
+        [{ item: "coins", amount: Math.ceil(level / 2), oneIn: 1 }]
+      ])
+    ),
+    scapegoat: [{ item: "coins", amount: 10, oneIn: 1 }],
+    "securities-investigator": [
+      { item: "coins", amount: 12, oneIn: 1 },
+      { item: "sandwich", oneIn: 4 }
+    ],
+    "sea-urchin": [
+      { choose: ["coins", "sandwich"], amount: 3, oneIn: 1 },
+      { item: "uni", oneIn: 10 },
+      { item: "bind-tablet", oneIn: 20 }
+    ],
+    "mad-scientist": [
+      { item: "coins", amount: 16, oneIn: 1 },
+      { item: "sandwich", oneIn: 3 },
+      { item: "recoil-amulet", oneIn: 100 },
+      { item: "bind-tablet", oneIn: 20 }
+    ],
+    "madder-scientist": [
+      { item: "coins", amount: 20, oneIn: 1 },
+      { item: "sandwich", oneIn: 3 },
+      { item: "missile-launcher", oneIn: 100 },
+      { item: "bind-tablet", oneIn: 20 }
+    ],
+    "mad-cultist": [{ item: "sand-bucket", oneIn: 1 }],
+    ...Object.fromEntries(
+      LEGACY_BUGS.map(([level]) => [
+        "legacy-bug-" + level,
+        [
+          { choose: ["coins", "sandwich"], amount: Math.ceil(level / 5), oneIn: 1 },
+          { item: "armor-trimming-kit", oneIn: 20 },
+          ...level >= 20 ? [{ item: "bind-tablet", oneIn: 20 }] : []
+        ]
+      ])
+    ),
+    seagull: [],
+    robocop: [{ item: "peptides", oneIn: 10 }],
+    raptor: [{ item: "raptor", oneIn: 1 }],
+    kraken: [{ item: "kraken", oneIn: 1 }],
+    bear: [{ item: "peptides", oneIn: 20 }],
+    "tahoe-bear": [{ item: "bear-pelt", oneIn: 20 }],
+    "tahoe-fox": [{ item: "fox-pelt", oneIn: 16 }],
+    bison: [{ item: "bison-hide", oneIn: 1 }],
+    "snow-giant": [{ choose: ["ice-top", "ice-pants"], oneIn: 50 }],
+    "ice-giant": [{ choose: ["ice-top", "ice-pants"], oneIn: 50 }],
+    terminator: [
+      { item: "coins", amount: 12, oneIn: 1 },
+      { item: "sandwich", oneIn: 2 },
+      { item: "peptides", oneIn: 10 },
+      { item: "akibo", oneIn: 20 }
+    ],
+    landshark: [
+      { item: "coins", amount: 4, oneIn: 1 },
+      { item: "stetson-hat", oneIn: 10 },
+      { item: "peptides", oneIn: 10 }
+    ],
+    outlaw: [
+      { item: "coins", amount: 10, oneIn: 1 },
+      { item: "goose-membership-card", oneIn: 5 }
+    ],
+    "lost-pirate": [
+      { item: "coins", amount: 8, oneIn: 1 },
+      { item: "pirate-hat", oneIn: 20 }
+    ]
+  });
+  function monsterCombat(level, interval, { passive = false, boss = false } = {}) {
+    return {
+      level,
+      hp: boss ? 20 * level : passive ? 10 * level : 5 * level + 6 * Math.max(0, level - 10),
+      damage: passive ? 0 : Math.max(1, Math.round((0.9 + level * 0.28) * interval)),
+      interval
+    };
+  }
+  var goblin = {
+    name: contentText("config.monster-drops.module.name-1", {}),
+    ...monsterCombat(3, 2.2),
+    respawn: COMMON_RESPAWN_SECONDS,
+    speed: 1.5,
+    leash: 5,
+    roamRadius: 0.6,
+    roamSpeed: 0.4,
+    height: 1.35,
+    model: "goblin",
+    description: contentText("config.monster-drops.module.description-2", {})
+  };
+  var MONSTER_STATS = defineMonsterStats({
+    scapegoat: {
+      name: "Scapegoat",
+      ...monsterCombat(10, 2, { passive: true }),
+      reflectDamage: 0.5,
+      respawn: COMMON_RESPAWN_SECONDS,
+      speed: 1.2,
+      leash: 2,
+      roamRadius: 0.44,
+      roamSpeed: 0.48,
+      height: 1.17,
+      model: "goat",
+      description: "An ordinary goat with an extraordinary talent for returning half the damage it takes."
+    },
+    ...Object.fromEntries(
+      FIGHTER_LEVELS.map((level, i) => [
+        "fighter-" + level,
+        {
+          name: "Fighter",
+          ...monsterCombat(level, 1.75),
+          respawn: COMMON_RESPAWN_SECONDS,
+          speed: 2,
+          leash: 5,
+          roamRadius: 0.15,
+          roamSpeed: 0.15,
+          height: 1.9,
+          model: "fighter",
+          appearance: {
+            skin: ["#bd9173", "#9d7255", "#c6a084", "#86624c", "#b37e64", "#926750"][i],
+            shirt: ["#a67c55", "#596f64", "#b9aa84", "#755b74", "#41576e", "#513a3a"][i],
+            pants: "#393d3b",
+            hair: "#332720",
+            hairstyle: i % 2 ? "crop" : "short"
+          },
+          description: "A Fighter waiting for a challenge. They\u2019ll only fight back after you attack."
+        }
+      ])
+    ),
+    "emf-warrior": {
+      name: contentText("config.monster-drops.module.name-3", {}),
+      ...monsterCombat(16, 1.8),
+      respawn: 45,
+      speed: 2.3,
+      leash: 8,
+      roamRadius: 3.35,
+      roamSpeed: 0.95,
+      height: 1.95,
+      model: "human",
+      appearance: {
+        skin: "#bc9976",
+        shirt: "#8c8975",
+        pants: "#615f53",
+        hair: "#b0a28c",
+        hat: "none",
+        tinfoil: true
+      },
+      description: contentText("config.monster-drops.module.description-4", {})
+    },
+    goblin,
+    "goblin-guard": {
+      ...goblin,
+      ...monsterCombat(7, 2),
+      name: "Goblin guard",
+      description: "A guard in a hammered helmet with a shield made from a chair seat."
+    },
+    "goblin-veteran": {
+      ...goblin,
+      ...monsterCombat(13, 1.7),
+      name: "Goblin veteran",
+      description: "A seasoned goblin wearing patched armor from several different workshops."
+    },
+    "lost-goblin": {
+      ...goblin,
+      name: contentText("config.monster-drops.module.name-5", {}),
+      description: contentText("config.monster-drops.module.description-6", {})
+    },
+    "goblin-maker": {
+      ...goblin,
+      name: contentText("config.monster-drops.module.name-7", {}),
+      ...monsterCombat(9, 2),
+      description: contentText("config.monster-drops.module.description-8", {})
+    },
+    "sea-urchin": {
+      name: "Sea urchin",
+      ...monsterCombat(28, 1.85),
+      respawn: COMMON_RESPAWN_SECONDS,
+      speed: 1.05,
+      leash: 4,
+      roamRadius: 0.44,
+      roamSpeed: 0.32,
+      height: 0.63,
+      model: "sea-urchin",
+      description: "A little purple ball with a formidable collection of spines."
+    },
+    seagull: {
+      name: contentText("config.monster-drops.module.name-9", {}),
+      ...monsterCombat(1, 3, { passive: true }),
+      respawn: COMMON_RESPAWN_SECONDS,
+      speed: 0.8,
+      leash: 3,
+      roamRadius: 1.65,
+      roamSpeed: 0.65,
+      height: 0.6,
+      model: "seagull",
+      description: contentText("config.monster-drops.module.description-10", {})
+    },
+    coyote: {
+      name: "Coyote",
+      ...monsterCombat(3, 1.7),
+      respawn: COMMON_RESPAWN_SECONDS,
+      speed: 2.2,
+      leash: 7,
+      aggression: 4,
+      roamRadius: 0.7,
+      roamSpeed: 0.5,
+      height: 0.95,
+      model: "coyote",
+      description: "A rangy coyote with pricked ears and a black-tipped tail."
+    },
+    robocop: {
+      name: "Robocop",
+      ...monsterCombat(5, 1.75),
+      respawn: 0,
+      speed: 2.4,
+      leash: 8,
+      attackRange: 3,
+      attackEffect: "robocop-laser",
+      height: 1.9,
+      model: "robocop",
+      description: "A robot traffic officer dispatched to defend the fleet."
+    },
+    "soma-zombie": {
+      name: "Zombie",
+      ...monsterCombat(5, 1.9),
+      respawn: 25,
+      speed: 1.9,
+      leash: 7,
+      aggression: 4.1,
+      roamRadius: 0.9,
+      roamSpeed: 0.45,
+      height: 1.85,
+      model: "human",
+      appearance: {
+        skin: "#748954",
+        shirt: "#69625c",
+        pants: "#46544b",
+        hair: "#363830",
+        hairstyle: "short-curls"
+      },
+      description: "Green skin, grubby clothes, and a lurching walk."
+    },
+    ...Object.fromEntries(
+      LEGACY_BUGS.map(([level, , , species]) => [
+        "legacy-bug-" + level,
+        {
+          name: "Giant " + species,
+          ...monsterCombat(level, 1.8),
+          model: "legacy-" + species,
+          height: species === "spider" ? 0.81 : 0.64,
+          speed: 1.43,
+          leash: 2.5,
+          roamRadius: 0.43,
+          respawn: COMMON_RESPAWN_SECONDS,
+          description: "A " + species + " large enough to stop a software release."
+        }
+      ])
+    ),
+    "securities-investigator": {
+      name: "Securities Investigator",
+      ...monsterCombat(40, 1.85),
+      speed: 2.2,
+      leash: 18,
+      respawn: COMMON_RESPAWN_SECONDS,
+      model: "human",
+      height: 1.9,
+      attackEffect: "bind",
+      appearance: { shirt: "#45525e", pants: "#343b45", hair: "#332b28", coat: true },
+      description: "A government investigator with a charcoal suit and a file full of listing documents."
+    },
+    "mad-scientist": {
+      name: "Mad Scientist",
+      ...monsterCombat(45, 1.85),
+      speed: 1.7,
+      leash: 4,
+      roamRadius: 0.8,
+      respawn: COMMON_RESPAWN_SECONDS,
+      model: "human",
+      attackEffect: "explosive",
+      attackRange: 4.5,
+      height: 1.9,
+      appearance: { shirt: "#d9d7c5", pants: "#454a54", hair: "#b9b7a8", hairstyle: "short-curls" },
+      description: "A disheveled scientist with burn marks on his lab coat."
+    },
+    "madder-scientist": {
+      name: "Madder Scientist",
+      ...monsterCombat(55, 1.75),
+      speed: 1.8,
+      leash: 6,
+      roamRadius: 1.3,
+      respawn: COMMON_RESPAWN_SECONDS,
+      model: "human",
+      attackEffect: "explosive",
+      attackRange: 4.5,
+      height: 1.95,
+      appearance: { shirt: "#c3dbce", pants: "#3a464d", hair: "#eee7cf", hairstyle: "short-curls" },
+      description: "A scientist in a scorched lab coat with a gleam in his eye."
+    },
+    "mad-cultist": {
+      name: "Mad Cultist",
+      ...monsterCombat(40, 1.9),
+      speed: 1.7,
+      leash: 5,
+      aggression: 2.6,
+      roamRadius: 0.9,
+      respawn: COMMON_RESPAWN_SECONDS,
+      model: "human",
+      height: 1.85,
+      appearance: { shirt: "#583758", pants: "#382c45", hair: "#3a233b" },
+      description: "A Goose Corp devotee carrying a bucket of sand."
+    },
+    cow: {
+      name: contentText("config.monster-drops.module.name-11", {}),
+      ...monsterCombat(2, 2, { passive: true }),
+      respawn: COMMON_RESPAWN_SECONDS
+    },
+    raptor: {
+      name: contentText("config.monster-drops.module.name-12", {}),
+      quest: true,
+      ...monsterCombat(8, 1.5),
+      respawn: 45
+    },
+    kraken: {
+      name: contentText("config.monster-drops.module.name-13", {}),
+      quest: true,
+      ...monsterCombat(60, 2.4, { boss: true }),
+      enrageAt: 0.5,
+      enrageDamageBonus: 6,
+      enrageInterval: 1.8
+    },
+    bear: {
+      name: contentText("config.monster-drops.module.name-14", {}),
+      ...monsterCombat(10, 1.7),
+      respawn: 25,
+      speed: 1.8,
+      leash: 7,
+      friendly: true,
+      roamRadius: 3,
+      roamSpeed: 0.55,
+      walkStride: 0.95
+    },
+    "tahoe-bear": {
+      name: "Black bear",
+      ...monsterCombat(13, 1.8),
+      model: "bear",
+      height: 1.6,
+      respawn: 30,
+      speed: 1.75,
+      leash: 6,
+      roamRadius: 1.7,
+      roamSpeed: 0.52,
+      walkStride: 0.95,
+      description: "A stout Sierra black bear with a silver-tipped winter coat."
+    },
+    "tahoe-fox": {
+      name: "Red fox",
+      ...monsterCombat(7, 1.55),
+      model: "fox",
+      height: 0.95,
+      respawn: 25,
+      speed: 2.2,
+      leash: 5,
+      roamRadius: 1.45,
+      roamSpeed: 0.62,
+      description: "A red fox with black stockings and a white-tipped brush."
+    },
+    bison: {
+      name: contentText("config.monster-drops.module.name-15", {}),
+      ...monsterCombat(8, 2),
+      respawn: 30,
+      speed: 1.7,
+      leash: 7,
+      roamRadius: 1.2,
+      roamSpeed: 0.4,
+      walkStride: 1.1,
+      height: 2.1,
+      model: "bison",
+      description: contentText("config.monster-drops.module.description-16", {})
+    },
+    "snow-giant": {
+      name: contentText("config.monster-drops.module.name-17", {}),
+      ...monsterCombat(18, 1.8),
+      respawn: 35,
+      speed: 2.1,
+      leash: 12,
+      aggression: 5,
+      pursuit: "direct",
+      radius: 0.5
+    },
+    "ice-giant": {
+      name: contentText("config.monster-drops.module.name-18", {}),
+      ...monsterCombat(20, 1.9),
+      respawn: 40,
+      speed: 2,
+      leash: 12,
+      aggression: 5,
+      pursuit: "direct",
+      radius: 0.5
+    },
+    terminator: {
+      name: contentText("config.monster-drops.module.name-19", {}),
+      ...monsterCombat(40, 1.3),
+      respawn: 30,
+      speed: 2.4,
+      leash: 7,
+      aggression: 5,
+      attackRange: 7,
+      attackEffect: "akimbo",
+      roamRadius: 1,
+      height: 2.15,
+      model: "terminator",
+      description: contentText("config.monster-drops.module.description-20", {})
+    },
+    landshark: {
+      name: contentText("config.monster-drops.module.name-21", {}),
+      ...monsterCombat(10, 1.5),
+      respawn: COMMON_RESPAWN_SECONDS,
+      speed: 1.6,
+      leash: 2.2,
+      aggression: 1.5,
+      territoryHalfWidth: 1.5,
+      roamRadius: 0.45,
+      roamSpeed: 0.6,
+      height: 1.65,
+      model: "shark",
+      description: contentText("config.monster-drops.module.description-22", {})
+    },
+    outlaw: {
+      name: contentText("config.monster-drops.module.name-23", {}),
+      ...monsterCombat(7, 2),
+      respawn: COMMON_RESPAWN_SECONDS,
+      speed: 1.9,
+      leash: 10,
+      aggression: 5,
+      roamRadius: 1.4,
+      height: 1.85,
+      model: "human",
+      description: contentText("config.monster-drops.module.description-24", {}),
+      appearance: {
+        skin: "#b58a66",
+        shirt: "#705b43",
+        pants: "#3f4944",
+        hair: "#342d27",
+        coat: true,
+        hat: "panama",
+        bayonet: true
+      }
+    },
+    "lost-pirate": {
+      name: contentText("config.monster-drops.module.name-25", {}),
+      ...monsterCombat(6, 2.1),
+      respawn: COMMON_RESPAWN_SECONDS,
+      speed: 1.8,
+      leash: 9,
+      aggression: 5,
+      roamRadius: 0.8,
+      height: 1.85,
+      model: "human",
+      description: contentText("config.monster-drops.module.description-26", {}),
+      appearance: {
+        skin: "#bb8c69",
+        shirt: "#873f42",
+        pants: "#4c5d69",
+        hair: "#34302e",
+        coat: true,
+        hat: "pirate",
+        bayonet: true
+      }
+    }
+  });
+
+  // editor/combat-simulator.ts
+  function fight(fighters, random, trace) {
+    const hp = [fighters[0].hp, fighters[1].hp];
+    const next = [fighters[0].interval, fighters[1].interval];
+    const damage = [0, 0];
+    const enraged = [false, false];
+    let time = 0;
+    trace?.(time, hp);
+    while (hp[0] > 0 && hp[1] > 0 && Math.min(...next) <= 120) {
+      const attacker = next[0] === next[1] ? random() < 0.5 ? 0 : 1 : next[0] < next[1] ? 0 : 1;
+      const target = attacker === 0 ? 1 : 0;
+      time = next[attacker];
+      const attack = enraged[attacker] ? fighters[attacker].enrage : fighters[attacker];
+      next[attacker] += attack.interval;
+      const hit = Math.min(
+        hp[target],
+        Math.max(0, attack.damage(fighters[target], random) - fighters[target].defense)
+      );
+      damage[attacker] += hit;
+      hp[target] = Math.max(0, hp[target] - hit);
+      const phase = fighters[target].enrage;
+      if (phase && !enraged[target] && hp[target] <= phase.at * fighters[target].hp) {
+        enraged[target] = true;
+        next[target] = Math.min(next[target], time + phase.interval);
+      }
+      trace?.(time, hp);
+    }
+    const winner = hp[0] === 0 ? 1 : hp[1] === 0 ? 0 : -1;
+    return { winner, time: winner === -1 ? 120 : time, damage };
+  }
+  function fighterFields(side, preset) {
+    const group = document.createElement("fieldset");
+    group.innerHTML = `<legend>${side}</legend>
+    <label>Combatant <select data-field="kind"></select></label>
+    <div class="combat-player">
+      <label>Strength level <input data-field="level" type="number" min="1" max="${PROGRESSION.maxLevel}" value="1" required></label>
+      <label>Hitpoints level <input data-field="hp" type="number" min="1" max="${PROGRESSION.maxLevel}" value="1" required></label>
+      <label>Weapon <select data-field="weapon"></select></label>
+      <label>Inebriation (%) <input data-field="inebriation" type="number" min="0" max="100" value="0" required></label>
+      <label><input data-field="boots" type="checkbox"> Combat boots</label>
+      <label><input data-field="iceTop" type="checkbox"> Ice top</label>
+      <label><input data-field="icePants" type="checkbox"> Ice pants</label>
+      <label><input data-field="upgrade" type="checkbox"> Railgun upgrade</label>
+    </div>`;
+    const field = (key) => group.querySelector(`[data-field="${key}"]`);
+    const kind = field("kind");
+    kind.add(new Option("Player", "player"));
+    for (const [id, npc] of Object.entries(MONSTER_STATS))
+      kind.add(new Option(`${npc.name} \xB7 level ${npc.level}`, id));
+    kind.value = preset;
+    const weapon = field("weapon");
+    for (const id of PLAYER_WEAPONS) weapon.add(new Option(ITEM_STATS[id].name, id));
+    const playerFields = group.querySelector(".combat-player");
+    const update = () => {
+      playerFields.hidden = kind.value !== "player";
+      for (const input of playerFields.querySelectorAll("input, select"))
+        input.disabled = playerFields.hidden;
+      field("upgrade").disabled = playerFields.hidden || weapon.value !== "railgun";
+    };
+    kind.addEventListener("change", update);
+    weapon.addEventListener("change", update);
+    update();
+    const read = () => {
+      if (kind.value !== "player") {
+        const npc = MONSTER_STATS[kind.value];
+        const enrage = npc.enrageAt && npc.enrageInterval ? {
+          at: npc.enrageAt,
+          interval: npc.enrageInterval,
+          damage: (target, random) => rollEnemyDamage(npc.damage + (npc.enrageDamageBonus || 0), target.level, random)
+        } : void 0;
+        return {
+          name: npc.name,
+          level: npc.level,
+          hp: npc.hp,
+          interval: npc.interval ?? 1.25,
+          defense: 0,
+          enrage,
+          damage: (target, random) => npc.damage ? rollEnemyDamage(npc.damage, target.level, random) : 0
+        };
+      }
+      const level = field("level").valueAsNumber;
+      const inebriation = field("inebriation").valueAsNumber;
+      const checked = (key) => field(key).checked;
+      const id = weapon.value;
+      return {
+        name: side,
+        level,
+        hp: hitpointMaximum(SKILL_THRESHOLDS[field("hp").valueAsNumber - 1]),
+        interval: weaponAttackInterval(id, {
+          ownedEquipment: checked("upgrade") ? ["railgun-upgrade"] : []
+        }),
+        defense: equipmentDefense({
+          boots: checked("boots"),
+          iceTop: checked("iceTop"),
+          icePants: checked("icePants")
+        }),
+        damage: (_target, random) => rollWeaponDamage(level, id, random, inebriation)
+      };
+    };
+    return { group, read };
+  }
+  function setupCombatSimulator() {
+    const open = document.querySelector("#open-combat-simulator");
+    const container = document.createElement("template");
+    container.innerHTML = `<dialog id="combat-simulator" aria-labelledby="combat-title">
+      <button type="button" class="combat-close">Close</button>
+      <h2 id="combat-title">Combat simulator</h2>
+      <form>
+        <div class="combat-fighters"></div>
+        <button type="submit">Simulate fights</button>
+        <p class="muted">Both fighters start at full health and in range. Uses standard attacks with unlimited ammo. Fights time out at two minutes.</p>
+        <output aria-live="polite"></output>
+        <p class="muted">Sample fight \xB7 HP over time \xB7 A is teal, B is amber</p>
+        <canvas width="680" height="184" role="img" aria-label="Sample combat hitpoints over time"></canvas>
+      </form>
+    </dialog>`;
+    const dialog = container.content.querySelector("dialog");
+    const styling = document.createElement("style");
+    styling.textContent = `#combat-simulator {
+  color: var(--text, #e4e9e7);
+  background: var(--panel, #172226);
+  border: 1px solid var(--line, #304146);
+  border-radius: 12px;
+  width: min(720px, 95vw);
+  max-height: 90vh;
+  padding: 20px;
+}
+#combat-simulator::backdrop { background: #081014bb; }
+.combat-close { float: right; }
+.combat-fighters, .combat-player {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.combat-fighters { margin-bottom: 14px; }
+.combat-fighters fieldset { border: 1px solid var(--line, #304146); min-width: 0; }
+.combat-fighters label { display: block; }
+.combat-fighters select, .combat-fighters input[type='number'] { display: block; width: 100%; }
+.combat-player { margin-top: 12px; }
+.combat-player[hidden] { display: none; }
+#combat-simulator canvas { width: 100%; height: auto; }
+@media (max-width: 600px) { .combat-fighters { grid-template-columns: 1fr; } }`;
+    document.head.append(styling);
+    document.body.append(dialog);
+    const form = dialog.querySelector("form");
+    const fields = dialog.querySelector(".combat-fighters");
+    const output = dialog.querySelector("output");
+    const canvas = dialog.querySelector("canvas");
+    const graph = canvas.getContext("2d");
+    const first = fighterFields("Fighter A", "player");
+    const second = fighterFields("Fighter B", "goblin");
+    fields.append(first.group, second.group);
+    function simulate() {
+      const fighters = [first.read(), second.read()];
+      let seed = 148391;
+      const random = () => {
+        seed = Math.imul(1664525, seed) + 1013904223 >>> 0;
+        return seed / 4294967296;
+      };
+      const wins = [0, 0, 0];
+      const damage = [0, 0];
+      let elapsed = 0;
+      const rounds = 500;
+      for (let i = 0; i < rounds; i++) {
+        const result = fight(fighters, random);
+        wins[result.winner < 0 ? 2 : result.winner]++;
+        elapsed += result.time;
+        damage[0] += result.damage[0];
+        damage[1] += result.damage[1];
+      }
+      output.replaceChildren();
+      fighters.forEach((fighter, i) => {
+        const result = document.createElement("p");
+        result.textContent = `${i === 0 ? "A" : "B"} \xB7 ${fighter.name} \xB7 ${fighter.hp} HP \xB7 ${(100 * wins[i] / rounds).toFixed(1)}% wins \xB7 ${(damage[i] / elapsed).toFixed(2)} DPS`;
+        output.append(result);
+      });
+      const summary = document.createElement("p");
+      summary.textContent = `${rounds} fights \xB7 ${(elapsed / rounds).toFixed(1)} s average \xB7 ${(100 * wins[2] / rounds).toFixed(1)}% timed out`;
+      output.append(summary);
+      const points = [];
+      const sample = fight(fighters, random, (time, hp) => points.push({ time, hp: [...hp] }));
+      graph.clearRect(0, 0, canvas.width, canvas.height);
+      const left = 34, top = 12, width = canvas.width - 54, height = canvas.height - 36;
+      graph.strokeStyle = "#64777a";
+      graph.strokeRect(left, top, width, height);
+      graph.font = "13px system-ui";
+      graph.fillStyle = "#aebfbf";
+      graph.fillText("100%", 0, top + 5);
+      graph.fillText("0%", 8, top + height + 4);
+      graph.fillText("0 s", left, canvas.height - 5);
+      graph.textAlign = "right";
+      graph.fillText(`${sample.time.toFixed(1)} s`, left + width, canvas.height - 5);
+      graph.textAlign = "left";
+      fighters.forEach((fighter, i) => {
+        graph.strokeStyle = i === 0 ? "#65dbcf" : "#ffba69";
+        graph.lineWidth = 2;
+        graph.beginPath();
+        let previous = top;
+        graph.moveTo(left, previous);
+        for (const point of points) {
+          const x = left + width * point.time / sample.time;
+          const y = top + height * (1 - point.hp[i] / fighter.hp);
+          graph.lineTo(x, previous);
+          graph.lineTo(x, y);
+          previous = y;
+        }
+        graph.lineTo(left + width, previous);
+        graph.stroke();
+      });
+    }
+    open.addEventListener("click", () => {
+      dialog.showModal();
+      if (form.checkValidity()) simulate();
+    });
+    dialog.querySelector(".combat-close").addEventListener("click", () => dialog.close());
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      simulate();
+    });
+  }
+
+  // src/types/ui.ts
+  function requiredElement(id) {
+    const value = document.getElementById(id);
+    if (!value) throw new Error("Missing interface element: " + id);
+    return value;
   }
 
   // src/config/hats.ts
@@ -647,9 +1608,7 @@
       ],
       weapon: [
         option("unarmed", "Fist"),
-        ...PLAYER_WEAPONS.filter((id) => id !== "unarmed").filter(
-          (id) => id === "bayonet" ? progress.bayonet : id === "railgun" ? progress.railgun : owns(id)
-        ).map((id) => option(id, ITEM_STATS[id].name))
+        ...PLAYER_WEAPONS.filter((id) => id !== "unarmed").filter(owns).map((id) => option(id, ITEM_STATS[id].name))
       ],
       back: [
         option("none", "Nothing on back"),
@@ -658,19 +1617,30 @@
       ],
       neck: [
         option("none", "No necklace"),
+        ...owns("recoil-amulet") ? [option("recoil-amulet", ITEM_STATS["recoil-amulet"].name)] : [],
         ...owns("clock-amulet") ? [option("clock-amulet", ITEM_STATS["clock-amulet"].name)] : []
       ],
       torso: [
         option("shirt", "Regular shirt"),
-        ...["ice-top", "black-cloak-top", "tinfoil-suit"].filter(owns).map((id) => option(id, ITEM_STATS[id].name))
+        ...[
+          "ice-top",
+          "black-cloak-top",
+          "tinfoil-suit",
+          "decorative-robe-top",
+          "cashmere-turtleneck",
+          "goose-corp-shirt",
+          "iron-armor",
+          "gold-trimmed-iron-armor"
+        ].filter(owns).map((id) => option(id, ITEM_STATS[id].name))
       ],
       legs: [
         option("trousers", "Regular trousers"),
-        ...["ice-pants", "black-cloak-bottom"].filter(owns).map((id) => option(id, ITEM_STATS[id].name))
+        ...["ice-pants", "black-cloak-bottom", "decorative-robe-bottom"].filter(owns).map((id) => option(id, ITEM_STATS[id].name))
       ],
       boots: [
         option("false", "Regular shoes"),
-        ...owns("combat-boots") ? [option("true", "Combat boots")] : []
+        ...owns("combat-boots") ? [option("true", "Combat boots")] : [],
+        ...owns("party-boots") ? [option("party-boots", ITEM_STATS["party-boots"].name)] : []
       ],
       iceTop: [
         option("false", "Regular shirt"),
@@ -697,11 +1667,21 @@
   function clothingSelection(input = {}) {
     const value = isRecord(input) ? input : {};
     const torso = isOneOf(
-      ["shirt", "ice-top", "black-cloak-top", "tinfoil-suit"],
+      [
+        "shirt",
+        "ice-top",
+        "black-cloak-top",
+        "tinfoil-suit",
+        "decorative-robe-top",
+        "cashmere-turtleneck",
+        "goose-corp-shirt",
+        "iron-armor",
+        "gold-trimmed-iron-armor"
+      ],
       value.torso
     ) ? value.torso : value.iceTop === true ? "ice-top" : value.cloakTop === true ? "black-cloak-top" : "shirt";
     const legs = isOneOf(
-      ["trousers", "ice-pants", "black-cloak-bottom"],
+      ["trousers", "ice-pants", "black-cloak-bottom", "decorative-robe-bottom"],
       value.legs
     ) ? value.legs : value.icePants === true ? "ice-pants" : value.cloakBottom === true ? "black-cloak-bottom" : "trousers";
     return {
@@ -725,13 +1705,12 @@
   var adminEquipmentOptions = {
     ...equipmentOptions(
       { ownedEquipment: [...EQUIPMENT_IDS], ownedHats: HAT_CATALOG.map((hat) => hat.id) },
-      { bayonet: true, railgun: true, cape: true }
+      { cape: true }
     ),
     sunglasses: eyewear
   };
   function unlockedEquipment({ inventory, quests }) {
     const economy = object(inventory.economy);
-    const aliens = object(quests.theyLive);
     const expeditions = object(quests.expeditions);
     return {
       ...equipmentOptions(
@@ -740,10 +1719,6 @@
           ownedHats: strings(economy.ownedHats)
         },
         {
-          bayonet: [aliens.started, aliens.evidence, aliens.permit, aliens.bayonet].every(
-            (flag) => flag === true
-          ),
-          railgun: railgunUnlocked(expeditions),
           cape: expeditions.cape === true
         }
       ),
@@ -758,28 +1733,16 @@
         inventory.sunglasses = { ...object(inventory.sunglasses), owned: true };
       } else if (slot === "back" && value === "cape") {
         quests.expeditions = { ...object(quests.expeditions), cape: true };
-      } else if (slot === "weapon" && value === "bayonet") {
-        quests.theyLive = {
-          ...object(quests.theyLive),
-          started: true,
-          evidence: true,
-          permit: true,
-          bayonet: true
-        };
-      } else if (slot === "weapon" && value === "railgun") {
-        const expedition = { ...object(quests.expeditions), railgun: true, equipped: true };
-        if (!railgunUnlocked(expedition)) Object.assign(expedition, { raptor: "escaped" });
-        quests.expeditions = expedition;
       } else {
         const economy = object(inventory.economy);
         const list = slot === "hat" ? "ownedHats" : "ownedEquipment";
-        const item = slot === "boots" ? "combat-boots" : value;
+        const item = slot === "boots" && value === "true" ? "combat-boots" : value;
         const owned = strings(economy[list]);
         if (!owned.includes(item)) inventory.economy = { ...economy, [list]: [...owned, item] };
       }
     }
     const appearance = { ...object(player.appearance) };
-    appearance[slot] = slot === "boots" || slot === "sunglasses" ? value === "true" : value;
+    appearance[slot] = slot === "boots" ? normalizeBoots(value) : slot === "sunglasses" ? value === "true" : value;
     if (slot === "torso" || slot === "legs") Object.assign(appearance, clothingSelection(appearance));
     if (slot === "back") appearance.cape = value === "cape";
     player.appearance = appearance;
@@ -993,6 +1956,7 @@
   });
   controls();
   refresh().catch((error) => status(errorMessage(error), "error"));
+  setupCombatSimulator();
 })();
 
     </script>

@@ -1,7 +1,7 @@
 import type { JSONValue, ServiceNode, LegacyServiceNode } from '../types/content.ts';
 import { isRecord } from '../types/json.ts';
 import services from './services.json' with { type: 'json' };
-import goose from './goose-corp.json' with { type: 'json' };
+import goose from '../../content/dialogues/other/goose-corp-lore.json' with { type: 'json' };
 import { CONTENT } from '../content-runtime.ts';
 
 const legacyServices: Record<string, ServiceNode> = {

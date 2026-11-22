@@ -21,6 +21,7 @@
       "bouquets": 0,
       "fuelCans": 0,
       "fish": 0,
+      "mud": 0,
       "sand": 0,
       "saltLetters": 0,
       "saltLettersDelivered": 0,
@@ -42,6 +43,13 @@
   "quests": {
     "monkey": {
       "stage": "not-started"
+    },
+    "stochasticParrot": {
+      "stage": "not-started"
+    },
+    "burningMan": {
+      "stage": "not-started",
+      "burnAt": 0
     },
     "theyLive": {
       "started": false,
@@ -78,7 +86,9 @@
   "activities": {
     "delivery": {},
     "monkeyKeeper": {},
-    "laborReadyAt": {}
+    "laborReadyAt": {},
+    "gym": { "workedSeconds": 0, "readyAt": 0 },
+    "construction": { "workedSeconds": 0, "readyAt": 0 }
   },
   "conditions": {
     "inebriation": 0,
@@ -103,7 +113,8 @@
     "pvp": null
   },
   "progress": {
-    "houseSearches": []
+    "houseSearches": [],
+    "goblinSpaceMud": 0
   },
   "rewards": {
     "pending": [],

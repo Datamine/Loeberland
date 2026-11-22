@@ -380,6 +380,7 @@ export function createCityLife({
         phase = reduced ? 0 : p.phase,
         start = m.data.length;
       if (!visible(at.x, at.z, base)) continue;
+      const cycling = p.rider && !p.bicycleTaken;
       const appearance: CharacterAppearance & { height: number } = {
         pants: i % 2 ? '#475259' : '#5a574d',
         hair: (['#3c352f', '#5d4e3c', '#907657'] satisfies [string, string, string])[i % 3],
@@ -391,31 +392,31 @@ export function createCityLife({
         height: p.stroller ? 1 : p.child ? 0.65 + p.seed * 0.05 : 0.92 + p.seed * 0.16,
         carryingFish: p.dogWalker,
         pushingStroller: p.stroller,
-        mode: p.rider ? 'cycle' : 'move',
+        mode: cycling ? 'cycle' : 'move',
         motion: reduced ? 0 : p.motion,
         time: reduced ? 0 : seconds + p.seed * 13,
-        ground: p.rider ? null : groundHeight,
+        ground: cycling ? null : groundHeight,
       };
       if (!reduced && p.gesture && time < p.gesture.started + p.gesture.duration) {
         appearance.action = p.gesture.name || undefined;
         appearance.actionT = (time - p.gesture.started) / p.gesture.duration;
       }
-      p.base = base + (p.rider ? 0.3 : 0);
-      p.height = (p.rider ? 1.48 : 1.83) * appearance.height + 0.1;
+      p.base = base + (cycling ? 0.3 : 0);
+      p.height = (cycling ? 1.48 : 1.83) * appearance.height + 0.1;
       drawHumanNPC(m, p, time, {
         x: at.x,
         z: at.z,
-        base: base + (p.rider ? 0.3 : 0),
+        base: base + (cycling ? 0.3 : 0),
         angle: angle,
         phase: phase,
-        seated: p.rider,
+        seated: cycling,
         skin: skins[i % skins.length],
         shirt: colors[i % colors.length],
         appearance: appearance,
         reduced: reduced,
         draw: human,
       });
-      if (p.rider) bicycle(m, at.x, at.z, base, angle, phase);
+      if (cycling) bicycle(m, at.x, at.z, base, angle, phase);
       addTarget(start, p);
       if (p.stroller) {
         const baby =
@@ -529,6 +530,10 @@ export function createCityLife({
 export function drawStreetcar(m: Mesh, x: number, base: number, z: number, angle: number) {
   pose(m, x, base, z, angle, () =>
     drawCachedMesh(m, 'streetcar', (mesh) => {
+      for (const u of [-1.44, 0.82]) {
+        mesh.box(u, 0.25, -0.33, 0.62, 0.15, 0.66, '#9e5741');
+        for (const side of [-0.33, 0.3]) mesh.box(u, 0.4, side, 0.56, 0.08, 0.03, '#d8ccaa');
+      }
       mesh.box(-0.82, 0.12, -0.33, 1.64, 0.23, 0.66, '#9e5741');
       mesh.box(-0.74, 0.35, -0.32, 1.48, 0.54, 0.64, '#c7b88c');
       for (const u of [-0.82, 0.74] satisfies [number, number])

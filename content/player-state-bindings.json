@@ -9,6 +9,8 @@
     "sf-deli-v1": "activities.delivery",
     "sf-purse-v1": "inventory.economy",
     "sf-quests-v1": "$quests",
+    "sf-burning-man-v1": "quests.burningMan",
+    "sf-goblin-space-v1": "progress.goblinSpaceMud",
     "sf-expeditions-v1": "quests.expeditions",
     "sf-motorcycle-v1": "vehicles.motorcycle",
     "sf-monkey-keeper-v1": "activities.monkeyKeeper",
@@ -42,6 +44,8 @@
   },
   "questMarkers": {
     "monkey-business": ["quests.monkey.stage"],
+    "stochastic-parrot": ["quests.stochasticParrot.stage"],
+    "burning-man": ["quests.burningMan.stage"],
     "they-live": [
       "quests.theyLive.started",
       "quests.theyLive.evidence",

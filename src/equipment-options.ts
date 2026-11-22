@@ -6,7 +6,7 @@ export function equipmentOptions(
     ownedEquipment = [],
     ownedHats = [],
   }: { ownedEquipment?: string[]; ownedHats?: string[] } | undefined = {},
-  progress: { bayonet?: boolean; railgun?: boolean; cape?: boolean } = {},
+  progress: { cape?: boolean } = {},
 ) {
   const owns = (id: string) => ownedEquipment.includes(id),
     option = (value: string, label: string) => ({ value, label });
@@ -18,9 +18,7 @@ export function equipmentOptions(
     weapon: [
       option('unarmed', 'Fist'),
       ...PLAYER_WEAPONS.filter((id) => id !== 'unarmed')
-        .filter((id) =>
-          id === 'bayonet' ? progress.bayonet : id === 'railgun' ? progress.railgun : owns(id),
-        )
+        .filter(owns)
         .map((id) => option(id, ITEM_STATS[id].name)),
     ],
     back: [
@@ -32,23 +30,36 @@ export function equipmentOptions(
     ],
     neck: [
       option('none', 'No necklace'),
+      ...(owns('recoil-amulet') ? [option('recoil-amulet', ITEM_STATS['recoil-amulet'].name)] : []),
       ...(owns('clock-amulet') ? [option('clock-amulet', ITEM_STATS['clock-amulet'].name)] : []),
     ],
     torso: [
       option('shirt', 'Regular shirt'),
-      ...(['ice-top', 'black-cloak-top', 'tinfoil-suit'] satisfies [string, string, string])
+      ...(
+        [
+          'ice-top',
+          'black-cloak-top',
+          'tinfoil-suit',
+          'decorative-robe-top',
+          'cashmere-turtleneck',
+          'goose-corp-shirt',
+          'iron-armor',
+          'gold-trimmed-iron-armor',
+        ] as const
+      )
         .filter(owns)
         .map((id) => option(id, ITEM_STATS[id].name)),
     ],
     legs: [
       option('trousers', 'Regular trousers'),
-      ...(['ice-pants', 'black-cloak-bottom'] satisfies [string, string])
+      ...(['ice-pants', 'black-cloak-bottom', 'decorative-robe-bottom'] as const)
         .filter(owns)
         .map((id) => option(id, ITEM_STATS[id].name)),
     ],
     boots: [
       option('false', 'Regular shoes'),
       ...(owns('combat-boots') ? [option('true', 'Combat boots')] : []),
+      ...(owns('party-boots') ? [option('party-boots', ITEM_STATS['party-boots'].name)] : []),
     ],
     iceTop: [
       option('false', 'Regular shirt'),

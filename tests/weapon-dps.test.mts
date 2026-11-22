@@ -66,11 +66,21 @@ test('inebriation halves average DPS at 100%, while four armor defense reduces d
   }
 });
 test('Fist is unarmed, including legacy Automatic saves, and never silently equips an owned weapon', () => {
-  const gear = { railgun: true, bayonet: true, battleaxe: true };
+  const gear = { ownedEquipment: ['railgun', 'bayonet', 'battleaxe'] };
   assert.equal(normalizeCharacter({ weapon: 'auto' }).weapon, 'unarmed');
   assert.equal(normalizeCharacter({}).weapon, 'unarmed');
   assert.equal(selectedWeapon('unarmed', gear), 'unarmed');
   assert.equal(selectedWeapon('auto', gear), 'unarmed');
   for (const id of ['railgun', 'bayonet', 'battleaxe'] satisfies [string, string, string])
     assert.equal(selectedWeapon(id, gear), id);
+});
+
+test('the missile launcher fires slower than Akimbos with a much higher max hit and about 30% more DPS', () => {
+  for (let level = 1; level <= PROGRESSION.maxLevel; level++) {
+    const launcher = weaponExpectation(level, 'missile-launcher');
+    const akimbos = weaponExpectation(level, 'akibo');
+    assert.ok(Math.abs(launcher.dps / akimbos.dps - 1.3) < 0.025);
+    assert.ok(launcher.max >= 4 * akimbos.max);
+  }
+  assert.ok(ITEM_STATS['missile-launcher'].interval > ITEM_STATS.akibo.interval);
 });

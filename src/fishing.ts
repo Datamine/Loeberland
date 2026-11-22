@@ -1,3 +1,4 @@
+import { contentText } from './content-runtime.ts';
 import type { WorldPoint, Point } from './types/geometry.ts';
 import { requiredValue } from './types/assert.ts';
 export interface FishingLocation {
@@ -24,11 +25,18 @@ export function createFishing(economy: Economy) {
     if (economy.state.fish)
       return {
         ok: false,
-        message: 'You can only carry one live fish.',
+        message: contentText('world-message.src.fishing.you-can-only-carry-one-live-fish'),
       };
-    if (state.active) return { ok: false, message: 'Your line is already in the water.' };
+    if (state.active)
+      return {
+        ok: false,
+        message: contentText('world-message.src.fishing.your-line-is-already-in-the-water'),
+      };
     Object.assign(state, { active: true, elapsed: 0, site });
-    return { ok: true, message: 'You cast your line. Something is nibbling…' };
+    return {
+      ok: true,
+      message: contentText('world-message.src.fishing.you-cast-your-line-something-is-nibbling'),
+    };
   }
   function update(dt: unknown) {
     if (!state.active || !isFiniteNumber(dt) || dt <= 0) return null;
@@ -39,7 +47,9 @@ export function createFishing(economy: Economy) {
     return {
       ...result,
       message: result.ok
-        ? 'You catch a live fish and slip it into a bucket of water.'
+        ? contentText(
+            'world-message.src.fishing.you-catch-a-live-fish-and-slip-it-into-a-bucket-of-water',
+          )
         : result.message,
     };
   }

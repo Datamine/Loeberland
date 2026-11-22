@@ -1,3 +1,4 @@
+import { contentText } from '../src/content-runtime.ts';
 import { isFiniteNumber } from '../src/types/json.ts';
 import type { Point } from '../src/types/geometry.ts';
 interface FollowState {
@@ -12,6 +13,8 @@ interface FollowState {
 }
 import type { SimulationServices, ServerPlayer } from '../src/types/server.ts';
 import { sameMapInstance } from '../src/map-instances.ts';
+import { inFighterYard } from '../src/fighter-yard-layout.ts';
+import { fighterYardMayEnter } from './fighter-yard.mts';
 import { guildMayEnter } from './guild.mts';
 import { ITEM_STATS } from '../src/item-stats.ts';
 const FOLLOW_SPEED = 4.6,
@@ -137,10 +140,19 @@ export function createServerFollowing({
       error = validate(p, target, attack);
     if (error || !target) return { ok: false, message: error };
     if (Math.hypot(p.x - target.x, p.z - target.z) > 38)
-      return { ok: false, message: 'That player is too far away to follow.' };
+      return {
+        ok: false,
+        message: contentText(
+          'world-message.server.following.that-player-is-too-far-away-to-follow',
+        ),
+      };
     const range = attack ? ITEM_STATS[pvp.weaponFor(p)].range + 0.1 : FOLLOW_RANGE,
       route = Math.hypot(p.x - target.x, p.z - target.z) > range ? plan(p, target, range) : [];
-    if (!route) return { ok: false, message: 'No walkable route to that player.' };
+    if (!route)
+      return {
+        ok: false,
+        message: contentText('world-message.server.following.no-walkable-route-to-that-player'),
+      };
     pvp.stop(p);
     p.attack = null;
     p.mode = 'walk';
@@ -158,7 +170,9 @@ export function createServerFollowing({
     return {
       ok: true,
       following: id,
-      message: 'Following ' + target.name + '. Click the ground to stop.',
+      message: contentText('world-message.server.following.following-click-the-ground-to-stop', {
+        name: String(target.name),
+      }),
     };
   }
   function tick(dt: unknown) {
@@ -241,6 +255,10 @@ export function createServerFollowing({
           }
           state.checked = next;
           state.checkedRevision = geometry.navigationRevision;
+        }
+        if (!inFighterYard(p.x, p.z) && !fighterYardMayEnter(p, x, z)) {
+          stop(p, contentText('world-message.fighter-yard.admission-required'));
+          break;
         }
         if (!guildMayEnter(p, geometry, x, y, z)) {
           stop(p, 'The guild admits members only.');

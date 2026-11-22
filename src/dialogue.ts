@@ -1,3 +1,4 @@
+import { contentText } from './content-runtime.ts';
 import type {
   RuntimeDialogue,
   RuntimeChoice,
@@ -15,7 +16,7 @@ interface DialogueOptions {
   getPlayer?: () => ContentEntity;
 }
 // CONTENT-BINDINGS-MIGRATED
-import { drawChatHead } from './character-config.ts';
+import { drawPlayerChatHead } from './chat-head.ts';
 import { dialogueChoices } from './dialogue-choices.ts';
 
 /** Dialogue UI owns presentation only; choices bind to authoritative actions.
@@ -32,6 +33,7 @@ export function createDialogue({
   getPlayer = () => ({}),
 }: DialogueOptions) {
   let current: RuntimeDialogue | null = null,
+    drawNPC: ((canvas: HTMLCanvasElement) => void) | undefined,
     stage = 'intro',
     committed = false,
     after: (() => void) | null = null,
@@ -44,6 +46,7 @@ export function createDialogue({
     journal.classList.remove('sf-conversing');
     log.hidden = false;
     current = null;
+    drawNPC = undefined;
     onClose();
   };
   const cancel = close;
@@ -95,8 +98,8 @@ export function createDialogue({
       ? (choice.serverReceipt ? result.message : choice.receipt) ||
         result.message ||
         current?.receipt ||
-        'Done.'
-      : result.message || 'Unable to complete that action.';
+        contentText('world-message.src.dialogue.done')
+      : result.message || contentText('world-message.src.dialogue.unable-to-complete-that-action');
     const text =
       message + (result.ok && result.bonus ? ' iPhone bonus: +' + result.bonus + ' coins.' : '');
     if (result.ok && (choice.serverReceipt || result.healed) && result.message)
@@ -138,13 +141,20 @@ export function createDialogue({
             if (session === opened && current === selected && canInteract())
               receive(choice, {
                 ok: false,
-                message: 'Unable to complete that action. Please try again.',
+                message: contentText(
+                  'world-message.src.dialogue.unable-to-complete-that-action-please-try-again',
+                ),
               });
           });
       } else receive(choice, result);
     } catch (error) {
       console.error('Dialogue action:', error);
-      receive(choice, { ok: false, message: 'Unable to complete that action. Please try again.' });
+      receive(choice, {
+        ok: false,
+        message: contentText(
+          'world-message.src.dialogue.unable-to-complete-that-action-please-try-again',
+        ),
+      });
     }
   }
   function render(message?: string) {
@@ -163,8 +173,11 @@ export function createDialogue({
     canvas.width = 160;
     canvas.height = 180;
     canvas.setAttribute('aria-hidden', 'true');
-    face.append(canvas);
-    drawChatHead(canvas, person);
+    if (player || drawNPC) {
+      face.append(canvas);
+      if (player) drawPlayerChatHead(canvas, person);
+      else drawNPC?.(canvas);
+    } else face.hidden = true;
     portrait.append(name, face);
     const copy = document.createElement('div');
     copy.className = 'sf-chat-copy';
@@ -213,10 +226,11 @@ export function createDialogue({
       .querySelector<HTMLButtonElement>('button:not([disabled])')
       ?.focus({ preventScroll: true });
   }
-  function open(person: RuntimeDialogue) {
+  function open(person: RuntimeDialogue, portrait?: (canvas: HTMLCanvasElement) => void) {
     if (!canInteract()) return false;
     session++;
     current = person;
+    drawNPC = portrait;
     stage = 'intro';
     committed = false;
     after = null;

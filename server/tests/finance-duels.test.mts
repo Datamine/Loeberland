@@ -1,9 +1,19 @@
-import { storedPlayerFixture, fixture, player, command, requiredResult } from './fixtures.mts';
+import {
+  storedPlayerFixture,
+  fixture,
+  fixtureGeometry,
+  player,
+  command,
+  requiredResult,
+} from './fixtures.mts';
 import { requiredFixture } from '../../tests/helpers/required.mts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { DUEL_ARENA } from '../../src/duel-layout.ts';
+import { createGame } from '../game.mts';
+import { createMemoryStore } from '../store.mts';
+import { MONSTER_STATS, rollMonsterDrops } from '../../src/monster-drops.ts';
 import type { ServerPlayer } from '../../src/types/server.ts';
 test('growth equity validates NPC proximity and backend-only ownership; checkpointed positions are ignored', async () => {
   const { game, geometry, advance } = await fixture(),
@@ -50,6 +60,92 @@ test('growth equity validates NPC proximity and backend-only ownership; checkpoi
     await game.close();
   }
 });
+test('successful listings roll for an investigator who can bind, and failed listings do not dispatch one', async () => {
+  const geometry = fixtureGeometry();
+  geometry.wilderness = {
+    actors: Array.from({ length: 12 }, (_, index) => ({
+      id: 'nearby-bear-' + index,
+      combatKind: 'bear',
+      x: geometry.spawn.x + 4 + index * 0.1,
+      z: geometry.spawn.y + 4,
+    })),
+  };
+  let roll = 1 / 5;
+  let time = 1_000_000;
+  const game = await createGame({
+    geometry,
+    store: createMemoryStore(),
+    random: () => roll,
+    now: () => time,
+  });
+  try {
+    const a = await player(game, 1199, { 'sf-purse-v1': '{"coins":20000}' });
+    const { p } = a;
+    const spot = { x: p.x, z: p.z, base: p.y };
+    geometry.merchants.push(
+      { ...spot, id: 'capital', kind: 'capital', label: 'Capital' },
+      { ...spot, id: 'broker', kind: 'stockbroker', label: 'Broker' },
+    );
+    const act = async (action: string) => {
+      await command(game, p, action, { amount: 1000 });
+      return requiredResult(a.messages);
+    };
+    const investigators = () =>
+      game.shared.wilderness.actors.filter(
+        (actor) => actor.combatKind === 'securities-investigator',
+      );
+    assert.ok((await act('growthBuy')).ok);
+    assert.ok((await act('growthList')).ok);
+    assert.equal(investigators().length, 0);
+    assert.ok((await act('growthSell')).ok);
+    roll = 0.19;
+    assert.equal((await act('growthList')).ok, false);
+    assert.equal(investigators().length, 0);
+    assert.ok((await act('growthBuy')).ok);
+    game.broadcast();
+    assert.equal(
+      a.messages.find((message) => message.type === 'world')?.patches?.wilderness?.length,
+      12,
+    );
+    assert.ok((await act('growthList')).ok);
+    const inspector = requiredFixture(investigators()[0]);
+    assert.equal(inspector.level, 40);
+    assert.equal(inspector.enemy, p.id);
+    assert.ok(Math.hypot(inspector.x - p.x, inspector.z - p.z) >= 1.2);
+    p.hp = p.max = 200;
+    roll = 1 / 8;
+    time += 50;
+    game.tick(0.05);
+    assert.ok(p.hp < 200, 'the investigator attacked');
+    assert.equal(p.boundUntil, undefined);
+    roll = 0.124;
+    const interval = MONSTER_STATS['securities-investigator'].interval;
+    time += interval * 1000;
+    game.tick(interval);
+    assert.equal(p.boundUntil, time + 10_000);
+    assert.ok(a.messages.some((message) => message.type === 'pvpBound' && message.target === p.id));
+    game.broadcast();
+    assert.ok(
+      a.messages.some(
+        (message) =>
+          message.type === 'world' &&
+          message.patches?.wilderness?.some(([id]) => id === inspector.id),
+      ),
+      'the dispatched investigator is replicated even with a full wilderness interest set',
+    );
+    assert.deepEqual(
+      rollMonsterDrops(inspector.combatKind, () => 0.5).map((item) => item.lootKind),
+      ['coins'],
+    );
+    assert.deepEqual(
+      rollMonsterDrops(inspector.combatKind, () => 0).map((item) => item.lootKind),
+      ['coins', 'sandwich'],
+    );
+  } finally {
+    await game.close();
+  }
+});
+
 const atArena = (p: ServerPlayer) =>
   Object.assign(p, { x: DUEL_ARENA.x, z: DUEL_ARENA.z, y: DUEL_ARENA.base + 0.24, mode: 'walk' });
 test('two explicit matching consents settle one wager, persist both balances and reject duplicate claims', async () => {

@@ -1,3 +1,4 @@
+import { contentText } from '../src/content-runtime.ts';
 import type { SimulationServices, ServerPlayer } from '../src/types/server.ts';
 import { createGrowthEquity } from '../src/growth-equity.ts';
 
@@ -52,11 +53,13 @@ export function createServerFinance({
     )
       return {
         ok: false,
-        message:
-          'Visit ' +
-          (kind === 'capital'
-            ? 'Sand Hill Road Capital Partners.'
-            : 'the Times Square stockbroker.'),
+        message: contentText('world-message.server.finance.visit', {
+          value1: String(
+            kind === 'capital'
+              ? 'Sand Hill Road Capital Partners.'
+              : 'the Times Square stockbroker.',
+          ),
+        }),
       };
     const a = account(p),
       r =
@@ -66,7 +69,10 @@ export function createServerFinance({
             ? a.list()
             : action === 'growthSell'
               ? a.sell()
-              : { ok: false, message: 'Unknown market action.' };
+              : {
+                  ok: false,
+                  message: contentText('world-message.server.finance.unknown-market-action'),
+                };
     publish(p);
     return { ...r, position: a.snapshot(), inventory: p.inventory.snapshot() };
   }

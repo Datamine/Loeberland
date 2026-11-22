@@ -15,6 +15,7 @@ export interface Lake {
   z: number;
   rx: number;
   rz: number;
+  outline?: number[][];
   level: number;
 }
 export interface LightSource {

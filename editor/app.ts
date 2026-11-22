@@ -1,3 +1,4 @@
+import { setupCombatSimulator } from './combat-simulator.ts';
 import { isFiniteNumber, errorMessage } from '../src/types/json.ts';
 
 import type {
@@ -15,7 +16,7 @@ import { editorElement } from '../src/types/ui.ts';
 import { conditionMatches } from '../src/content-conditions.ts';
 import { previewField } from './project.mts';
 import { setActionText } from '../src/context-menu.ts';
-import { drawChatHead } from '../src/character-config.ts';
+import { drawNPCChatHead } from '../src/chat-head.ts';
 import { groupEditorRecords } from './groups.ts';
 import {
   valueAt,
@@ -29,6 +30,7 @@ import {
 const catalog = JSON.parse(editorElement('editor-catalog').textContent || '{}') as EditorCatalog;
 const $ = editorElement;
 const records = new Map(catalog.records.map((r) => [r.key, r]));
+const worldMessages = new Map(catalog.worldMessages.map((r) => [r.key, r]));
 const groups = groupEditorRecords(catalog.records);
 const recordGroups = new Map(groups.flatMap((g) => g.members.map((r) => [r.key, g])));
 const shared = catalog.sharedDialogue.map((r) => ({
@@ -40,6 +42,7 @@ const shared = catalog.sharedDialogue.map((r) => ({
 const roots = new Map<string, BoundRecord & { key: string; name: string }>([
   ...records,
   ...shared.map((r): [string, typeof r] => [r.key, r]),
+  ...worldMessages,
 ]);
 const storageKey = 'sf-world-editor-drafts-v2';
 let drafts: Drafts = {},
@@ -53,7 +56,7 @@ try {
 }
 if (!drafts || Array.isArray(drafts) || typeof drafts !== 'object') drafts = {};
 const state = {
-  group: 'all',
+  group: worldMessages.has(decodeHash()) ? 'message' : 'all',
   query: '',
   kind: 'all',
   key: decodeHash(),
@@ -233,8 +236,11 @@ function updateDraftStatus() {
   $('reset-drafts').disabled = writer.busy || (!changes.length && !undo);
   $('reset-drafts').textContent = changes.length || !undo ? 'Discard drafts' : 'Undo discard';
   for (const row of $('entity-list').querySelectorAll<HTMLElement>(':scope > *')) {
-    const group = recordGroups.get(row.dataset.key || '');
-    const count = changes.filter((c) => recordGroups.get(c.record) === group).length;
+    const key = row.dataset.key || '';
+    const group = recordGroups.get(key);
+    const count = changes.filter((c) =>
+      group ? recordGroups.get(c.record) === group : c.record === key,
+    ).length;
     const dot = row.querySelector('.draft-dot');
     if (dot) {
       dot.textContent = count ? '●' : '';
@@ -298,6 +304,7 @@ function counts() {
   $('npc-count').textContent = String(groups.filter((r) => identity(r).group === 'npc').length);
 }
 function updateKinds() {
+  $('kind').closest('label')!.hidden = state.group === 'message';
   const kinds = [
     ...new Set(
       catalog.records
@@ -325,6 +332,32 @@ function matches(record: EditorRecord) {
   );
 }
 function renderList({ chooseFirst = false } = {}) {
+  if (state.group === 'message') {
+    const matches = [...worldMessages.values()].filter((r) =>
+      (r.name + ' ' + rawRead(r.key, ['template'])).toLowerCase().includes(state.query),
+    );
+    $('entity-list').replaceChildren(
+      ...matches.map((r) => {
+        const row = button('', () => select(r.key), 'entity');
+        row.dataset.key = r.key;
+        row.setAttribute('aria-current', String(r.key === state.key));
+        row.append(
+          element('span', 'draft-dot'),
+          element('span', 'entity-name', rawRead(r.key, ['template'])),
+          element('small', '', r.name),
+        );
+        return row;
+      }),
+    );
+    $('result-count').textContent = matches.length + ' of ' + worldMessages.size + ' messages';
+    if (chooseFirst && !matches.some((r) => r.key === state.key)) {
+      if (matches.length) select(matches[0].key);
+      else
+        $('detail').replaceChildren(element('div', 'empty-panel', 'No matching world messages.'));
+    }
+    updateDraftStatus();
+    return;
+  }
   visible = groups.filter(
     (r) =>
       (state.group === 'all' || identity(r).group === state.group) &&
@@ -375,7 +408,7 @@ function matchingMember(group: ReturnType<typeof groupEditorRecords<EditorRecord
   return group.members.find(matches) || group.members[0];
 }
 function select(key: string, setHash = true) {
-  if (!records.has(key)) return;
+  if (!records.has(key) && !worldMessages.has(key)) return;
   state.key = key;
   state.action = 0;
   state.dialogue = 0;
@@ -383,7 +416,10 @@ function select(key: string, setHash = true) {
   state.receipt = null;
   if (setHash) history.replaceState(null, '', '#' + encodeURIComponent(key));
   for (const row of $('entity-list').querySelectorAll<HTMLElement>(':scope > *'))
-    row.setAttribute('aria-current', String(row.dataset.key === recordGroups.get(key)!.key));
+    row.setAttribute(
+      'aria-current',
+      String(row.dataset.key === (recordGroups.get(key)?.key || key)),
+    );
   renderDetail();
   $('detail').scrollTop = 0;
 }
@@ -425,6 +461,21 @@ function stateNote(variant: { states: readonly string[] }) {
   return details;
 }
 function renderDetail() {
+  const message = worldMessages.get(state.key);
+  if (state.group === 'message' && message) {
+    fieldSerial = 0;
+    const header = element('header', 'entity-header');
+    const copy = element('div', 'header-copy');
+    copy.append(element('div', 'eyebrow', 'World message'), element('h2', '', message.name));
+    header.append(copy);
+    const source = element('p', 'muted', 'content/world-messages.json');
+    $('detail').replaceChildren(
+      header,
+      field('Message template', message.key, ['template'], { rows: 4 }),
+      source,
+    );
+    return;
+  }
   const r = current();
   if (!r) return;
   const display = identity(r);
@@ -444,7 +495,7 @@ function renderDetail() {
     canvas.width = 140;
     canvas.height = 156;
     canvas.setAttribute('aria-label', display.name + ' portrait');
-    drawChatHead(canvas, r.appearance);
+    drawNPCChatHead(canvas, { ...r.appearance, kind: r.kind }, false);
     header.append(canvas);
   }
   const copy = element('div', 'header-copy');
@@ -949,7 +1000,8 @@ $('reset-drafts').addEventListener('click', () => {
   try {
     localStorage.setItem(storageKey, JSON.stringify(drafts));
   } catch {}
-  if (state.group !== 'all') state.group = identity(current()!).group;
+  if (state.group !== 'all' && state.group !== 'message' && current())
+    state.group = identity(current()!).group;
   syncGroupFilters();
   counts();
   updateKinds();
@@ -1071,6 +1123,14 @@ document.addEventListener('keydown', (e) => {
     (['ArrowDown', 'ArrowUp'] satisfies [string, string]).includes(e.key)
   ) {
     e.preventDefault();
+    if (state.group === 'message') {
+      const rows = [...$('entity-list').querySelectorAll<HTMLButtonElement>('button')];
+      const index = rows.findIndex((row) => row.dataset.key === state.key);
+      const next = rows[(index + (e.key === 'ArrowDown' ? 1 : -1) + rows.length) % rows.length];
+      next?.click();
+      next?.focus();
+      return;
+    }
     const i = visible.indexOf(recordGroups.get(state.key)!),
       next = visible[(i + (e.key === 'ArrowDown' ? 1 : -1) + visible.length) % visible.length];
     if (next) {
@@ -1084,9 +1144,10 @@ document.addEventListener('keydown', (e) => {
   }
 });
 counts();
+syncGroupFilters();
 updateKinds();
 renderList();
-select(records.has(state.key) ? state.key : catalog.records[0].key);
+select(records.has(state.key) || worldMessages.has(state.key) ? state.key : catalog.records[0].key);
 $('catalog-version').textContent =
   'Catalog ' +
   catalog.fingerprint +
@@ -1096,3 +1157,5 @@ $('catalog-version').textContent =
   catalog.records.length +
   ' world placements';
 connectWriter();
+
+setupCombatSimulator();

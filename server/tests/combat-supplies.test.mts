@@ -94,7 +94,7 @@ test('ammo and battery purchases validate location and price, charge explicitly,
   }
 });
 
-test('EMF warrior rejects unprotected attacks and bombs, requires equipped owned foil, and drops a permanent 10% railgun accelerator', async () => {
+test('EMF warrior rejects unprotected attacks and bombs, requires equipped owned foil, and drops the permanent Weaponry upgrade kit', async () => {
   const geometry = fixtureGeometry();
   geometry.wilderness = { actors: [{ id: 'emf', combatKind: 'emf-warrior', x: 94, z: 120 }] };
   const game = await createGame({ geometry, store: createMemoryStore(), random: () => 0 });
@@ -139,7 +139,7 @@ test('EMF warrior rejects unprotected attacks and bombs, requires equipped owned
     );
     assert.equal(
       weaponAttackInterval('akibo', a.p.inventory.economy.state),
-      ITEM_STATS.akibo.interval,
+      ITEM_STATS.akibo.interval / 1.1,
     );
     await game.disconnect(a.p);
     const returned = await player(game, 99202);
@@ -179,5 +179,70 @@ test('railgun upgrade changes the authoritative repeated-shot interval', async (
     } finally {
       await game.close();
     }
+  }
+});
+
+test('the legacy kit boosts Akimbos and railgun fire rate equally', () => {
+  const purse = { ownedEquipment: ['railgun-upgrade'] };
+  assert.equal(ITEM_STATS['railgun-upgrade'].name, 'Weaponry upgrade kit');
+  for (const weapon of ['akibo', 'railgun']) {
+    assert.equal(
+      weaponAttackInterval(weapon, purse),
+      weaponAttackInterval(weapon, { ownedEquipment: [] }) / 1.1,
+    );
+  }
+  assert.equal(
+    weaponAttackInterval('missile-launcher', purse),
+    ITEM_STATS['missile-launcher'].interval,
+  );
+});
+
+test('the armorer sells missiles for 50 coins and the launcher spends one per shot', async () => {
+  const geometry = fixtureGeometry();
+  const game = await createGame({ geometry, store: createMemoryStore(), random: () => 0 });
+  try {
+    const a = await player(game, 99205, {
+      'sf-purse-v1': '{"coins":110,"ownedEquipment":["missile-launcher"]}',
+    });
+    const buy = () => act(game, a, 'inventory', { op: 'buyMissile' });
+    const purse = a.p.inventory.economy.state,
+      cow = game.shared.cows[0];
+    assert.equal((await buy())?.ok, false);
+    assert.equal(a.p.inventory.snapshot().missiles, 0);
+    const armorer = {
+      id: 'armorer',
+      label: 'Armorer',
+      questRole: 'armorer',
+      x: a.p.x,
+      z: a.p.z,
+      base: a.p.y,
+    };
+    geometry.merchants.push(armorer);
+    game.shared.npcById.set(armorer.id, armorer);
+    assert.equal((await buy())?.ok, true);
+    assert.equal(purse.coins, 60);
+    assert.equal((await buy())?.ok, true);
+    assert.equal(purse.coins, 10);
+    assert.equal((await buy())?.ok, false);
+    assert.equal(a.p.inventory.snapshot().missiles, 2);
+    await game.disconnect(a.p);
+    const b = await player(game, 99205);
+    assert.equal(b.p.inventory.snapshot().missiles, 2);
+    Object.assign(b.p, { x: cow.x - 1, z: cow.z });
+    cow.hp = cow.max = 1000;
+    const attack = () => act(game, b, 'attack', { id: cow.id, weapon: 'missile-launcher' });
+    assert.equal((await attack())?.ok, true);
+    assert.equal(b.p.inventory.snapshot().missiles, 1);
+    await attack();
+    assert.equal(b.p.inventory.snapshot().missiles, 1);
+    b.p.shotAt = 0;
+    assert.equal((await attack())?.ok, true);
+    assert.equal(b.p.inventory.snapshot().missiles, 0);
+    const hp = cow.hp;
+    b.p.shotAt = 0;
+    assert.match((await attack())?.message || '', /out of missiles/i);
+    assert.equal(cow.hp, hp);
+  } finally {
+    await game.close();
   }
 });

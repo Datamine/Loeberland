@@ -1,3 +1,4 @@
+import { contentText } from './content-runtime.ts';
 import { isSafeInteger, isFiniteNumber, isRecord } from './types/json.ts';
 import type { Economy, InterviewResult } from './types/controllers.ts';
 
@@ -112,7 +113,12 @@ export function createAILabJob({
         !Number.isSafeInteger(result.score) ||
         result.score < 0
       )
-        return { ok: false, message: 'Finish the full two-minute interview first.' };
+        return {
+          ok: false,
+          message: contentText(
+            'world-message.src.ai-lab.finish-the-full-two-minute-interview-first',
+          ),
+        };
       state.bestScore = Math.max(state.bestScore, result.score);
       const hiredNow = !state.hired && result.score >= AI_INTERVIEW_PASS_SCORE;
       if (hiredNow) state.hired = true;
@@ -122,10 +128,11 @@ export function createAILabJob({
         hiredNow,
         message:
           result.score >= AI_INTERVIEW_PASS_SCORE
-            ? 'You got the job! Welcome to the AI Lab.'
-            : 'Score: ' +
-              result.score +
-              '. You need 40 or more for the job. You can interview again whenever you like.',
+            ? contentText('world-message.src.ai-lab.you-got-the-job-welcome-to-the-ai-lab')
+            : contentText(
+                'world-message.src.ai-lab.score-you-need-40-or-more-for-the-job-you-can-interview-again',
+                { score: String(result.score) },
+              ),
       };
     },
     update(seconds: unknown, { inside, eligible = true }: { inside: boolean; eligible?: boolean }) {

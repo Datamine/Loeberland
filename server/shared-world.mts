@@ -1,3 +1,13 @@
+import {
+  inBerkeleyLab,
+  labSegment,
+  LAB_FLOOR,
+  LAB_INSTANCE,
+  LAB_NAV,
+} from '../src/berkeley-lab.ts';
+import { isYardFighter } from '../src/fighter-yard-layout.ts';
+import { hasFighterYardPass } from './fighter-yard.mts';
+import { contentText } from '../src/content-runtime.ts';
 import { isFiniteNumber } from '../src/types/json.ts';
 import type { WildernessPerson, WildernessActor } from '../src/types/monsters.ts';
 import type { CommandResult, AirshipSnapshot } from '../src/types/network.ts';
@@ -15,6 +25,7 @@ import { consumeWeaponShot, advanceAttackDeadline } from './combat-supplies.mts'
 import { updateGrazingCow } from '../src/cow-roaming.ts';
 import { createAirship } from '../src/airship.ts';
 import { validNPCRoamingState } from '../src/npc-roaming.ts';
+import { NAVIGATION_DIRECTIONS } from '../src/navigation.ts';
 import { createAirshipRental } from './airship-rental.mts';
 
 import { AIRSHIP_BASKET } from '../src/airship-basket.ts';
@@ -35,12 +46,14 @@ import {
   weaponAttackInterval,
   itemLoot,
   equipmentOwned,
-  isOwnedWeapon,
   ownedEquipmentDefense,
-  railgunUnlocked,
+  recoilDamage,
+  weaponOwned,
 } from '../src/item-stats.ts';
 import { MONSTER_STATS, rollMonsterDrops } from '../src/monster-drops.ts';
+import { ENERGY_BOLT_SECONDS, SCIENTIST_EXPLOSIVE } from '../src/config/gameplay.ts';
 
+const PEPTIDE_LIFETIME_SECONDS = 20 * 60;
 const near = (a: WorldPoint, b: WorldPoint) => Math.hypot(a.x - b.x, a.z - b.z);
 export function createSharedWorld({
   geometry,
@@ -54,6 +67,7 @@ export function createSharedWorld({
   movement,
   onAirshipReset = () => {},
   onCombatDamage = () => {},
+  onBind = () => {},
 }: SharedWorldOptions) {
   const routeTo = (...args: Parameters<NonNullable<typeof routes>['pathTo']>) =>
     routes ? routes.pathTo(...args) : geometry.pathTo(...args);
@@ -62,6 +76,14 @@ export function createSharedWorld({
       createAirship({ groundHeight: (x: number, z: number) => geometry.characterGround(x, z) }),
     passengers = new Set<number>();
   let robocopSerial = 0;
+  let investigatorSerial = 0;
+  const projectileImpacts: {
+    at: number;
+    target: ServerPlayer;
+    instanceId: string;
+    actor: WildernessActor;
+    amount: number;
+  }[] = [];
   const approachAt = new WeakMap<ServerPlayer, number>();
   let captain: number | null = null,
     clock = Number(saved.clock) || 0,
@@ -82,9 +104,10 @@ export function createSharedWorld({
       max: MONSTER_STATS.cow.hp,
       respawn: 0,
     }));
+  const nextPeptideDeadline = now() + PEPTIDE_SPAWN_MS;
   let nextPeptideAt = isFiniteNumber(saved.nextPeptideAt)
-    ? saved.nextPeptideAt
-    : now() + PEPTIDE_SPAWN_MS;
+    ? Math.min(saved.nextPeptideAt, nextPeptideDeadline)
+    : nextPeptideDeadline;
   const raptor: SharedRaptor = {
     id: 'jurassic-raptor',
     combatKind: 'raptor',
@@ -239,14 +262,17 @@ export function createSharedWorld({
     saved: saved.airshipLease,
   });
   const publicPlayer = (p: ServerPlayer) => (p.instance?.kind || 'world') === 'world';
+  const labPlayer = (p: ServerPlayer) => p.instance?.kind === LAB_INSTANCE.kind;
   const eligible = (p: ServerPlayer) =>
-    publicPlayer(p) &&
+    (publicPlayer(p) || labPlayer(p)) &&
     p.hp > 0 &&
     !p.personalJailed &&
     !p.detainAt &&
     !p.grappling &&
+    !p.depotLaunch &&
     p.mode !== 'roof' &&
     p.mode !== 'atv' &&
+    p.mode !== 'waymo' &&
     !passengers.has(p.id) &&
     !(
       [
@@ -263,25 +289,31 @@ export function createSharedWorld({
     ).includes(p.mode);
   npcIndex.rebuild(npcList);
   const level = (p: ServerPlayer) => strengthStatus(p.profile.playerState.skills.strength.xp).level;
-  const ownsRailgun = (p: ServerPlayer) =>
-    railgunUnlocked(p.profile.playerState.quests.expeditions);
-  const ownsWeapon = (p: ServerPlayer, weapon: string) =>
-    weapon === 'unarmed' ||
-    (weapon === 'railgun' && ownsRailgun(p)) ||
-    (weapon === 'bayonet' && p.profile.playerState.quests.theyLive.bayonet) ||
-    (isOwnedWeapon(weapon) && equipmentOwned(p.inventory.economy.state, weapon));
+  const creatureGround = (x: number, z: number) =>
+    inBerkeleyLab(x, z) ? LAB_FLOOR + 0.025 : geometry.characterGround(x, z);
   const creatureSegment = (a: { x: number; z: number }, b: { x: number; z: number }) =>
-    geometry.canTravel!(a.x - 0.5, a.z - 0.5, b.x - 0.5, b.z - 0.5, true);
+    inBerkeleyLab(a.x, a.z) || inBerkeleyLab(b.x, b.z)
+      ? labSegment(a, b)
+      : geometry.canTravel!(a.x - 0.5, a.z - 0.5, b.x - 0.5, b.z - 0.5, true);
   const wilderness = createWilderness<ServerPlayer>({
     spawns: geometry.wilderness?.actors || [],
-    ground: geometry.characterGround,
+    ground: creatureGround,
     canTravel: creatureSegment,
+    canShoot: (actor, target) =>
+      inBerkeleyLab(actor.x, actor.z)
+        ? labSegment(actor, target)
+        : (geometry.lineClear?.(actor, target) ?? creatureSegment(actor, target)),
     route: (actor, goal) => {
       // A small idle shuffle blocked by a tree should wait for the next
       // wander target, not search the entire mountain for a detour. Pursuit
       // and returning from a distant chase still use the full route planner.
       if (!actor.enemy && Math.hypot(actor.x - goal.x, actor.z - goal.z) < 3)
         return creatureSegment(actor, goal) ? [goal] : [];
+      if (inBerkeleyLab(actor.x, actor.z))
+        return LAB_NAV.path(
+          { x: actor.x - 0.5, y: actor.z - 0.5 },
+          { x: goal.x - 0.5, y: goal.z - 0.5 },
+        )?.map(({ x, y }) => ({ x: x + 0.5, z: y + 0.5 }));
       return pathTo(actor, goal);
     },
     random,
@@ -293,9 +325,80 @@ export function createSharedWorld({
         record,
       ),
     onDamage: (p: ServerPlayer, amount: number, actor: WildernessActor) => {
-      if (amount > 0) hitPlayer(p, amount, actor.label, actor);
+      if (amount <= 0) return;
+      const effect = MONSTER_STATS[actor.combatKind].attackEffect;
+      if (effect !== 'explosive' && effect !== 'akimbo' && effect !== 'robocop-laser') {
+        hitFromWilderness(p, amount, actor);
+        return;
+      }
+      const explosive = effect === 'explosive';
+      const impact = {
+        at: clock + (explosive ? SCIENTIST_EXPLOSIVE.flight : ENERGY_BOLT_SECONDS),
+        target: p,
+        instanceId: p.instance.id,
+        actor,
+        amount,
+      };
+      const before = projectileImpacts.findIndex((pending) => pending.at > impact.at);
+      projectileImpacts.splice(before < 0 ? projectileImpacts.length : before, 0, impact);
+      const wrist = effect === 'robocop-laser';
+      const forward = explosive ? 0.28 : wrist ? 0.64 : 0.52;
+      const side = wrist ? 0.29 : 0;
+      const cos = Math.cos(actor.angle);
+      const sin = Math.sin(actor.angle);
+      const from = {
+        x: actor.x + cos * forward - sin * side,
+        y: actor.base + (explosive ? 1.48 : wrist ? 1.29 : 1.19),
+        z: actor.z + sin * forward + cos * side,
+      };
+      const to = { x: p.x, y: p.y + (explosive ? 0.1 : 0.9), z: p.z };
+      for (const observer of players.values()) {
+        if (observer.instance.id !== p.instance.id || near(observer, actor) >= 45) continue;
+        if (explosive) send(observer, { type: 'scientistExplosive', from, to });
+        else send(observer, { type: 'robotShot', weapon: effect, from, to });
+      }
+    },
+    onReflect: (attacker, amount, actor) => {
+      const player = typeof attacker.id === 'number' ? players.get(attacker.id) : undefined;
+      if (player?.hp && !player.respawnAllowed)
+        applyPlayerDamage(player, amount, actor.label, actor);
     },
   });
+  function hitFromWilderness(p: ServerPlayer, amount: number, actor: WildernessActor) {
+    const damage = hitPlayer(p, amount, actor.label, actor);
+    if (damage === undefined) return;
+    if (p.hp > 0 && MONSTER_STATS[actor.combatKind].attackEffect === 'bind' && random() < 1 / 8)
+      onBind(p);
+    const reflected = recoilDamage(p.inventory.economy.state, p.appearance, damage);
+    if (reflected)
+      wilderness.damage(
+        actor.id,
+        reflected,
+        { ...p, weapon: 'unarmed', tinfoil: p.appearance.tinfoil },
+        true,
+      );
+  }
+  function dispatchSecuritiesInvestigator(p: ServerPlayer) {
+    const from = { x: p.x - 0.5, y: p.z - 0.5 };
+    const reachable = (x: number, y: number) =>
+      Math.hypot(x - from.x, y - from.y) >= 1.2 && creatureSegment(p, { x: x + 0.5, z: y + 0.5 });
+    const spawn =
+      geometry.airship?.nearest(from.x, from.y, 3.5, reachable) ??
+      geometry.nearestNavigation?.(from.x, from.y, 3.5, reachable) ??
+      NAVIGATION_DIRECTIONS.map(({ dx, dz }) => ({
+        x: from.x + dx * 1.25,
+        y: from.y + dz * 1.25,
+      })).find(({ x, y }) => reachable(x, y));
+    return wilderness.dispatch(
+      {
+        id: 'securities-investigator-' + ++investigatorSerial,
+        combatKind: 'securities-investigator',
+        x: spawn ? spawn.x + 0.5 : p.x,
+        z: spawn ? spawn.y + 0.5 : p.z,
+      },
+      p,
+    );
+  }
   wilderness.sync(
     (saved.wilderness || []).map((n) => {
       const actor = wilderness.actors.find((a) => a.id === n.id);
@@ -321,6 +424,7 @@ export function createSharedWorld({
         hp: isFiniteNumber(n.hp) ? Math.max(0, Math.min(actor.max, n.hp)) : actor.hp,
         enemy: null,
         enemyPosition: undefined,
+        attackAnimation: undefined,
         returning: false,
         chaseUntil: 0,
         ...(moved || outside
@@ -350,10 +454,14 @@ export function createSharedWorld({
       max: target.max,
       weapon,
       from: { x: p.x, y: (p.y ?? p.base ?? 0) + 1.14, z: p.z },
-      to: { x: target.x, y: geometry.characterGround(target.x, target.z) + 0.9, z: target.z },
+      to: { x: target.x, y: creatureGround(target.x, target.z) + 0.9, z: target.z },
     };
     for (const observer of players.values())
-      if (publicPlayer(observer) && near(observer, target) < 45) send(observer, event);
+      if (
+        (inBerkeleyLab(target.x, target.z) ? labPlayer(observer) : publicPlayer(observer)) &&
+        near(observer, target) < 45
+      )
+        send(observer, event);
   }
   function monsterDrops(kind: string, target: WorldPoint, owner: string | null | undefined) {
     for (const record of rollMonsterDrops(kind, random))
@@ -400,14 +508,20 @@ export function createSharedWorld({
     attacker: { id: string | number } | null,
   ) {
     if (!eligible(p)) return;
-    const damage = Math.min(
-      p.hp,
-      Math.max(
-        0,
-        rollEnemyDamage(amount, level(p), random) -
-          ownedEquipmentDefense(p.inventory.economy.state, p.appearance),
-      ),
+    const damage = Math.max(
+      0,
+      rollEnemyDamage(amount, level(p), random) -
+        ownedEquipmentDefense(p.inventory.economy.state, p.appearance),
     );
+    return applyPlayerDamage(p, damage, source, attacker);
+  }
+  function applyPlayerDamage(
+    p: ServerPlayer,
+    amount: number,
+    source: string,
+    attacker: { id: string | number } | null,
+  ) {
+    const damage = Math.min(p.hp, amount);
     p.hp -= damage;
     p.damagePending = true;
     send(p, { type: 'damage', damage, hp: p.hp, max: p.max, source, attacker: attacker?.id });
@@ -417,8 +531,12 @@ export function createSharedWorld({
       send(p, { type: 'caught', source });
     }
     dirty(p);
+    return damage;
   }
   function clearShot(p: ServerPlayer, target: { x: number; z: number }, range = 5) {
+    const lab = inBerkeleyLab(target.x, target.z);
+    if (lab !== labPlayer(p)) return false;
+    if (lab) return near(p, target) <= range && labSegment(p, target);
     if (
       range <= 1.5 &&
       !geometry.canTravel!(p.x - 0.5, p.z - 0.5, target.x - 0.5, target.z - 0.5, true)
@@ -449,8 +567,7 @@ export function createSharedWorld({
       p.attack = null;
       return supply;
     }
-    if ((['railgun', 'akibo'] satisfies [string, string]).includes(weapon))
-      send(p, { type: 'inventory', inventory: p.inventory.snapshot() });
+    if (supply.spent) send(p, { type: 'inventory', inventory: p.inventory.snapshot() });
     p.shotAt = advanceAttackDeadline(
       clock,
       p.shotAt,
@@ -471,6 +588,15 @@ export function createSharedWorld({
       target.hp,
       rollWeaponDamage(level(p), weapon, random, p.profile.playerState.conditions.inebriation),
     );
+    damageCreature(p, target, damage, weapon);
+    return { ok: true, damage };
+  }
+  function damageCreature(
+    p: ServerPlayer,
+    target: SharedCow | SharedRaptor,
+    damage: number,
+    weapon: string,
+  ) {
     target.hp -= damage;
     broadcastHit(p, target, damage, weapon);
     if (!target.hp) {
@@ -486,7 +612,6 @@ export function createSharedWorld({
       }
       dirty(p);
     }
-    return { ok: true, damage };
   }
   const blockedByStatic = (p: ServerPlayer, target: Actor) =>
     target.combatKind === 'emf-warrior' &&
@@ -565,10 +690,16 @@ export function createSharedWorld({
       if (publicPlayer(p)) {
         const message =
           reason === 'hourly'
-            ? 'The hourly airship reset has returned the ship to the terminal.'
+            ? contentText(
+                'world-message.server.shared-world.the-hourly-airship-reset-has-returned-the-ship-to-the-terminal',
+              )
             : requester?.id === p.id
-              ? 'Your priority recall has returned the airship to the terminal.'
-              : 'The airship has been recalled by ' + requester!.name + '.';
+              ? contentText(
+                  'world-message.server.shared-world.your-priority-recall-has-returned-the-airship-to-the-terminal',
+                )
+              : contentText('world-message.server.shared-world.the-airship-has-been-recalled-by', {
+                  name: String(requester!.name),
+                });
         send(p, {
           type: 'airshipReset',
           reason,
@@ -576,7 +707,10 @@ export function createSharedWorld({
           ...(affected.has(p)
             ? {
                 position: { x: p.x, y: p.y, z: p.z, angle: p.angle },
-                message: message + ' You return safely to the mooring.',
+                message: contentText(
+                  'world-message.server.shared-world.you-return-safely-to-the-mooring',
+                  { message: String(message) },
+                ),
               }
             : { message }),
         });
@@ -589,26 +723,52 @@ export function createSharedWorld({
       movement?.stopCombatRoute(p);
       return { ok: true };
     }
-    if (!publicPlayer(p))
+    if (!publicPlayer(p) && !(labPlayer(p) && (action === 'attack' || action === 'collect')))
       return {
         ok: false,
-        message: 'That shared-world interaction is unavailable in this private map instance.',
+        message: contentText(
+          'world-message.server.shared-world.that-shared-world-interaction-is-unavailable-in-this-private-m',
+        ),
       };
     if (action === 'airshipStatus' || action === 'airshipRecall')
       return airshipRental.command(p, action, args);
     if (action === 'attack') {
       const target = [...cows, raptor, ...wilderness.actors].find((n) => n.id === args.id),
         weapon = typeof args.weapon === 'string' ? args.weapon : 'railgun';
-      if (!eligible(p) || !ownsWeapon(p, weapon))
-        return { ok: false, message: 'You need to own that weapon and have both feet available.' };
-      if (!target?.hp || (target === raptor && raptor.phase !== 'loose'))
-        return { ok: false, message: 'That target is unavailable.' };
+      if (!eligible(p) || !weaponOwned(p.inventory.economy.state, weapon))
+        return {
+          ok: false,
+          message: contentText(
+            'world-message.server.shared-world.you-need-to-own-that-weapon-and-have-both-feet-available',
+          ),
+        };
+      if (
+        !target?.hp ||
+        inBerkeleyLab(target.x, target.z) !== labPlayer(p) ||
+        (target === raptor && raptor.phase !== 'loose')
+      )
+        return {
+          ok: false,
+          message: contentText('world-message.server.shared-world.that-target-is-unavailable'),
+        };
+      if (isYardFighter(target.combatKind) && !hasFighterYardPass(p))
+        return { ok: false, message: contentText('world-message.fighter-yard.admission-required') };
       if (blockedByStatic(p, target))
-        return { ok: false, message: 'A wall of static forces you back.' };
+        return {
+          ok: false,
+          message: contentText(
+            'world-message.server.shared-world.a-wall-of-static-forces-you-back',
+          ),
+        };
       const range = ITEM_STATS[weapon].range ?? ITEM_STATS.unarmed.range!;
       if (!clearShot(p, target, range)) {
         if (!movement?.approachCombat(p, { x: target.x, z: target.z }, range))
-          return { ok: false, message: 'There is no reachable attack position.' };
+          return {
+            ok: false,
+            message: contentText(
+              'world-message.server.shared-world.there-is-no-reachable-attack-position',
+            ),
+          };
         p.attack = target.id;
         p.attackWeapon = weapon;
         approachAt.set(p, clock + 0.35);
@@ -616,7 +776,7 @@ export function createSharedWorld({
       }
       const result = shoot(p, target, weapon);
       if (result.ok || result.cooldown) {
-        p.attack = target.hp > 0 ? target.id : null;
+        p.attack = target.hp > 0 && p.hp > 0 ? target.id : null;
         p.attackWeapon = weapon;
       }
       return result;
@@ -624,9 +784,22 @@ export function createSharedWorld({
     if (action === 'kickTaxi') {
       const car = geometry.streetTraffic?.cars?.find((vehicle) => vehicle.id === args.id);
       if (!eligible(p) || !car || near(p, car) > 2.1 || !creatureSegment(p, car))
-        return { ok: false, message: 'Stand beside the vehicle to kick it.' };
-      if (wilderness.actors.some((actor) => actor.hp > 0 && actor.dispatchedFor === p.id))
-        return { ok: false, message: 'Robocop is already responding.' };
+        return {
+          ok: false,
+          message: contentText(
+            'world-message.server.shared-world.stand-beside-the-vehicle-to-kick-it',
+          ),
+          retryApproach: eligible(p) && !!car,
+        };
+      if (
+        wilderness.actors.some(
+          (actor) => actor.combatKind === 'robocop' && actor.hp > 0 && actor.dispatchedFor === p.id,
+        )
+      )
+        return {
+          ok: false,
+          message: contentText('world-message.server.shared-world.robocop-is-already-responding'),
+        };
       const spawn = geometry.nearestNavigation?.(
         car.x - 0.5,
         car.z - 0.5,
@@ -646,10 +819,19 @@ export function createSharedWorld({
       );
       p.gesture = 'attack';
       p.gestureUntil = now() + 450;
-      return { ok: true, message: 'The taxi calls Robocop.' };
+      return {
+        ok: true,
+        message: contentText('world-message.server.shared-world.the-taxi-calls-robocop'),
+      };
     }
     if (action === 'petBear') {
-      if (!eligible(p)) return { ok: false, message: 'Find your feet before petting the bear.' };
+      if (!eligible(p))
+        return {
+          ok: false,
+          message: contentText(
+            'world-message.server.shared-world.find-your-feet-before-petting-the-bear',
+          ),
+        };
       p.attack = null;
       const result = wilderness.pet(typeof args.id === 'string' ? args.id : '', p);
       if (result.ok) {
@@ -661,10 +843,18 @@ export function createSharedWorld({
       return result;
     }
     if (action === 'releaseRaptor') {
-      if (near(p, { x: JURASSIC.x, z: JURASSIC.entry.y }) > 7)
-        return { ok: false, message: 'The cage is locked.' };
       if (raptor.phase !== 'caged')
-        return { ok: true, message: 'The shared recovery protocol is already in progress.' };
+        return {
+          ok: true,
+          message:
+            raptor.phase === 'dead'
+              ? contentText(
+                  'world-message.server.shared-world.recover-the-velociraptors-remains-or-check-back-when-the-cage',
+                )
+              : contentText(
+                  'world-message.server.shared-world.the-velociraptor-is-already-out-follow-it-toward-the-road-sout',
+                ),
+        };
       Object.assign(raptor, {
         phase: 'releasing',
         release: 0,
@@ -673,30 +863,58 @@ export function createSharedWorld({
         z: JURASSIC.cage.z,
         path: [],
         repath: 0,
+        prey: null,
+        attackIn: 1,
+        angle: Math.PI / 2,
       });
-      return { ok: true };
+      return {
+        ok: true,
+        message: contentText(
+          'world-message.server.shared-world.the-gate-opens-follow-the-raptor-south-of-the-lab',
+        ),
+      };
     }
     if (action === 'releaseTiger') {
       if (near(p, { x: SF_ZOO.entry.x + 0.5, z: SF_ZOO.entry.y + 0.5 }) > 14)
-        return { ok: false, message: 'Go to the tiger enclosure first.' };
+        return {
+          ok: false,
+          message: contentText('world-message.server.shared-world.go-to-the-tiger-enclosure-first'),
+        };
       return tiger.release()
         ? { ok: true }
-        : { ok: false, message: 'The tiger is already out. This affects everyone.' };
+        : {
+            ok: false,
+            message: contentText(
+              'world-message.server.shared-world.the-tiger-is-already-out-this-affects-everyone',
+            ),
+          };
     }
     if (action === 'collect') {
       const item = loot.get(typeof args.id === 'string' ? args.id : '');
-      if (!item) return { ok: false, message: 'Someone already collected that loot.' };
+      if (!item)
+        return {
+          ok: false,
+          message: contentText(
+            'world-message.server.shared-world.someone-already-collected-that-loot',
+          ),
+        };
       if (
         !(eligible(p) || (p.hp > 0 && p.airship && item.ship)) ||
+        inBerkeleyLab(item.x, item.z) !== labPlayer(p) ||
         near(p, item) > 1.8 ||
         Math.abs(p.y - (item.base ?? p.y)) > 2.5
       )
-        return { ok: false, message: 'Walk closer to the loot.' };
+        return {
+          ok: false,
+          message: contentText('world-message.server.shared-world.walk-closer-to-the-loot'),
+        };
       if (item.owner && item.owner !== p.owner && clock < item.unlockAt)
         return {
           ok: false,
-          message:
-            'The hunter has first claim for ' + Math.ceil(item.unlockAt - clock) + ' more seconds.',
+          message: contentText(
+            'world-message.server.shared-world.the-hunter-has-first-claim-for-more-seconds',
+            { value1: String(Math.ceil(item.unlockAt - clock)) },
+          ),
         };
       if (
         item.lootKind === 'raptor' &&
@@ -704,13 +922,18 @@ export function createSharedWorld({
       )
         return {
           ok: false,
-          message: 'Accept the scientist’s recovery quest before collecting the remains.',
+          message: contentText(
+            'world-message.server.shared-world.accept-the-scientists-recovery-quest-before-collecting-the-rem',
+          ),
         };
       const definition = ITEM_STATS[item.lootKind];
       if (definition?.pickup === 'disintegrate') {
         loot.delete(item.id);
         dirty(p);
-        return { ok: true, message: definition.pickupMessage };
+        return {
+          ok: true,
+          message: definition.pickupMessageId && contentText(definition.pickupMessageId),
+        };
       }
       const grant = p.inventory?.receive(item);
       if (grant && !grant.ok) return grant;
@@ -723,23 +946,39 @@ export function createSharedWorld({
           hatId: item.hatId,
           inventory: grant && 'inventory' in grant ? grant.inventory : undefined,
         },
-        message: 'You collect ' + item.label.toLowerCase() + '.',
+        message:
+          item.lootKind === 'sandwich'
+            ? undefined
+            : contentText('world-message.server.shared-world.you-collect', {
+                value1: String(item.label.toLowerCase()),
+              }),
       };
     }
     if (action === 'airshipBoard') {
       const permission = airshipRental.mayBoard(p);
       if (!permission.ok) return permission;
       if (!eligible(p) || near(p, shipHome) > 3)
-        return { ok: false, message: 'Walk to the airship mooring first.' };
+        return {
+          ok: false,
+          message: contentText(
+            'world-message.server.shared-world.walk-to-the-airship-mooring-first',
+          ),
+        };
       if (
         (airship.state.active && near(airship.state.position!, shipHome) > 0.5) ||
         (airship.state.position?.y ?? -Infinity) > shipHome.y + 1
       )
         return {
           ok: false,
-          message: 'The airship is away. A grappling hook can reach its basket from below.',
+          message: contentText(
+            'world-message.server.shared-world.the-airship-is-away-a-grappling-hook-can-reach-its-basket-from',
+          ),
         };
-      if (passengers.size >= 16) return { ok: false, message: 'The basket is full.' };
+      if (passengers.size >= 16)
+        return {
+          ok: false,
+          message: contentText('world-message.server.shared-world.the-basket-is-full'),
+        };
       const rental = airshipRental.rent(p, args.price);
       if (!rental.ok) return rental;
       if (!airship.state.active) airship.board({ x: shipHome.x - 0.5, y: shipHome.z - 0.5 });
@@ -753,20 +992,31 @@ export function createSharedWorld({
         ...rental,
         message:
           captain === p.id
-            ? (('paid' in rental ? rental.paid : 0)
-                ? 'You rent the airship for ' + ('paid' in rental ? rental.paid : 0) + ' coins. '
-                : '') + 'You are the airship pilot.'
-            : 'You board as a passenger.',
+            ? contentText('world-message.server.shared-world.you-are-the-airship-pilot', {
+                value1: String(
+                  ('paid' in rental ? rental.paid : 0)
+                    ? 'You rent the airship for ' +
+                        ('paid' in rental ? rental.paid : 0) +
+                        ' coins. '
+                    : '',
+                ),
+              })
+            : contentText('world-message.server.shared-world.you-board-as-a-passenger'),
       };
     }
     if (action === 'airshipTarget' || action === 'airshipStop' || action === 'airshipHome') {
       if (captain !== p.id)
         return {
           ok: false,
-          message: 'Only the current pilot can steer. You can walk around the basket.',
+          message: contentText(
+            'world-message.server.shared-world.only-the-current-pilot-can-steer-you-can-walk-around-the-baske',
+          ),
         };
       if (shipRope.deployed && action !== 'airshipStop')
-        return { ok: false, message: 'Retract the rope before flying.' };
+        return {
+          ok: false,
+          message: contentText('world-message.server.shared-world.retract-the-rope-before-flying'),
+        };
       if (action === 'airshipStop') airship.stop();
       else if (action === 'airshipHome') airship.returnHome();
       else {
@@ -776,23 +1026,41 @@ export function createSharedWorld({
           Math.abs(args.x) > 5000 ||
           Math.abs(args.z) > 5000
         )
-          return { ok: false, message: 'Invalid destination.' };
+          return {
+            ok: false,
+            message: contentText('world-message.server.shared-world.invalid-destination'),
+          };
         airship.flyTo(args.x, args.z);
       }
       return { ok: true };
     }
     if (action === 'airshipRope') {
       if (captain !== p.id)
-        return { ok: false, message: 'Only the pilot can lower or retract the shared rope.' };
+        return {
+          ok: false,
+          message: contentText(
+            'world-message.server.shared-world.only-the-pilot-can-lower-or-retract-the-shared-rope',
+          ),
+        };
       if (args.retract) {
         if ([...players.values()].some((other) => other.grappling))
-          return { ok: false, message: 'Wait for everyone to finish climbing.' };
+          return {
+            ok: false,
+            message: contentText(
+              'world-message.server.shared-world.wait-for-everyone-to-finish-climbing',
+            ),
+          };
         shipRope.deployed = false;
         return { ok: true };
       }
       const s = airship.state.position;
       if (!s || airship.state.phase !== 'flying' || !geometry.landClearAt(s.x - 0.5, s.z - 0.5))
-        return { ok: false, message: 'Hover over walkable ground before lowering a rope.' };
+        return {
+          ok: false,
+          message: contentText(
+            'world-message.server.shared-world.hover-over-walkable-ground-before-lowering-a-rope',
+          ),
+        };
       airship.stop();
       Object.assign(shipRope, {
         deployed: true,
@@ -801,18 +1069,36 @@ export function createSharedWorld({
         top: { ...s },
         bottom: { x: s.x, y: geometry.characterGround(s.x, s.z), z: s.z },
       });
-      return { ok: true, message: 'The shared rope is lowered. Other players can climb it too.' };
+      return {
+        ok: true,
+        message: contentText(
+          'world-message.server.shared-world.the-shared-rope-is-lowered-other-players-can-climb-it-too',
+        ),
+      };
     }
     if (action === 'airshipInvite') {
       if (captain !== p.id || !shipRope.deployed || shipRope.passenger || shipRope.passengerPaid)
-        return { ok: false, message: 'Lower the rope and invite one traveler at a time.' };
+        return {
+          ok: false,
+          message: contentText(
+            'world-message.server.shared-world.lower-the-rope-and-invite-one-traveler-at-a-time',
+          ),
+        };
       shipRope.passenger = { ...shipRope.bottom!, phase: 'ascending' };
       shipRope.fareOwner = p.id;
-      return { ok: true, message: 'The traveler starts climbing. The fare is paid on arrival.' };
+      return {
+        ok: true,
+        message: contentText(
+          'world-message.server.shared-world.the-traveler-starts-climbing-the-fare-is-paid-on-arrival',
+        ),
+      };
     }
     if (action === 'airshipClimbDown') {
       if (!passengers.has(p.id) || !shipRope.deployed)
-        return { ok: false, message: 'Lower the rope first.' };
+        return {
+          ok: false,
+          message: contentText('world-message.server.shared-world.lower-the-rope-first'),
+        };
       const from = { x: p.x, y: p.y, z: p.z },
         to = { ...shipRope.bottom! };
       passengers.delete(p.id);
@@ -830,8 +1116,15 @@ export function createSharedWorld({
     }
     if (action === 'airshipClimbUp') {
       if (!shipRope.deployed || !eligible(p) || near(p, shipRope.bottom!) > 1.5)
-        return { ok: false, message: 'Stand next to the lowered rope.' };
-      if (passengers.size >= 16) return { ok: false, message: 'The basket is full.' };
+        return {
+          ok: false,
+          message: contentText('world-message.server.shared-world.stand-next-to-the-lowered-rope'),
+        };
+      if (passengers.size >= 16)
+        return {
+          ok: false,
+          message: contentText('world-message.server.shared-world.the-basket-is-full'),
+        };
       p.grappling = {
         from: { x: p.x, y: p.y, z: p.z },
         elapsed: 0,
@@ -842,7 +1135,10 @@ export function createSharedWorld({
     }
     if (action === 'airshipDeck') {
       if (!passengers.has(p.id) || !isFiniteNumber(args.x) || !isFiniteNumber(args.z))
-        return { ok: false, message: 'You are not aboard.' };
+        return {
+          ok: false,
+          message: contentText('world-message.server.shared-world.you-are-not-aboard'),
+        };
       p.deckTarget = {
         x: Math.max(AIRSHIP_BASKET.left + 0.3, Math.min(AIRSHIP_BASKET.right - 0.3, args.x)),
         z: Math.max(AIRSHIP_BASKET.north + 0.3, Math.min(AIRSHIP_BASKET.south - 0.3, args.z)),
@@ -856,7 +1152,12 @@ export function createSharedWorld({
           geometry.nearestGround?.(s.x, s.z) ||
           (!geometry.landClearAt(s.x - 0.5, s.z - 0.5) ? null : { x: s.x, z: s.z });
       if (!landing)
-        return { ok: false, message: 'Wait until the airship is above walkable ground.' };
+        return {
+          ok: false,
+          message: contentText(
+            'world-message.server.shared-world.wait-until-the-airship-is-above-walkable-ground',
+          ),
+        };
       leave(p);
       p.x = landing.x;
       p.z = landing.z;
@@ -869,7 +1170,7 @@ export function createSharedWorld({
       if (!p.profile.grapplingHook)
         return {
           ok: false,
-          message: 'You do not own a grappling hook.',
+          message: contentText('world-message.server.shared-world.you-do-not-own-a-grappling-hook'),
         };
       if (
         !eligible(p) ||
@@ -877,8 +1178,17 @@ export function createSharedWorld({
         near(p, airship.state.position!) > 6 ||
         airship.state.position!.y < p.y + 0.8
       )
-        return { ok: false, message: 'Stand within six tiles underneath the flying airship.' };
-      if (passengers.size >= 16) return { ok: false, message: 'The basket is full.' };
+        return {
+          ok: false,
+          message: contentText(
+            'world-message.server.shared-world.stand-within-six-tiles-underneath-the-flying-airship',
+          ),
+        };
+      if (passengers.size >= 16)
+        return {
+          ok: false,
+          message: contentText('world-message.server.shared-world.the-basket-is-full'),
+        };
       p.attack = null;
       p.grappling = {
         from: { x: p.x, y: p.y, z: p.z },
@@ -886,12 +1196,25 @@ export function createSharedWorld({
         duration: Math.max(2, Math.min(8, (airship.state.position!.y - p.y) / 6)),
       };
       p.mode = 'climb';
-      return { ok: true, message: 'Your hook catches the basket. Hold on!' };
+      return {
+        ok: true,
+        message: contentText(
+          'world-message.server.shared-world.your-hook-catches-the-basket-hold-on',
+        ),
+      };
     }
-    return { ok: false, message: 'Unknown world action.' };
+    return {
+      ok: false,
+      message: contentText('world-message.server.shared-world.unknown-world-action'),
+    };
   }
   function tick(dt: number) {
     clock += dt;
+    while (projectileImpacts.length && projectileImpacts[0].at <= clock + 1e-8) {
+      const { target, instanceId, actor, amount } = projectileImpacts.shift()!;
+      if (players.get(target.id) === target && target.instance.id === instanceId)
+        hitFromWilderness(target, amount, actor);
+    }
     geometry.streetTraffic?.update?.(dt);
     airshipRental.tick();
     const points = geometry.peptideSpawns || [];
@@ -904,8 +1227,8 @@ export function createSharedWorld({
           'A tiny vial with a very large social network. Donate it to Ray at the Freemasons’ Guild to gain one rank.',
         base: geometry.characterGround(point.x, point.z) + 0.025,
         unlockAt: clock,
-        expires: clock + 1200,
-        wallExpiresAt: now() + PEPTIDE_SPAWN_MS * 2,
+        expires: clock + PEPTIDE_LIFETIME_SECONDS,
+        wallExpiresAt: now() + PEPTIDE_LIFETIME_SECONDS * 1000,
       });
       nextPeptideAt = now() + PEPTIDE_SPAWN_MS;
     }
@@ -935,14 +1258,20 @@ export function createSharedWorld({
         !target ||
         !target.hp ||
         !eligible(p) ||
-        !ownsWeapon(p, weapon) ||
+        !weaponOwned(p.inventory.economy.state, weapon) ||
+        (isYardFighter(target.combatKind) && !hasFighterYardPass(p)) ||
         (target === raptor && raptor.phase !== 'loose')
       ) {
         p.attack = null;
         continue;
       }
       if (blockedByStatic(p, target)) {
-        send(p, { type: 'notice', message: 'A wall of static forces you back.' });
+        send(p, {
+          type: 'notice',
+          message: contentText(
+            'world-message.server.shared-world.a-wall-of-static-forces-you-back',
+          ),
+        });
         p.attack = null;
         movement?.stopCombatRoute(p);
         continue;
@@ -973,7 +1302,9 @@ export function createSharedWorld({
           dirty(pilot);
           send(pilot, {
             type: 'notice',
-            message: 'The traveler reaches the basket and pays you 5 coins.',
+            message: contentText(
+              'world-message.server.shared-world.the-traveler-reaches-the-basket-and-pays-you-5-coins',
+            ),
           });
         }
       }
@@ -1048,8 +1379,9 @@ export function createSharedWorld({
       p.y = ship.y + AIRSHIP_BASKET.floor;
       p.mode = 'airship';
     }
-    const available = [...players.values()].filter(eligible);
-    wilderness.update(dt, available);
+    const combatants = [...players.values()].filter(eligible);
+    wilderness.update(dt, combatants);
+    const available = combatants.filter(publicPlayer);
     focus = available.reduce<ServerPlayer | null>(
       (best, p) =>
         !best ||
@@ -1067,9 +1399,11 @@ export function createSharedWorld({
     if (raptor.phase === 'releasing') {
       raptor.release = Math.min(1, raptor.release + dt);
       raptor.z = JURASSIC.cage.z + (JURASSIC.exit.z - JURASSIC.cage.z) * raptor.release;
-      if (raptor.release === 1) {
+      if (raptor.release >= 1 - 1e-8) {
+        raptor.release = 1;
         raptor.phase = 'loose';
-        raptor.repath = 0;
+        raptor.path = pathTo(raptor, JURASSIC.runout) || [];
+        raptor.repath = raptor.path.length ? 2.5 : 0;
       }
     } else if (raptor.phase === 'dead' && clock >= raptor.resetAt) {
       Object.assign(raptor, {
@@ -1096,7 +1430,7 @@ export function createSharedWorld({
               !n.stroller &&
               (['Man', 'Woman'] satisfies [string, string]).includes(n.label),
           ),
-        ];
+        ].filter((target) => near(target, raptor) <= 22);
         candidates.sort((a, b) => near(a, raptor) - near(b, raptor));
         raptor.prey = null;
         raptor.path = [];
@@ -1126,19 +1460,19 @@ export function createSharedWorld({
       if (prey && near(raptor, prey) < 1.15 && raptor.attackIn <= 0) {
         raptor.attackIn = MONSTER_STATS.raptor.interval;
         const playerPrey = typeof prey.id === 'number' ? players.get(prey.id) : undefined;
-        if (playerPrey) hitPlayer(playerPrey, MONSTER_STATS.raptor.damage, 'velociraptor', raptor);
-        else {
+        if (playerPrey) {
+          const damage =
+            hitPlayer(playerPrey, MONSTER_STATS.raptor.damage, 'velociraptor', raptor) || 0;
+          const reflected = Math.min(
+            raptor.hp,
+            recoilDamage(playerPrey.inventory.economy.state, playerPrey.appearance, damage),
+          );
+          if (reflected) damageCreature(playerPrey, raptor, reflected, 'recoil-amulet');
+        } else {
           if (random() < 0.5) {
             (prey as Actor).expeditionDead = true;
             (prey as Actor).recoverAt = clock + 35;
             drop('coins', prey.x, prey.z, null, 3 + Math.floor(random() * 5));
-          }
-          if (random() < 0.5) {
-            raptor.hp = 0;
-            raptor.phase = 'dead';
-            raptor.resetAt = clock + 45;
-            raptor.path = [];
-            drop('raptor', raptor.x, raptor.z);
           }
           raptor.repath = 0;
         }
@@ -1214,8 +1548,13 @@ export function createSharedWorld({
         }
         broadcastHit(attacker, cow, damage, 'bomb');
       }
+    const pilot = typeof bomb.attacker === 'number' ? players.get(bomb.attacker) : undefined;
     for (const actor of wilderness.actors)
-      if (monsterInBombArea(actor, bomb)) wilderness.damage(actor.id, BOMB_DAMAGE, attacker);
+      if (
+        (!isYardFighter(actor.combatKind) || hasFighterYardPass(pilot)) &&
+        monsterInBombArea(actor, bomb)
+      )
+        wilderness.damage(actor.id, BOMB_DAMAGE, attacker);
   }
   function snapshot(observer?: ServerPlayer) {
     const npcs = observer ? npcIndex.near(observer.x, observer.z, 38, 32) : npcList;
@@ -1267,6 +1606,7 @@ export function createSharedWorld({
         elapsed: n.elapsed,
         hold: n.hold || 0,
         showStartedAt: n.showStartedAt,
+        bicycleTaken: n.rider ? (n.bicycleTakenUntil || 0) > now() : undefined,
         expeditionDead: !!n.expeditionDead,
       })),
     };
@@ -1274,6 +1614,7 @@ export function createSharedWorld({
   airshipRental.tick();
   return {
     command,
+    dispatchSecuritiesInvestigator,
     tick,
     snapshot,
     leave,

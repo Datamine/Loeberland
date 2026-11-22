@@ -7,7 +7,7 @@ import { configuredDialogue } from './dialogue-config.ts';
 
 export const GUILD_RESET_MS = 3600000,
   GUILD_RESETS_REQUIRED = 24,
-  PEPTIDE_SPAWN_MS = 600000;
+  PEPTIDE_SPAWN_MS = 5 * 60 * 1000;
 export const TECHNOLOGIST_MARKET = "Technologist's Farmers Market";
 export const GUILD_BUILDINGS = Object.freeze([
   {
@@ -88,17 +88,22 @@ export function createGuildMembership(
   });
   function checkIn() {
     if (state.member)
-      return { ok: true, message: 'Welcome back. The lodge is open to you.', guild: status() };
+      return {
+        ok: true,
+        message: contentText('world-message.src.guild.welcome-back-the-lodge-is-open-to-you'),
+        guild: status(),
+      };
     const time = now();
     if (state.lastVisitAt !== null && time < state.lastVisitAt + GUILD_RESET_MS)
       return {
         ok: false,
-        message:
-          'You are Rank ' +
-          (state.visits + 1) +
-          '. Return in ' +
-          Math.ceil((state.lastVisitAt + GUILD_RESET_MS - time) / 60000) +
-          ' minutes; a full hour must pass between qualifying visits.',
+        message: contentText(
+          'world-message.src.guild.you-are-rank-return-in-minutes-a-full-hour-must-pass-between-q',
+          {
+            value1: String(state.visits + 1),
+            value2: String(Math.ceil((state.lastVisitAt + GUILD_RESET_MS - time) / 60000)),
+          },
+        ),
         guild: status(),
       };
     if (state.lastVisitAt !== null) state.visits++;
@@ -108,8 +113,13 @@ export function createGuildMembership(
     return {
       ok: true,
       message: state.member
-        ? 'Rank 25. Twenty-four promotions. Welcome to the Freemasons’ Guild!'
-        : 'You are now Rank ' + (state.visits + 1) + '. ' + state.visits + ' promotions completed.',
+        ? contentText(
+            'world-message.src.guild.rank-25-twenty-four-promotions-welcome-to-the-freemasons-guild',
+          )
+        : contentText('world-message.src.guild.you-are-now-rank-promotions-completed', {
+            value1: String(state.visits + 1),
+            visits: String(state.visits),
+          }),
       guild: status(),
     };
   }
@@ -117,14 +127,15 @@ export function createGuildMembership(
     if (state.member)
       return {
         ok: true,
-        message:
-          'You are already a member. Keep your peptides; the refreshments committee is quite lively enough.',
+        message: contentText(
+          'world-message.src.guild.you-are-already-a-member-keep-your-peptides-the-refreshments-c',
+        ),
         guild: status(),
       };
     if (!consume())
       return {
         ok: false,
-        message: 'You have no peptides to donate.',
+        message: contentText('world-message.src.guild.you-have-no-peptides-to-donate'),
         guild: status(),
       };
     state.visits++;
@@ -134,12 +145,13 @@ export function createGuildMembership(
     return {
       ok: true,
       message: state.member
-        ? 'Your twenty-fourth promotion. Rank 25! Welcome to the Freemasons’ Guild!'
-        : 'One vial, one promotion. You are now Rank ' +
-          (state.visits + 1) +
-          ' (' +
-          state.visits +
-          '/24 promotions).',
+        ? contentText(
+            'world-message.src.guild.your-twenty-fourth-promotion-rank-25-welcome-to-the-freemasons',
+          )
+        : contentText(
+            'world-message.src.guild.one-vial-one-promotion-you-are-now-rank-24-promotions',
+            { value1: String(state.visits + 1), visits: String(state.visits) },
+          ),
       guild: status(),
     };
   }

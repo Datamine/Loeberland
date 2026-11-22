@@ -1,3 +1,4 @@
+import { inBerkeleyLab, LAB_ENTRANCE, LAB_INSTANCE, LAB_MAP } from '../berkeley-lab.ts';
 import type { Point } from '../types/geometry.ts';
 import { isPickTarget, hasPhysicalBounds } from '../picking.ts';
 import { requiredValue } from '../types/assert.ts';
@@ -694,8 +695,9 @@ export function createMinimap(context: WorldContext) {
   }
 
   function miniProjection() {
+    const lab = context.secretWorld?.kind === LAB_INSTANCE.kind;
     return createMinimapProjection(
-      context.secretWorld?.kind === 'illuminati' ? 28 : context.N,
+      lab ? 17 : context.secretWorld?.kind === 'illuminati' ? 28 : context.N,
       context.map.width,
       context.map.height,
       context.camera.yaw,
@@ -705,7 +707,11 @@ export function createMinimap(context: WorldContext) {
   }
 
   function renderMinimap() {
-    if (context.secretWorld?.kind === 'illuminati') return drawCaveMinimap();
+    if (
+      context.secretWorld?.kind === LAB_INSTANCE.kind ||
+      context.secretWorld?.kind === 'illuminati'
+    )
+      return drawCaveMinimap();
     if (context.secretWorld?.kind === 'kraken') return drawHuntMinimap();
     const m = miniProjection(),
       origin = m.point(
@@ -812,12 +818,12 @@ export function createMinimap(context: WorldContext) {
       context.mc.stroke();
     }
     const actors = minimapActors(context);
-    if (context.$('sf-map-npcs').checked)
+    if (context.$('sf-map-npcs').getAttribute('aria-pressed') === 'true')
       for (const npc of actors) {
         const p = m.point(npc.x, npc.z);
         ellipse(context.mc, p.x, p.y, 1.7, 1.7, '#eddd72');
       }
-    if (context.$('sf-map-shops').checked)
+    if (context.$('sf-map-shops').getAttribute('aria-pressed') === 'true')
       for (const shop of minimapShops(actors)) {
         const p = m.point(shop.x, shop.z);
         context.mc.fillStyle = '#91e0d2';
@@ -826,6 +832,7 @@ export function createMinimap(context: WorldContext) {
         context.mc.fillRect(p.x - 2.5, p.y - 2.5, 5, 5);
         context.mc.strokeRect(p.x - 2.5, p.y - 2.5, 5, 5);
       }
+    drawOtherPlayers((x, z) => m.point(x, z));
     const p = m.point(context.player.x + 0.5, context.player.y + 0.5),
       direction = m.point(
         context.player.x + 0.5 + Math.cos(context.player.angle),
@@ -847,6 +854,7 @@ export function createMinimap(context: WorldContext) {
       '#263d32',
     );
     context.mc.restore();
+    drawGroundItemDots((x, z) => m.point(x, z));
     const nx = -m.c,
       ny = -m.d,
       len = Math.hypot(nx, ny),
@@ -876,13 +884,57 @@ export function createMinimap(context: WorldContext) {
     }
   }
 
+  function drawGroundItemDots(point: (x: number, z: number) => { x: number; y: number }) {
+    const kind = context.secretWorld?.kind || 'world';
+    const dot = ({ x, z }: { x: number; z: number }) => {
+      const p = point(x, z);
+      if (p.x < 0 || p.x >= context.map.width || p.y < 0 || p.y >= context.map.height) return;
+      ellipse(context.mc, p.x, p.y, 2.4, 2.4, '#e62b35');
+      context.mc.lineWidth = 1;
+      context.mc.strokeStyle = '#54191e';
+      context.mc.stroke();
+    };
+    if (kind === 'world' && context.sunglassesSite && !context.sunglasses.state.owned)
+      dot(context.sunglassesSite);
+    for (const item of context.expeditions.state.loot)
+      if (
+        kind === 'world' ||
+        (kind === LAB_INSTANCE.kind && inBerkeleyLab(item.x, item.z)) ||
+        (kind === 'kraken' && !item.network && item.lootKind === 'kraken')
+      )
+        dot(item);
+  }
+
+  function drawOtherPlayers(point: (x: number, z: number) => { x: number; y: number }) {
+    const canvas = context.mc;
+    for (const remote of context.multiplayer.remotePlayers()) {
+      if (remote.mode === 'hidden') continue;
+      const p = point(remote.x, remote.z);
+      ellipse(canvas, p.x, p.y, 2.6, 2.6, '#fff');
+      canvas.lineWidth = 1.3;
+      canvas.strokeStyle = '#000';
+      canvas.stroke();
+    }
+  }
+
   function drawCaveMinimap() {
     const m = miniProjection();
     context.miniIcons = [];
     context.mc.setTransform(1, 0, 0, 1, 0, 0);
     context.mc.fillStyle = '#28342d';
     context.mc.fillRect(0, 0, context.map.width, context.map.height);
-    for (const tile of CAVE_TILES)
+    const lab = context.secretWorld?.kind === LAB_INSTANCE.kind;
+    const tiles = lab
+      ? LAB_MAP.flatMap((row, z) =>
+          Array.from(row, (tile, x) => ({
+            x: LAB_INSTANCE.bounds.west + x,
+            z: LAB_INSTANCE.bounds.north + z,
+            type: tile === '#' ? 'rock' : 'laboratory',
+            walkable: tile !== 'v' && tile !== 'b',
+          })),
+        )
+      : CAVE_TILES;
+    for (const tile of tiles)
       if (tile.type !== 'rock')
         poly(
           context.mc,
@@ -900,8 +952,9 @@ export function createMinimap(context: WorldContext) {
       [6, 2] satisfies [number, number],
       [0, 1] satisfies [number, number],
     ].map(([x, z]) => m.point(ILLUMINATI_CAVE.bomber.x + x, ILLUMINATI_CAVE.bomber.z + z));
-    poly(context.mc, wing, '#c4cdb9');
-    const stairs = m.point(ILLUMINATI_CAVE.entrance.x, ILLUMINATI_CAVE.entrance.z);
+    if (!lab) poly(context.mc, wing, '#c4cdb9');
+    const entry = lab ? LAB_ENTRANCE : ILLUMINATI_CAVE.entrance;
+    const stairs = m.point(entry.x, entry.z);
     for (let i = 0; i < 3; i++)
       line(
         context.mc,
@@ -922,6 +975,7 @@ export function createMinimap(context: WorldContext) {
         '#ead294aa',
         1,
       );
+    drawOtherPlayers((x, z) => m.point(x, z));
     const p = m.point(context.player.x + 0.5, context.player.y + 0.5),
       d = m.point(
         context.player.x + 0.5 + Math.cos(context.player.angle),
@@ -942,6 +996,7 @@ export function createMinimap(context: WorldContext) {
       '#263d32',
     );
     context.mc.restore();
+    drawGroundItemDots((x, z) => m.point(x, z));
     if (context.destination) {
       const f = m.point(context.destination.x + 0.5, context.destination.y + 0.5);
       drawDestinationFlag(context.mc, f.x, f.y);
@@ -970,6 +1025,7 @@ export function createMinimap(context: WorldContext) {
       const p = m.point(context.expeditions.kraken.x, context.expeditions.kraken.z);
       ellipse(context.mc, p.x, p.y, 3, 3, '#bc7f8b');
     }
+    drawOtherPlayers((x, z) => m.point(x, z));
     const p = m.point(context.player.x + 0.5, context.player.y + 0.5),
       d = m.point(context.player.x + 1.5, context.player.y + 0.5);
     context.mc.save();
@@ -987,6 +1043,7 @@ export function createMinimap(context: WorldContext) {
       '#263d32',
     );
     context.mc.restore();
+    drawGroundItemDots((x, z) => m.point(x, z));
   }
 
   function minimapPointer(e: { clientX: number; clientY: number }) {
@@ -1095,13 +1152,15 @@ export function createMinimap(context: WorldContext) {
 
   function prepareWayfinding() {
     for (const id of ['sf-map-npcs', 'sf-map-shops'] as const) {
-      const input = context.$(id as 'sf-map-npcs' | 'sf-map-shops');
+      const button = context.$(id);
       try {
-        input.checked = localStorage.getItem(id) === 'true';
+        button.setAttribute('aria-pressed', String(localStorage.getItem(id) === 'true'));
       } catch {}
-      input.addEventListener('change', () => {
+      button.addEventListener('click', () => {
+        const pressed = String(button.getAttribute('aria-pressed') !== 'true');
+        button.setAttribute('aria-pressed', pressed);
         try {
-          localStorage.setItem(id, String(input.checked));
+          localStorage.setItem(id, pressed);
         } catch {}
         drawMini();
       });

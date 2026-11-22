@@ -1,7 +1,11 @@
 import type { Mesh } from './geometry.ts';
 import { pose } from './geometry.ts';
-import { ATV_JUMP_LANE, ATV_RENTAL, ATV_ROOF, rampRise } from './atv.ts';
-import { drawATV } from './atv-model.ts';
+import { ATV_JUMP_LANE, ATV_ROOF, rampRise } from './atv.ts';
+import { GOBLIN_INDUSTRIALIST } from './goblin-industrialist.ts';
+import { GOBLIN_AI_LAB } from './goblin-ai-lab.ts';
+import { GOBLIN_SPACE_PROGRAM, VILLAGE_GOOSE } from './goblin-space-layout.ts';
+import { drawPlaque } from './southern-district.ts';
+import type { RenderedSite, SignAtlas } from './types/world.ts';
 
 export const FURNITURE_FACTORY = Object.freeze({
   name: 'Goblin Furniture Factory',
@@ -10,11 +14,25 @@ export const FURNITURE_FACTORY = Object.freeze({
   width: 4.4,
   depth: 2.6,
 });
+export const GOBLIN_INCUBATOR = Object.freeze({
+  id: 'goblin-startup-incubator',
+  name: 'Goblin Startup Incubator',
+  x: 34.15,
+  z: -28,
+  width: 3.8,
+  depth: 2.35,
+  founder: { id: 'goblin-incubator-founder', x: 34.65, z: -26.2 },
+  entry: { x: 34.15, y: -25.8 },
+});
 export const FACTORY_CHAIRS = Object.freeze([
-  { id: 'ball-chair', name: 'Ball Chair' },
-  { id: 'eames-chair', name: 'Eames Chair' },
-  { id: 'bertoia-chair', name: 'Bertoia Chair' },
+  { id: 'ball-chair', name: 'Ball Chair', gesture: 'chair', height: 0.2 },
+  { id: 'eames-chair', name: 'Eames Chair', gesture: 'eames-chair', height: 0.07 },
+  { id: 'bertoia-chair', name: 'Bertoia Chair', gesture: 'bertoia-chair', height: 0.03 },
 ]);
+export type FactoryChair = (typeof FACTORY_CHAIRS)[number];
+export function chairForGesture(gesture: string | undefined) {
+  return FACTORY_CHAIRS.find((chair) => chair.gesture === gesture);
+}
 export const FACTORY_CHAIR_BUY = 200;
 export const FACTORY_CHAIR_SELL = 220;
 
@@ -29,6 +47,9 @@ export const GOBLIN_SPAWNS = Object.freeze([
   { id: 'tam-goblin-2', combatKind: 'goblin', x: 29, z: -23 },
   { id: 'tam-goblin-3', combatKind: 'goblin', x: 32, z: -26 },
   { id: 'tam-furniture-maker', combatKind: 'goblin-maker', x: 29.5, z: -27.5 },
+  { id: 'tam-yard-goblin', combatKind: 'goblin', x: 27.5, z: -33.5 },
+  { id: 'tam-yard-guard', combatKind: 'goblin-guard', x: 31.5, z: -33.7 },
+  { id: 'tam-yard-veteran', combatKind: 'goblin-veteran', x: 30, z: -36.2 },
   { id: 'south-lost-goblin', combatKind: 'lost-goblin', x: 74.5, z: 187.5 },
 ]);
 export function goblinRoofAt(x: number, z: number) {
@@ -37,10 +58,13 @@ export function goblinRoofAt(x: number, z: number) {
   );
 }
 export function goblinHutBlocks(x: number, z: number) {
-  const factory = FURNITURE_FACTORY;
   return (
-    (Math.abs(x - factory.x) < factory.width / 2 + 0.15 &&
-      Math.abs(z - factory.z) < factory.depth / 2 + 0.15) ||
+    (Math.abs(x - VILLAGE_GOOSE.x) < 0.57 && Math.abs(z - VILLAGE_GOOSE.z) < 0.54) ||
+    (Math.abs(x - GOBLIN_SPACE_PROGRAM.x) < 1.16 && Math.abs(z - GOBLIN_SPACE_PROGRAM.z) < 0.88) ||
+    [FURNITURE_FACTORY, GOBLIN_AI_LAB, GOBLIN_INCUBATOR, GOBLIN_INDUSTRIALIST].some(
+      (hut) =>
+        Math.abs(x - hut.x) < hut.width / 2 + 0.15 && Math.abs(z - hut.z) < hut.depth / 2 + 0.15,
+    ) ||
     GOBLIN_HUTS.some((h) => Math.abs(x - h.x) < 1.3 && Math.abs(z - h.z) < 1.45)
   );
 }
@@ -72,39 +96,50 @@ export function drawBallChair(m: Mesh, x: number, base: number, z: number, angle
 }
 export function drawGoblinTown(m: Mesh, ground: (arg0: number, arg1: number) => number) {
   // The approach skirts the jail's east side before turning north into town.
-  const points = [
-    [33.7, -9] satisfies [number, number],
-    [33.7, -15.5] satisfies [number, number],
-    [30, -17] satisfies [number, number],
-    [30, -28.8] satisfies [number, number],
+  const paths: [number, number][][] = [
+    [
+      [33.7, -9],
+      [33.7, -15.5],
+      [30, -17],
+      [30, -28.8],
+    ],
+    [
+      [30, -20.5],
+      [36.5, -20.5],
+      [GOBLIN_AI_LAB.entry.x + 0.5, GOBLIN_AI_LAB.entry.y + 0.5],
+    ],
+    [
+      [30, -26.7],
+      [32.25, -25.8],
+      [GOBLIN_INCUBATOR.entry.x + 0.5, GOBLIN_INCUBATOR.entry.y + 0.5],
+    ],
   ];
-  for (let i = 1; i < points.length; i++) {
-    const a = points[i - 1],
-      b = points[i],
-      length = Math.hypot(b[0] - a[0], b[1] - a[1]),
-      n = Math.ceil(length * 4),
-      nx = (-(b[1] - a[1]) / length) * 0.55,
-      nz = ((b[0] - a[0]) / length) * 0.55;
-    const at = (t: number, side: number) => {
-      const x = a[0] + (b[0] - a[0]) * t + nx * side,
-        z = a[1] + (b[1] - a[1]) * t + nz * side;
-      return [x, ground(x, z) + 0.065, z] satisfies [number, number, number];
-    };
-    for (let j = 0; j < n; j++)
-      for (const side of [-1, 0]) {
-        m.quad(
-          at(j / n, side),
-          at(j / n, side + 1),
-          at((j + 1) / n, side + 1),
-          at((j + 1) / n, side),
-          '#ab9270',
-          'dirt',
-        );
-      }
-  }
+  for (const points of paths)
+    for (let i = 1; i < points.length; i++) {
+      const a = points[i - 1],
+        b = points[i],
+        length = Math.hypot(b[0] - a[0], b[1] - a[1]),
+        n = Math.ceil(length * 4),
+        nx = (-(b[1] - a[1]) / length) * 0.55,
+        nz = ((b[0] - a[0]) / length) * 0.55;
+      const at = (t: number, side: number) => {
+        const x = a[0] + (b[0] - a[0]) * t + nx * side,
+          z = a[1] + (b[1] - a[1]) * t + nz * side;
+        return [x, ground(x, z) + 0.065, z] satisfies [number, number, number];
+      };
+      for (let j = 0; j < n; j++)
+        for (const side of [-1, 0]) {
+          m.quad(
+            at(j / n, side),
+            at(j / n, side + 1),
+            at((j + 1) / n, side + 1),
+            at((j + 1) / n, side),
+            '#ab9270',
+            'dirt',
+          );
+        }
+    }
   for (const hut of GOBLIN_HUTS) drawRampHouse(m, hut, ground);
-  const bay = ATV_RENTAL.parking;
-  drawATV(m, bay.x + 1.2, ground(bay.x + 1.2, bay.z), bay.z, Math.PI);
   for (const side of [-1, 1]) {
     const x = ATV_JUMP_LANE.x + side * 1.06,
       z = ATV_JUMP_LANE.start;
@@ -113,6 +148,71 @@ export function drawGoblinTown(m: Mesh, ground: (arg0: number, arg1: number) => 
     m.tri([x, y + 1.05, z], [x, y + 0.78, z], [x + 0.38, y + 0.9, z], '#e6aa48');
   }
   drawFactory(m, ground);
+}
+
+export function drawGoblinIncubator(
+  m: Mesh,
+  signs: SignAtlas,
+  ground: (x: number, z: number) => number,
+): RenderedSite {
+  const { id, name, x, z, width, depth, entry } = GOBLIN_INCUBATOR;
+  const side = width / 2,
+    front = depth / 2,
+    back = -front;
+  const y = ground(x, z + front);
+  const foundation =
+    Math.min(
+      y,
+      ground(x - side, z + front),
+      ground(x + side, z + front),
+      ground(x - side, z + back),
+      ground(x + side, z + back),
+    ) - 0.15;
+  const start = m.data.length;
+  pose(m, x, y, z, 0, () => {
+    m.box(-side, foundation - y, back, width, y - foundation + 0.1, depth, '#747366', 'stone');
+    m.box(-side, 0.1, back, width, 1.8, 0.16, '#947553', 'clapboard');
+    for (const x of [-side, side - 0.16]) {
+      m.box(x, 0.1, back + 0.16, 0.16, 1.35, depth - 0.32, '#837758', 'wood');
+      m.box(x, 0.1, front - 0.16, 0.16, 1.96, 0.16, '#514739', 'wood');
+    }
+    m.box(-side, 1.8, front - 0.2, width, 0.34, 0.22, '#574735', 'wood');
+    drawPlaque(m, signs, name, 0, 1.825, front + 0.035, 3.44, 0.29);
+    const eave = side + 0.17;
+    for (const x of [-eave, eave]) {
+      const [a, b] = x < 0 ? [back - 0.14, front + 0.2] : [front + 0.2, back - 0.14];
+      m.quad([x, 2.1, a], [x, 2.1, b], [0, 2.66, b], [0, 2.66, a], '#64745a', 'roof');
+      m.rod([x, 2.1, front + 0.2], [0, 2.66, front + 0.2], 0.064, '#8d7550', 8);
+    }
+    m.rod([0, 2.66, back - 0.14], [0, 2.66, front + 0.2], 0.05, '#6a533a', 8);
+
+    m.box(-1.52, 0.12, 0.2, 1.24, 0.56, 0.56, '#896242', 'wood');
+    m.box(-1.62, 0.67, 0.13, 1.42, 0.09, 0.7, '#b18b61', 'wood');
+    for (let i = 0; i < 4; i++)
+      m.box(-1.42 + i * 0.19, 0.77 + i * 0.009, 0.28, 0.24, 0.018, 0.34, '#e6d7aa');
+
+    m.box(0.42, 0.64, back + 0.17, 1.17, 0.95, 0.045, '#3f4b42', 'wood');
+    const chart = [
+      [0.58, 0.82],
+      [0.82, 1.01],
+      [1.06, 0.98],
+      [1.38, 1.43],
+    ];
+    for (let i = 1; i < chart.length; i++)
+      m.rod([...chart[i - 1], back + 0.222], [...chart[i], back + 0.222], 0.017, '#b8ce84', 6);
+  });
+  return {
+    id,
+    kind: id,
+    label: name,
+    entry,
+    start,
+    count: m.data.length - start,
+    description:
+      'A timber shed full of pitch decks. Talk to the Goblin Founder to buy startup equity.',
+    lo: [x - side - 0.23, foundation, z + back - 0.2],
+    hi: [x + side + 0.23, y + 2.72, z + front + 0.26],
+  };
 }
 
 function drawRampHouse(
@@ -243,6 +343,19 @@ function drawBertoiaChair(m: Mesh, x: number, y: number, z: number, angle: numbe
     }
     m.sphere(0, 0.52, 0.1, 0.29, 0.046, 0.23, '#be6047', 13, 8, 'canvasWeave');
   });
+}
+
+export function drawOwnedChair(
+  m: Mesh,
+  chair: FactoryChair,
+  x: number,
+  base: number,
+  z: number,
+  angle: number,
+) {
+  if (chair.id === 'ball-chair') drawBallChair(m, x, base, z, angle);
+  else if (chair.id === 'eames-chair') drawEamesChair(m, x, base, z, angle - Math.PI / 2);
+  else drawBertoiaChair(m, x, base, z, angle - Math.PI / 2);
 }
 
 function drawFactory(m: Mesh, ground: (x: number, z: number) => number) {

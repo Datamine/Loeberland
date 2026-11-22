@@ -1,11 +1,16 @@
 import type { QuestJournalEntry } from './quest-menu.ts';
 import type { AlienProgress, MonkeyStage } from './types/content.ts';
 import type { Economy, QuestLog } from './types/controllers.ts';
-import { isRecord } from './types/json.ts';
+import { isOneOf, isRecord } from './types/json.ts';
 // CONTENT-BINDINGS-MIGRATED
 import { contentText } from './content-runtime.ts';
 import { createTheyLiveQuest } from './they-live.ts';
 import type { ActionReceipt, Actor } from './types/world.ts';
+import {
+  PARROT_QUEST_STAGES,
+  parrotQuestEntry,
+  type ParrotQuestStage,
+} from './stochastic-parrot.ts';
 export const MONKEY_QUEST = Object.freeze({
   id: 'monkey-business',
   title: 'Monkey Business',
@@ -23,7 +28,11 @@ const questStages: readonly string[] = [
 /** A small persistent state machine. Quest rewards commit exactly once. */
 export function createQuestLog(
   savedInput: unknown = {},
-  onChange: (value: { monkey: MonkeyStage; theyLive: AlienProgress }) => void = () => {},
+  onChange: (value: {
+    monkey: MonkeyStage;
+    theyLive: AlienProgress;
+    stochasticParrot: ParrotQuestStage;
+  }) => void = () => {},
 ) {
   const saved = isRecord(savedInput) ? savedInput : {};
 
@@ -31,38 +40,59 @@ export function createQuestLog(
     onChange({ ...state, theyLive: { ...theyLive.state, defeated: [...theyLive.state.defeated] } });
   }
   const theyLive = createTheyLiveQuest(saved?.theyLive, changed);
-  const state: { monkey: MonkeyStage; theyLive: AlienProgress } = {
+  const state: {
+    monkey: MonkeyStage;
+    theyLive: AlienProgress;
+    stochasticParrot: ParrotQuestStage;
+  } = {
     monkey:
       typeof saved.monkey === 'string' && questStages.includes(saved.monkey)
         ? (saved.monkey as MonkeyStage)
         : 'not-started',
     theyLive: theyLive.state,
+    stochasticParrot: isOneOf(PARROT_QUEST_STAGES, saved.stochasticParrot)
+      ? saved.stochasticParrot
+      : 'not-started',
   };
+  function advanceParrot(stage: Exclude<ParrotQuestStage, 'sold'>) {
+    if (state.stochasticParrot !== stage) return false;
+    state.stochasticParrot = PARROT_QUEST_STAGES[PARROT_QUEST_STAGES.indexOf(stage) + 1];
+    changed();
+    return true;
+  }
   const change = (stage: MonkeyStage) => {
     state.monkey = stage;
     changed();
   };
   function accept() {
     if (state.monkey !== 'not-started')
-      return { ok: false, message: 'This quest is already in your journal.' };
+      return {
+        ok: false,
+        message: contentText('world-message.src.quests.this-quest-is-already-in-your-journal'),
+      };
     change('accepted');
     return {
       ok: true,
-      message: 'Quest started: Monkey Business.',
+      message: contentText('world-message.src.quests.quest-started-monkey-business'),
     };
   }
   function steal() {
     if (state.monkey === 'not-started')
       return {
         ok: false,
-        message: 'The monkey eyes you suspiciously.',
+        message: contentText('world-message.src.quests.the-monkey-eyes-you-suspiciously'),
       };
     if (state.monkey !== 'accepted')
-      return { ok: false, message: 'You already have your research assistant.' };
+      return {
+        ok: false,
+        message: contentText('world-message.src.quests.you-already-have-your-research-assistant'),
+      };
     change('carrying');
     return {
       ok: true,
-      message: 'The monkey steals your hat, then climbs onto your shoulder.',
+      message: contentText(
+        'world-message.src.quests.the-monkey-steals-your-hat-then-climbs-onto-your-shoulder',
+      ),
     };
   }
   function recover() {
@@ -70,19 +100,25 @@ export function createQuestLog(
     change('accepted');
     return {
       ok: true,
-      message: 'The zookeeper catches you and returns the monkey to its enclosure.',
+      message: contentText(
+        'world-message.src.quests.the-zookeeper-catches-you-and-returns-the-monkey-to-its-enclos',
+      ),
     };
   }
   function complete(economy: Economy) {
     if (state.monkey !== 'carrying')
-      return { ok: false, message: 'First bring a monkey from the zoo.' };
+      return {
+        ok: false,
+        message: contentText('world-message.src.quests.first-bring-a-monkey-from-the-zoo'),
+      };
     const result = economy.trade('monkey-quest');
     if (!result.ok) return result;
     change('completed');
     return {
       ok: true,
-      message:
-        'Quest complete: Monkey Business! You receive 25 coins. The monkey has been appointed Visiting Professor of Banana Studies.',
+      message: contentText(
+        'world-message.src.quests.quest-complete-monkey-business-you-receive-25-coins-the-monkey',
+      ),
     };
   }
   function entry() {
@@ -114,7 +150,12 @@ export function createQuestLog(
     recover,
     complete,
     entry,
-    entries: (): QuestJournalEntry[] => [theyLive.entry(), entry()],
+    advanceParrot,
+    entries: (): QuestJournalEntry[] => [
+      theyLive.entry(),
+      entry(),
+      parrotQuestEntry(state.stochasticParrot),
+    ],
     get carrying() {
       return state.monkey === 'carrying';
     },

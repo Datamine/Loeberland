@@ -7,6 +7,8 @@ import {
   TAHOE,
   TAHOE_BOUNDS,
   TAHOE_SKI_HUT,
+  TAHOE_SUPPLY_HUT,
+  TAHOE_TREES,
   tahoeVillagePavingAt,
   REGIONAL_KM_PER_TILE,
   createTahoe,
@@ -19,6 +21,7 @@ import {
   fitTahoeCamera,
 } from '../src/tahoe.ts';
 import { createEconomy } from '../src/economy.ts';
+import { createRegionalRoad } from '../src/regional-road.ts';
 import {
   createAirship,
   SECOND_STREET_X,
@@ -124,6 +127,19 @@ test('regional controls and minimap cover the summit and the entire ski course',
     assert.equal(regionalGroundHeight(p.x, p.z), tahoeHeight(p.x, p.z));
   }
   assert.ok(nearTahoe(TAHOE.peak.x, TAHOE.peak.z));
+});
+
+test('the hiking hut clears both legs of the Tahoe road bend and has a reachable door', () => {
+  const road = createRegionalRoad();
+  const tahoe = createTahoe();
+  const hut = TAHOE_SUPPLY_HUT;
+  for (const x of [hut.x - hut.w / 2, hut.x, hut.x + hut.w / 2])
+    for (const z of [hut.z - hut.d / 2, hut.z, hut.z + hut.d / 2])
+      assert.equal(road.targetAt(x, z), null);
+  assert.ok(road.targetAt(TAHOE.base.x + 10, TAHOE.base.z + 11));
+  assert.ok(tahoe.walkable(TAHOE.base.x + 10, TAHOE.base.z + 11));
+  assert.ok(tahoe.path(road.gate('tahoe'), hut.entry)?.length);
+  assert.ok(TAHOE_TREES.every((tree) => !road.targetAt(tree.x, tree.z)));
 });
 
 test('the gondola ascends and descends continuously to walkable stations', () => {

@@ -24,7 +24,8 @@ export interface TahoeState {
 }
 import type { SignAtlas } from './types/world.ts';
 import type { Mesh } from './geometry.ts';
-import { pose, unit, rayTriangle } from './geometry.ts';
+import { pose, unit, rayTriangle, rand } from './geometry.ts';
+import { drawTahoeGroundCover, drawTahoeTree } from './tahoe-scenery.ts';
 import { drawCharacter } from './characters.ts';
 import { drawPlaque } from './southern-district.ts';
 import { drawRocketPad } from './rocket.ts';
@@ -70,6 +71,12 @@ export const TAHOE_VILLAGE = Object.freeze({
     entry: Object.freeze({ x: TAHOE.base.x + 6.5, y: TAHOE.base.z - 1.8 }),
   }),
 });
+export const TAHOE_ARRIVAL_ROAD = Object.freeze([
+  { x: 1705, z: -1060 },
+  { x: TAHOE.base.x + 10, z: TAHOE.base.z + 16 },
+  { x: TAHOE.base.x + 10, z: TAHOE.base.z + 10 },
+  TAHOE_VILLAGE.arrival,
+]);
 export const TAHOE_VILLAGE_PAVING = Object.freeze(
   [
     [-2.5, 1.7, 2.5, 10.8] satisfies [number, number, number, number],
@@ -77,6 +84,7 @@ export const TAHOE_VILLAGE_PAVING = Object.freeze(
     [-0.65, 0.9, 0.65, 1.7] satisfies [number, number, number, number],
     [2, -1.8, 3, 1.7] satisfies [number, number, number, number],
     [3, -1.8, 7.5, -0.8] satisfies [number, number, number, number],
+    [6.2, 15.5, 9.5, 16.18] satisfies [number, number, number, number],
   ].map(([west, north, east, south]) =>
     Object.freeze({
       west: TAHOE.base.x + west,
@@ -113,14 +121,13 @@ function clipTahoePaving(poly: TahoeVertex[], axis: number, value: number, posit
   }
   return out;
 }
-// The gondola approaches from the east/southeast. Keep the hut west of the
-// station and use this same footprint for rendering, collision and rental access.
+// The hut occupies the inside of the highway bend, with its door off the shoulder.
 export const TAHOE_SUPPLY_HUT = Object.freeze({
-  x: TAHOE.base.x + 10,
-  z: TAHOE.base.z + 11,
+  x: TAHOE.base.x + 6.55,
+  z: TAHOE.base.z + 14,
   w: 3.2,
   d: 2.8,
-  entry: Object.freeze({ x: TAHOE.base.x + 9.5, y: TAHOE.base.z + 12.8 }),
+  entry: Object.freeze({ x: TAHOE.base.x + 6.05, y: TAHOE.base.z + 15.38 }),
 });
 export const TAHOE_SKI_HUT = Object.freeze({
   x: TAHOE.peak.x - 4.5,
@@ -143,8 +150,19 @@ export const TAHOE_FOOTHILLS_RADIUS = 44;
 const tahoeClamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v)),
   tahoeMix = (a: number, b: number, t: number) => a + (b - a) * t,
   tahoeSmooth = (t: number) => t * t * (3 - 2 * t);
-const tahoeLakeValue = (x: number, z: number) =>
-  ((x - TAHOE.x) / 35) ** 2 + ((z - TAHOE.z) / 70) ** 2;
+function shorelineRadius(angle: number) {
+  return (
+    1 +
+    0.046 * Math.sin(3 * angle + 0.6) +
+    0.038 * Math.cos(6 * angle) +
+    0.016 * Math.sin(11 * angle + 1.7)
+  );
+}
+function tahoeLakeValue(x: number, z: number) {
+  const lx = (x - TAHOE.x) / 35,
+    lz = (z - TAHOE.z) / 70;
+  return (lx * lx + lz * lz) / shorelineRadius(Math.atan2(lz, lx)) ** 2;
+}
 export function rawTahoeHeight(x: number, z: number) {
   const r = Math.hypot((x - TAHOE.peak.x) / 196, (z - TAHOE.peak.z) / 190),
     rise = 228 * Math.max(0, 1 - r) ** 1.25;
@@ -160,10 +178,31 @@ export function rawTahoeHeight(x: number, z: number) {
       tahoeSmooth(tahoeClamp((summit - 7) / 17, 0, 1)),
     ),
     baseBlend = 1 - tahoeSmooth(tahoeClamp((baseDistance - 10) / 6, 0, 1));
-  const shore = tahoeClamp((Math.sqrt(tahoeLakeValue(x, z)) - 1) * 8, 0, 1);
-  return tahoeLakeValue(x, z) < 1
-    ? 9.4
-    : 10 + tahoeSmooth(shore) * (2 + summitRise * (1 - baseBlend));
+  const lake = tahoeLakeValue(x, z);
+  if (lake < 1) return 9.4;
+  const shore = tahoeSmooth(tahoeClamp((Math.sqrt(lake) - 1) * 8, 0, 1));
+  const ox = x - TAHOE.base.x;
+  const oz = z - TAHOE.base.z;
+  const outsideVillage = tahoeSmooth(tahoeClamp((baseDistance - 13) / 13, 0, 1));
+  const outsideSummit = tahoeSmooth(tahoeClamp((summit - 11) / 22, 0, 1));
+  const outsidePiste = tahoeSmooth(tahoeClamp((Math.abs(oz - ox * 0.18) - 32) / 28, 0, 1));
+  const foothills =
+    4.8 * Math.exp(-(((ox + 20) / 22) ** 2 + ((oz - 36) / 16) ** 2)) +
+    3.6 * Math.exp(-(((ox + 37) / 20) ** 2 + ((oz + 22) / 22) ** 2));
+  const rockRibs =
+    outsideSummit *
+    outsidePiste *
+    (1 - Math.exp(-summitRise / 35)) *
+    (4 * Math.sin(ox * 0.045 + oz * 0.1) + 2.1 * Math.sin(ox * 0.21 - oz * 0.077));
+  const hummocks =
+    outsideVillage *
+    outsideSummit *
+    (0.63 * Math.sin(ox * 0.31 + oz * 0.13) * Math.cos(oz * 0.26) +
+      0.25 * Math.sin(ox * 0.58 - oz * 0.53));
+  return (
+    10 +
+    shore * (2 + summitRise * (1 - baseBlend) + outsideVillage * foothills + rockRibs + hummocks)
+  );
 }
 /** Feet and ray picking use the same two planes as each rendered terrain cell. */
 export function tahoeHeight(x: number, z: number) {
@@ -291,22 +330,60 @@ const tahoeDistanceSegment = (x: number, z: number, a: WorldPoint, b: WorldPoint
     t = tahoeClamp(((x - a.x) * dx + (z - a.z) * dz) / (dx * dx + dz * dz), 0, 1);
   return Math.hypot(x - a.x - t * dx, z - a.z - t * dz);
 };
-// Drawing and walking consume the same evergreen positions.
+function distanceToTahoeRoad(x: number, z: number) {
+  return Math.min(
+    ...TAHOE_ARRIVAL_ROAD.slice(1).map((b, i) =>
+      tahoeDistanceSegment(x, z, TAHOE_ARRIVAL_ROAD[i], b),
+    ),
+  );
+}
+function nearTahoeVillageStructures(x: number, z: number) {
+  const hut = TAHOE_SUPPLY_HUT;
+  return (
+    Math.hypot(x - TAHOE.base.x, z - TAHOE.base.z) < 5 ||
+    (Math.abs(x - hut.x) < 2.6 && Math.abs(z - hut.z) < 2.65) ||
+    Math.hypot(x - TAHOE_VILLAGE.fuel.x, z - TAHOE_VILLAGE.fuel.z) < 3.15 ||
+    Math.hypot(x - TAHOE_VILLAGE.spaceport.x, z - TAHOE_VILLAGE.spaceport.z) < 3.1 ||
+    !!tahoeVillagePavingAt(x, z) ||
+    distanceToTahoeRoad(x, z) < 1.65
+  );
+}
+// Drawing, walking and combat cover share the same woodland positions.
 export const TAHOE_TREES = Object.freeze(
   Array.from({ length: 110 }, (_, i) => {
     const a = i * 2.399963,
       x = TAHOE.base.x + Math.cos(a) * (9 + i * 0.5),
       z = TAHOE.base.z + Math.sin(a) * (9 + i * 0.4);
-    return { x, z, h: tahoeHeight(x, z) };
-  }).filter(
-    (p) =>
-      !(Math.abs(p.x - TAHOE_SUPPLY_HUT.x) < 3 && Math.abs(p.z - TAHOE_SUPPLY_HUT.z) < 3) &&
-      p.h <= 75 &&
-      tahoeLakeValue(p.x, p.z) >= 1.06 &&
-      !tahoeSmoothRoute
-        .slice(1)
-        .some((b, i) => tahoeDistanceSegment(p.x, p.z, tahoeSmoothRoute[i], b) < 4),
-  ),
+    return { x, z, h: tahoeHeight(x, z), seed: i, aspen: i % 7 === 0 };
+  })
+    .concat(
+      [
+        [-17, 14],
+        [-31, 17],
+        [-27, -17],
+        [3, 23],
+        [11, 28],
+        [-9, -25],
+      ].flatMap(([dx, dz], grove) =>
+        Array.from({ length: 16 }, (_, i) => {
+          const seed = 1010 + grove * 20 + i,
+            angle = i * 2.4;
+          const radius = 1.65 * Math.sqrt(i + 1) + rand(seed, 54);
+          const x = TAHOE.base.x + dx + Math.cos(angle) * radius;
+          const z = TAHOE.base.z + dz + Math.sin(angle) * radius;
+          return { x, z, h: tahoeHeight(x, z), seed, aspen: grove % 3 === 0 || i % 8 === 0 };
+        }),
+      ),
+    )
+    .filter(
+      (p) =>
+        !nearTahoeVillageStructures(p.x, p.z) &&
+        p.h <= 75 &&
+        tahoeLakeValue(p.x, p.z) >= 1.06 &&
+        !tahoeSmoothRoute
+          .slice(1)
+          .some((b, i) => tahoeDistanceSegment(p.x, p.z, tahoeSmoothRoute[i], b) < 4),
+    ),
 );
 // Projectile cover uses the narrow wooden trunk, not the evergreen canopy or
 // the larger clearance needed to walk around it. Shots can pass beside trees.
@@ -728,12 +805,13 @@ export function drawTahoeTerrain(m: Mesh) {
       triangle(a, vertices[(j + 1) * width + i], c);
     }
   const shore = [];
-  for (let i = 0; i < 96; i++) {
-    const a = (i * Math.PI) / 48;
+  for (let i = 0; i < 160; i++) {
+    const a = (i * Math.PI) / 80,
+      radius = shorelineRadius(a);
     shore.push([
-      TAHOE.x + Math.cos(a) * 35,
+      TAHOE.x + Math.cos(a) * radius * 35,
       TAHOE.lakeLevel + 0.025,
-      TAHOE.z + Math.sin(a) * 70,
+      TAHOE.z + Math.sin(a) * radius * 70,
     ] satisfies [number, number, number]);
   }
   for (let i = 0; i < shore.length; i++)
@@ -744,11 +822,24 @@ export function drawTahoeTerrain(m: Mesh) {
       '#ffffff',
       { water: 2 },
     );
-  // Evergreen clusters below the snow line, away from the actual ski course.
-  for (const { x, z, h } of TAHOE_TREES) {
-    m.cylinder(x, h, z, 0.075, 2.7, '#82705b', 8);
-    for (let j = 0; j < 3; j++)
-      m.cylinder(x, h + 0.7 + j * 0.7, z, 0.65 - j * 0.14, 1.3, '#4c7565', 12, 0);
+  for (const tree of TAHOE_TREES) drawTahoeTree(m, tree);
+  for (let i = 0; i < 248; i++) {
+    const angle = i * 2.399963;
+    const distance = 6 + Math.sqrt(i) * 3.4;
+    const x = TAHOE.base.x + Math.cos(angle) * distance;
+    const z = TAHOE.base.z + Math.sin(angle) * distance * 0.88;
+    const lake = tahoeLakeValue(x, z);
+    const h = tahoeHeight(x, z);
+    if (
+      lake < 1.038 ||
+      h > 94 ||
+      nearTahoeVillageStructures(x, z) ||
+      tahoeSmoothRoute
+        .slice(1)
+        .some((b, j) => tahoeDistanceSegment(x, z, tahoeSmoothRoute[j], b) < 5)
+    )
+      continue;
+    drawTahoeGroundCover(m, x, h, z, i, lake < 1.16 || h > 43 || i % 4 === 0);
   }
 }
 

@@ -1,3 +1,4 @@
+import { LEGACY_SOFTWARE } from './legacy-software-layout.ts';
 import type { Parcel } from './types/parcels.ts';
 import type { Vec2 } from './types/geometry.ts';
 // CONTENT-BINDINGS-MIGRATED
@@ -286,6 +287,15 @@ export const SOUTHERN_HILLS = Object.freeze(
 
 export const SOUTHERN_LEVEL_PADS = Object.freeze(
   [
+    {
+      name: LEGACY_SOFTWARE.label,
+      x: LEGACY_SOFTWARE.x - LEGACY_SOFTWARE.w / 2 - 0.08,
+      z: LEGACY_SOFTWARE.z - LEGACY_SOFTWARE.d / 2 - 0.08,
+      w: LEGACY_SOFTWARE.w + 0.16,
+      d: LEGACY_SOFTWARE.d + 0.16,
+      height: LEGACY_SOFTWARE.base,
+      blend: 0.64,
+    },
     {
       name: contentText('southern-layout.module.name-19', {}),
       x: DUEL_ARENA.west,

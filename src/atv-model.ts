@@ -1,7 +1,12 @@
 import { pose, type Mesh } from './geometry.ts';
 import { drawCharacter, type CharacterAppearance } from './characters.ts';
+import { ATV_RENTAL } from './atv.ts';
+import type { RenderedSite } from './types/world.ts';
 
-export function drawATV(m: Mesh, x: number, y: number, z: number, angle: number) {
+const WHEEL_RADIUS = 0.258;
+
+export function drawATV(m: Mesh, x: number, y: number, z: number, angle: number, travel = 0) {
+  const wheelAngle = -travel / WHEEL_RADIUS;
   pose(m, x, y, z, angle, () => {
     const steel = { metal: 0.72 };
     m.box(-0.64, 0.25, -0.24, 1.29, 0.22, 0.48, '#44494a', steel);
@@ -16,14 +21,26 @@ export function drawATV(m: Mesh, x: number, y: number, z: number, angle: number)
         m.rod(
           [axle, 0.262, wheel - 0.11],
           [axle, 0.262, wheel + 0.11],
-          0.258,
+          WHEEL_RADIUS,
           '#292d2d',
           18,
           'asphalt',
         );
         m.rod([axle, 0.262, wheel], [axle, 0.262, side * 0.55], 0.126, '#b7a792', 12, steel);
+        const rim = side * 0.555;
+        for (let i = 0; i < 5; i++) {
+          const a = (i * Math.PI * 2) / 5 + wheelAngle;
+          m.rod(
+            [axle + Math.cos(a) * 0.035, 0.262 + Math.sin(a) * 0.035, rim],
+            [axle + Math.cos(a) * 0.108, 0.262 + Math.sin(a) * 0.108, rim],
+            0.012,
+            '#4e4a42',
+            5,
+            steel,
+          );
+        }
         for (let i = 0; i < 12; i++) {
-          const a = (i * Math.PI) / 6;
+          const a = (i * Math.PI) / 6 + wheelAngle;
           const u = axle + Math.cos(a) * 0.246,
             v = 0.262 + Math.sin(a) * 0.246;
           m.rod([u, v, wheel - 0.11], [u, v, wheel + 0.11], 0.026, '#383c39', 5);
@@ -49,6 +66,24 @@ export function drawATV(m: Mesh, x: number, y: number, z: number, angle: number)
   });
 }
 
+export function drawRentalATV(m: Mesh, ground: (x: number, z: number) => number): RenderedSite {
+  const { x, z } = ATV_RENTAL.parking;
+  const y = ground(x, z);
+  const start = m.data.length;
+  drawATV(m, x, y, z, Math.PI);
+  return {
+    id: ATV_RENTAL.siteId,
+    kind: ATV_RENTAL.siteId,
+    label: 'ATV',
+    description: 'A rental quad. Speak to the Industrious Goblin to rent it.',
+    entry: { x: x - 0.5, y: z + 0.6 - 0.5 },
+    start,
+    count: m.data.length - start,
+    lo: [x - 0.88, y, z - 0.62],
+    hi: [x + 0.88, y + 1.06, z + 0.62],
+  };
+}
+
 export function drawATVRider(
   m: Mesh,
   x: number,
@@ -57,9 +92,10 @@ export function drawATVRider(
   angle: number,
   roll: number,
   look: CharacterAppearance,
+  travel = 0,
 ) {
   const start = m.data.length;
-  drawATV(m, x, y, z, angle);
+  drawATV(m, x, y, z, angle, travel);
   drawCharacter(m, x, z, y + 0.16, angle, 0, false, look.skin, look.shirt, {
     ...look,
     mode: 'motorcycle',

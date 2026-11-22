@@ -3,12 +3,17 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, readFile, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { Readable } from 'node:stream';
 import { createEditorWriter } from '../editor/writer.mts';
 import { planEditorWrite } from '../editor/write-plan.mts';
 import { projectCatalog } from '../editor/project.mts';
-import { contentFiles, readContent } from '../content/build.mts';
+import {
+  contentSourceKeys,
+  contentSourcePaths,
+  readContent,
+  writableContentSources,
+} from '../content/build.mts';
 import { contentFixture } from './helpers/content-fixture.mts';
 
 const change = (
@@ -17,6 +22,22 @@ const change = (
   after: string,
   record = 'actor:goblin',
 ) => ({ record, path, before, after });
+test('world message edits bind to their own source and preserve runtime placeholders', () => {
+  const source = contentFixture();
+  const id = 'world-message.test-delivery';
+  source.texts.texts[id] = { template: 'Delivery for {name}.' };
+  const catalog = projectCatalog(source);
+  assert.deepEqual(
+    catalog.worldMessages.map((record) => record.key),
+    [id],
+  );
+  const next = planEditorWrite(catalog, source, [
+    change(['template'], 'Delivery for {name}.', 'Food for {name}.', id),
+  ]);
+  const files = writableContentSources(next, []);
+  assert.equal(files.worldMessages[id].template, 'Food for {name}.');
+  assert.equal(files.texts.texts[id], undefined);
+});
 test('edits address stable definitions, actions and dialogue choices after text and ordering changes', () => {
   const source = contentFixture(),
     catalog = projectCatalog(source, 'revision');
@@ -153,8 +174,24 @@ async function temporary(t: test.TestContext, rebuild?: (() => Promise<never>) |
   await mkdir(join(root, 'content'), { recursive: true });
   await mkdir(join(root, 'editor'), { recursive: true });
   const source = contentFixture();
-  for (const file of contentFiles)
-    await writeFile(join(root, 'content', file + '.json'), JSON.stringify(source[file]));
+  source.dialogues.shared = {
+    'tweet-test': {
+      id: 'tweet-test',
+      start: 'start',
+      nodes: { start: { id: 'start', text: 'Tweet story.', end: true } },
+    },
+    'other-test': {
+      id: 'other-test',
+      start: 'start',
+      nodes: { start: { id: 'start', text: 'Goose rumor.', end: true } },
+    },
+  };
+  const sources = writableContentSources(source, ['tweet-test']);
+  for (const key of contentSourceKeys) {
+    const file = join(root, 'content', contentSourcePaths[key]);
+    await mkdir(dirname(file), { recursive: true });
+    await writeFile(file, JSON.stringify(sources[key]));
+  }
   await writeFile(join(root, 'editor.html'), 'original');
   return {
     root,
@@ -198,21 +235,46 @@ test('filesystem saves publish fresh JSON and editor content without a world bui
   assert.ok(status != null, 'Missing test fixture: status');
   assert.equal(status.job, null, 'an external rebuild must not cause a stale-job reload loop');
 });
+test('shared dialogue edits save in their original source folders', async (t) => {
+  const { root, writer, source } = await temporary(t);
+  const result = await request(writer, {
+    catalogFingerprint: source.revision,
+    changes: [
+      change(['dialogue', 'intro'], 'Tweet story.', 'A new tweet story.', 'shared:tweet-test'),
+      change(['dialogue', 'intro'], 'Goose rumor.', 'A new goose rumor.', 'shared:other-test'),
+    ],
+  });
+  assert.equal(result.code, 200, JSON.stringify(result.result));
+  const readGroup = async (key: 'tweetDerived' | 'other') =>
+    JSON.parse(await readFile(join(root, 'content', contentSourcePaths[key]), 'utf8'));
+  const tweetDerived = await readGroup('tweetDerived');
+  const other = await readGroup('other');
+  assert.deepEqual(Object.keys(tweetDerived), ['tweet-test']);
+  assert.deepEqual(Object.keys(other), ['other-test']);
+  assert.equal(tweetDerived['tweet-test'].nodes.start.text, 'A new tweet story.');
+  assert.equal(other['other-test'].nodes.start.text, 'A new goose rumor.');
+});
 test('publication failure rolls source files back and permits a clean retry', async (t) => {
   const { root, writer, source } = await temporary(t, async () => {
     throw Error('disk unavailable');
   });
   const before = await readFile(join(root, 'content/entities.json'), 'utf8');
+  const otherFile = join(root, 'content', contentSourcePaths.other);
+  const beforeOther = await readFile(otherFile, 'utf8');
   assert.equal(
     (
       await request(writer, {
         catalogFingerprint: source.revision,
-        changes: [change(['name'], 'Goblin', 'Maker')],
+        changes: [
+          change(['name'], 'Goblin', 'Maker'),
+          change(['dialogue', 'intro'], 'Goose rumor.', 'A changed rumor.', 'shared:other-test'),
+        ],
       })
     ).code,
     500,
   );
   assert.equal(await readFile(join(root, 'content/entities.json'), 'utf8'), before);
+  assert.equal(await readFile(otherFile, 'utf8'), beforeOther);
   assert.equal(writer.status().busy, false);
 });
 

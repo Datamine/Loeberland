@@ -9,9 +9,9 @@ export async function buildAuxiliary(): Promise<void> {
   const { texts } = JSON.parse(
     await readFile(new URL('content/texts.json', root), 'utf8'),
   ) as ContentBundle['texts'];
-  const equipmentText = Object.fromEntries(
+  const adminText = Object.fromEntries(
     Object.entries(texts)
-      .filter(([id]) => /^config\.(item-stats|hats)\./.test(id))
+      .filter(([id]) => /^config\.(item-stats|hats|monster-drops)\./.test(id))
       .map(([id, { template }]) => [id, template]),
   );
   const admin = await build({
@@ -23,13 +23,13 @@ export async function buildAuxiliary(): Promise<void> {
     minify: false,
     plugins: [
       {
-        name: 'admin-equipment-text',
+        name: 'admin-catalog-text',
         setup(build) {
-          // The selector only needs the static text used by the two equipment catalogs.
+          // Bundle the static equipment and monster catalog text for the standalone admin editor.
           build.onLoad({ filter: /\/content-runtime\.ts$/ }, () => ({
-            contents: `const texts = ${JSON.stringify(equipmentText)};
+            contents: `const texts = ${JSON.stringify(adminText)};
               export function contentText(id) {
-                if (!Object.hasOwn(texts, id)) throw new Error('Missing equipment text: ' + id);
+                if (!Object.hasOwn(texts, id)) throw new Error('Missing admin catalog text: ' + id);
                 return texts[id];
               }`,
           }));

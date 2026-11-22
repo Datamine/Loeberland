@@ -4,7 +4,13 @@ interface MarinPickGroup {
   hi: number[];
   faces: number[];
 }
-import { drawBolinas, bolinasBlocks, BOLINAS_PATH } from './bolinas.ts';
+import {
+  drawBolinas,
+  bolinasBeachBlend,
+  bolinasBeachHeight,
+  bolinasBlocks,
+  BOLINAS_PATH,
+} from './bolinas.ts';
 import { drawGoblinTown, goblinHutBlocks } from './goblin-town.ts';
 import { ATV_JUMP_LANE, ATV_RENTAL } from './atv.ts';
 import { createNavigationGrid } from './navigation.ts';
@@ -105,7 +111,11 @@ function drawMarinSurface(
           [b[0], marinHeight(b[0], b[1]), b[1]],
           [a[0], marinHeight(a[0], a[1]), a[1]],
           '#899775',
-          exposed ? 'marinRock' : 'marinScrub',
+          bolinasBeachBlend(center[0], center[1]) > 0.3
+            ? 'sand'
+            : exposed
+              ? 'marinRock'
+              : 'marinScrub',
         );
         for (let v = start; v < m.data.length; v += 11) {
           const x = m.data[v],
@@ -127,11 +137,12 @@ function drawMarinSurface(
               0.48 + dry * 0.12,
               0.31 + dry * 0.11 + coastal * 0.028,
             ] satisfies [number, number, number];
+          const sand = bolinasBeachBlend(x, z);
           for (let k = 0; k < 3; k++) {
             m.data[v + 3 + k] = n[k];
             m.data[v + 6 + k] =
-              grass[k] * (1 - rock) +
-              ([0.67, 0.62, 0.53] satisfies [number, number, number])[k] * rock;
+              (grass[k] * (1 - rock) + ([0.67, 0.62, 0.53] as const)[k] * rock) * (1 - sand) +
+              ([0.82, 0.73, 0.54] as const)[k] * sand;
           }
         }
       }
@@ -165,7 +176,10 @@ export function createMarinLand({
     width = Math.ceil((Math.max(...polygon.map((p) => p[0])) - west) * resolution) + 1,
     height = Math.ceil((Math.max(...polygon.map((p) => p[1])) - north) * resolution) + 1;
   const onLand = (x: number, z: number) => marinInside(x, z, polygon),
-    ground = detention.terrain;
+    ground = (x: number, z: number) => {
+      const natural = detention.terrain(x, z);
+      return natural + (bolinasBeachHeight(x, z) - natural) * bolinasBeachBlend(x, z);
+    };
   const freeWorld = (x: number, z: number) =>
     onLand(x, z) &&
     !goblinHutBlocks(x, z) &&
@@ -254,6 +268,7 @@ export function createMarinLand({
             x = patch.x + (rand(seed, 73) - 0.5) * patch.width,
             z = patch.z + (rand(seed + 1, 73) - 0.5) * patch.depth;
           if (
+            bolinasBeachBlend(x, z) > 0.28 ||
             !freeWorld(x, z) ||
             !freeWorld(x + 0.36, z - 0.35) ||
             !freeWorld(x - 0.36, z + 0.35) ||
@@ -270,6 +285,7 @@ export function createMarinLand({
             }) ||
             (!patch.coastal &&
               ((Math.abs(x - 30) < 1.8 && z > -29.4 && z < -16.3) ||
+                (x >= 30 && x < 41.5 && z > -22.6 && z < -19.6) ||
                 (Math.abs(x - 33.7) < 1.55 && z > -17 && z < -8))) ||
             (patch.coastal && x > -10.5 && x < -2 && z > -58 && z < -43)
           )

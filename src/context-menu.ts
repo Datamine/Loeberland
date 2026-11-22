@@ -1,4 +1,4 @@
-import type { ContentEntity } from './types/world.ts';
+import type { ContentEntity, Place } from './types/world.ts';
 type ActionTarget = Omit<ContentEntity, 'id'> & {
   id?: string | number;
   kind?: string;
@@ -20,31 +20,44 @@ const mobileActionKinds = new Set([
   'skate-dog',
   'bike',
   'motorcycle',
-  'ferrari',
   'pequod',
-  'stealth-bomber',
-] satisfies [
-  string,
-  string,
-  string,
-  string,
-  string,
-  string,
-  string,
-  string,
-  string,
-  string,
-  string,
-  string,
-  string,
-  string,
-]);
+] satisfies string[]);
 export function actionTargetKind(target: ActionTarget = {}) {
   applyEntityEdits(target, target.editorKey || 'sight:' + target.id);
-  if (target.kind === 'sunglasses') return 'personal-item';
+  if (target.kind === 'sunglasses' || target.kind === 'ferrari' || target.kind === 'called-waymo')
+    return 'personal-item';
   if (target.editorCategory) return target.editorCategory;
   if ((['loot', 'sand'] satisfies [string, string]).includes(target.kind || '')) return 'item';
   return target.mobile || mobileActionKinds.has(target.kind || '') ? 'npc' : 'object';
+}
+
+export function placeEntryVerb(
+  place: Pick<Place, 'id' | 'searchHome' | 'activityBuilding'>,
+  interior: Pick<Place, 'id'> | null,
+) {
+  if (place.id !== interior?.id) return 'Enter';
+  return place.searchHome || place.activityBuilding ? null : 'Browse';
+}
+
+/** Keep the world action first, even when the authored menu omits it. */
+export function orderPrimaryActions(
+  menu: HTMLElement,
+  primary: HTMLButtonElement,
+  next: readonly string[] = [],
+) {
+  const buttons = [...menu.querySelectorAll('button')];
+  const preferred = [
+    primary,
+    ...next.flatMap((id) => {
+      const button = buttons.find((candidate) => candidate.dataset.actionId === id);
+      return button && button !== primary ? [button] : [];
+    }),
+  ];
+  let first: ChildNode | null = buttons[0] ?? null;
+  for (const button of preferred) {
+    if (button !== first) menu.insertBefore(button, first);
+    first = button.nextElementSibling;
+  }
 }
 
 /** Style action and target independently, using text nodes rather than HTML. */

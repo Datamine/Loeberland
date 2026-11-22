@@ -12,6 +12,7 @@ import { createGame } from '../game.mts';
 import { createMemoryStore } from '../store.mts';
 
 import { makeNeighborhoodBench } from '../../src/neighborhood-interactions.ts';
+import { JURASSIC } from '../../src/jurassic-layout.ts';
 import { worldRecord, worldPatch, applyWorldPatches } from '../../src/world-deltas.ts';
 
 async function setup() {
@@ -43,6 +44,24 @@ async function setup() {
   const game = await createGame({ geometry, store: createMemoryStore(), random: () => 0.5 });
   return { game, geometry, bench };
 }
+
+test('picking up a sandwich grants the food without a loot announcement', async (t) => {
+  const { game } = await setup();
+  t.after(() => game.close());
+  const a = await player(game, 28104);
+  const cow = game.shared.cows[0];
+  Object.assign(cow, { x: a.p.x + 0.6, z: a.p.z, hp: 1 });
+  await command(game, a.p, 'attack', { id: cow.id, weapon: 'unarmed' });
+  assert.equal(requiredResult(a.messages).ok, true);
+  const sandwich = requiredFixture(
+    [...game.shared.loot.values()].find((item) => item.lootKind === 'sandwich'),
+  );
+  await command(game, a.p, 'collect', { id: sandwich.id });
+  const result = requiredResult(a.messages);
+  assert.equal(result.ok, true);
+  assert.equal(result.message, undefined);
+  assert.equal(a.p.inventory.snapshot().sandwiches, 1);
+});
 
 test('shopkeepers validate proximity, prices and options; tea heals and sobers, bouquets persist and books are free', async () => {
   const { game } = await setup(),
@@ -136,17 +155,21 @@ test('raptor remains survive the compact world channel as shared loot and advanc
   const { game } = await setup(),
     a = await player(game, 28103, { 'sf-expeditions-v1': '{}' });
   try {
+    a.p.inventory.meta.railgunCharge = 0;
     await command(game, a.p, 'playerAction', { verb: 'startRaptor' });
     assert.equal(requiredResult(a.messages).ok, true);
-    Object.assign(game.shared.raptor, {
-      phase: 'loose',
-      hp: 1,
-      x: a.p.x + 0.5,
-      z: a.p.z,
-      path: [],
-    });
+    assert.equal(a.p.inventory.meta.railgunCharge, 25);
+    assert.equal(a.p.appearance.weapon, 'railgun');
+    const raptor = game.shared.raptor;
+    assert.equal(raptor.phase, 'releasing');
+    for (let i = 0; i < 75; i++) game.tick(0.05);
+    assert.equal(raptor.phase, 'loose');
+    assert.ok(Math.hypot(raptor.x - JURASSIC.runout.x, raptor.z - JURASSIC.runout.z) < 0.001);
+    raptor.hp = 1;
+    Object.assign(a.p, { x: raptor.x - 0.6, z: raptor.z });
     await command(game, a.p, 'attack', { id: game.shared.raptor.id, weapon: 'railgun' });
     assert.equal(requiredResult(a.messages).ok, true);
+    assert.equal(a.p.inventory.meta.railgunCharge, 24);
     const item = [...game.shared.loot.values()].find((n) => n.lootKind === 'raptor');
     assert.ok(item);
     const packed = requiredFixture(worldPatch(item.id, worldRecord('loot', item), undefined)),
@@ -161,9 +184,13 @@ test('raptor remains survive the compact world channel as shared loot and advanc
     assert.equal(requiredResult(a.messages).ok, true);
     assert.equal(game.personal.runtime(a.p).expeditions.state.raptor, 'carrying');
     assert.equal(game.shared.loot.has(item.id), false);
+    await command(game, a.p, 'collect', { id: item.id });
+    assert.equal(requiredResult(a.messages).ok, false);
+    assert.equal(game.personal.runtime(a.p).expeditions.state.raptor, 'carrying');
     await game.flush();
     const saved = await storedPlayerFixture(game.store, 'player:' + a.p.owner);
     assert.equal(saved.playerState.quests.expeditions.raptor, 'carrying');
+    assert.equal(saved.playerState.appearance.weapon, 'railgun');
   } finally {
     await game.close();
   }

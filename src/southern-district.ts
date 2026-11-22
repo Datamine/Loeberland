@@ -225,7 +225,10 @@ export function taxDialogue(economy: Economy) {
         return {
           ...result,
           message: result.ok
-            ? 'You pay ' + amount + ' coins in taxes. Thank you for your contribution.'
+            ? contentText(
+                'world-message.src.southern-district.you-pay-coins-in-taxes-thank-you-for-your-contribution',
+                { amount: String(amount) },
+              )
             : result.message,
         };
       },

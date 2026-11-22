@@ -1,3 +1,4 @@
+import { contentText } from '../src/content-runtime.ts';
 import { isSafeInteger, isRecord } from '../src/types/json.ts';
 import type { PlayerProfile } from '../src/types/profile.ts';
 import type { InventorySnapshot } from '../src/types/network.ts';
@@ -14,6 +15,7 @@ import { hatById } from '../src/hat-catalog.ts';
 import { discoverCollection } from './collection.mts';
 import { EQUIPMENT_IDS, sandwichCapacity } from '../src/item-stats.ts';
 import { tabletCounts } from '../src/teleport-tablets.ts';
+import { isTahoePelt, TAHOE_PELTS } from '../src/config/tahoe-pelts.ts';
 
 const inventoryParse = (value: string | undefined): Record<string, unknown> => {
   try {
@@ -31,6 +33,16 @@ export function createInventoryAccount(profile: PlayerProfile) {
   profile.privateState ??= {};
   const economy = createEconomy(inventoryParse(profile.privateState['sf-purse-v1'])),
     savedFood = inventoryParse(profile.privateState['sf-deli-v1']);
+  // Older saves recorded weapon awards on the quests instead of in the purse.
+  const { theyLive, expeditions } = profile.playerState.quests;
+  const owned = economy.state.ownedEquipment;
+  if (theyLive.bayonet === true && !owned.includes('bayonet')) owned.push('bayonet');
+  if (
+    expeditions.railgun === true &&
+    ['escaped', 'carrying', 'completed'].includes(expeditions.raptor) &&
+    !owned.includes('railgun')
+  )
+    owned.push('railgun');
   const meta = (profile.inventory ??= {
     epoch: 0,
     revision: 0,
@@ -39,6 +51,7 @@ export function createInventoryAccount(profile: PlayerProfile) {
     peptides: 0,
     bisonHides: 0,
     akimboAmmo: 0,
+    missiles: 0,
     railgunCharge: 0,
     railgunBatteries: 0,
     coffee: 0,
@@ -46,13 +59,30 @@ export function createInventoryAccount(profile: PlayerProfile) {
   });
   if (!Number.isSafeInteger(meta.peptides) || meta.peptides < 0) meta.peptides = 0;
   if (!Number.isSafeInteger(meta.bisonHides) || meta.bisonHides < 0) meta.bisonHides = 0;
-  for (const key of ['akimboAmmo', 'railgunCharge', 'railgunBatteries'] as const)
+  for (const key of ['akimboAmmo', 'railgunCharge', 'railgunBatteries', 'missiles'] as const) {
+    const count = meta[key];
     meta[key] =
-      Number.isSafeInteger(meta[key]) && meta[key] >= 0
-        ? Math.min(meta[key], key === 'railgunCharge' ? 25 : 1000000)
+      isSafeInteger(count) && count >= 0
+        ? Math.min(count, key === 'railgunCharge' ? 25 : 1000000)
         : 0;
+  }
   meta.coffee = meta.coffee === 1 ? 1 : 0;
   meta.tablets = tabletCounts(meta.tablets);
+  const pelts: NonNullable<InventorySnapshot['pelts']> = {};
+  for (const kind of TAHOE_PELTS) {
+    const count = meta.pelts?.[kind];
+    if (isSafeInteger(count) && count > 0) pelts[kind] = count;
+  }
+  meta.pelts = pelts;
+  meta.uni = isSafeInteger(meta.uni) && meta.uni > 0 ? meta.uni : 0;
+  const consumables = {
+    'armor-trimming-kit': 'armorTrimmingKits',
+    'bind-tablet': 'bindTablets',
+  } as const;
+  for (const key of Object.values(consumables)) {
+    const count = meta[key];
+    meta[key] = isSafeInteger(count) && count > 0 ? count : 0;
+  }
   function save(change = true) {
     discoverCollection(profile, economy.state, meta);
     if (change) meta.revision++;
@@ -78,8 +108,13 @@ export function createInventoryAccount(profile: PlayerProfile) {
       deliveryPending: meta.deliveryPending,
       peptides: meta.peptides,
       bisonHides: meta.bisonHides,
+      pelts: { ...pelts },
+      uni: meta.uni,
+      armorTrimmingKits: meta.armorTrimmingKits,
+      bindTablets: meta.bindTablets,
       coffee: meta.coffee,
       akimboAmmo: meta.akimboAmmo,
+      missiles: meta.missiles,
       railgunCharge: meta.railgunCharge,
       railgunBatteries: meta.railgunBatteries,
       tablets: { ...meta.tablets },
@@ -93,33 +128,71 @@ export function createInventoryAccount(profile: PlayerProfile) {
     )
       return {
         ok: false,
-        message: 'Your sandwich bag is full (' + sandwichCapacity(economy.state) + ').',
+        message: contentText('world-message.server.inventory.your-sandwich-bag-is-full', {
+          value1: String(sandwichCapacity(economy.state)),
+        }),
       };
     if (
       item.lootKind === 'equipment' &&
       (!EQUIPMENT_IDS.includes(item.itemId || '') ||
         economy.state.ownedEquipment.includes(item.itemId || ''))
     )
-      return { ok: false, message: 'You already own this equipment, or it is unavailable.' };
+      return {
+        ok: false,
+        message: contentText(
+          'world-message.server.inventory.you-already-own-this-equipment-or-it-is-unavailable',
+        ),
+      };
     if (
       item.lootKind === 'hat' &&
       (!hatById(item.hatId || '') || economy.state.ownedHats.includes(item.hatId || ''))
     )
-      return { ok: false, message: 'You already own that hat.' };
+      return {
+        ok: false,
+        message: contentText('world-message.server.inventory.you-already-own-that-hat'),
+      };
     if (item.lootKind === 'iphone' && economy.state.iphoneOwned)
-      return { ok: false, message: 'You already own an iPhone.' };
+      return {
+        ok: false,
+        message: contentText('world-message.server.inventory.you-already-own-an-iphone'),
+      };
     if (item.lootKind === 'peptides' && !Number.isSafeInteger(meta.peptides + item.amount))
-      return { ok: false, message: 'Your peptide case is full.' };
+      return {
+        ok: false,
+        message: contentText('world-message.server.inventory.your-peptide-case-is-full'),
+      };
     if (item.lootKind === 'bison-hide' && !Number.isSafeInteger(meta.bisonHides + item.amount))
-      return { ok: false, message: 'You cannot carry any more bison hides.' };
+      return {
+        ok: false,
+        message: contentText(
+          'world-message.server.inventory.you-cannot-carry-any-more-bison-hides',
+        ),
+      };
+    if (
+      isTahoePelt(item.lootKind) &&
+      !Number.isSafeInteger((pelts[item.lootKind] || 0) + item.amount)
+    )
+      return { ok: false, message: contentText('world-message.tahoe-pelts.inventory-full') };
+    const consumable = consumables[item.lootKind as keyof typeof consumables];
+    if (consumable && !Number.isSafeInteger((meta[consumable] || 0) + item.amount))
+      return { ok: false, message: contentText('world-message.loot.item-full') };
+    if (item.lootKind === 'uni' && !Number.isSafeInteger((meta.uni || 0) + item.amount))
+      return { ok: false, message: contentText('world-message.uni.inventory-full') };
+    if (item.lootKind === 'sand-bucket' && !Number.isSafeInteger(economy.state.sand + item.amount))
+      return { ok: false, message: contentText('world-message.berkeley-lab.sand-full') };
     if (item.lootKind === 'coins' && !Number.isSafeInteger(economy.state.coins + item.amount))
-      return { ok: false, message: 'Your coin purse is full.' };
+      return {
+        ok: false,
+        message: contentText('world-message.server.inventory.your-coin-purse-is-full'),
+      };
     return { ok: true };
   }
   function receive(item: InventoryGrant) {
     const result = canReceive(item);
     if (!result.ok) return result;
-    if (item.lootKind === 'coins') {
+    const consumable = consumables[item.lootKind as keyof typeof consumables];
+    if (consumable) meta[consumable] = (meta[consumable] || 0) + item.amount;
+    else if (item.lootKind === 'coins') {
       if (item.transfer) economy.state.coins += item.amount;
       else economy.credit(item.amount);
     } else if (item.lootKind === 'sandwich') meta.sandwiches += item.amount;
@@ -129,6 +202,12 @@ export function createInventoryAccount(profile: PlayerProfile) {
     } else if (item.lootKind === 'hat') economy.state.ownedHats.push(item.hatId!);
     else if (item.lootKind === 'peptides') meta.peptides += item.amount;
     else if (item.lootKind === 'bison-hide') meta.bisonHides += item.amount;
+    else if (item.lootKind === 'uni') meta.uni = (meta.uni || 0) + item.amount;
+    else if (item.lootKind === 'sand-bucket') {
+      economy.state.sand += item.amount;
+      if (!profile.collection.includes(item.lootKind)) profile.collection.push(item.lootKind);
+    } else if (isTahoePelt(item.lootKind))
+      pelts[item.lootKind] = (pelts[item.lootKind] || 0) + item.amount;
     else if (item.lootKind === 'equipment') economy.state.ownedEquipment.push(item.itemId!);
     else return { ok: true };
     save();
@@ -155,6 +234,29 @@ export function createInventoryAccount(profile: PlayerProfile) {
     save();
     return items;
   }
+  function installTrade(draft: InventorySnapshot) {
+    Object.assign(economy.state, draft.purse);
+    for (const key of [
+      'sandwiches',
+      'peptides',
+      'bisonHides',
+      'uni',
+      'armorTrimmingKits',
+      'bindTablets',
+      'coffee',
+      'akimboAmmo',
+      'missiles',
+      'railgunBatteries',
+    ] as const)
+      meta[key] = draft[key] ?? 0;
+    for (const kind of TAHOE_PELTS) {
+      const quantity = draft.pelts?.[kind] ?? 0;
+      if (quantity) pelts[kind] = quantity;
+      else delete pelts[kind];
+    }
+    meta.tablets = { ...draft.tablets };
+    save();
+  }
   save(false);
-  return { economy, meta, snapshot, canReceive, receive, deathDrops, save };
+  return { economy, meta, snapshot, canReceive, receive, deathDrops, save, installTrade };
 }

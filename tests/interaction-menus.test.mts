@@ -6,6 +6,7 @@ import { NPC_DIALOGUES } from '../src/config/dialogue.ts';
 import { configuredDialogue } from '../src/dialogue-config.ts';
 import { dialogueFixture } from './helpers/dialogue-fixture.mts';
 import { scientistDialogue } from '../src/jurassic.ts';
+import { compileEntityDialogue } from '../src/content-game.ts';
 import { createSaltMail } from '../src/salt-mail.ts';
 import { createFuelDialogue, refuelFerrariFromCan } from '../src/fuel.ts';
 import { setupMultiplayerSettings } from '../src/multiplayer-world.ts';
@@ -120,20 +121,34 @@ test('every configured dialogue leaf renders, invokes exactly one bound action, 
 
 test('starting Jurassic recovery waits for the actual server receipt instead of announcing an unissued railgun', async () => {
   let resolve!: (receipt: import('../src/types/world.ts').ActionReceipt) => void;
+  let starts = 0;
   const f = dialogueFixture(),
     game = {
       state: { raptor: 'not-started' as const },
       finishQuest: () => ({ ok: false }),
-      startQuest: () => ({
-        ok: true,
-        pending: true,
-        promise: new Promise<import('../src/types/world.ts').ActionReceipt>((r) => (resolve = r)),
-      }),
+      startQuest: () => {
+        starts++;
+        return {
+          ok: true,
+          pending: true,
+          promise: new Promise<import('../src/types/world.ts').ActionReceipt>((r) => (resolve = r)),
+        };
+      },
     };
   try {
-    f.dialogue.open(scientistDialogue({ name: 'Scientist' }, game));
+    f.dialogue.open(
+      compileEntityDialogue(
+        scientistDialogue({ name: 'Scientist' }, game),
+        'actor:jurassic-scientist',
+      ),
+    );
     f.advance();
     f.click('Do you have a quest for me?');
+    assert.match(f.element.textContent, /bolts south toward the road/);
+    assert.equal(starts, 0);
+    f.advance();
+    f.click('I’ll recover the raptor.');
+    assert.equal(starts, 1);
     assert.match(f.element.textContent, /Waiting for the server/);
     assert.doesNotMatch(f.element.textContent, /gives you a railgun/);
     resolve({ ok: false, message: 'The scientist is too far away.' });
@@ -195,73 +210,27 @@ test('salt mail and fuel-can messages describe the settled result and never pred
   assert.equal(refuels, 0, 'online use must not issue a duplicate refuel command');
 });
 
-test('a refused PvP toggle reports its server error and restores the checkbox without an undefined callback', async () => {
-  const previous = globalThis.document,
-    nodes = new Map<string, SettingsNode>(),
-    notices: unknown[][] = [];
-  interface SettingsNode {
-    value: string;
-    textContent: string;
-    checked: boolean;
-    disabled: boolean;
-    dataset: Record<string, string>;
-    handlers: Record<string, (event: { target: SettingsNode }) => void | Promise<void>>;
-    setAttribute: () => void;
-    addEventListener: (
-      type: string,
-      fn: (event: { target: SettingsNode }) => void | Promise<void>,
-    ) => void;
-    querySelector: (key: string) => SettingsNode;
-  }
-  const node = (key: string): SettingsNode => {
-    if (!nodes.has(key))
-      nodes.set(key, {
-        value: '',
-        checked: false,
-        disabled: false,
-        textContent: '',
-        dataset: {},
-        handlers: {},
-        setAttribute() {},
-        addEventListener(
-          type: string,
-          fn: (event: { target: SettingsNode }) => void | Promise<void>,
-        ) {
-          this.handlers[type] = fn;
-        },
-        querySelector: node,
-      });
-    return requiredFixture(nodes.get(key));
+test('the PvP checkbox keeps its draft when multiplayer status updates', () => {
+  const previous = globalThis.document;
+  const checkbox = { checked: true };
+  const grapple = { disabled: false };
+  const status = { textContent: '' };
+  const nodes = {
+    'sf-pvp-enabled': checkbox,
+    'sf-grapple-button': grapple,
+    'sf-pvp-status': status,
   };
-  globalThis.document = { getElementById: node } as unknown as Document;
-  const client = {
-    state: {
-      autoName: false,
-      renameAt: 0,
-      serverOffset: 0,
-      returningCharacter: true,
-      grapplingHook: false,
-      connected: true,
-      name: 'Audit',
-      pvp: { enabled: false, disableAt: 0 },
-    },
-    subscribe() {
-      return () => {};
-    },
-    command: async () => ({ ok: false, message: 'You must wait before changing PvP.' }),
-  };
+  globalThis.document = {
+    getElementById: (id: keyof typeof nodes) => nodes[id],
+  } as unknown as Document;
   try {
-    setupMultiplayerSettings(client, {
-      announce: (...args: [string, string?]) => notices.push(args),
+    const settings = setupMultiplayerSettings({
+      state: { connected: true, grapplingHook: false, pvp: { enabled: false, disableAt: 0 } },
     });
-    const checkbox = node('sf-pvp-enabled');
-    checkbox.checked = true;
-    await checkbox.handlers.change({ target: checkbox });
-    assert.equal(checkbox.checked, false);
-    assert.equal(checkbox.disabled, false);
-    assert.deepEqual(notices, [
-      ['You must wait before changing PvP.', 'PvP'] satisfies [string, string],
-    ]);
+    settings.update();
+    assert.equal(checkbox.checked, true);
+    assert.equal(grapple.disabled, true);
+    assert.match(status.textContent, /apply when you save/);
   } finally {
     globalThis.document = previous;
   }

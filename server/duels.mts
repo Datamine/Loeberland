@@ -1,3 +1,4 @@
+import { contentText } from '../src/content-runtime.ts';
 import { isSafeInteger } from '../src/types/json.ts';
 import type { SimulationServices, ServerPlayer } from '../src/types/server.ts';
 import type { DuelOffer } from '../src/types/finance.ts';
@@ -46,13 +47,31 @@ export function createDuels({
       const to = typeof args.id === 'number' ? players.get(args.id) : undefined,
         stake = args.stake;
       if (!eligible(p) || !eligible(to) || p === to)
-        return { ok: false, message: 'Both players must stand at the Duel Arena, out of combat.' };
+        return {
+          ok: false,
+          message: contentText(
+            'world-message.server.duels.both-players-must-stand-at-the-duel-arena-out-of-combat',
+          ),
+        };
       if (!isSafeInteger(stake) || stake < 1 || stake > DUEL_RULES.maxStake)
-        return { ok: false, message: 'Choose a positive whole-coin stake.' };
+        return {
+          ok: false,
+          message: contentText('world-message.server.duels.choose-a-positive-whole-coin-stake'),
+        };
       if (busy.has(p.id) || busy.has(to.id))
-        return { ok: false, message: 'Finish or decline the existing offer first.' };
+        return {
+          ok: false,
+          message: contentText(
+            'world-message.server.duels.finish-or-decline-the-existing-offer-first',
+          ),
+        };
       if (p.inventory.economy.state.coins < stake || to.inventory.economy.state.coins < stake)
-        return { ok: false, message: 'Both players need enough coins for this stake.' };
+        return {
+          ok: false,
+          message: contentText(
+            'world-message.server.duels.both-players-need-enough-coins-for-this-stake',
+          ),
+        };
       const o = {
         id: randomUUID(),
         from: p.id,
@@ -66,17 +85,30 @@ export function createDuels({
       busy.set(p.id, o.id);
       busy.set(to.id, o.id);
       for (const person of [p, to]) send(person, { type: 'duelOffer', offer: o });
-      return { ok: true, message: 'Offer sent. No coins move until your opponent accepts.' };
+      return {
+        ok: true,
+        message: contentText(
+          'world-message.server.duels.offer-sent-no-coins-move-until-your-opponent-accepts',
+        ),
+      };
     }
     const o = offers.get(typeof args.offer === 'string' ? args.offer : '');
     if (!o || ![o.from, o.to].includes(p.id))
-      return { ok: false, message: 'That offer has expired.' };
+      return {
+        ok: false,
+        message: contentText('world-message.server.duels.that-offer-has-expired'),
+      };
     if (action === 'duelDecline') {
       release(o, 'The wager was declined. No coins changed hands.');
       return { ok: true };
     }
     if (action !== 'duelAccept' || p.id !== o.to || args.stake !== o.stake)
-      return { ok: false, message: 'Accept the exact stake shown in the offer.' };
+      return {
+        ok: false,
+        message: contentText(
+          'world-message.server.duels.accept-the-exact-stake-shown-in-the-offer',
+        ),
+      };
     const a = players.get(o.from),
       b = players.get(o.to);
     if (
@@ -86,12 +118,18 @@ export function createDuels({
       b.inventory.economy.state.coins < o.stake
     ) {
       release(o, 'The wager is no longer valid. No coins changed hands.');
-      return { ok: false, message: 'One player can no longer cover the stake.' };
+      return {
+        ok: false,
+        message: contentText('world-message.server.duels.one-player-can-no-longer-cover-the-stake'),
+      };
     }
     const winner = flip() === 0 ? a : b,
       loser = winner === a ? b : a;
     if (!Number.isSafeInteger(winner.inventory.economy.state.coins + o.stake))
-      return { ok: false, message: 'The winner’s purse could overflow.' };
+      return {
+        ok: false,
+        message: contentText('world-message.server.duels.the-winners-purse-could-overflow'),
+      };
     // This synchronous transfer is indivisible across both per-player queues.
     // Persist both profiles together before announcing the outcome.
     a.inventory.economy.state.coins -= o.stake;

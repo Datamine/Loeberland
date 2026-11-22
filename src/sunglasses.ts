@@ -18,13 +18,18 @@ export function createSunglasses(
 
   const state = { owned: saved?.owned === true };
   function pickUp() {
-    if (state.owned) return { ok: false, message: 'You already picked up the sunglasses.' };
+    if (state.owned)
+      return {
+        ok: false,
+        message: contentText('world-message.src.sunglasses.you-already-picked-up-the-sunglasses'),
+      };
     state.owned = true;
     onChange({ ...state });
     return {
       ok: true,
-      message:
-        'You pick up the sunglasses. Open Character (C) to wear them. Some things are easier to see through dark lenses.',
+      message: contentText(
+        'world-message.src.sunglasses.you-pick-up-the-sunglasses-open-character-c-to-wear-them-some',
+      ),
     };
   }
   return { state, pickUp };

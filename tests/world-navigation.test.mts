@@ -131,17 +131,16 @@ test('Mount Tam goblins, the lost goblin and all waterfront and Presidio seagull
   const town = world.sights.find((s) => s.id === 'mount-tam-goblins');
   assert.ok(town != null, 'Missing test fixture: town');
   assert.ok(world.pathTo(town.entry.x, town.entry.y, world.spawn));
-  const creatures = world.wilderness.actors.filter((a) =>
-    (
-      ['goblin', 'goblin-maker', 'lost-goblin', 'seagull'] satisfies [
-        string,
-        string,
-        string,
-        string,
-      ]
-    ).includes(a.combatKind),
-  );
-  assert.equal(creatures.length, 12);
+  const kinds = new Set([
+    'goblin',
+    'goblin-guard',
+    'goblin-veteran',
+    'goblin-maker',
+    'lost-goblin',
+    'seagull',
+  ]);
+  const creatures = world.wilderness.actors.filter((a) => kinds.has(a.combatKind));
+  assert.equal(creatures.length, 15);
   assert.equal(creatures.filter((actor) => actor.id.startsWith('presidio-seagull-')).length, 3);
   for (const actor of creatures) {
     assert.ok(world.landClearAt(actor.x - 0.5, actor.z - 0.5), actor.id);
@@ -913,6 +912,15 @@ test('They Live characters stand on connected ground and the Berkeley courtyard 
     assert.ok(world.pathTo(world.spawn.x, world.spawn.y, to));
   }
   const c = world.esotericCampus;
+  const church = requiredFixture(world.sights.find((s) => s.id === 'unusual-church'));
+  for (const target of [
+    church.entry,
+    ...c.churchgoers.map((npc) => requiredFixture(world.approaches.merchant(npc))),
+  ]) {
+    assert.ok(world.clearAt(target.x, target.y));
+    assert.ok(world.pathTo(target.x, target.y, c.gate));
+    assert.ok(world.pathTo(c.gate.x, c.gate.y, target));
+  }
   for (const [u, v] of [
     [0, 0.3] satisfies [number, number],
     [0, 1.9] satisfies [number, number],

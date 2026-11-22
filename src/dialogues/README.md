@@ -1,56 +1,41 @@
 # NPC conversations
 
-Canonical authored content lives in [`../content/`](../../content/README.md). This directory contains compatibility modules and the original JSON migration inputs:
+Edit the live dialogue sources under [content](../../content/README.md).
 
-| File              | Content                                                                                |
-| ----------------- | -------------------------------------------------------------------------------------- |
-| `chains.json`     | The 100 tweet-inspired branching conversations                                         |
-| `goose-corp.json` | The Powerful and Evil Goose Corporation rumors, named conversations and readable books |
-| `services.json`   | Shop, travel and other functional dialogue with named action bindings                  |
-| `ambient.ts`      | Random selection and conversion to the game's dialogue UI                              |
-| `catalog.ts`      | Shared service and lore exports                                                        |
+| Source                                                                                             | Content                                                                   |
+| -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| [`content/dialogues/tweet-derived/chains.json`](../../content/dialogues/tweet-derived/chains.json) | 100 tweet-derived branching pedestrian conversations                      |
+| [`content/dialogues/other/chains.json`](../../content/dialogues/other/chains.json)                 | Special-purpose pedestrian conversations, including the Goose Corp rumors |
+| [`content/dialogues.json`](../../content/dialogues.json)                                           | Named, quest, shop and travel dialogue templates and state variants       |
 
-Ordinary adult pedestrians draw from the shared pool of 100 conversations plus
-the two Goose Corp rumors. Gus, Vic, the six named researchers, the dog walker,
-and the square visitor retain their original topics alongside casual chat. A shuffled
-bag avoids repeating a selected conversation until the pool has been drawn.
-Names and portraits come from the actual NPC. Children use the pond rumor;
-animals keep their animal interactions.
+Ordinary adult pedestrians draw from the 100 tweet-derived conversations plus
+the two Goose Corp rumors. Children use the pond rumor in `other/chains.json`.
+A shuffled bag avoids repeating a conversation until the pool has been drawn.
+Names and portraits come from the actual NPC. Named NPCs keep their authored
+topics, including the Goose Corp topics for Ray and Leo.
 
-Service and quest NPCs retain their functional choices and also offer
-**Let’s just talk.** This opens a conversation with no purchase callbacks,
-quest rewards or server mutations. Ray and Leo retain their Goose Corp topics.
-Quest-state-dependent actions still live in their domain modules.
+Each shared conversation has a `start` node ID and a `nodes` map. Player choices
+link to a `next` node ID. An `end: true` node closes after its line is acknowledged.
+Keep every edge valid and every node reachable.
 
-In `chains.json`, each conversation has a `start` node ID and a `nodes` map.
-Nodes contain NPC `text`; player `choices` have `text` and a `next` node ID.
-An `end: true` node closes after its line is acknowledged. Keep every edge
-valid and every node reachable. `source_files` and `source_directory` are historical provenance labels; the original tweet text files were intentionally removed and are not runtime or test dependencies.
+`tweet-derived/archive.json` preserves the original tweet adaptation catalog and
+source provenance. `other/goose-corp-lore.json` contains the original Goose Corp
+catalog, including lore books. Edit the corresponding `chains.json` to change
+the game’s pedestrian conversations.
 
-Service entries use `intro`, `choices`, `label`, `receipt`, `next`, and named
-`action`/`trade` bindings. Keep action IDs, argument IDs and `{tokens}` intact.
-`src/dialogue-config.ts` binds them to domain handlers; `src/dialogue.ts` presents the
-portrait and choices. The old `src/config/dialogue.ts` and `src/config/world-lore.ts`
-paths are compatibility exports only.
-
-Run from ``:
-
-```sh
-node --test tests/ambient-dialogue.test.mjs tests/dialogue.test.mjs tests/world-lore.test.mjs
-npm run build
-```
-
-JSON defaults are embedded in the generated client for `file://` play. HTTP clients also load published content revisions. The source preview serves the same JSON modules
-over HTTP. Rebuild for changes to action code; restart the backend when shared
-service text or definitions change.
+`ambient.ts` selects and converts shared conversations to the dialogue UI.
+`catalog.ts` exposes service and lore compatibility exports.
+`services.json` holds the original service catalog. Live service templates are in
+`content/dialogues.json`, with callbacks bound in `src/dialogue-config.ts`.
+Keep action IDs, argument IDs and `{tokens}` intact when editing.
 
 Named and service NPCs should speak as characters, without giving a walkthrough.
 Keep their requests, prices, consent choices, and receipts for completed actions
 clear. Do not reveal hidden odds, optimization strategies, exact quest routes,
 undiscovered rewards, or future unlocks. Guide messages and examine descriptions
-follow the same rule. Journals record discoveries and completed milestones;
-collection entries reveal names after discovery. Help explains controls only.
+follow the same rule. Journals record discoveries and completed milestones.
+Collection entries reveal names after discovery. Help explains controls only.
 
-## Canonical content
-
-Authored runtime content now lives in [`../content/`](../../content/README.md). The original catalogs here remain migration/provenance inputs and compatibility exports. Edit canonical JSON or use the editor for current game changes. HTTP clients and the server reload published content; file:// uses embedded defaults.
+From the repo root, run `npm run build:editor` after editing source JSON to
+publish the content. The main build also embeds the published defaults for
+offline play.

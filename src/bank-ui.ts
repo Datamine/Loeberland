@@ -102,15 +102,11 @@ export function createBankMenu({
     'click',
     close,
   );
-  requiredValue(element.querySelector('[data-bank-coffee]'), 'Bank coffee').addEventListener(
-    'click',
-    () => operation('coffee'),
-  );
   function update() {
     if (element.hidden) return;
     const state = service.snapshot();
     requiredValue(element.querySelector('[data-bank-balance]'), 'Bank balance').textContent =
-      state.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      state.withdrawable.toLocaleString('en-US');
     requiredValue(element.querySelector('[data-bank-purse]'), 'Bank purse').textContent =
       economy.state.coins.toLocaleString('en-US');
   }
@@ -118,8 +114,7 @@ export function createBankMenu({
     open() {
       beforeOpen();
       element.hidden = false;
-      status.textContent =
-        'Welcome! How may I help? Your banked coins are separate from your purse.';
+      status.textContent = '';
       status.dataset.error = 'false';
       service.act('status').then(update);
       update();

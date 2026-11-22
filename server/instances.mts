@@ -1,6 +1,8 @@
-import { isRecord } from '../src/types/json.ts';
+import { LAB_ENTRANCE, LAB_FLOOR, LAB_INSTANCE } from '../src/berkeley-lab.ts';
+import { HOT_TRAPDOOR } from '../src/berkeley-campus.ts';
+import { contentText } from '../src/content-runtime.ts';
 import type { SimulationServices, ServerPlayer } from '../src/types/server.ts';
-import { railgunUnlocked } from '../src/item-stats.ts';
+import { equipmentOwned, weaponOwned } from '../src/item-stats.ts';
 import {
   PUBLIC_INSTANCE,
   ILLUMINATI_INSTANCE,
@@ -10,6 +12,7 @@ import {
   guildSecretSites,
 } from '../src/map-instances.ts';
 import { insideGuild } from '../src/guild.ts';
+import { fighterYardMayEnter } from './fighter-yard.mts';
 import { guildMayEnter } from './guild.mts';
 import { PEQUOD } from '../src/jurassic-layout.ts';
 import {
@@ -105,18 +108,27 @@ export function createServerInstances({
         !insideGuild(lodge, p.x, p.z) ||
         Math.hypot(p.x - secret.oldMan.x, p.z - secret.oldMan.z) > 2.4
       )
-        return { ok: false, message: 'Speak to the Old Man inside the Freemasons’ Guild.' };
+        return {
+          ok: false,
+          message: contentText(
+            'world-message.server.instances.speak-to-the-old-man-inside-the-freemasons-guild',
+          ),
+        };
       if (p.profile.illuminati)
         return {
           ok: true,
           illuminati: true,
-          message: 'You are already initiated. The underground passage is open to you.',
+          message: contentText(
+            'world-message.server.instances.you-are-already-initiated-the-underground-passage-is-open-to-y',
+          ),
         };
       const purse = p.inventory.economy.state;
       if (purse.coins < ILLUMINATI_PRICE)
         return {
           ok: false,
-          message: 'Initiation costs 250,000 coins. The Old Man does not accept installments.',
+          message: contentText(
+            'world-message.server.instances.initiation-costs-250-000-coins-the-old-man-does-not-accept-ins',
+          ),
         };
       purse.coins -= ILLUMINATI_PRICE;
       p.inventory.save();
@@ -126,13 +138,30 @@ export function createServerInstances({
         ok: true,
         illuminati: true,
         inventory: p.inventory.snapshot(),
-        message:
-          'The Old Man accepts 250,000 coins. You join the Illuminati. Take the stairway inside the lodge to the underground hangar.',
+        message: contentText(
+          'world-message.server.instances.the-old-man-accepts-250-000-coins-you-join-the-illuminati-take',
+        ),
       };
     }
     if (action === 'instanceEnter') {
       if (kind(p) !== 'world' && kind(p) === args.kind) return { ok: true };
       if (!alive(p) || kind(p) !== 'world' || p.bomberActive) return { ok: false };
+      if (args.kind === LAB_INSTANCE.kind) {
+        const trapdoor = geometry.sights?.find((sight) => sight.id === HOT_TRAPDOOR)?.entry;
+        if (!trapdoor || Math.hypot(p.x - trapdoor.x - 0.5, p.z - trapdoor.y - 0.5) > 0.85)
+          return { ok: false, message: contentText('world-message.berkeley-lab.approach') };
+        const purse = p.inventory.economy.state;
+        if (
+          !p.appearance.iceTop ||
+          !p.appearance.icePants ||
+          !equipmentOwned(purse, 'ice-top') ||
+          !equipmentOwned(purse, 'ice-pants')
+        )
+          return { ok: false, message: contentText('world-message.berkeley-lab.too-hot') };
+        p.instanceReturn = position(p);
+        transition(p, LAB_INSTANCE, { ...LAB_ENTRANCE, y: LAB_FLOOR + 0.025 });
+        return { ok: true };
+      }
       if (args.kind === 'illuminati') {
         if (
           !p.profile.illuminati ||
@@ -142,8 +171,9 @@ export function createServerInstances({
         )
           return {
             ok: false,
-            message:
-              'Join the Illuminati with the Old Man, then use the stairway inside the guild.',
+            message: contentText(
+              'world-message.server.instances.join-the-illuminati-with-the-old-man-then-use-the-stairway-ins',
+            ),
           };
         p.instanceReturn = position(p);
         transition(p, ILLUMINATI_INSTANCE, {
@@ -152,31 +182,33 @@ export function createServerInstances({
         });
         return {
           ok: true,
-          message: 'You descend below the guild into the underground hangar.',
+          message: contentText(
+            'world-message.server.instances.you-descend-below-the-guild-into-the-underground-hangar',
+          ),
         };
       }
       if (args.kind === 'kraken') {
         const captain = geometry.merchants?.find((n) => n.id === 'captain-ahab'),
           home = geometry.expeditions?.ship.home;
-        let gear: unknown = {};
-        try {
-          gear = JSON.parse(p.profile.privateState['sf-expeditions-v1'] || '{}');
-        } catch {}
+        const expedition = p.profile.playerState.quests.expeditions;
         if (
-          !railgunUnlocked(isRecord(gear) ? gear : {}) ||
+          !weaponOwned(p.inventory.economy.state, 'railgun') ||
           !captain ||
           !home ||
           Math.hypot(p.x - captain.x, p.z - captain.z) > 3
         )
           return {
             ok: false,
-            message: 'Board with Captain Ahab on the beach, carrying your railgun.',
+            message: contentText(
+              'world-message.server.instances.board-with-captain-ahab-on-the-beach-carrying-your-railgun',
+            ),
           };
-        if (isRecord(gear) && gear.krakenReward)
+        if (expedition.krakenReward)
           return {
             ok: false,
-            message:
-              'You have already claimed the kraken’s spoils. Ahab is still writing the incident report.',
+            message: contentText(
+              'world-message.server.instances.you-have-already-claimed-the-krakens-spoils-ahab-is-still-writ',
+            ),
           };
         p.instanceReturn = position(p);
         transition(p, privateMapInstance('kraken', p.owner, home), {
@@ -185,19 +217,44 @@ export function createServerInstances({
           y: PEQUOD.deck,
           z: home.z,
         });
-        return { ok: true, message: 'The Pequod enters your private kraken-hunting waters.' };
+        return {
+          ok: true,
+          message: contentText(
+            'world-message.server.instances.the-pequod-enters-your-private-kraken-hunting-waters',
+          ),
+        };
       }
-      return { ok: false, message: 'Unknown map instance.' };
+      return {
+        ok: false,
+        message: contentText('world-message.server.instances.unknown-map-instance'),
+      };
     }
     if (action === 'instanceLeave') {
-      if (kind(p) === 'world') return { ok: false, message: 'You are already in the city.' };
+      if (kind(p) === 'world')
+        return {
+          ok: false,
+          message: contentText('world-message.server.instances.you-are-already-in-the-city'),
+        };
       if (
         kind(p) === 'illuminati' &&
         Math.hypot(p.x - ILLUMINATI_CAVE.entrance.x, p.z - ILLUMINATI_CAVE.entrance.z) > 2.2
       )
-        return { ok: false, message: 'Use the stairs at the southern end of the cave.' };
+        return {
+          ok: false,
+          message: contentText(
+            'world-message.server.instances.use-the-stairs-at-the-southern-end-of-the-cave',
+          ),
+        };
+      if (
+        kind(p) === LAB_INSTANCE.kind &&
+        Math.hypot(p.x - LAB_ENTRANCE.x, p.z - LAB_ENTRANCE.z) > 1.5
+      )
+        return { ok: false, message: contentText('world-message.berkeley-lab.use-stairs') };
       reset(p);
-      return { ok: true, message: 'You return to the city.' };
+      return {
+        ok: true,
+        message: contentText('world-message.server.instances.you-return-to-the-city'),
+      };
     }
     if (action === 'bomberBoard') {
       if (
@@ -206,7 +263,12 @@ export function createServerInstances({
         kind(p) !== 'illuminati' ||
         Math.hypot(p.x - ILLUMINATI_CAVE.boarding.x, p.z - ILLUMINATI_CAVE.boarding.z) > 3
       )
-        return { ok: false, message: 'Walk to your B-2 in the underground hangar.' };
+        return {
+          ok: false,
+          message: contentText(
+            'world-message.server.instances.walk-to-your-b-2-in-the-underground-hangar',
+          ),
+        };
       p.profile.bomber = true;
       p.bomberActive = true;
       transition(p, PUBLIC_INSTANCE, {
@@ -222,13 +284,17 @@ export function createServerInstances({
       return {
         ok: true,
         bomber: bomberStatus(p),
-        message:
-          'You take your personal B-2 out over the Pacific. Click to fly; hold Shift for rocket speed. R performs a barrel roll. Space drops a bomb. Land by parachuting out.',
+        message: contentText(
+          'world-message.server.instances.you-take-your-personal-b-2-out-over-the-pacific-click-to-fly-h',
+        ),
       };
     }
     if (action === 'bomberReturn') {
       if (!alive(p) || !p.bomberActive || p.parachute || !p.profile.illuminati)
-        return { ok: false, message: 'You are not flying your B-2.' };
+        return {
+          ok: false,
+          message: contentText('world-message.server.instances.you-are-not-flying-your-b-2'),
+        };
       p.bomberActive = false;
       transition(p, ILLUMINATI_INSTANCE, {
         ...ILLUMINATI_CAVE.boarding,
@@ -237,20 +303,32 @@ export function createServerInstances({
       return {
         ok: true,
         bomber: bomberStatus(p),
-        message: 'Your B-2 returns to its underground hangar.',
+        message: contentText(
+          'world-message.server.instances.your-b-2-returns-to-its-underground-hangar',
+        ),
       };
     }
     if (action === 'bomberEject') {
       if (!alive(p) || !p.bomberActive || p.parachute || !p.profile.bomber)
-        return { ok: false, message: 'You are not flying your B-2.' };
+        return {
+          ok: false,
+          message: contentText('world-message.server.instances.you-are-not-flying-your-b-2'),
+        };
       const to = bomberLanding(p.x, p.z, {
         free: (x: number, z: number) =>
           geometry.landClearAt(x - 0.5, z - 0.5) &&
-          guildMayEnter(p, geometry, x, geometry.characterGround(x, z), z),
+          guildMayEnter(p, geometry, x, geometry.characterGround(x, z), z) &&
+          fighterYardMayEnter(p, x, z),
         ground: geometry.characterGround,
         fallback: { x: geometry.spawn.x + 0.5, z: geometry.spawn.y + 0.5 },
       });
-      if (!to) return { ok: false, message: 'Fly closer to land before parachuting out.' };
+      if (!to)
+        return {
+          ok: false,
+          message: contentText(
+            'world-message.server.instances.fly-closer-to-land-before-parachuting-out',
+          ),
+        };
       const flight = createBomberDescent(position(p), to, p.angle),
         impact = { x: p.x + Math.cos(p.angle) * 30, z: p.z + Math.sin(p.angle) * 30 },
         crash = {
@@ -275,9 +353,10 @@ export function createServerInstances({
       return {
         ok: true,
         bomber: bomberStatus(p),
-        message:
-          'You parachute out as the B-2 flies on to a spectacularly small crash. ' +
-          BOMBER_REPLACEMENT_MESSAGE,
+        message: contentText(
+          'world-message.server.instances.you-parachute-out-as-the-b-2-flies-on-to-a-spectacularly-small',
+          { BOMBER_REPLACEMENT_MESSAGE: String(BOMBER_REPLACEMENT_MESSAGE) },
+        ),
       };
     }
     if (action === 'bomberBomb') {
@@ -289,15 +368,17 @@ export function createServerInstances({
         kind(p) !== 'world' ||
         p.mode !== 'bomber'
       )
-        return { ok: false, message: 'Board your personal B-2 first.' };
+        return {
+          ok: false,
+          message: contentText('world-message.server.instances.board-your-personal-b-2-first'),
+        };
       if (now() < (p.profile.bombReadyAt || 0))
         return {
           ok: false,
           bomber: bomberStatus(p),
-          message:
-            'Bomb bay reloading: ' +
-            Math.ceil((p.profile.bombReadyAt - now()) / 1000) +
-            ' seconds.',
+          message: contentText('world-message.server.instances.bomb-bay-reloading-seconds', {
+            value1: String(Math.ceil((p.profile.bombReadyAt - now()) / 1000)),
+          }),
         };
       const area = bombTileArea(p.x, p.z),
         bomb = {
@@ -320,11 +401,12 @@ export function createServerInstances({
       return {
         ok: true,
         bomber: bomberStatus(p),
-        message:
-          'Bomb released. Its 3×3 blast deals 100 damage to cows, bears and snow/ice giants. Players, townspeople and quest characters are protected.',
       };
     }
-    return { ok: false, message: 'Unknown instance action.' };
+    return {
+      ok: false,
+      message: contentText('world-message.server.instances.unknown-instance-action'),
+    };
   }
   function tick() {
     for (const p of players.values())
@@ -337,7 +419,9 @@ export function createServerInstances({
           reset(p, { ...flight.to, angle: flight.heading });
           send(p, {
             type: 'bomberLanded',
-            message: 'You land gently. ' + BOMBER_REPLACEMENT_MESSAGE,
+            message: contentText('world-message.server.instances.you-land-gently', {
+              BOMBER_REPLACEMENT_MESSAGE: String(BOMBER_REPLACEMENT_MESSAGE),
+            }),
           });
         }
       }

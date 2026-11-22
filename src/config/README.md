@@ -21,9 +21,8 @@ the standalone `index.html` and verifies the native navigation graph.
 
 ## Editing conversations
 
-Use [`../dialogues/`](../dialogues/README.md): `chains.json` contains the 100
-ambient conversation graphs, `goose-corp.json` preserves Goose Corp rumors and
-books, and `services.json` contains shop/travel copy and action bindings.
+See [NPC conversations](../dialogues/README.md) for the tweet-derived and
+special-purpose conversation folders, lore books, and service dialogue sources.
 The original tweet archive is retained in `src/dialogues/sources/tweets/`.
 
 Ambient conversations are selected for ordinary NPCs and are also available

@@ -1,3 +1,4 @@
+import { contentText } from '../src/content-runtime.ts';
 import '../src/types/assert.ts';
 import type { SimulationServices, ServerPlayer } from '../src/types/server.ts';
 import { createBankAccount } from '../src/banking.ts';
@@ -25,7 +26,12 @@ export function bankAction(
       Math.hypot(p.x - teller.x, p.z - teller.z) > 2.6 ||
       Math.abs(p.y - Number(teller.base)) > 2.5)
   )
-    return { ok: false, message: 'Visit the friendly banker at Green Bank first.' };
+    return {
+      ok: false,
+      message: contentText(
+        'world-message.server.banking.visit-the-friendly-banker-at-green-bank-first',
+      ),
+    };
   const account = createBankAccount(p.profile.bank, now, (saved) => {
     p.profile.bank = saved;
     dirty(p);
@@ -38,7 +44,9 @@ export function bankAction(
     if (p.inventory.meta.coffee)
       return {
         ok: false,
-        message: 'You already have a fresh coffee. Enjoy that one first!',
+        message: contentText(
+          'world-message.server.banking.you-already-have-a-fresh-coffee-enjoy-that-one-first',
+        ),
         inventory: p.inventory.snapshot(),
       };
     p.inventory.meta.coffee = 1;
@@ -47,14 +55,24 @@ export function bankAction(
     return {
       ok: true,
       inventory: p.inventory.snapshot(),
-      message:
-        'Of course! One fresh coffee, on the house. You can drink it from your inventory. It is lovely to have you here.',
+      message: contentText(
+        'world-message.server.banking.of-course-one-fresh-coffee-on-the-house-you-can-drink-it-from',
+      ),
     };
   }
   if (action === 'bankCoffeeDrink') {
     if (!alive || p.bomberActive)
-      return { ok: false, message: 'Find a moment to enjoy your coffee safely.' };
-    if (!p.inventory.meta.coffee) return { ok: false, message: 'You have no coffee to drink.' };
+      return {
+        ok: false,
+        message: contentText(
+          'world-message.server.banking.find-a-moment-to-enjoy-your-coffee-safely',
+        ),
+      };
+    if (!p.inventory.meta.coffee)
+      return {
+        ok: false,
+        message: contentText('world-message.server.banking.you-have-no-coffee-to-drink'),
+      };
     p.inventory.meta.coffee = 0;
     const healed = Math.min(1, Math.max(0, p.max - p.hp));
     p.hp += healed;
@@ -68,10 +86,10 @@ export function bankAction(
       inventory: p.inventory.snapshot(),
       healed,
       hp: p.hp,
-      message:
-        'You recover ' +
-        healed +
-        ' HP. You sip your complimentary coffee. Warm, excellent, and somehow served exactly how you like it.',
+      message: contentText(
+        'world-message.server.banking.you-recover-hp-you-sip-your-complimentary-coffee-warm-excellen',
+        { healed: String(healed) },
+      ),
     };
   }
   const amount =

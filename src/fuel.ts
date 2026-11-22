@@ -1,3 +1,4 @@
+import { contentText } from './content-runtime.ts';
 import type { ActionReceipt } from './types/world.ts';
 import type { WorldPoint } from './types/geometry.ts';
 interface FuelCar {
@@ -35,14 +36,18 @@ export function createFuelDialogue(
         if (!near())
           return {
             ok: false,
-            message: 'The Ferrari is too far from this pump. Take a fuel can back to it instead.',
+            message: contentText(
+              'world-message.src.fuel.the-ferrari-is-too-far-from-this-pump-take-a-fuel-can-back-to',
+            ),
           };
         if (refuel)
           return Promise.resolve(refuel()).then((result) => {
             onChange();
             return {
               ...result,
-              message: result.ok ? 'Your tank is full. Safe travels!' : result.message,
+              message: result.ok
+                ? contentText('world-message.src.fuel.your-tank-is-full-safe-travels')
+                : result.message,
             };
           });
         const result = site.paid ? economy.trade('extortion') : { ok: true };
@@ -50,7 +55,9 @@ export function createFuelDialogue(
         onChange();
         return {
           ...result,
-          message: result.ok ? 'Your tank is full. Safe travels!' : result.message,
+          message: result.ok
+            ? contentText('world-message.src.fuel.your-tank-is-full-safe-travels')
+            : result.message,
         };
       },
       fuelCan: () =>
@@ -59,7 +66,9 @@ export function createFuelDialogue(
           return {
             ...result,
             message: result.ok
-              ? 'One full fuel can. Return to your Ferrari and choose Use fuel can.'
+              ? contentText(
+                  'world-message.src.fuel.one-full-fuel-can-return-to-your-ferrari-and-choose-use-fuel-c',
+                )
               : result.message,
           };
         }),
@@ -72,9 +81,17 @@ export function createFuelDialogue(
 
 export function refuelFerrariFromCan(car: Pick<FuelCar, 'state' | 'refuel'>, economy: Economy) {
   if (!car.state.owned)
-    return { ok: false, message: 'Borrow the Ferrari before using a fuel can.' };
+    return {
+      ok: false,
+      message: contentText('world-message.src.fuel.borrow-the-ferrari-before-using-a-fuel-can'),
+    };
   if (car.state.fuel >= 1 - 1e-9)
-    return { ok: false, message: 'The Ferrari already has a full tank. You keep your fuel can.' };
+    return {
+      ok: false,
+      message: contentText(
+        'world-message.src.fuel.the-ferrari-already-has-a-full-tank-you-keep-your-fuel-can',
+      ),
+    };
   const result = economy.trade('use-fuel-can'),
     remote = !!(result?.promise || result instanceof Promise);
   return mapInteractionResult(result, (receipt) => {
@@ -84,7 +101,9 @@ export function refuelFerrariFromCan(car: Pick<FuelCar, 'state' | 'refuel'>, eco
     if (!remote) car.refuel();
     return {
       ...receipt,
-      message: 'You pour the fuel can into the Ferrari. A full tank, ready to go!',
+      message: contentText(
+        'world-message.src.fuel.you-pour-the-fuel-can-into-the-ferrari-a-full-tank-ready-to-go',
+      ),
     };
   });
 }

@@ -18,6 +18,67 @@ import { drawCharacter } from '../src/characters.ts';
 import { theyLiveDialogue, createTheyLiveQuest } from '../src/they-live.ts';
 
 const sequence = (values: number[]) => () => values.shift() ?? 0.5;
+
+test('ordinary monsters keep retaliating under repeated hits, then return after a disengaged player flees', () => {
+  let hits = 0;
+  const game = createWilderness({
+    spawns: [{ id: 'goblin', combatKind: 'goblin', x: 0, z: 0 }],
+    onDamage: () => hits++,
+  });
+  const player = { id: 'player', x: 7, z: 0, attack: 'goblin' as string | null };
+  const actor = game.actors[0];
+  actor.x = 6;
+  for (let i = 0; i < 40; i++) {
+    game.damage(actor.id, 0, player, true);
+    game.update(0.1, [player]);
+  }
+  assert.ok(hits >= 2);
+  assert.equal(actor.enemy, player.id);
+  player.attack = null;
+  player.x = 30;
+  game.update(2.9, [player]);
+  assert.equal(actor.enemy, player.id);
+  game.update(0.1, [player]);
+  assert.equal(actor.enemy, null);
+  assert.equal(actor.returning, true);
+});
+
+test('the Terminator returns fire through a clear lane even when hit repeatedly', () => {
+  let shots = 0;
+  let clear = false;
+  const world = createWilderness({
+    spawns: [{ id: 'terminator', combatKind: 'terminator', x: 0, z: 0 }],
+    canTravel: () => false,
+    canShoot: () => clear,
+    onDamage: () => shots++,
+  });
+  const player = { id: 1, x: 0, z: 6 };
+  for (let i = 0; i < 10; i++) {
+    world.damage('terminator', 1, player, true);
+    world.update(0.1, [player]);
+  }
+  assert.equal(shots, 0);
+  clear = true;
+  world.damage('terminator', 1, player, true);
+  world.update(0.1, [player]);
+  const terminator = world.actors[0];
+  assert.equal(shots, 1);
+  assert.equal(terminator.angle, Math.PI / 2);
+  assert.equal(terminator.attackAnimation, 1);
+});
+
+test('Robocop has distinct idle, stride and strike poses', () => {
+  const actor = { combatKind: 'robocop', x: 0, z: 0, base: 0, angle: 0 };
+  const render = (motion: number, attackAnimation = 0) => {
+    const mesh = new Mesh();
+    drawWildMonster(mesh, { ...actor, motion, attackAnimation, phase: 0.8 }, 0);
+    assert.ok(mesh.data.every(Number.isFinite));
+    return mesh.data;
+  };
+  assert.notDeepEqual(render(0), render(1));
+  assert.notDeepEqual(render(0), render(0, 0.5));
+});
+
 test('drop catalogs have exact 1/20 and 1/50 boundaries; giant success chooses one ice piece', () => {
   assert.equal(rollMonsterDrops('bear', () => 0.05).length, 0);
   assert.equal(rollMonsterDrops('bear', () => 0.05 - Number.EPSILON)[0].lootKind, 'peptides');
@@ -52,8 +113,8 @@ test('weapon/food stats live in the item catalog and the axe fills the damage ga
   assert.equal(MONSTER_STATS.kraken.hp, 1200);
   assert.equal(MONSTER_STATS.bear.level, 10);
   assert.equal(MONSTER_STATS.bear.hp, 50);
-  assert.equal(selectedWeapon('battleaxe', {}), 'unarmed');
-  assert.equal(selectedWeapon('battleaxe', { battleaxe: true }), 'battleaxe');
+  assert.equal(selectedWeapon('battleaxe', { ownedEquipment: [] }), 'unarmed');
+  assert.equal(selectedWeapon('battleaxe', { ownedEquipment: ['battleaxe'] }), 'battleaxe');
   assert.ok(ITEM_STATS.sandwich.inNOutPrice < ITEM_STATS.sandwich.pickupPrice);
 });
 test('a friendly bear never attacks unprovoked; petting makes peace and death rolls only once', () => {

@@ -1,0 +1,246 @@
+{
+  "goose_corp_1": {
+    "id": "goose_corp_1",
+    "title": "The landlord above the landlord",
+    "tags": ["goose-corp", "rumours"],
+    "start": "start",
+    "nodes": {
+      "start": {
+        "speaker": "npc",
+        "text": "Keep your voice down. That goose on the billboard? My landlord reports to it.",
+        "choices": [
+          {
+            "id": "start.choice-1",
+            "text": "Who is behind all this?",
+            "next": "company"
+          },
+          {
+            "id": "start.choice-2",
+            "text": "Where can I learn more?",
+            "next": "reading"
+          },
+          {
+            "id": "start.choice-3",
+            "text": "I should get going.",
+            "next": "leave"
+          }
+        ],
+        "id": "start"
+      },
+      "company": {
+        "speaker": "npc",
+        "text": "The Powerful and Evil Goose Corporation. Their legal department insists that is the full name. Please keep your voice down near the refreshments.",
+        "choices": [
+          {
+            "id": "company.choice-1",
+            "text": "Why put Evil in the name?",
+            "next": "branding"
+          },
+          {
+            "id": "company.choice-2",
+            "text": "What do they actually own?",
+            "next": "ownership"
+          }
+        ],
+        "id": "company"
+      },
+      "reading": {
+        "speaker": "npc",
+        "text": "Ask Leo about The Quarterly Honk, or Ray about the lodge refreshments. Some houses have books on ponds and executive waterfowl. Read carefully. Quietly.",
+        "end": true,
+        "id": "reading"
+      },
+      "leave": {
+        "speaker": "npc",
+        "text": "Of course. Walk casually. Do not make eye contact with the billboard.",
+        "end": true,
+        "id": "leave"
+      },
+      "branding": {
+        "speaker": "npc",
+        "text": "The branding consultant proposed leaving it implied. The board said that lacked ambition. The consultant now works in a pond.",
+        "end": true,
+        "id": "branding"
+      },
+      "ownership": {
+        "speaker": "npc",
+        "text": "The pond, the company that owns the pond, and the company investigating who owns the pond. The bread budget is the only part anyone can audit.",
+        "end": true,
+        "id": "ownership"
+      }
+    }
+  },
+  "goose_corp_2": {
+    "id": "goose_corp_2",
+    "title": "The pond with a legal department",
+    "tags": ["goose-corp", "rumours"],
+    "start": "start",
+    "nodes": {
+      "start": {
+        "speaker": "npc",
+        "text": "Quietly, please. I asked who owned the pond and received a cease-and-desist written entirely in footprints.",
+        "choices": [
+          {
+            "id": "start.choice-1",
+            "text": "Who is behind all this?",
+            "next": "company"
+          },
+          {
+            "id": "start.choice-2",
+            "text": "Where can I learn more?",
+            "next": "reading"
+          },
+          {
+            "id": "start.choice-3",
+            "text": "I should get going.",
+            "next": "leave"
+          }
+        ],
+        "id": "start"
+      },
+      "company": {
+        "speaker": "npc",
+        "text": "The Powerful and Evil Goose Corporation. Their legal department insists that is the full name. Please keep your voice down near the refreshments.",
+        "choices": [
+          {
+            "id": "company.choice-1",
+            "text": "Why put Evil in the name?",
+            "next": "branding"
+          },
+          {
+            "id": "company.choice-2",
+            "text": "What do they actually own?",
+            "next": "ownership"
+          }
+        ],
+        "id": "company"
+      },
+      "reading": {
+        "speaker": "npc",
+        "text": "Ask Leo about The Quarterly Honk, or Ray about the lodge refreshments. Some houses have books on ponds and executive waterfowl. Read carefully. Quietly.",
+        "end": true,
+        "id": "reading"
+      },
+      "leave": {
+        "speaker": "npc",
+        "text": "Of course. Walk casually. Do not make eye contact with the billboard.",
+        "end": true,
+        "id": "leave"
+      },
+      "branding": {
+        "speaker": "npc",
+        "text": "The branding consultant proposed leaving it implied. The board said that lacked ambition. The consultant now works in a pond.",
+        "end": true,
+        "id": "branding"
+      },
+      "ownership": {
+        "speaker": "npc",
+        "text": "The pond, the company that owns the pond, and the company investigating who owns the pond. The bread budget is the only part anyone can audit.",
+        "end": true,
+        "id": "ownership"
+      }
+    }
+  },
+  "simulation_sunlight": {
+    "id": "simulation_sunlight",
+    "title": "Someone put in the sunlight",
+    "tags": ["simulation"],
+    "start": "start",
+    "nodes": {
+      "start": {
+        "id": "start",
+        "text": "Do you ever think we might be in a simulation? Somebody would have had to put all these little yellow flowers here. I like that idea.",
+        "choices": [
+          {
+            "id": "start.choice-1",
+            "text": "What if nobody put them here?",
+            "next": "end-1"
+          },
+          {
+            "id": "start.choice-2",
+            "text": "What would you put in a simulation?",
+            "next": "end-2"
+          }
+        ]
+      },
+      "end-1": {
+        "id": "end-1",
+        "text": "Then I get to like the flowers anyway.",
+        "end": true
+      },
+      "end-2": {
+        "id": "end-2",
+        "text": "More warm afternoons. And one enormous dog.",
+        "end": true
+      }
+    }
+  },
+  "simulation_goodbye": {
+    "id": "simulation_goodbye",
+    "title": "Pause instead of goodbye",
+    "tags": ["simulation"],
+    "start": "start",
+    "nodes": {
+      "start": {
+        "id": "start",
+        "text": "If this is a simulation, do you think people are still out there when you stop seeing them? My friend moved away. I keep thinking how nice it would be if I could load a day when she was still here.",
+        "choices": [
+          {
+            "id": "start.choice-1",
+            "text": "What would you do that day?",
+            "next": "end-1"
+          },
+          {
+            "id": "start.choice-2",
+            "text": "Have you talked to her since?",
+            "next": "end-2"
+          }
+        ]
+      },
+      "end-1": {
+        "id": "end-1",
+        "text": "Ask her to wait while I caught up. We always walked home too fast.",
+        "end": true
+      },
+      "end-2": {
+        "id": "end-2",
+        "text": "We wrote each other letters. I should write another one.",
+        "end": true
+      }
+    }
+  },
+  "simulation_small_things": {
+    "id": "simulation_small_things",
+    "title": "Someone chose the details",
+    "tags": ["simulation"],
+    "start": "start",
+    "nodes": {
+      "start": {
+        "id": "start",
+        "text": "Sometimes the clouds look so deliberate that I wonder if we’re in a simulation. I’d be all right with that. Whoever chose the fog also remembered the smell of toast.",
+        "choices": [
+          {
+            "id": "start.choice-1",
+            "text": "What do you think they forgot?",
+            "next": "end-1"
+          },
+          {
+            "id": "start.choice-2",
+            "text": "Would you want to know for sure?",
+            "next": "end-2"
+          }
+        ]
+      },
+      "end-1": {
+        "id": "end-1",
+        "text": "A way to stop the smoke alarm before the toast burns.",
+        "end": true
+      },
+      "end-2": {
+        "id": "end-2",
+        "text": "Maybe on a rainy afternoon, when I had time to think about it.",
+        "end": true
+      }
+    }
+  }
+}

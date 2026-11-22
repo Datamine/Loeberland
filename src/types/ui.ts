@@ -7,10 +7,12 @@ export function requiredElement<T extends HTMLElement>(id: string): T {
 
 export interface GameElements {
   'sf-actor-labels': HTMLElementTagNameMap['div'];
+  'sf-ground-items': HTMLElementTagNameMap['div'];
   'sf-ai-interview': HTMLElementTagNameMap['div'];
   'sf-bank': HTMLElementTagNameMap['section'];
   'sf-bank-amount': HTMLElementTagNameMap['input'];
-  'sf-bank-character': HTMLElementTagNameMap['p'];
+  'sf-character-balance': HTMLElementTagNameMap['p'];
+  'sf-character-resources': HTMLElementTagNameMap['p'];
   'sf-bank-title': HTMLElementTagNameMap['h2'];
   'sf-bike-button': HTMLElementTagNameMap['button'];
   'sf-bomber-bomb': HTMLElementTagNameMap['button'];
@@ -18,13 +20,21 @@ export interface GameElements {
   'sf-bomber-flight': HTMLElementTagNameMap['span'];
   'sf-bomber-land': HTMLElementTagNameMap['button'];
   'sf-bomber-roll': HTMLElementTagNameMap['button'];
+  'sf-call-waymo': HTMLElementTagNameMap['button'];
   'sf-canvas': HTMLElementTagNameMap['canvas'];
+  'sf-stop-construction': HTMLElementTagNameMap['button'];
+  'sf-exit-streetcar': HTMLElementTagNameMap['button'];
+  'sf-exit-swing': HTMLElementTagNameMap['button'];
   'sf-cape-hint': HTMLElementTagNameMap['small'];
   'sf-character': HTMLElementTagNameMap['section'];
   'sf-character-button': HTMLElementTagNameMap['button'];
+  'sf-character-password': HTMLElementTagNameMap['input'];
+  'sf-current-password': HTMLElementTagNameMap['input'];
+  'sf-current-password-row': HTMLElementTagNameMap['label'];
+  'sf-character-password-label': HTMLElementTagNameMap['span'];
+  'sf-character-save-status': HTMLElementTagNameMap['small'];
   'sf-character-done': HTMLElementTagNameMap['button'];
-  'sf-character-preview': HTMLElementTagNameMap['canvas'];
-  'sf-character-title': HTMLElementTagNameMap['h2'];
+  'sf-character-level': HTMLElementTagNameMap['p'];
   'sf-charge-railgun': HTMLElementTagNameMap['button'];
   'sf-click-marker': HTMLElementTagNameMap['div'];
   'sf-climb-button': HTMLElementTagNameMap['button'];
@@ -37,9 +47,8 @@ export interface GameElements {
   'sf-coins': HTMLElementTagNameMap['strong'];
   'sf-collection': HTMLElementTagNameMap['section'];
   'sf-collection-button': HTMLElementTagNameMap['button'];
-  'sf-collection-list': HTMLElementTagNameMap['ul'];
+  'sf-collection-list': HTMLElementTagNameMap['div'];
   'sf-collection-summary': HTMLElementTagNameMap['p'];
-  'sf-collection-title': HTMLElementTagNameMap['h2'];
   'sf-combat-overlay': HTMLElementTagNameMap['div'];
   'sf-combat-supplies': HTMLElementTagNameMap['small'];
   'sf-command': HTMLElementTagNameMap['form'];
@@ -62,7 +71,6 @@ export interface GameElements {
   'sf-drive-tahoe': HTMLElementTagNameMap['button'];
   'sf-duel': HTMLElementTagNameMap['section'];
   'sf-duel-accept': HTMLElementTagNameMap['button'];
-  'sf-duel-button': HTMLElementTagNameMap['button'];
   'sf-duel-decline': HTMLElementTagNameMap['button'];
   'sf-duel-form': HTMLElementTagNameMap['form'];
   'sf-duel-opponent': HTMLElementTagNameMap['select'];
@@ -70,7 +78,6 @@ export interface GameElements {
   'sf-duel-status': HTMLElementTagNameMap['p'];
   'sf-duel-title': HTMLElementTagNameMap['h2'];
   'sf-eat-sandwich': HTMLElementTagNameMap['button'];
-  'sf-employment': HTMLElementTagNameMap['span'];
   'sf-enemy-health': HTMLElementTagNameMap['span'];
   'sf-equipment-hint': HTMLElementTagNameMap['small'];
   'sf-fuel-can-button': HTMLElementTagNameMap['button'];
@@ -79,11 +86,9 @@ export interface GameElements {
   'sf-fuel-text': HTMLElementTagNameMap['span'];
   'sf-grapple-button': HTMLElementTagNameMap['button'];
   'sf-growth-ticker': HTMLElementTagNameMap['div'];
-  'sf-guild-status': HTMLElementTagNameMap['p'];
   'sf-hat-hint': HTMLElementTagNameMap['small'];
   'sf-help': HTMLElementTagNameMap['section'];
   'sf-help-button': HTMLElementTagNameMap['button'];
-  'sf-help-start': HTMLElementTagNameMap['button'];
   'sf-help-title': HTMLElementTagNameMap['h2'];
   'sf-hitpoints-text': HTMLElementTagNameMap['span'];
   'sf-hover': HTMLElementTagNameMap['div'];
@@ -101,7 +106,6 @@ export interface GameElements {
   'sf-interview-target': HTMLElementTagNameMap['strong'];
   'sf-interview-time': HTMLElementTagNameMap['strong'];
   'sf-interview-title': HTMLElementTagNameMap['h2'];
-  'sf-inventory': HTMLElementTagNameMap['span'];
   'sf-iphone-equipped': HTMLElementTagNameMap['input'];
   'sf-iphone-hint': HTMLElementTagNameMap['small'];
   'sf-light-decorative-rocket': HTMLElementTagNameMap['button'];
@@ -111,10 +115,11 @@ export interface GameElements {
   'sf-loading-title': HTMLElementTagNameMap['strong'];
   'sf-log': HTMLElementTagNameMap['div'];
   'sf-map-button': HTMLElementTagNameMap['button'];
-  'sf-map-npcs': HTMLElementTagNameMap['input'];
-  'sf-map-shops': HTMLElementTagNameMap['input'];
+  'sf-map-npcs': HTMLElementTagNameMap['button'];
+  'sf-map-shops': HTMLElementTagNameMap['button'];
   'sf-minimap': HTMLElementTagNameMap['canvas'];
   'sf-motorcycle-button': HTMLElementTagNameMap['button'];
+  'sf-motorcycle-tricks': HTMLElementTagNameMap['div'];
   'sf-order-doordash': HTMLElementTagNameMap['button'];
   'sf-phone-status': HTMLElementTagNameMap['span'];
   'sf-place-markers': HTMLElementTagNameMap['div'];
@@ -125,8 +130,6 @@ export interface GameElements {
   'sf-quest-list': HTMLElementTagNameMap['div'];
   'sf-quests': HTMLElementTagNameMap['section'];
   'sf-quests-button': HTMLElementTagNameMap['button'];
-  'sf-quests-title': HTMLElementTagNameMap['h2'];
-  'sf-railgun-button': HTMLElementTagNameMap['button'];
   'sf-reader': HTMLElementTagNameMap['section'];
   'sf-reader-category': HTMLElementTagNameMap['span'];
   'sf-reader-content': HTMLElementTagNameMap['div'];
@@ -141,7 +144,6 @@ export interface GameElements {
   'sf-roll-button': HTMLElementTagNameMap['button'];
   'sf-rope-button': HTMLElementTagNameMap['button'];
   'sf-sales-status': HTMLElementTagNameMap['span'];
-  'sf-save-username': HTMLElementTagNameMap['button'];
   'sf-say-button': HTMLElementTagNameMap['button'];
   'sf-server-required': HTMLElementTagNameMap['section'];
   'sf-server-required-title': HTMLElementTagNameMap['h2'];
@@ -149,10 +151,13 @@ export interface GameElements {
   'sf-skate-tricks': HTMLElementTagNameMap['div'];
   'sf-skateboard-button': HTMLElementTagNameMap['button'];
   'sf-ski-button': HTMLElementTagNameMap['button'];
+  'sf-atv-rent': HTMLElementTagNameMap['button'];
+  'sf-atv-controls': HTMLElementTagNameMap['div'];
   'sf-status': HTMLElementTagNameMap['div'];
   'sf-strength-text': HTMLElementTagNameMap['span'];
   'sf-sunglasses-hint': HTMLElementTagNameMap['small'];
   'sf-tablet-downtown': HTMLElementTagNameMap['button'];
+  'sf-tablet-goblin-village': HTMLElementTagNameMap['button'];
   'sf-tablet-cupertino': HTMLElementTagNameMap['button'];
   'sf-tablet-tahoe': HTMLElementTagNameMap['button'];
   'sf-toggle': HTMLElementTagNameMap['button'];
@@ -161,6 +166,7 @@ export interface GameElements {
   'sf-username-form': HTMLElementTagNameMap['form'];
   'sf-username-status': HTMLElementTagNameMap['small'];
   'sf-wanted': HTMLElementTagNameMap['div'];
+  'sf-wanted-countdown': HTMLElementTagNameMap['span'];
   'sf-wave-catch': HTMLElementTagNameMap['button'];
   'sf-wave-controls': HTMLElementTagNameMap['div'];
   'sf-wave-status': HTMLElementTagNameMap['span'];

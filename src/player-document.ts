@@ -1,7 +1,8 @@
 import type { PlayerDocument, MonkeyStage } from './types/content.ts';
 import type { PlayerProfile } from './types/profile.ts';
 
-import { isRecord } from './types/json.ts';
+import { isOneOf, isRecord } from './types/json.ts';
+import { PARROT_QUEST_STAGES } from './stochastic-parrot.ts';
 import { validatePlayerDocument } from '../content/validate.js';
 import defaults from '../content/player-state-defaults.json' with { type: 'json' };
 import bindings from '../content/player-state-bindings.json' with { type: 'json' };
@@ -52,7 +53,11 @@ function merge<T>(base: T, input: unknown): T {
 }
 function moduleValue(document: PlayerDocument, path: string) {
   return path === '$quests'
-    ? { monkey: document.quests.monkey.stage, theyLive: document.quests.theyLive }
+    ? {
+        monkey: document.quests.monkey.stage,
+        theyLive: document.quests.theyLive,
+        stochasticParrot: document.quests.stochasticParrot.stage,
+      }
     : stateValue(document, path);
 }
 function setModule(document: PlayerDocument, path: string, value: unknown) {
@@ -60,6 +65,8 @@ function setModule(document: PlayerDocument, path: string, value: unknown) {
     if (isRecord(value)) {
       document.quests.monkey.stage =
         typeof value.monkey === 'string' ? (value.monkey as MonkeyStage) : 'not-started';
+      if (isOneOf(PARROT_QUEST_STAGES, value.stochasticParrot))
+        document.quests.stochasticParrot.stage = value.stochasticParrot;
       document.quests.theyLive = merge(
         clone(validatePlayerDocument(defaults).quests.theyLive),
         value.theyLive,

@@ -1,3 +1,4 @@
+import { inLegacySoftwareGrounds } from './legacy-software-layout.ts';
 import type { Mesh } from './geometry.ts';
 import type { ParcelTerrain } from './types/parcels.ts';
 import type { PlantTree, PlaceBench } from './types/scenery.ts';
@@ -171,6 +172,7 @@ export function populateSouthernNeighborhood({
       inSocialGrounds(x, z, 1) ||
       inTechGrounds(x, z, 1) ||
       inHaberdasherGrounds(x, z, 1) ||
+      inLegacySoftwareGrounds(x, z, 0.25) ||
       inGPUFactoryGrounds(x, z, 1) ||
       inJurassicGrounds(x, z, 1) ||
       inCowPen(x, z, 1) ||
@@ -258,7 +260,7 @@ export function populateSouthernNeighborhood({
   avoid.push(...houseDoorPositions([...houses, ...cityBuildings]));
   const lightPlan = planBlockStreetLights({
       roads: [...cityRoads, ...SOUTHERN_ROADS],
-      surfaceType,
+      surfaceType: (x, z) => (inLegacySoftwareGrounds(x, z, 0.19) ? 'building' : surfaceType(x, z)),
       avoid,
       minZ: 78,
       ...SOUTHERN_STREET_LIGHT_POLICY,

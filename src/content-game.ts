@@ -259,7 +259,8 @@ export function compileEntityDialogue<T extends RuntimeDialogue>(
       .filter(
         (choice) =>
           conditionMatches(choice.when, state) &&
-          (!choice.action || choice.trade || raw.actions.has(choice.action) || choice.shared),
+          (!choice.shared || choice.next || choice.receipt) &&
+          (!choice.action || choice.trade || raw.actions.has(choice.action)),
       )
       .map((choice) => {
         const binding = raw.choices.get(choice.action || '') || raw.choices.get(choice.id);
@@ -279,18 +280,6 @@ export function compileEntityDialogue<T extends RuntimeDialogue>(
           compiled.receipt = field(choice.receipt, binding, 'receipt', choice.id);
         if (choice.serverReceipt) compiled.serverReceipt = true;
         if (choice.next) compiled.next = node(choice.next);
-        if (choice.shared) {
-          compiled.ambientConversation = true;
-          compiled.next = {
-            name: def.name,
-            intro:
-              binding?.next?.intro ||
-              field(source.intro, runtime, 'intro', id) ||
-              resolveContentText(def.description, { state }),
-            repeat: false,
-            choices: [],
-          };
-        }
         return compiled;
       });
     return result;

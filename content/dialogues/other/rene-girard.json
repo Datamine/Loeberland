@@ -1,0 +1,37 @@
+{
+  "intro": "Come sit a moment. I put two identical chairs on the porch. Visitors always wait to see which one I take.",
+  "choices": [
+    {
+      "label": "Why should it matter which chair you take?",
+      "next": {
+        "intro": "Once I sit, my choice gives you a reason to want that chair. Or perhaps you want to avoid taking it. Either way, another person has entered into your desire. I call that mimesis.",
+        "choices": [
+          {
+            "label": "Can imitation be a good thing?",
+            "receipt": "Of course. A friend starts a garden and suddenly you see what a garden might mean to you. With luck, you both end up growing tomatoes."
+          },
+          {
+            "label": "When does it turn into rivalry?",
+            "receipt": "When there is only one chair and neither of us will give it up. Each of us takes the other's refusal as proof that it must be worth having."
+          }
+        ]
+      }
+    },
+    {
+      "label": "What does a scapegoat have to do with that?",
+      "next": {
+        "intro": "Imagine that everyone on our street is feuding. Then someone blames the whole mess on the new neighbor. The neighbors agree for the first time in months. The agreement feels so good that they mistake it for proof.",
+        "choices": [
+          {
+            "label": "Does blaming someone fix anything?",
+            "receipt": "It can buy a little peace. When the arguments start again, the street has forgotten how to settle them and remembers very well how to pick a neighbor."
+          }
+        ]
+      }
+    },
+    {
+      "label": "Is that your goat in the backyard?",
+      "receipt": "Yes. You may visit him. If you hit him, he sends half the hurt straight back. I suspect he would teach my seminar more quickly than I do."
+    }
+  ]
+}

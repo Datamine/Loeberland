@@ -1,3 +1,6 @@
+import { TRAMPOLINE } from '../src/backyard-details.ts';
+import { DYNAMITE_DEPOT } from '../src/config/dynamite-depot.ts';
+import { contentText } from '../src/content-runtime.ts';
 import { isFiniteNumber, isRecord } from '../src/types/json.ts';
 import { readClientMessage } from './client-messages.mts';
 import type { CommandMessage, ClientHello } from './client-messages.mts';
@@ -18,7 +21,7 @@ interface GameOptions {
 import { DEATH_DURATION } from '../src/capture-animation.ts';
 import { clothingSelection, ownedClothing } from '../src/clothing.ts';
 import { createResidentialSearch } from './residential-search.mts';
-import { createHash } from 'node:crypto';
+import { createCharacterAccounts } from './character-accounts.mts';
 import { GAMEPLAY } from '../src/config/gameplay.ts';
 import { HAIRSTYLES } from '../src/config/hairstyles.ts';
 import { normalizeUsername, renameDecision, generateUsername } from './usernames.mts';
@@ -26,6 +29,7 @@ import { createSharedWorld } from './shared-world.mts';
 import { MP_PROTOCOL, sanitizePrivateState } from '../src/multiplayer-protocol.ts';
 import { createDetentionSite } from '../src/encounters.ts';
 import { createInventoryAccount } from './inventory.mts';
+import { createHighScores } from './high-scores.mts';
 import { hydratePlayerProfile, serializePlayerProfile } from '../src/player-document.ts';
 import { createPvpCombat } from './pvp.mts';
 import { skillStatus, hitpointMaximum } from '../src/progression.ts';
@@ -36,8 +40,9 @@ import { PUBLIC_INSTANCE } from '../src/map-instances.ts';
 import { bankSnapshotFor, bankAction } from './banking.mts';
 import {
   equipmentOwned,
-  railgunUnlocked,
-  isOwnedWeapon,
+  normalizeBoots,
+  ownedBoots,
+  selectedWeapon,
   PLAYER_WEAPONS,
 } from '../src/item-stats.ts';
 import { createServerTablets } from './teleport-tablets.mts';
@@ -46,6 +51,8 @@ import { createServerMovement } from './movement.mts';
 import { createPlayerState } from './player-state.mts';
 import { createServerFinance } from './finance.mts';
 import { createDuels } from './duels.mts';
+import { createPlayerTrades, TRADE_ACTIONS } from './trades.mts';
+import type { TradeHoldings } from './trade-inventory.mts';
 import { createReplication } from './replication.mts';
 import { createActionQueue } from './action-queue.mts';
 import { createRoutePlanner } from './routes.mts';
@@ -81,10 +88,10 @@ function appearance(input: unknown = {}) {
       : value.cape === true
         ? 'cape'
         : 'none',
-    neck: value.neck === 'clock-amulet' ? 'clock-amulet' : 'none',
+    neck: value.neck === 'clock-amulet' || value.neck === 'recoil-amulet' ? value.neck : 'none',
     gender,
     cape: value.cape === true,
-    boots: value.boots === true,
+    boots: normalizeBoots(value.boots),
     iceTop: value.iceTop === true,
     icePants: value.icePants === true,
     weapon: PLAYER_WEAPONS.find((weapon) => weapon === value.weapon) || 'unarmed',
@@ -112,6 +119,7 @@ export async function createGame({
   tuning: tuningOverrides = {},
 }: GameOptions) {
   const tuning = { ...SERVER_TUNING, ...tuningOverrides };
+  const accounts = createCharacterAccounts(store, now);
   const players = new Map<number, ServerPlayer>(),
     profiles = new Map<string, PlayerProfile>(),
     identities = new Map<string, ServerPlayer>(),
@@ -126,6 +134,7 @@ export async function createGame({
     names.set(row.canonical, row.owner);
     nameOwners.set(row.owner, row);
   }
+  const highScores = createHighScores(store, nameOwners, profiles, now);
   const saved = ((await store.get('world')) || {}) as {
     serial?: number;
     shared?: Parameters<typeof createSharedWorld>[0]['saved'];
@@ -133,6 +142,7 @@ export async function createGame({
   let serial = saved.serial || 0,
     tickNumber = 0,
     flushing: Promise<unknown> | null = null,
+    tradeCommit: Promise<void> | null = null,
     closing = false,
     closePromise: Promise<void> | null = null;
   const actionQueue = createActionQueue({
@@ -195,6 +205,7 @@ export async function createGame({
   };
   const shared = createSharedWorld({
     onCombatDamage: (p: ServerPlayer, damage: number) => personal.awardCombat(p, damage),
+    onBind: bindPlayer,
     geometry,
     routes,
     players,
@@ -251,7 +262,22 @@ export async function createGame({
     instances,
   });
   const finance = createServerFinance({ geometry, players, send, dirty, now, random }),
-    duels = createDuels({ players, send, dirty, now });
+    duels = createDuels({ players, send, dirty, now }),
+    trades = createPlayerTrades({ players, send, now, commit: commitTrade });
+  function bindPlayer(target: ServerPlayer) {
+    const duration = 10_000;
+    target.boundUntil = now() + duration;
+    target.profile.playerState.activities.bindUntil = target.boundUntil;
+    dirty(target);
+    following.stop(target);
+    movement.stop(target);
+    for (const observer of players.values())
+      if (
+        observer.instance.id === target.instance.id &&
+        Math.hypot(observer.x - target.x, observer.z - target.z) < 42
+      )
+        send(observer, { type: 'pvpBound', target: target.id, duration });
+  }
   const replication = createReplication({
     players,
     shared,
@@ -266,44 +292,50 @@ export async function createGame({
     const incoming = sanitizePrivateState(input);
     if (incoming['sf-character-v1'])
       p.profile.privateState['sf-character-v1'] = incoming['sf-character-v1'];
-    const look = appearance(parse(p.profile.privateState['sf-character-v1'] || '{}'));
-    if (
-      (['backpack', 'new-year-rocket'] satisfies [string, string]).includes(look.back) &&
-      !equipmentOwned(p.inventory.economy.state, look.back)
-    )
-      look.back = 'none';
-    if (look.neck === 'clock-amulet' && !equipmentOwned(p.inventory.economy.state, 'clock-amulet'))
-      look.neck = 'none';
-    if (look.back === 'cape' && p.profile.playerState.quests.expeditions.cape !== true)
-      look.back = 'none';
-    look.boots = look.boots && equipmentOwned(p.inventory.economy.state, 'combat-boots');
-    look.cape = look.back === 'cape';
-    look.rocketBurnUntil =
-      look.back === 'new-year-rocket' && (p.profile.decorativeRocketBurnUntil || 0) > now()
-        ? p.profile.decorativeRocketBurnUntil
-        : 0;
-    if (!p.inventory.economy.state.ownedHats.includes(look.hat)) look.hat = 'none';
-    if (
-      (isOwnedWeapon(look.weapon) && !equipmentOwned(p.inventory.economy.state, look.weapon)) ||
-      (look.weapon === 'railgun' &&
-        !railgunUnlocked(parse(p.profile.privateState['sf-expeditions-v1']))) ||
-      (look.weapon === 'bayonet' &&
-        !{ theyLive: p.profile.playerState.quests.theyLive }.theyLive?.bayonet)
-    )
-      look.weapon = 'unarmed';
-    Object.assign(
-      look,
-      ownedClothing(look, (id) => equipmentOwned(p.inventory.economy.state, id)),
-    );
-    look.rocketHopAt = look.back === 'new-year-rocket' ? p.profile.decorativeRocketHopAt || 0 : 0;
-    look.sunglasses = look.sunglasses && p.profile.playerState.inventory.sunglasses.owned === true;
-    look.cape = look.cape && p.profile.playerState.quests.expeditions.cape === true;
+    const look = ownedAppearance(p.profile, p.inventory.economy.state);
     p.profile.privateState['sf-character-v1'] = JSON.stringify(look);
+    const weaponChanged = p.appearance.weapon !== look.weapon;
     if (JSON.stringify(look) !== JSON.stringify(p.appearance)) {
       p.appearance = look;
       p.revision++;
     }
+    if (weaponChanged) {
+      p.attack = null;
+      movement.stopCombatRoute(p);
+      pvp.stop(p);
+      personal.runtime(p).expeditions.stop();
+    }
     dirty(p);
+  }
+  function ownedAppearance(
+    profile: PlayerProfile,
+    purse: ServerPlayer['inventory']['economy']['state'],
+  ) {
+    const look = appearance(parse(profile.privateState['sf-character-v1'] || '{}'));
+    if (
+      (['backpack', 'new-year-rocket'] satisfies [string, string]).includes(look.back) &&
+      !equipmentOwned(purse, look.back)
+    )
+      look.back = 'none';
+    if (look.neck && look.neck !== 'none' && !equipmentOwned(purse, look.neck)) look.neck = 'none';
+    if (look.back === 'cape' && profile.playerState.quests.expeditions.cape !== true)
+      look.back = 'none';
+    look.boots = ownedBoots(purse, look);
+    look.cape = look.back === 'cape';
+    look.rocketBurnUntil =
+      look.back === 'new-year-rocket' && (profile.decorativeRocketBurnUntil || 0) > now()
+        ? profile.decorativeRocketBurnUntil
+        : 0;
+    if (!purse.ownedHats.includes(look.hat)) look.hat = 'none';
+    look.weapon = selectedWeapon(look.weapon, purse);
+    Object.assign(
+      look,
+      ownedClothing(look, (id) => equipmentOwned(purse, id)),
+    );
+    look.rocketHopAt = look.back === 'new-year-rocket' ? profile.decorativeRocketHopAt || 0 : 0;
+    look.sunglasses = look.sunglasses && profile.playerState.inventory.sunglasses.owned === true;
+    look.cape = look.cape && profile.playerState.quests.expeditions.cape === true;
+    return look;
   }
   function pvpDeath(victim: ServerPlayer, killer: ServerPlayer | null) {
     const dropped = victim.inventory.deathDrops(),
@@ -347,13 +379,59 @@ export async function createGame({
     profile.police = { ...police, officers: police.officers.map(({ path, ...n }) => n) };
     profile.position = movement.savePosition(p, instances.savePosition(p));
     Object.assign(profile.playerState.skills.hitpoints, {
-      hp: p.hp,
+      hp: profile.position?.hp ?? p.hp,
       max: p.max,
       xp: p.hitpointsXP,
     });
     return serializePlayerProfile(profile);
   }
+  async function commitTrade(
+    a: ServerPlayer,
+    b: ServerPlayer,
+    drafts: readonly [TradeHoldings, TradeHoldings],
+  ) {
+    // Stage both player records before touching either live inventory. The
+    // short settlement gate also keeps ticks and older profile writes from
+    // interleaving with the atomic storage batch.
+    const participants = [a, b] as const;
+    const apply = (
+      profile: PlayerProfile,
+      inventory: ServerPlayer['inventory'],
+      draft: TradeHoldings,
+    ) => {
+      profile.growth = draft.growth;
+      profile.grapplingHook = draft.grapplingHook;
+      inventory.installTrade(draft.inventory);
+      profile.privateState['sf-character-v1'] = JSON.stringify(
+        ownedAppearance(profile, inventory.economy.state),
+      );
+    };
+    const task = (async () => {
+      await flushing;
+      const entries = participants.map((p, i) => {
+        const staged = hydratePlayerProfile(structuredClone(profileForSave(p)));
+        apply(staged, createInventoryAccount(staged), drafts[i]);
+        return ['player:' + p.owner, serializePlayerProfile(staged)] as const;
+      });
+      await store.batch(entries);
+      for (const [i, p] of participants.entries()) {
+        apply(p.profile, p.inventory, drafts[i]);
+        mergePrivate(p, {});
+        persistedRevisions.set(p.owner, revisions.get(p.owner) || 0);
+        dirtyProfiles.delete(p.owner);
+        finance.remove(p);
+        finance.publish(p);
+      }
+    })();
+    tradeCommit = task;
+    try {
+      await task;
+    } finally {
+      tradeCommit = null;
+    }
+  }
   async function flush() {
+    if (tradeCommit) await tradeCommit.catch(() => {});
     if (flushing) {
       await flushing;
       return;
@@ -407,10 +485,10 @@ export async function createGame({
       !/^[a-f0-9]{64}$/.test(hello.token)
     )
       throw Error('Invalid session credentials or protocol.');
-    const owner = createHash('sha256').update(hello.token).digest('hex');
+    const owner = await accounts.ownerFor(hello.token);
     if (players.size >= maxPlayers && !identities.has(owner))
       throw Error('The world is full. Please try again soon.');
-    if (authenticating.has(owner)) await authenticating.get(owner);
+    while (authenticating.has(owner)) await authenticating.get(owner);
     let complete!: () => void;
     authenticating.set(owner, new Promise<void>((resolve) => (complete = resolve)));
     try {
@@ -435,9 +513,11 @@ export async function createGame({
         await store.batch([['player:' + owner, serializePlayerProfile(profile)]]);
       }
       hydratePlayerProfile(profile);
+      if (tradeCommit) await tradeCommit.catch(() => {});
       const previous = identities.get(owner);
       if (previous) {
         duels.remove(previous);
+        trades.remove(previous);
         finance.remove(previous);
         following.stop(previous);
         personal.save(previous);
@@ -480,6 +560,7 @@ export async function createGame({
           throw error;
         }
       }
+      const hasCharacterPassword = await accounts.hasPassword(owner);
       // Legacy/local adapters can authenticate concurrently while a name
       // reservation yields; capacity must still hold at the final commit.
       if (players.size >= maxPlayers) throw Error('The world is full. Please try again soon.');
@@ -511,6 +592,7 @@ export async function createGame({
       const p: ServerPlayer = {
         owner,
         id,
+        hasCharacterPassword,
         profile,
         inventory,
         level: strengthStatus(parse(profile.privateState['sf-strength-v1']).xp).level,
@@ -545,6 +627,8 @@ export async function createGame({
         instance: PUBLIC_INSTANCE,
       };
       p.personalJailed = profile.personalJailed === true;
+      const bound = profile.playerState.activities.bindUntil;
+      p.boundUntil = isFiniteNumber(bound) && bound > now() ? bound : undefined;
       players.set(id, p);
       identities.set(owner, p);
       personal.runtime(p);
@@ -557,6 +641,7 @@ export async function createGame({
         id,
         name: p.name,
         returningCharacter,
+        hasCharacterPassword: p.hasCharacterPassword,
         autoName: !p.nameChanged,
         renameAt: p.nameChanged ? p.nameChanged + 60_000 : 0,
         privateState: profile.privateState,
@@ -575,6 +660,8 @@ export async function createGame({
         time: now(),
         shared: shared.snapshot(p),
       });
+      if (p.boundUntil)
+        send(p, { type: 'pvpBound', target: p.id, duration: Math.max(0, p.boundUntil - now()) });
       finance.account(p).update();
       finance.publish(p);
       return p;
@@ -583,10 +670,12 @@ export async function createGame({
       complete();
     }
   }
-  function disconnect(p: ServerPlayer) {
+  function disconnect(p: ServerPlayer): void | Promise<void> {
+    if (tradeCommit) return tradeCommit.catch(() => {}).then(() => disconnect(p));
     if (closing) return;
     if (players.get(p.id) !== p) return;
     duels.remove(p);
+    trades.remove(p);
     finance.remove(p);
     following.stop(p);
     personal.save(p);
@@ -652,6 +741,42 @@ export async function createGame({
     p.profile.awards = p.profile.awards.filter((a) => !acknowledged.has(a.id));
     dirty(p);
   }
+  async function saveCharacter(p: ServerPlayer, args: Record<string, unknown>) {
+    if (!isRecord(args.look) || typeof args.pvp !== 'boolean' || typeof args.phone !== 'boolean')
+      return { ok: false, message: 'Invalid character settings.' };
+    const pvpStatus = pvp.status(p);
+    if (!args.pvp && pvpStatus.enabled && now() < pvpStatus.disableAt)
+      return { ok: false, message: 'Wait for the PvP cooldown before disabling PvP.' };
+    if (args.phone && !p.inventory.economy.state.iphoneOwned)
+      return { ok: false, message: 'You do not own an iPhone.' };
+    const password =
+      args.password === '' || args.password === undefined
+        ? null
+        : await accounts.preparePassword(p.owner, args.password, args.currentPassword);
+    if (password?.error) return { ok: false, message: password.error };
+    const name = args.name === p.name ? { ok: true } : await rename(p, args.name);
+    if (!name.ok) return name;
+    const loginToken = await password?.save?.();
+    if (loginToken) {
+      p.hasCharacterPassword = true;
+    }
+    mergePrivate(p, { 'sf-character-v1': JSON.stringify(args.look) });
+    if (p.inventory.economy.state.iphoneEquipped !== args.phone)
+      personal.inventory(p, 'equipPhone', { on: args.phone });
+    const setting = pvp.setMode(p, args.pvp);
+    await durable(p);
+    return {
+      ...name,
+      ok: true,
+      appearance: p.appearance,
+      name: p.name,
+      pvp: setting.pvp,
+      inventory: p.inventory.snapshot(),
+      hasCharacterPassword: p.hasCharacterPassword === true,
+      loginToken,
+      message: 'Character settings saved.',
+    };
+  }
   async function rename(p: ServerPlayer, name: unknown) {
     const normalized = normalizeUsername(name),
       decision = renameDecision({
@@ -684,7 +809,12 @@ export async function createGame({
       return { ok: true, name: p.name, autoName: false, retryAt: changed + 60_000 };
     } catch (error) {
       if (normalized.canonical !== old) names.delete(normalized.canonical);
-      return { ok: false, message: 'Unable to save that username. Please try again.' };
+      return {
+        ok: false,
+        message: contentText(
+          'world-message.server.game.unable-to-save-that-username-please-try-again',
+        ),
+      };
     }
   }
   async function command(p: ServerPlayer, message: CommandMessage) {
@@ -695,12 +825,61 @@ export async function createGame({
         request: message.request,
         action,
         ok: false,
-        message: 'Invalid action arguments.',
+        message: contentText('world-message.server.game.invalid-action-arguments'),
       });
       return;
     }
     const args = message.args || {};
     let result;
+    if (action === 'highScores') {
+      send(p, {
+        type: 'result',
+        request: message.request,
+        action,
+        ok: true,
+        highScores: await highScores(),
+      });
+      return;
+    }
+    if (
+      (p.boundUntil || 0) > now() &&
+      ([
+        'moveTo',
+        'travel',
+        'activity',
+        'followPlayer',
+        'useTablet',
+        'instanceEnter',
+        'instanceLeave',
+        'grapple',
+        'airshipBoard',
+        'personalTransit',
+        'teleport',
+      ].includes(action) ||
+        (action === 'playerAction' &&
+          ['train', 'trampoline', 'constructionStart', 'seizeBicycle'].includes(String(args.verb))))
+    ) {
+      send(p, {
+        type: 'result',
+        request: message.request,
+        action,
+        ok: false,
+        message: contentText('world-message.bind-tablet.immobile'),
+      });
+      return;
+    }
+    if (
+      (p.depotLaunch ||
+        (p.mode === 'streetcar' &&
+          p.hp > 0 &&
+          !p.respawnAllowed &&
+          !p.detainAt &&
+          !(action === 'travel' && args.kind === 'streetcarExit'))) &&
+      !['beginPlay', 'pausePlay', 'characterLogin', 'saveCharacter'].includes(action)
+    ) {
+      send(p, { type: 'result', request: message.request, action, ok: false });
+      return;
+    }
     if (
       p.tabletTeleport &&
       !(
@@ -718,7 +897,7 @@ export async function createGame({
         request: message.request,
         action,
         ok: false,
-        message: 'Finish your teleport first.',
+        message: contentText('world-message.server.game.finish-your-teleport-first'),
       });
       return;
     }
@@ -848,6 +1027,24 @@ export async function createGame({
       pvp.stop(p);
       personal.runtime(p).expeditions.stop();
       result = movement.move(p, args);
+    } else if (action === 'beginPlay') {
+      p.characterPlaying = true;
+      result = { ok: true };
+    } else if (action === 'pausePlay') {
+      movement.leaveConstruction(p);
+      if (p.seat?.soakSeconds !== undefined) movement.wake(p);
+      p.characterPlaying = false;
+      result = { ok: true };
+    } else if (action === 'characterLogin') {
+      const name = normalizeUsername(args.name);
+      result = await accounts.logIn(
+        p.owner,
+        name.ok ? name.canonical : '',
+        name.ok ? names.get(name.canonical) : undefined,
+        args.password,
+      );
+    } else if (action === 'saveCharacter') {
+      result = await saveCharacter(p, args);
     } else if (action === 'equipAppearance') {
       mergePrivate(p, { 'sf-character-v1': JSON.stringify(args.look || {}) });
       result = { ok: true, appearance: p.appearance };
@@ -859,7 +1056,11 @@ export async function createGame({
       }
     } else if (action === 'lightDecorativeRocket') {
       result = residentialSearch.light(p);
-      if (result.ok) await durable(p);
+      if (result.ok) {
+        if (personal.igniteBurningMan(p))
+          result.message = contentText('world-message.burning-man.ignited');
+        await durable(p);
+      }
     } else if (action === 'rocketHop') {
       result = residentialSearch.hop(p);
       if (result.ok) await durable(p);
@@ -872,7 +1073,18 @@ export async function createGame({
       )
     ) {
       result = finance.command(p, action, args);
-      if (result.ok) await durable(p);
+      if (result.ok) {
+        if (action === 'growthList' && random() < 1 / 5) {
+          shared.dispatchSecuritiesInvestigator(p);
+          send(p, {
+            type: 'notice',
+            message: contentText('world-message.securities-investigator.arrives'),
+          });
+        }
+        await durable(p);
+      }
+    } else if (TRADE_ACTIONS.has(action)) {
+      result = await trades.command(p, action, args);
     } else if (
       (['duelOffer', 'duelAccept', 'duelDecline'] satisfies [string, string, string]).includes(
         action,
@@ -902,13 +1114,26 @@ export async function createGame({
       }
     } else if (action === 'travel') {
       result = movement.travel(p, args);
+      if (result.ok && args.kind === 'streetcarBoard') {
+        pvp.stop(p);
+        const activity = personal.runtime(p);
+        activity.battle = null;
+        activity.fishing.cancel();
+        activity.expeditions.stop();
+      }
       if (result.ok && 'inventory' in result && result.inventory) await durable(p);
     } else if (action === 'barrelRoll') {
       const s = movement.state(p);
       if (p.bomberActive && !s.bomber.state.active) s.bomber.board(movement.position(p));
       result = movement.barrelRoll(p);
-    } else if (action === 'playerAction') result = personal.action(p, args);
-    else if (
+    } else if (action === 'playerAction') {
+      result = personal.action(p, args);
+      if (result.ok && args.verb === 'seizeBicycle') {
+        following.stop(p);
+        pvp.stop(p);
+        await durable(p);
+      } else if (result.ok && 'inventory' in result && result.inventory) await durable(p);
+    } else if (
       (
         ['airshipStatus', 'airshipRecall', 'airshipBoard'] satisfies [string, string, string]
       ).includes(action)
@@ -916,7 +1141,7 @@ export async function createGame({
       if (action !== 'airshipStatus' && message.inventoryEpoch !== p.inventory.meta.epoch)
         result = {
           ok: false,
-          message: 'Your inventory changed. Please try again.',
+          message: contentText('world-message.server.game.your-inventory-changed-please-try-again'),
           inventory: p.inventory.snapshot(),
         };
       else {
@@ -940,7 +1165,7 @@ export async function createGame({
       if (message.inventoryEpoch !== p.inventory.meta.epoch)
         result = {
           ok: false,
-          message: 'Your inventory changed. Please try again.',
+          message: contentText('world-message.server.game.your-inventory-changed-please-try-again'),
           inventory: p.inventory.snapshot(),
         };
       else {
@@ -950,7 +1175,10 @@ export async function createGame({
     } else if (action === 'buyBattleaxe') {
       const npc = geometry.merchants?.find((n) => n.id === 'industrial-armorer');
       if (message.inventoryEpoch !== p.inventory.meta.epoch)
-        result = { ok: false, message: 'Your inventory changed. Try again.' };
+        result = {
+          ok: false,
+          message: contentText('world-message.server.game.your-inventory-changed-try-again'),
+        };
       else if (
         !p.hp ||
         p.personalJailed ||
@@ -962,7 +1190,9 @@ export async function createGame({
       )
         result = {
           ok: false,
-          message: 'That equipment is not available for purchase.',
+          message: contentText(
+            'world-message.server.game.that-equipment-is-not-available-for-purchase',
+          ),
         };
       else {
         result = p.inventory.economy.buyEquipment('battleaxe');
@@ -987,7 +1217,7 @@ export async function createGame({
       if (action !== 'bankStatus' && message.inventoryEpoch !== p.inventory.meta.epoch)
         result = {
           ok: false,
-          message: 'Your inventory changed. Please try again.',
+          message: contentText('world-message.server.game.your-inventory-changed-please-try-again'),
           inventory: p.inventory.snapshot(),
         };
       else {
@@ -1016,12 +1246,13 @@ export async function createGame({
       if (message.inventoryEpoch !== p.inventory.meta.epoch)
         result = {
           ok: false,
-          message: 'Your inventory changed. Please try again.',
+          message: contentText('world-message.server.game.your-inventory-changed-please-try-again'),
           inventory: p.inventory.snapshot(),
         };
       else {
         result = personal.inventory(p, args.op, args);
         if (result.ok) {
+          if (args.op === 'trimArmor') result = { ...result, appearance: p.appearance };
           dirty(p);
           await durable(p);
         }
@@ -1030,7 +1261,7 @@ export async function createGame({
       if (action === 'guildDonate' && message.inventoryEpoch !== p.inventory.meta.epoch)
         result = {
           ok: false,
-          message: 'Your inventory changed. Please try again.',
+          message: contentText('world-message.server.game.your-inventory-changed-please-try-again'),
           inventory: p.inventory.snapshot(),
         };
       else {
@@ -1039,6 +1270,39 @@ export async function createGame({
           dirty(p);
           await durable(p);
         }
+      }
+    } else if (action === 'breakBind') {
+      const targets = pvp.bindingTargets(p),
+        count = p.inventory.meta.bindTablets || 0;
+      if (message.inventoryEpoch !== p.inventory.meta.epoch || !count || !targets)
+        result = { ok: false, message: contentText('world-message.bind-tablet.requirements') };
+      else {
+        const damage = Math.min(p.hp, 10);
+        p.inventory.meta.bindTablets = count - 1;
+        p.inventory.save();
+        for (const target of targets) bindPlayer(target);
+        p.hp -= damage;
+        p.damagePending = true;
+        send(p, { type: 'damage', damage, hp: p.hp, max: p.max, source: 'Bind Tablet' });
+        if (p.hp === 0) {
+          p.respawnAllowed = true;
+          p.attack = null;
+          pvp.stop(p);
+          following.stop(p);
+          movement.stop(p);
+          pvpDeath(p, null);
+          send(p, { type: 'caught', source: 'Bind Tablet' });
+        }
+        if (p.deathTask) await p.deathTask;
+        else {
+          dirty(p);
+          await durable(p);
+        }
+        result = {
+          ok: true,
+          inventory: p.inventory.snapshot(),
+          message: contentText('world-message.bind-tablet.broken', { count: targets.length }),
+        };
       }
     } else if (action === 'pvp') {
       result = pvp.setMode(p, args.enabled);
@@ -1050,13 +1314,24 @@ export async function createGame({
     else if (action === 'rename') result = await rename(p, args.name);
     else if (action === 'buyGrapple') {
       if (p.profile.grapplingHook)
-        result = { ok: false, message: 'You already own a grappling hook.' };
+        result = {
+          ok: false,
+          message: contentText('world-message.server.game.you-already-own-a-grappling-hook'),
+        };
       else if (Math.hypot(p.x - AIRSHIP_SHOP.x, p.z - AIRSHIP_SHOP.z) > 7)
-        result = { ok: false, message: 'Visit the airship outfitter at the private jet terminal.' };
+        result = {
+          ok: false,
+          message: contentText(
+            'world-message.server.game.visit-the-airship-outfitter-at-the-private-jet-terminal',
+          ),
+        };
       else {
         const purse = p.inventory.economy.state;
         if (!Number.isSafeInteger(purse.coins) || purse.coins < 5)
-          result = { ok: false, message: 'A grappling hook costs 5 coins.' };
+          result = {
+            ok: false,
+            message: contentText('world-message.server.game.a-grappling-hook-costs-5-coins'),
+          };
         else {
           purse.coins -= 5;
           p.inventory.save();
@@ -1068,19 +1343,29 @@ export async function createGame({
             grapplingHook: true,
             purse,
             inventory: p.inventory.snapshot(),
-            message: 'You buy a grappling hook. Use it within six tiles beneath the airship.',
+            message: contentText(
+              'world-message.server.game.you-buy-a-grappling-hook-use-it-within-six-tiles-beneath-the-a',
+            ),
           };
         }
       }
     } else if (action === 'teleport') {
       if (!allowDebug)
-        result = { ok: false, message: 'Debug teleporting is disabled on this server.' };
+        result = {
+          ok: false,
+          message: contentText(
+            'world-message.server.game.debug-teleporting-is-disabled-on-this-server',
+          ),
+        };
       else if (
         !isFiniteNumber(args.x) ||
         !isFiniteNumber(args.z) ||
         !geometry.landClearAt(args.x - 0.5, args.z - 0.5)
       )
-        result = { ok: false, message: 'That point is blocked.' };
+        result = {
+          ok: false,
+          message: contentText('world-message.server.game.that-point-is-blocked'),
+        };
       else {
         p.tabletTeleport = null;
         if (instances.kind(p) !== 'world' || p.bomberActive) instances.reset(p);
@@ -1096,11 +1381,16 @@ export async function createGame({
         result = { ok: true };
       }
     } else if (action === 'personalTransit') {
-      if (args.kind === 'jail') {
+      if (args.kind === 'jail' && p.detainAt) {
+        result = { ok: true };
+      } else if (args.kind === 'jail') {
         p.tabletTeleport = null;
         if (instances.kind(p) !== 'world' || p.bomberActive) instances.reset(p);
         if (!personal.runtime(p).police.state.jailed) {
-          result = { ok: false, message: 'Detention is controlled by the server.' };
+          result = {
+            ok: false,
+            message: contentText('world-message.server.game.detention-is-controlled-by-the-server'),
+          };
           send(p, { type: 'result', request: message.request, action, ...result });
           return;
         }
@@ -1118,12 +1408,23 @@ export async function createGame({
         result = { ok: true };
       } else if (args.kind === 'rehabilitation' && p.personalJailed) {
         result = personal.action(p, { verb: 'rehabilitate' });
-      } else result = { ok: false, message: 'That personal journey is unavailable.' };
+      } else
+        result = {
+          ok: false,
+          message: contentText('world-message.server.game.that-personal-journey-is-unavailable'),
+        };
     } else if (action === 'respawn') {
       if (p.hp <= 0 && !p.profile.deathPending) pvpDeath(p, null);
-      if (!p.respawnAllowed && p.hp > 0) result = { ok: false, message: 'No respawn is pending.' };
+      if (!p.respawnAllowed && p.hp > 0)
+        result = {
+          ok: false,
+          message: contentText('world-message.server.game.no-respawn-is-pending'),
+        };
       else if (now() < (p.respawnReadyAt || 0))
-        result = { ok: false, message: 'Wait for the collapse to finish.' };
+        result = {
+          ok: false,
+          message: contentText('world-message.server.game.wait-for-the-collapse-to-finish'),
+        };
       else {
         const entry = geometry.hospital || { x: 74.7, y: 89.5 };
         if (instances.kind(p) !== 'world' || p.bomberActive) instances.reset(p);
@@ -1133,6 +1434,8 @@ export async function createGame({
         p.personalBattle = null;
         p.profile.deathPending = false;
         p.pvpDying = false;
+        p.boundUntil = undefined;
+        delete p.profile.playerState.activities.bindUntil;
         p.pvpProtectedUntil = now() + 5000;
         pvp.stop(p);
         Object.assign(p, {
@@ -1250,6 +1553,7 @@ export async function createGame({
     const run = async () => {
       const started = performance.now();
       try {
+        if (tradeCommit) await tradeCommit.catch(() => {});
         if (players.get(p.id) !== p) return;
         if (move?.superseded) {
           send(p, {
@@ -1278,12 +1582,60 @@ export async function createGame({
         type: 'result',
         request: message.request,
         ok: false,
-        message: 'Unable to complete this action. Try again.',
+        message: contentText('world-message.server.game.unable-to-complete-this-action-try-again'),
       });
     });
   }
+  function tickDepot(p: ServerPlayer, dt: number) {
+    const flight = p.depotLaunch;
+    if (flight) {
+      const duration = flight.trampoline ? TRAMPOLINE.duration : DYNAMITE_DEPOT.seconds,
+        height = flight.trampoline ? TRAMPOLINE.height : DYNAMITE_DEPOT.height;
+      flight.elapsed = Math.min(duration, flight.elapsed + dt);
+      const progress = flight.elapsed / duration;
+      p.y = flight.base + 4 * height * progress * (1 - progress);
+      if (progress < 1) return;
+      p.depotLaunch = undefined;
+      p.mode = 'walk';
+      if (flight.trampoline) return;
+      const damage = Math.max(0, p.hp - 1);
+      p.hp -= damage;
+      p.damagePending = true;
+      send(p, { type: 'damage', damage, hp: p.hp, max: p.max, source: DYNAMITE_DEPOT.name });
+      dirty(p);
+      return;
+    }
+    const inside =
+      Math.hypot(p.x - DYNAMITE_DEPOT.x, p.z - DYNAMITE_DEPOT.z) <= DYNAMITE_DEPOT.radius;
+    if (!inside) {
+      p.depotTriggered = false;
+      return;
+    }
+    if (
+      p.depotTriggered ||
+      p.hp <= 0 ||
+      p.respawnAllowed ||
+      p.personalJailed ||
+      p.detainAt ||
+      p.mode !== 'walk' ||
+      p.instance.kind !== 'world' ||
+      p.appearance.back !== 'new-year-rocket' ||
+      p.profile.decorativeRocketBurnUntil <= now() ||
+      !p.moving
+    )
+      return;
+    p.depotTriggered = true;
+    p.depotLaunch = { base: geometry.characterGround(p.x, p.z), elapsed: 0 };
+    p.attack = null;
+    pvp.stop(p);
+    following.stop(p);
+    movement.stop(p);
+    p.mode = 'depotLaunch';
+    send(p, { type: 'notice', message: contentText('world-message.dynamite-depot.launch') });
+    dirty(p);
+  }
   function tick(dt = 1 / GAMEPLAY.simulationHz) {
-    if (closing || store.status === 'completed') return;
+    if (closing || store.status === 'completed' || tradeCommit) return;
     const start = performance.now();
     let mark = start;
     const measured = (name: string) => {
@@ -1296,6 +1648,7 @@ export async function createGame({
     routes.beginTick();
     following.tick(dt);
     movement.tick(dt);
+    for (const p of players.values()) tickDepot(p, dt);
     measured('movementMs');
     for (const p of players.values())
       if (p.talkingTo) {
@@ -1307,6 +1660,7 @@ export async function createGame({
     measured('sharedMs');
     finance.tick();
     duels.tick();
+    trades.tick();
     instances.tick();
     tablets.tick();
     pvp.tick();
@@ -1316,6 +1670,19 @@ export async function createGame({
     const time = now();
     for (const p of players.values()) {
       residentialSearch.expire(p);
+      if (p.characterPlaying && !p.hasCharacterPassword) {
+        const played = p.profile.characterPlaySeconds || 0;
+        p.profile.characterPlaySeconds = played + dt;
+        const remindAt = p.profile.characterReminderAt || 3600;
+        if (p.profile.characterPlaySeconds >= remindAt) {
+          p.profile.characterReminderAt = remindAt + 600;
+          send(p, {
+            type: 'notice',
+            message: contentText('world-message.character.password-reminder'),
+          });
+        }
+        if (Math.floor(played / 30) !== Math.floor(p.profile.characterPlaySeconds / 30)) dirty(p);
+      }
       if (p.hp === 0 && !p.profile.deathPending) {
         p.training = false;
         pvpDeath(p, null);

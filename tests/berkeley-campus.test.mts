@@ -7,16 +7,20 @@ import { createRegionalRoad } from '../src/regional-road.ts';
 import { createEsotericCampus } from '../src/alien-sites.ts';
 
 const campus = createEsotericCampus(createFerrari(createRegionalRoad()));
-test('Berkeley has a sculpted institute, campanile, library, reading hall and a bounded mesh', () => {
+test('Berkeley has a sculpted institute, campanile, library, reading hall and church', () => {
   const m = new Mesh(),
-    site = campus.draw(m, new Map());
-  assert.equal(campus.layout.buildings.length, 4);
+    site = campus.draw(m, new Map()),
+    church = campus.drawChurch(m);
+  assert.equal(campus.layout.buildings.length, 10);
+  assert.equal(campus.drawHomes(m).filter((home) => home.kind !== 'hot-trapdoor').length, 5);
   assert.ok(campus.layout.trees.length >= 6);
   assert.ok(m.data.every(Number.isFinite));
-  assert.ok(m.data.length / 33 > 18000 && m.data.length / 33 < 35000);
+  assert.ok(m.data.length / 33 > 18000 && m.data.length / 33 < 44000);
   assert.ok(site.hi[1] - requiredFixture(site.base) > 8);
   assert.ok(site.hi[0] - site.lo[0] > 15);
   assert.equal(site.kind, 'esoteric-institute');
+  assert.equal(church.kind, 'unusual-church');
+  assert.ok(church.hi[1] - requiredFixture(church.base) > 3);
   assert.ok(
     campus.mapFeatures.some((f) => f.color === '#879c78'),
     'the minimap shows the campus lawns',
@@ -24,6 +28,9 @@ test('Berkeley has a sculpted institute, campanile, library, reading hall and a 
 });
 test('the campus adjacency graph connects every lawn and path around solid buildings and props', () => {
   const targets = [
+    [-11.8, 4.85],
+    [13.69, 9.98],
+    [9.6, 16.8],
     [-7, 6] satisfies [number, number],
     [7, 5] satisfies [number, number],
     [-5, 14] satisfies [number, number],
@@ -62,11 +69,11 @@ test('the campus adjacency graph connects every lawn and path around solid build
       p = campus.point((x + xx) / 2, (z + zz) / 2);
     assert.equal(
       campus.contains(p.x, p.z),
-      building.id === 'institute',
-      'only the institute has an open indoor aisle',
+      building.id === 'institute' || building.id === 'mad-scientist-house',
+      'the Institute and scientist’s house have walkable interiors',
     );
   }
-  const gate = campus.graph.regionAt(9, 0.25),
+  const gate = campus.graph.regionAt(-campus.layout.bounds[0], 0.25),
     regions = new Set([...campus.graph.regions].filter((n) => n >= 0));
   assert.deepEqual([...regions], [gate], 'there must be no stranded courtyard pockets');
 });

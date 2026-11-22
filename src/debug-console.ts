@@ -1,3 +1,4 @@
+import { contentText } from './content-runtime.ts';
 import type { Point } from './types/geometry.ts';
 import type { ActionReceipt, LocalPlayer } from './types/world.ts';
 import { requiredValue } from './types/assert.ts';
@@ -148,7 +149,10 @@ export function createDebugConsole({
     }
     const result =
       command.type === 'debug'
-        ? { ok: true, message: 'Debug coordinates enabled.' }
+        ? {
+            ok: true,
+            message: contentText('world-message.src.debug-console.debug-coordinates-enabled'),
+          }
         : teleport(command.x, command.y);
     if (!result.ok) {
       status.textContent = result.message || 'Command failed.';
@@ -160,7 +164,7 @@ export function createDebugConsole({
     if (history.length > 30) history.shift();
     if (command.type === 'debug') panel.hidden = false;
     update();
-    onMessage(result.message || 'Command completed.');
+    onMessage(result.message || contentText('world-message.src.debug-console.command-completed'));
     closeCommand();
     return true;
   }

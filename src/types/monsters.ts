@@ -6,6 +6,7 @@ export interface MonsterStats {
   level: number;
   hp: number;
   damage: number;
+  reflectDamage?: number;
   interval?: number;
   respawn?: number;
   speed?: number;
@@ -19,6 +20,8 @@ export interface MonsterStats {
   friendly?: boolean;
   quest?: boolean;
   aggression?: number;
+  attackRange?: number;
+  attackEffect?: 'bind' | 'explosive' | 'akimbo' | 'robocop-laser';
   pursuit?: string;
   radius?: number;
   walkStride?: number;
@@ -53,6 +56,7 @@ export interface WildernessPerson extends WorldPoint {
   level?: number;
   inebriation?: number;
   tinfoil?: boolean;
+  attack?: string | null;
 }
 export interface WildernessActor extends Actor {
   wilderness: true;
@@ -71,6 +75,7 @@ export interface WildernessActor extends Actor {
   path: WorldPoint[];
   repath: number;
   attackAt: number;
+  attackAnimation?: number;
   affection: number;
   chaseUntil: number;
   enemyPosition?: WorldPoint;

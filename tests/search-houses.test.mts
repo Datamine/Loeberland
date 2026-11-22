@@ -65,10 +65,11 @@ test('wardrobe choices include only owned finds, with base clothes always availa
         'clock-amulet',
         'akibo',
         'ice-top',
-      ] satisfies [string, string, string, string, string],
+        'railgun',
+      ],
       ownedHats: ['stetson'],
     },
-    { railgun: true, cape: true },
+    { cape: true },
   );
   assert.deepEqual(
     owned.back.map((o) => o.value),
@@ -79,6 +80,7 @@ test('wardrobe choices include only owned finds, with base clothes always availa
     ['none', 'clock-amulet'] satisfies [string, string],
   );
   assert.ok(owned.weapon.some((o) => o.value === 'akibo'));
+  assert.ok(owned.weapon.some((o) => o.value === 'railgun'));
   assert.ok(!owned.weapon.some((o) => o.value === 'bayonet'));
   assert.equal(owned.iceTop.length, 2);
   assert.equal(owned.icePants.length, 1);

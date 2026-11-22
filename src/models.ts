@@ -1417,7 +1417,7 @@ export function createModels({
       ['park', 30, 32, 'Golden Gate Park'] satisfies [string, number, number, string],
       ['crissy', 28, 11, 'Crissy Field'] satisfies [string, number, number, string],
       ['beach', 9, 42, null] satisfies [string, number, number, string | null],
-      ['merced', 17, 57, null] satisfies [string, number, number, string | null],
+      ['merced', 20.15, 56.85, 'Lake Merced'] satisfies [string, number, number, string | null],
     ])
       addScenery(
         id,

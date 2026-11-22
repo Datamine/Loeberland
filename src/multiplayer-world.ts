@@ -1,4 +1,5 @@
 import { MONSTER_STATS } from './monster-drops.ts';
+import { ENERGY_BOLT_SECONDS, SCIENTIST_EXPLOSIVE } from './config/gameplay.ts';
 import type { RemoteActor, Actor, LocalPlayer, SignAtlas } from './types/world.ts';
 import type {
   SharedSnapshot,
@@ -82,7 +83,6 @@ import './illuminati-models.ts';
 import './bank-models.ts';
 import { createMultiplayerActions } from './multiplayer-actions.ts';
 import { MP_ENTITY_INTERPOLATION_MS } from './multiplayer-protocol.ts';
-import { createUsernameForm } from './username-form.ts';
 import { createActorAnimation } from './animation-presentation.ts';
 import { drawRemotePlayer } from './remote-player-models.ts';
 import { rocketHopForPose } from './rocket-hop.ts';
@@ -96,65 +96,22 @@ export function estimatedWorldSeconds(
   return (isFiniteNumber(clock) ? clock : 0) + Math.max(0, time - receivedAt) / 1000;
 }
 
-export function setupMultiplayerSettings(
-  client: import('./username-form.ts').UsernameClient & {
-    state: Pick<
-      MultiplayerState,
-      | 'connected'
-      | 'name'
-      | 'autoName'
-      | 'renameAt'
-      | 'serverOffset'
-      | 'returningCharacter'
-      | 'grapplingHook'
-      | 'pvp'
-    >;
-  },
-  {
-    announce = () => {},
-  }: {
-    showCharacter?: () => void;
-    announce?: ((text: string, who?: string) => void) | (() => number);
-  } = {},
-) {
-  interface SettingsElements {
-    'sf-username-form': HTMLFormElement;
-    'sf-pvp-enabled': HTMLInputElement;
-    'sf-grapple-button': HTMLElement;
-    'sf-pvp-status': HTMLElement;
-  }
-  const $ = <K extends keyof SettingsElements>(id: K): SettingsElements[K] =>
-    requiredValue(document.getElementById(id), 'Multiplayer control ' + id) as SettingsElements[K];
-  const username = createUsernameForm($('sf-username-form'), { client }),
-    pvpInput = $('sf-pvp-enabled');
-  let changingPvP = false;
-  pvpInput.addEventListener('change', async (event) => {
-    if (!client?.state.connected || changingPvP) return;
-    changingPvP = true;
-    pvpInput.disabled = true;
-    const result = await client.command('pvp', { enabled: pvpInput.checked });
-    changingPvP = false;
-    if (!result.ok) announce(result.message || 'PvP settings could not be updated.', 'PvP');
-    update();
-  });
+export function setupMultiplayerSettings(client: {
+  state: Pick<MultiplayerState, 'connected' | 'grapplingHook' | 'pvp' | 'serverOffset'>;
+}) {
+  const grapple = document.getElementById('sf-grapple-button') as HTMLButtonElement;
+  const pvpHint = document.getElementById('sf-pvp-status')!;
   function update() {
-    username.update();
-    const state = client?.state;
-    $('sf-grapple-button').hidden = !state?.grapplingHook;
-    const pvp = state?.pvp || { enabled: false, disableAt: 0 },
-      pvpSeconds = Math.max(
-        0,
-        Math.ceil(((pvp.disableAt ?? 0) - (Date.now() + (state?.serverOffset || 0))) / 1000),
-      );
-    pvpInput.checked = pvp.enabled;
-    pvpInput.disabled = changingPvP || !state?.connected || (pvp.enabled && pvpSeconds > 0);
-    $('sf-pvp-status').textContent = !state?.connected
-      ? 'Connect to the common world to enable PvP.'
-      : pvp.enabled
-        ? pvpSeconds
-          ? 'PvP enabled · Can disable in ' + pvpSeconds + 's.'
-          : 'PvP enabled · You can disable it now.'
-        : 'PvP disabled · Both players must opt in.';
+    const state = client.state;
+    grapple.disabled = !state.connected || !state.grapplingHook;
+    const pvp = state.pvp || { enabled: false, disableAt: 0 };
+    const seconds = Math.max(
+      0,
+      Math.ceil(((pvp.disableAt || 0) - (Date.now() + (state.serverOffset || 0))) / 1000),
+    );
+    pvpHint.textContent = seconds
+      ? 'Can disable PvP in ' + seconds + 's.'
+      : 'Both players must opt in. Changes apply when you save.';
   }
   update();
   return { update };
@@ -193,6 +150,7 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
 
   const npcPresentation = createNPCPresentation({ npcs: merchants, lives: api.lives }),
     remoteActors = new Map<number, RemoteActor>(),
+    bindings = new Map<number, { start: number; duration: number }>(),
     inventoryBridge = createMultiplayerInventory({
       client,
       apply: api.applyInventory,
@@ -203,7 +161,9 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
   const followState = { target: null as number | null, attack: false };
   let followGround: number | null = null,
     selfMode = 'walk',
-    followRequest = 0;
+    selfGesture = '',
+    followRequest = 0,
+    latestMove = 0;
   function stopFollowing(move = true, remote = false) {
     const had = followState.target !== null;
     followRequest++;
@@ -218,7 +178,12 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
   }
   function startFollowing(target: { id: number }, attack = false) {
     if (!api.canFollow()) {
-      announce('Stand on the ground before following another player.', 'Follow');
+      announce(
+        contentText(
+          'world-message.src.multiplayer-world.stand-on-the-ground-before-following-another-player',
+        ),
+        'Follow',
+      );
       return false;
     }
     api.preparePlayerAction();
@@ -229,8 +194,15 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
       if (request !== followRequest) return;
       if (!result.ok) {
         stopFollowing(true, true);
-        announce(result.message || 'Following stopped.', 'Follow');
-      } else if (result.message) announce(result.message || 'Following stopped.', 'Follow');
+        announce(
+          result.message || contentText('world-message.src.multiplayer-world.following-stopped'),
+          'Follow',
+        );
+      } else if (result.message)
+        announce(
+          result.message || contentText('world-message.src.multiplayer-world.following-stopped'),
+          'Follow',
+        );
     });
     return true;
   }
@@ -283,19 +255,19 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
     if (state.cows) cowPresentation.sync(state.cows, sampleTime);
     if (state.traffic) api.onTraffic?.(state.traffic, sampleTime);
     if (state.wilderness && api.wilderness) {
-      const responders = new Set(
-        state.wilderness.filter((n) => n.combatKind === 'robocop').map((n) => n.id),
-      );
+      const dispatched = (n: { combatKind?: string }) =>
+        n.combatKind === 'robocop' || n.combatKind === 'securities-investigator';
+      const responders = new Set(state.wilderness.filter(dispatched).map((n) => n.id));
       const actors = api.wilderness.actors;
       for (let i = actors.length - 1; i >= 0; i--) {
-        if (actors[i].combatKind === 'robocop' && !responders.has(String(actors[i].id))) {
+        if (dispatched(actors[i]) && !responders.has(String(actors[i].id))) {
           creaturePresentation.remove(actors[i].id);
           actors.splice(i, 1);
         }
       }
       for (const record of state.wilderness) {
         if (!responders.has(record.id) || actors.some((n) => n.id === record.id)) continue;
-        const stats = MONSTER_STATS.robocop;
+        const stats = MONSTER_STATS[record.combatKind!];
         const actor: Actor = {
           ...record,
           phase: typeof record.phase === 'number' ? record.phase : 0,
@@ -412,11 +384,30 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
       stopFollowing(true, true);
       client.state.pvpTarget = null;
       onCaught(message.source);
+    } else if (message.type === 'pvpBound') {
+      bindings.set(message.target, { start: performance.now(), duration: message.duration });
+    } else if (message.type === 'scientistExplosive' || message.type === 'robotShot') {
+      const explosive = message.type === 'scientistExplosive';
+      expeditions.state.beams.push({
+        from: message.from,
+        to: message.to,
+        ttl: explosive
+          ? SCIENTIST_EXPLOSIVE.flight + SCIENTIST_EXPLOSIVE.burst
+          : ENERGY_BOLT_SECONDS,
+        weapon: explosive ? 'scientist-explosive' : message.weapon,
+      });
     } else if (message.type === 'pvpHit') {
       const actor = message.target === client.state.id ? player : remoteActors.get(message.target);
       if (actor) {
         if ('networkPlayer' in actor) actor.hp = message.hp;
-        combatFeedback.hit(actor, message.damage, message.hp, message.max || health.state.max);
+        const other = message.attacker !== client.state.id && message.target !== client.state.id;
+        combatFeedback.hit(
+          actor,
+          message.damage,
+          message.hp,
+          message.max || health.state.max,
+          other,
+        );
       }
       if (message.target === client.state.id) {
         health.state.hp = message.hp;
@@ -424,8 +415,13 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
           localStorage.setItem('sf-hitpoints-v1', JSON.stringify(health.state));
         } catch {}
       }
-      if ((['railgun', 'akibo'] satisfies [string, string]).includes(message.weapon))
-        expeditions.state.beams.push({ from: message.from, to: message.to, ttl: 0.22 });
+      if (['railgun', 'akibo', 'missile-launcher'].includes(message.weapon))
+        expeditions.state.beams.push({
+          from: message.from,
+          to: message.to,
+          ttl: 0.22,
+          weapon: message.weapon,
+        });
       if (message.attacker === client.state.id) {
         player.angle = Math.atan2(message.to.z - player.y - 0.5, message.to.x - player.x - 0.5);
         player.gesture = {
@@ -444,7 +440,10 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
       client.state.pvpTarget = null;
       stopFollowing(true, true);
       announce(
-        'You defeated ' + message.name + '. Their possessions dropped where they fell.',
+        contentText(
+          'world-message.src.multiplayer-world.you-defeated-their-possessions-dropped-where-they-fell',
+          { name: String(message.name) },
+        ),
         'PvP',
       );
     } else if (message.type === 'sharedHit') {
@@ -460,11 +459,13 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
       combatFeedback.hit(target, message.damage, message.hp, message.max);
       const t = performance.now();
       remoteActors.get(message.attacker)?.animation?.trigger('attack', t);
-      if (
-        !message.weapon ||
-        (['railgun', 'akibo'] satisfies [string, string]).includes(message.weapon)
-      )
-        expeditions.state.beams.push({ from: message.from, to: message.to, ttl: 0.22 });
+      if (!message.weapon || ['railgun', 'akibo', 'missile-launcher'].includes(message.weapon))
+        expeditions.state.beams.push({
+          from: message.from,
+          to: message.to,
+          ttl: 0.22,
+          weapon: message.weapon,
+        });
       if (message.attacker === client.state.id) {
         player.angle = Math.atan2(message.to.z - player.y - 0.5, message.to.x - player.x - 0.5);
         player.gesture = {
@@ -530,12 +531,18 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
     if (authoritative) {
       followGround = authoritative.y;
       selfMode = authoritative.mode;
+      selfGesture = authoritative.gesture || '';
       api.applyServerPose(authoritative);
     }
   }
   function attackPlayer(target: { id: number; pvp?: boolean }) {
     if (!client.state.pvp?.enabled || !target.pvp) {
-      announce('Both players must enable PvP in Character settings.', 'PvP');
+      announce(
+        contentText(
+          'world-message.src.multiplayer-world.both-players-must-enable-pvp-in-character-settings',
+        ),
+        'PvP',
+      );
       return false;
     }
     expeditions.stop();
@@ -544,6 +551,31 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
   function followPlayer(target: { id: number }) {
     expeditions.stop();
     return startFollowing(target, false);
+  }
+  function drawBinding(
+    m: import('./geometry.ts').Mesh,
+    id: number,
+    x: number,
+    y: number,
+    z: number,
+    time: number,
+  ) {
+    const binding = bindings.get(id);
+    if (!binding) return;
+    const age = Math.max(0, time - binding.start);
+    if (age >= binding.duration) return;
+    const reach = Math.min(1, age / 520);
+    const lift = Math.min(1, (binding.duration - age) / 350);
+    const phase = age * 0.0043;
+    const point = (i: number, offset: number): [number, number, number] => {
+      const f = i / 24,
+        a = phase + f * Math.PI * 5.2 + offset,
+        r = 0.34 + Math.sin(f * Math.PI) * 0.06;
+      return [x + Math.cos(a) * r, y + 0.045 + f * 0.85 * lift, z + Math.sin(a) * r];
+    };
+    for (const angle of [0, Math.PI])
+      for (let i = 1; i <= Math.ceil(reach * 24); i++)
+        m.rod(point(i - 1, angle), point(i, angle), 0.018 * lift, '#f5fcff', 5, { emissive: 0.88 });
   }
   function draw(
     m: Mesh,
@@ -574,7 +606,7 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
           );
       }
     }
-    for (const remote of client.remotePlayers()) {
+    for (const remote of client.remotePlayers(t)) {
       const serverTime = Date.now() + (client.state.serverOffset || 0),
         hop = rocketHopForPose(remote, serverTime);
       if (
@@ -608,7 +640,10 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
         signs: api.signs,
         serverTime,
       });
-      if (remote.hp > 0 && animation.fall === 0) addTarget(start, { npc: actor });
+      if (remote.hp > 0 && animation.fall === 0) {
+        addTarget(start, { npc: actor });
+        drawBinding(m, remote.id, remote.x, remote.y + hop.height, remote.z, t);
+      }
       actorTags.push({
         x: remote.x,
         z: remote.z,
@@ -621,12 +656,26 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
         speechUntil: peer?.speechUntil || 0,
       });
     }
+    const own = client.state.id;
+    if (own !== null) {
+      const x = player.x + 0.5,
+        z = player.y + 0.5;
+      drawBinding(m, own, x, ground(x, z), z, t);
+    }
+    for (const [id, binding] of bindings)
+      if (t - binding.start >= binding.duration) bindings.delete(id);
     for (const id of remoteActors.keys()) if (!client.peers.has(id)) remoteActors.delete(id);
   }
   return {
     actions,
-    moveTo: (x: number, z: number) => {
-      command('moveTo', { x, z }).then((r) => api.moveResult?.(r));
+    moveTo: (x: number, z: number, pursuitResult?: (result: CommandResult) => void) => {
+      const move = ++latestMove;
+      const receipt = pursuitResult
+        ? client.command('moveTo', { x, z })
+        : command('moveTo', { x, z });
+      receipt.then((r) => {
+        if (move === latestMove) (pursuitResult || api.moveResult)?.(r);
+      });
       return true;
     },
     command,
@@ -643,6 +692,9 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
     },
     get selfMode() {
       return selfMode;
+    },
+    get selfGesture() {
+      return selfGesture;
     },
     get serverWalking() {
       return true;
@@ -681,7 +733,7 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
       client.checkpoint(true);
       return command('buyGrapple');
     },
-    grapple: () => command('grapple'),
+    grapple: () => client.state.grapplingHook && command('grapple'),
     releaseTiger: () => command('releaseTiger'),
     teleport: (x: number, z: number) => command('teleport', { x, z }),
     update(

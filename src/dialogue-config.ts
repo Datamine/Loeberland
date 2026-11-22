@@ -1,8 +1,9 @@
 // CONTENT-BINDINGS-MIGRATED
 import { CONTENT, contentText } from './content-runtime.ts';
 import { NPC_DIALOGUES, CASUAL_DIALOGUE_IDS } from './dialogues/catalog.ts';
-import { createAmbientDialogue, withAmbientConversation } from './dialogues/ambient.ts';
+import { createAmbientDialogue } from './dialogues/ambient.ts';
 import { TRADE_PRICES } from './config/economy.ts';
+import { GOBLIN_INCUBATOR } from './goblin-town.ts';
 import { ITEM_STATS } from './item-stats.ts';
 import type { RuntimeDialogue, RuntimeChoice, ActionReceipt } from './types/world.ts';
 import type { ServiceNode, TextValues, TextSpec, JSONValue } from './types/content.ts';
@@ -49,6 +50,8 @@ export function configuredDialogue<T extends RuntimeDialogue>(
   const template = CONTENT.dialogues.services[id] || NPC_DIALOGUES[id];
   if (!template) throw new Error('Unknown NPC dialogue: ' + id);
   const context: TextValues = { ...dialogueDefaults, ...values };
+  if (id === 'founder' && npc.id === GOBLIN_INCUBATOR.founder.id)
+    context.equityPrice = TRADE_PRICES.incubatorEquity;
   function text(value: TextSpec) {
     return typeof value === 'string'
       ? renderDialogueText(value, context, id)
@@ -114,9 +117,9 @@ export function configuredDialogue<T extends RuntimeDialogue>(
     'decline',
   ] as const)
     delete person[key];
-  return withAmbientConversation({
+  return {
     ...person,
     decline: contentText('dialogue-config.configuredDialogue.decline-1', {}),
     ...resolve(template),
-  });
+  };
 }

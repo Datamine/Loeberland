@@ -19,6 +19,7 @@ export interface ExpeditionLoot extends WorldPoint {
   deck?: WorldPoint;
 }
 export interface ExpeditionBeam {
+  weapon?: string;
   from: WorldPoint & { y: number };
   to: WorldPoint & { y: number };
   ttl: number;
@@ -57,9 +58,9 @@ export interface ExpeditionOptions {
   health?: Health;
   economy?: Economy;
   food?: (amount: number) => unknown;
-  hasBayonet?: () => boolean;
   level?: () => number;
   defense?: () => number;
+  reflect?: (damage: number) => number;
   inebriation?: () => number;
   sharedWorld?: () => boolean;
   player?: () => ExpeditionPrey;

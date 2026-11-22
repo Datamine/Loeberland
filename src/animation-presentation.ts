@@ -1,4 +1,6 @@
 import type { AnimationPose, AnimationFrame } from './types/animation.ts';
+import { ATV_SPEED } from './atv.ts';
+import { MOTORCYCLE_TRICKS } from './motorcycle.ts';
 /** Display-only timelines. These never advance movement, cooldowns or rewards. */
 export const GESTURE_SECONDS = Object.freeze({
   attack: 0.45,
@@ -11,6 +13,7 @@ export const GESTURE_SECONDS = Object.freeze({
   work: 2.2,
   steal: 0.9,
   caught: 2,
+  ...Object.fromEntries(MOTORCYCLE_TRICKS.map(({ id, duration }) => [id, duration])),
 });
 const animationClamp = (v: number) => Math.max(0, Math.min(1, v));
 export function createActorAnimation() {
@@ -22,6 +25,9 @@ export function createActorAnimation() {
     gesture = '',
     started = 0,
     source = '',
+    atvX: number | undefined,
+    atvZ: number | undefined,
+    atvTravel = 0,
     deathAt: number | null = null;
   const view: Partial<AnimationFrame> = {};
   return {
@@ -34,6 +40,17 @@ export function createActorAnimation() {
       const dt = last === null ? 0 : Math.max(0, Math.min(0.1, (time - last) / 1000)),
         first = last === null;
       last = time;
+      if (pose.mode === 'atv' && pose.x !== undefined && pose.z !== undefined) {
+        if (atvX !== undefined && atvZ !== undefined) {
+          const distance = Math.hypot(pose.x - atvX, pose.z - atvZ);
+          if (distance <= ATV_SPEED * 0.3) atvTravel += distance;
+        }
+        atvX = pose.x;
+        atvZ = pose.z;
+      } else {
+        atvX = atvZ = undefined;
+        atvTravel = 0;
+      }
       const target = pose.hp === 0 ? 0 : animationClamp(pose.motion || 0),
         walking = (['walk', 'roll'] satisfies [string, string]).includes(pose.mode),
         resting = pose.mode === 'sit',
@@ -94,6 +111,7 @@ export function createActorAnimation() {
       if (view.mode !== pose.mode) view.modeAt = time;
       Object.assign(view, {
         mode: pose.mode,
+        atvTravel,
         motion,
         run,
         sitBlend: sit,

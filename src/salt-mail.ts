@@ -14,7 +14,9 @@ export function createSaltMail(economy: Economy) {
     return mapInteractionResult(economy.trade('salt-letter-collect'), (result) => ({
       ...result,
       message: result.ok
-        ? 'You receive a sealed salt-conservation letter. Deliver it to the City Hall clerk for 50 coins.'
+        ? contentText(
+            'world-message.src.salt-mail.you-receive-a-sealed-salt-conservation-letter-deliver-it-to-th',
+          )
         : result.message,
     }));
   }
@@ -22,7 +24,9 @@ export function createSaltMail(economy: Economy) {
     return mapInteractionResult(economy.trade('salt-letter-deliver'), (result) => ({
       ...result,
       message: result.ok
-        ? 'The clerk stamps your salt-conservation letter RECEIVED and pays you 50 coins from the activist’s campaign fund.'
+        ? contentText(
+            'world-message.src.salt-mail.the-clerk-stamps-your-salt-conservation-letter-received-and-pa',
+          )
         : result.message,
     }));
   }

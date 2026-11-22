@@ -1,3 +1,4 @@
+import { contentText } from './content-runtime.ts';
 import { isFiniteNumber, isRecord } from './types/json.ts';
 import type { Health, Economy } from './types/controllers.ts';
 
@@ -52,7 +53,9 @@ export function createTechVentures({
     return {
       ...r,
       message: r.ok
-        ? 'Tim Apple hands you an equipped iPhone. You can put it away in Character settings.'
+        ? contentText(
+            'world-message.src.tech-ventures.tim-apple-hands-you-an-equipped-iphone-you-can-put-it-away-in',
+          )
         : r.message,
     };
   }
@@ -68,8 +71,12 @@ export function createTechVentures({
     save();
     onMessage(
       reason === 'arrest'
-        ? 'Your iPhone is confiscated during the arrest. The earnings boost is gone.'
-        : 'You lose your iPhone on death. The earnings boost is gone.',
+        ? contentText(
+            'world-message.src.tech-ventures.your-iphone-is-confiscated-during-the-arrest-the-earnings-boos',
+          )
+        : contentText(
+            'world-message.src.tech-ventures.you-lose-your-iphone-on-death-the-earnings-boost-is-gone',
+          ),
     );
     return r;
   }
@@ -81,7 +88,9 @@ export function createTechVentures({
     }
     return {
       ...r,
-      message: r.ok ? 'Your robotaxi is dispatched.' : r.message,
+      message: r.ok
+        ? contentText('world-message.src.tech-ventures.your-robotaxi-is-dispatched')
+        : r.message,
     };
   }
   function update(seconds: unknown, { eligible = true }: { eligible?: boolean } = {}) {
@@ -114,13 +123,9 @@ export function createTechVentures({
         const hit = health.damage(5);
         damage += hit;
         onMessage(
-          'Doomscrolling costs you ' +
-            hit +
-            ' HP. ' +
-            health.state.hp +
-            '/' +
-            health.state.max +
-            ' hitpoints.',
+          contentText('world-message.src.tech-ventures.doomscrolling-costs-you-hp-hitpoints', {
+            hit: String(hit),
+          }),
         );
         save();
         if (!health.state.hp) {
@@ -191,7 +196,7 @@ export function techMerchantDialogue(
     buy: game.buyRobotaxi,
     status: () => ({
       ok: true,
-      message: 'Your robotaxi is out finding fares.',
+      message: contentText('world-message.src.tech-ventures.your-robotaxi-is-out-finding-fares'),
     }),
   });
 }

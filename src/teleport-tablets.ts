@@ -1,3 +1,4 @@
+import { contentText } from './content-runtime.ts';
 import type { TabletFlight } from './types/teleport.ts';
 import type { Position } from './types/network.ts';
 
@@ -28,11 +29,13 @@ interface TabletOptions {
 }
 import { isRecord } from './types/json.ts';
 import { serverCommand, serverConnected } from './server-connection.ts';
-export const TABLET_PLACES = Object.freeze(['downtown', 'tahoe', 'cupertino'] satisfies [
-    string,
-    string,
-    string,
-  ]),
+export const GOBLIN_SCIENTIST_ID = 'goblin-scientist';
+export const TABLET_PLACES = Object.freeze([
+    'downtown',
+    'tahoe',
+    'cupertino',
+    'goblin-village',
+  ] satisfies string[]),
   TABLET_TELEPORT_SECONDS = 2.8;
 const teleportEase = (t: number) => {
   t = Math.max(0, Math.min(1, t));
@@ -118,16 +121,27 @@ export function createTeleportTablets({
     }
   });
   async function buy(id: string) {
-    if (!TABLET_PLACES.includes(id)) return { ok: false, message: 'That tablet is unavailable.' };
+    if (!TABLET_PLACES.includes(id))
+      return {
+        ok: false,
+        message: contentText('world-message.src.teleport-tablets.that-tablet-is-unavailable'),
+      };
     return serverCommand(client, 'buyTablet', { destination: id });
   }
   async function use(id: string) {
     if (!TABLET_PLACES.includes(id) || !inventory()[id])
-      return { ok: false, message: 'Buy a tablet from the wizard first.' };
+      return {
+        ok: false,
+        message: contentText(
+          'world-message.src.teleport-tablets.buy-a-tablet-from-the-wizard-first',
+        ),
+      };
     if (state.active || !canUse())
       return {
         ok: false,
-        message: 'Stand on solid ground, outside custody, before breaking a tablet.',
+        message: contentText(
+          'world-message.src.teleport-tablets.stand-on-solid-ground-outside-custody-before-breaking-a-tablet',
+        ),
       };
     return serverCommand(client, 'useTablet', { destination: id });
   }

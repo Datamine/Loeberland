@@ -2,6 +2,7 @@ import { CHARACTER_CLIPS, drawCharacter } from './characters.ts';
 import type { Mesh } from './geometry.ts';
 import type { CharacterAppearance } from './characters.ts';
 import type { Appearance } from './types/content.ts';
+import type { Actor } from './types/world.ts';
 interface HumanActor extends Appearance {
   x: number;
   z?: number;
@@ -123,6 +124,47 @@ export function createHumanNPCAnimator() {
 }
 
 const animator = createHumanNPCAnimator();
+const renderedAppearance = new WeakMap<
+  object,
+  Pick<HumanDrawOptions, 'skin' | 'shirt' | 'appearance'>
+>();
+
+export function merchantHeadAppearance(npc: Partial<Actor>): CharacterAppearance {
+  return {
+    sunglasses: !!npc.sunglasses,
+    hat: npc.hat,
+    female: !!npc.female,
+    longHair: !!npc.longHair,
+    hairstyle: npc.hairstyle,
+    hair: npc.hair,
+    cap: npc.kind === 'crew' || !!npc.cap,
+    topHat: npc.topHat || npc.kind === 'tax',
+    chef: npc.kind === 'chef',
+  };
+}
+
+/** The portrait uses the same mesh variant and palette as the actor's render. */
+export function drawHumanNPCHead(m: Mesh, npc: Partial<Actor>, angle: number) {
+  const { skin, shirt, appearance } = renderedAppearance.get(npc) ?? {
+    skin: npc.skin,
+    shirt: npc.shirt,
+    appearance: {
+      ...merchantHeadAppearance(npc),
+      female: npc.female ?? npc.gender === 'woman',
+    },
+  };
+  drawCharacter(m, 0, 0, 0, angle, 0, false, skin, shirt, {
+    ...appearance,
+    pose: undefined,
+    ground: null,
+    action: undefined,
+    mode: 'idle',
+    time: 0,
+    motion: 0,
+    headOnly: true,
+  });
+}
+
 /** Specialized actions and clothing stay with their domain renderer. Walking,
  * turning, start/stop blending, and reduced motion have one implementation. */
 export function drawHumanNPC(
@@ -144,6 +186,7 @@ export function drawHumanNPC(
     draw = drawCharacter,
   }: HumanDrawOptions = {},
 ) {
+  renderedAppearance.set(npc, { skin, shirt, appearance });
   const pose = animator.sample(npc, time, {
     x,
     z,

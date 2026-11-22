@@ -88,7 +88,7 @@ export interface InspectionRecord {
   source: string;
   position: { x?: number; z?: number };
   description?: string;
-  appearance?: (Appearance & { chef?: boolean }) | null;
+  appearance?: (Appearance & { chef?: boolean; topHat?: boolean }) | null;
   actions: InspectionActionVariant[];
   dialogues: InspectionDialogueVariant[];
 }
@@ -208,11 +208,17 @@ export interface SharedEditorRecord extends BoundRecord {
   title: string;
   dialogue: EditorDialogueNode;
 }
+export interface WorldMessageRecord extends BoundRecord {
+  key: string;
+  name: string;
+  template: string;
+}
 export interface EditorCatalog {
   schema: 2;
   fingerprint: string | undefined;
   records: EditorRecord[];
   sharedDialogue: SharedEditorRecord[];
+  worldMessages: WorldMessageRecord[];
   playerState: PlayerDocument;
 }
 export interface DraftChange {

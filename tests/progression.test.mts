@@ -11,7 +11,7 @@ import { MERCHANTS } from '../src/config/npcs.ts';
 import { configuredDialogue } from '../src/dialogue-config.ts';
 import { ITEM_STATS } from '../src/item-stats.ts';
 import { rollMonsterDrops } from '../src/monster-drops.ts';
-import { COLLECTION_ITEMS } from '../src/config/collection.ts';
+import { COLLECTION_GROUPS, COLLECTION_ITEMS } from '../src/config/collection.ts';
 import { Mesh } from '../src/geometry.ts';
 import { drawWildMonster } from '../src/wilderness-models.ts';
 import { drawCharacter } from '../src/characters.ts';
@@ -51,12 +51,17 @@ test('Akibo has railgun damage and attack speed at every level, with seven-tile 
 });
 test('collection entries use stable IDs, names and optional discovery clues, and cover all equipment', () => {
   assert.equal(new Set(COLLECTION_ITEMS.map((i) => i.id)).size, COLLECTION_ITEMS.length);
-  for (const item of COLLECTION_ITEMS)
+  for (const item of COLLECTION_ITEMS) {
+    assert.ok(Object.hasOwn(COLLECTION_GROUPS, item.group));
     assert.ok(
       Object.keys(item).every((key) =>
-        (['id', 'name', 'hint'] satisfies [string, string, string]).includes(key),
+        (['id', 'name', 'hint', 'group'] satisfies string[]).includes(key),
       ),
     );
+  }
+  assert.equal(COLLECTION_ITEMS.find((item) => item.id === 'raptor')?.group, 'quest');
+  assert.equal(COLLECTION_ITEMS.find((item) => item.id === 'combat-boots')?.group, 'wearables');
+  assert.equal(COLLECTION_ITEMS.find((item) => item.id === 'peptides')?.group, 'other');
   for (const id of [
     'akibo',
     'railgun',

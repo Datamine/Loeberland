@@ -20,3 +20,5 @@ export const GAMEPLAY = Object.freeze({
   maxNearbyLoot: 64,
   viewRadius: 38,
 });
+export const SCIENTIST_EXPLOSIVE = { flight: 0.55, burst: 0.24 } as const;
+export const ENERGY_BOLT_SECONDS = 0.22;

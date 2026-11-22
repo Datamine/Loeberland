@@ -1,6 +1,9 @@
 {
   "schema": 1,
   "texts": {
+    "config.hairstyles.module.broccoli": {
+      "template": "Broccoli cut"
+    },
     "adventure-sites.drawFitness.label-1": {
       "template": "SF Fitness"
     },
@@ -152,10 +155,10 @@
       "template": "A crinkling silver suit, folded with restaurant precision."
     },
     "config.item-stats.module.name-3": {
-      "template": "Railgun accelerator"
+      "template": "Weaponry upgrade kit"
     },
     "config.item-stats.module.description-4": {
-      "template": "An electromagnetic accelerator. Railgun fire rate increases by 10% while owned."
+      "template": "Increases the fire rate of your railgun and Akimbos by 10% while owned."
     },
     "config.item-stats.module.name-5": {
       "template": "Combat boots"
@@ -182,7 +185,7 @@
       "template": "Railgun"
     },
     "config.item-stats.module.name-13": {
-      "template": "Akibo"
+      "template": "Akimbos"
     },
     "config.item-stats.module.name-14": {
       "template": "New Year’s rocket"
@@ -221,13 +224,13 @@
       "template": "A sweeping black skirt. Enough fabric to consider the wind a collaborator."
     },
     "config.item-stats.module.name-26": {
-      "template": "Downtown teleportation tablet"
+      "template": "Downtown Teleport"
     },
     "config.item-stats.module.description-27": {
       "template": "A small purple tablet. Break it to return to downtown San Francisco."
     },
     "config.item-stats.module.name-28": {
-      "template": "Tahoe teleportation tablet"
+      "template": "Tahoe Teleport"
     },
     "config.item-stats.module.description-29": {
       "template": "A snowy sigil in purple stone. Break it to appear beside the Tahoe gondola."
@@ -490,9 +493,6 @@
     "dialogues.ambient.createAmbientDialogue.decline-9": {
       "template": "Leave"
     },
-    "dialogues.ambient.withAmbientConversation.label-16": {
-      "template": "Let’s just talk."
-    },
     "dog-pony-layout.module.label-1": {
       "template": "Dog and Pony Show"
     },
@@ -528,6 +528,27 @@
     },
     "dog-surfing.dogSurfingDialogue.receipt-9": {
       "template": "Biscuit has experience. Nori has balance. Captain Pickles has a tiny life jacket and absolutely no sense of personal risk."
+    },
+    "dog-surfing.pacifica-dog-surfing.label": {
+      "template": "Pacifica Dog Surfing Competition"
+    },
+    "dog-surfing.pacifica-dog-surfing.description": {
+      "template": "The flags mark the start of the heats. Each dog gets two runs, judged on balance, style, and how much seawater they bring back."
+    },
+    "dog-surfing.pacifica-dog-surf-trophies.label": {
+      "template": "Dog surfing trophies"
+    },
+    "dog-surfing.pacifica-dog-surf-trophies.description": {
+      "template": "Three cups engraved with paw prints. The gold one is almost too big for Captain Pickles to carry."
+    },
+    "dog-surfing.contestant-0.description": {
+      "template": "Biscuit wears red and takes the long, steady line down the wave. An old pro who never has to look at his paws."
+    },
+    "dog-surfing.contestant-1.description": {
+      "template": "Nori wears blue and carves from rail to rail. The only sign that she's concentrating is the very still tail."
+    },
+    "dog-surfing.contestant-2.description": {
+      "template": "Captain Pickles wears yellow and likes to launch clean off the crest. The life jacket has a handle for a reason."
     },
     "duel-layout.module.label-1": {
       "template": "Duel Arena"
@@ -743,7 +764,7 @@
       "template": "You have not begun this adventure."
     },
     "jurassic.entries.description-8.no.yes": {
-      "template": "The scientist issued you a railgun. The velociraptor has escaped."
+      "template": "Follow the velociraptor south of Jurassic Biosciences, defeat it, and bring its remains to the scientist."
     },
     "jurassic.entries.description-8.no.no.yes": {
       "template": "You recovered the velociraptor’s remains."
@@ -758,7 +779,7 @@
       "template": "Leave"
     },
     "jurassic.scientistDialogue.intro-12": {
-      "template": "Jurassic Biosciences. We make yesterday’s problems tomorrow’s growth market."
+      "template": "Welcome to Jurassic Biosciences. We’re on the field side of the lab, which means we get the clipboards with the thickest covers. There’s a containment test on the schedule today. I could use help outside the fence, if you have a minute."
     },
     "jurassic.scientistDialogue.question-13": {
       "template": "Ask for a quest?"
@@ -766,8 +787,14 @@
     "jurassic.scientistDialogue.choice-14": {
       "template": "Do you have a quest for me?"
     },
+    "jurassic.scientistDialogue.briefing.intro": {
+      "template": "We ran the containment drill with an empty cage. It went beautifully. Now we have to do the same drill with the raptor inside. I’ll issue you a railgun and work the gate. Once it gets loose, track it down and bring the remains back here so we can write up what happened."
+    },
+    "jurassic.scientistDialogue.briefing.accept": {
+      "template": "I’ll recover the raptor."
+    },
     "jurassic.scientistDialogue.intro-17": {
-      "template": "Excellent! Our field test appears to have concluded."
+      "template": "You made it back. Put the specimen case on the bench and take a minute. I’ve been filling out the field report, and I think your account of what happened will be more useful than mine."
     },
     "jurassic.scientistDialogue.question-18": {
       "template": "Why did you release the raptor?"
@@ -788,16 +815,13 @@
       "template": "Certainly. We have classified it as a customer-success expense."
     },
     "jurassic.scientistDialogue.intro-27": {
-      "template": "The emergency is proceeding within our confidence interval. The velociraptor is somewhere outside the cage."
+      "template": "The raptor tends to head south toward the road. If you find the cage shut with the raptor back inside, come see me. I can run the gate again. I’d rather we use the controls than try to persuade a latch by hand."
     },
     "jurassic.scientistDialogue.question-28": {
       "template": "What am I supposed to do?"
     },
     "jurassic.scientistDialogue.choice-29": {
-      "template": "Review recovery protocol"
-    },
-    "jurassic.scientistDialogue.receipt-30": {
-      "template": "Recover the specimen, please. The paperwork becomes rather difficult when a specimen is also a pedestrian."
+      "template": "Check the cage"
     },
     "jurassic.ahabDialogue.intro-32.yes": {
       "template": "A fine hunt. Fine shooting! Collect the spoils from the deck. The cape is, regrettably, mandatory."
@@ -824,7 +848,7 @@
       "template": "A triumph of maritime understatement. Wear it proudly."
     },
     "jurassic.ahabDialogue.intro-42": {
-      "template": "I refuse to board a hunter without a sufficiently powerful weapon. Come back with a railgun."
+      "template": "I’m Ahab. That’s the Pequod at the berth. Out past the last buoy the fog can swallow the whole shoreline, so I check everyone’s gear while I can still see it. Anyone who hunts from my deck brings a railgun. If you came for the sea air, there’s room to stand awhile."
     },
     "jurassic.ahabDialogue.question-43": {
       "template": "What counts as sufficiently powerful?"
@@ -833,10 +857,10 @@
       "template": "Ask about equipment"
     },
     "jurassic.ahabDialogue.receipt-45": {
-      "template": "A proper weapon is a matter of judgment. I have strong opinions on both words."
+      "template": "The first time I went to sea, I mistook bravery for having no plan. I’ve since amended the plan to include a weapon with reach. There aren’t any shops once we’re out past the buoys."
     },
     "jurassic.ahabDialogue.intro-47": {
-      "template": "A railgun! Now there is a weapon fit for the Pequod."
+      "template": "That railgun will do. Let me check the mooring line. The Pequod makes an awful fuss about leaving the berth and settles right down once she’s on open water. I know sailors who do exactly the same thing."
     },
     "jurassic.ahabDialogue.question-48": {
       "template": "What happened to Moby Dick?"
@@ -1085,7 +1109,7 @@
       "template": "An excavator operator protecting a sandwich of considerable historical significance."
     },
     "rail-works.railWorkerDialogue.intro-5": {
-      "template": "Afternoon. Mind the digger. Mind the hole. Most of all, mind the lunch break."
+      "template": "Afternoon. Stay on this side of the barrier and you can see the whole cut. I’m off the digger until I’ve finished my sandwich. If you want to know how the railway is going, you’ll get a straighter answer from me here than you will from the sign."
     },
     "rail-works.railWorkerDialogue.question-6": {
       "template": "What would you like to ask?"
@@ -1316,22 +1340,22 @@
       "template": "Messages travel down a conveyor, into bottles and out to sea. The backend is surprisingly wet."
     },
     "social-buildings.drawSocialBuildings.description-1.no": {
-      "template": "A red-and-cream circus tent dedicated to selling sales software to people who sell sales software. The ringmaster calls it a pipeline."
+      "template": "A round circus tent with a striped canopy and colorful pennants. Inside, the ringmaster is selling sales software to people who sell sales software."
     },
     "social-buildings.drawSocialBuildings.label-2": {
       "template": "Bottle-post conveyor"
     },
     "social-layout.module.label-1": {
-      "template": "Twitter HQ"
+      "template": "Posting HQ"
     },
     "social-layout.module.label-2": {
       "template": "Software Sales Conference"
     },
     "social-layout.module.name-3": {
-      "template": "Twitter conference walk"
+      "template": "Posting HQ conference walk"
     },
     "social-layout.module.name-4": {
-      "template": "Twitter doorway"
+      "template": "Posting HQ doorway"
     },
     "social-layout.module.name-5": {
       "template": "Sales conference doorway"
@@ -1580,7 +1604,7 @@
       "template": "Southern village green"
     },
     "southern-layout.module.name-21": {
-      "template": "Twitter and sales conference grounds"
+      "template": "Posting HQ and sales conference grounds"
     },
     "southern-layout.module.name-22": {
       "template": "Tim Apple campus"
@@ -1790,7 +1814,7 @@
       "template": "Leave"
     },
     "they-live.theyLiveDialogue.intro-3": {
-      "template": "City Hall issues a permit for nearly everything. Sometimes the category has to be invented first."
+      "template": "Welcome to City Hall. I handle the reports that arrive without a box to tick. Last week I added a category because the report was perfectly clear and the form wasn’t. If you have business with the city, tell me what happened in your own words."
     },
     "they-live.theyLiveDialogue.question-4": {
       "template": "What do you do here?"
@@ -1859,7 +1883,7 @@
       "template": "{v0} of six aliens defeated, according to our records."
     },
     "they-live.theyLiveDialogue.intro-33": {
-      "template": "We investigate phenomena that ordinary institutes put in the footnotes. Have you noticed anything unusual?"
+      "template": "Come in. We study the observations people tend to leave out of their reports because they sound odd when said aloud. I usually start by asking where you were and what actually changed. A good account is more useful to me than a tidy explanation."
     },
     "they-live.theyLiveDialogue.question-34": {
       "template": "What do you study?"
@@ -1868,7 +1892,7 @@
       "template": "Ask about esoteric studies"
     },
     "they-live.theyLiveDialogue.receipt-36": {
-      "template": "Apparitions, impossible coincidences, and suspiciously persuasive advertising. Return if you see something peculiar."
+      "template": "We get accounts of apparitions, strange coincidences, and signs that seem to say something different on a second look. Most have a perfectly ordinary explanation. I keep a second file for the reports that still bother me on the walk home."
     },
     "they-live.theyLiveDialogue.intro-38": {
       "template": "Green slime ghosts hiding behind ordinary faces? Subliminal commands in the advertisements? Yes, that is a fairly conclusive Tuesday."
@@ -2291,7 +2315,7 @@
       "template": "Dog surfing judge"
     },
     "world.generation.setupPacificaSurf.description-98": {
-      "template": "A professional adjudicator of extremely good dogs."
+      "template": "The judge paces the beach in a yellow shirt, watching each dog from takeoff to landing."
     },
     "world.generation.setupPacificaSurf.label-99": {
       "template": "Pacifica surfboards"
@@ -2332,6 +2356,12 @@
     "world.interactions.talkOldMan.intro-15": {
       "template": "The guild was only the waiting room. The Illuminati would welcome a donation of 250,000 coins."
     },
+    "world.interactions.examine.hangar-floor": {
+      "template": "A painted centerline runs across the stone floor. Faint tire marks cross it near the aircraft."
+    },
+    "world.interactions.examine.stone-passage": {
+      "template": "Brass conduits follow the walls of the stone passage toward the stairs."
+    },
     "world.interactions.talkOldMan.choice-16": {
       "template": "Donate 250,000 coins"
     },
@@ -2360,7 +2390,7 @@
       "template": "pet"
     },
     "world.interactions.interactCitizen.intro-27": {
-      "template": "Batteries, twenty coins each. Please keep the terminals dry."
+      "template": "Good afternoon. I stock railgun batteries, twenty coins each. I keep them up off the floor because the fog creeps under the door and the terminals mind getting wet. If you’re headed out for the day, check what you have before you leave."
     },
     "world.interactions.interactCitizen.decline-28": {
       "template": "Leave"
@@ -2756,7 +2786,7 @@
       "template": "Because a person is more interesting than a measurement. And because the wind needs something to do."
     },
     "service.rehabilitation.root.intro": {
-      "template": "I can offer complimentary rehabilitation and transport back to San Francisco. Would you like to proceed?"
+      "template": "Hello. I’m the specialist on duty. If you’d like a way back to San Francisco, I can offer a rehabilitation appointment and arrange the trip afterward. It costs nothing. You’re welcome to ask what it involves before you decide."
     },
     "service.rehabilitation.root.decline": {
       "template": "No thanks. I’ll stay here."
@@ -2780,7 +2810,7 @@
       "template": "What does rehabilitation involve?"
     },
     "service.rehabilitation.root.choices.1.receipt": {
-      "template": "A brief appointment with our specialist, followed by transport to UCSF. No forms to fill out. We take care of everything."
+      "template": "We do the appointment here, and I’ll arrange transport to UCSF once we finish. You can take a minute to think about it. I’ll be here when you’re ready."
     },
     "service.tax.root.intro": {
       "template": "Welcome to the Tax Authority. You may contribute your entire coin purse, or ask how we spend it."
@@ -2831,7 +2861,7 @@
       "template": "“Plenty of trees. Strange mammals. Excellent acoustics for unsolicited opinions.”"
     },
     "service.founder.root.intro": {
-      "template": "Welcome to our startup HQ! We have a pitch deck and an unusually confident valuation."
+      "template": "Welcome in. That’s a pitch deck on the table, and the two coffee rings are the closest thing we have to a cap table. We’re raising a little money here. If you want a stake in the company, I sell the shares one at a time."
     },
     "service.founder.root.choices.0.label": {
       "template": "Buy one share · {equityPrice} coins"
@@ -2840,7 +2870,7 @@
       "template": "One share of startup equity is yours. Welcome aboard."
     },
     "service.secondary.root.intro": {
-      "template": "Startup equity? Fantastic! I’ll pay {secondaryPrice} coins for each share you bring me."
+      "template": "I buy startup shares here at the Venture Exchange. A surprising number of people come in with a founder’s business card and no idea what they own. If you have a share of startup equity, my offer is {secondaryPrice} coins for it."
     },
     "service.secondary.root.choices.0.label": {
       "template": "Sell one share · {secondaryPrice} coins"
@@ -2911,17 +2941,23 @@
     "service.ski-lift.root.choices.1.receipt": {
       "template": "Click to steer, stay on the snow, and press Space to flip while airborne. If you’d rather keep your feet off the ground, the gondola will take you back down."
     },
+    "service.wizard.tablet-story.label": {
+      "template": "How did you invent the tablets?"
+    },
+    "service.wizard.tablet-story.intro": {
+      "template": "I used to walk to Cupertino. These days I only do it when I need to think. That is how I got the idea for the tablet."
+    },
     "service.wizard.root.intro": {
       "template": "A little stone, a little purple lightning, and you can skip an extraordinary amount of walking. Tablets cost {tabletPrice} coins apiece. Buy one here, then use it from your travel controls."
     },
     "service.wizard.root.choices.0.label": {
-      "template": "Buy downtown tablet · {tabletPrice} coins"
+      "template": "Downtown Teleport · {tabletPrice} coins"
     },
     "service.wizard.root.choices.2.label": {
-      "template": "Buy Cupertino teletab · {tabletPrice} coins"
+      "template": "Cupertino Teleport · {tabletPrice} coins"
     },
     "service.wizard.root.choices.1.label": {
-      "template": "Buy Tahoe tablet · {tabletPrice} coins"
+      "template": "Tahoe Teleport · {tabletPrice} coins"
     },
     "service.bartender.root.intro": {
       "template": "Welcome to Shanghai Kelly’s. One coin a beer. The floor is quite level; any disagreement is between you and the floor."
@@ -2930,7 +2966,7 @@
       "template": "One beer, please · 1 coin"
     },
     "service.hiking-supplies.root.intro": {
-      "template": "A hiking backpack costs 100 coins and holds twenty sandwiches. Your regular bag holds five."
+      "template": "Come out of the wind. People come up this road with enough water and somehow only half a lunch. The regular bag holds five sandwiches. The hiking pack costs 100 coins and holds twenty. I’d leave a pocket free for your gloves, but that’s between you and the weather."
     },
     "service.hiking-supplies.root.choices.0.label": {
       "template": "Buy a hiking backpack · 100 coins"
@@ -2960,13 +2996,13 @@
       "template": "Buy a sandwich · {burgerPrice} coins"
     },
     "service.motorcycle-rental.root.intro": {
-      "template": "Five coins rents the motorcycle. Please return it with the same number of wheels."
+      "template": "I keep the motorcycle by the zoo path where I can hear it start. Five coins gets you the rental. Take it out when you need it, then park someplace you’ll remember. People usually manage the riding part better than the remembering part."
     },
     "service.motorcycle-rental.root.choices.0.label": {
       "template": "Rent the motorcycle · 5 coins"
     },
     "service.motorcycle-rented.root.intro": {
-      "template": "Your motorcycle rental is still valid."
+      "template": "Your rental is still good. If you parked around a corner, use the motorcycle button in your travel controls to find it. I spend enough time looking for keys that I don’t expect anyone to remember a parking spot."
     },
     "service.motorcycle-rented.root.choices.0.label": {
       "template": "Where is my motorcycle?"
@@ -2975,7 +3011,7 @@
       "template": "Press M to find your parked motorcycle or get on it. Your rental remains valid."
     },
     "service.ai-recruiter.root.intro": {
-      "template": "We’re hiring. There’s a short arithmetic interview, if you’re interested."
+      "template": "Come in. The people with headphones are trying to get a run through before lunch. I handle hiring for the lab. We start with a short arithmetic interview. I can tell you what the work is like before you decide whether to sit it."
     },
     "service.ai-recruiter.root.choices.0.label": {
       "template": "I’d like to take the interview."
@@ -2984,7 +3020,7 @@
       "template": "The interview screen is ready. Press Start when you’re ready for two minutes of arithmetic."
     },
     "service.ai-employee.root.intro": {
-      "template": "Welcome back. The GPU racks are humming, and somebody has labeled the kettle “infrastructure.”"
+      "template": "Good to see you. The racks are humming, and someone has put an Infrastructure label on the kettle. If you’re here to work, I can get your session started. If you’re here for tea, the kettle works as long as nobody has filed a ticket about it."
     },
     "service.ai-employee.root.choices.0.label": {
       "template": "I’m ready to work."
@@ -3050,13 +3086,13 @@
       "template": "Welcome. A good hat opens doors. A truly magnificent hat makes people forget to ask why. Choose a hat below; purchases are fitted immediately. You can change into any owned hat from the Character menu."
     },
     "service.phone-shop.root.intro": {
-      "template": "Hello, I’m Tim Apple. A thousand songs in your pocket. Please disregard the number of notifications."
+      "template": "I’m Tim Apple. Glad you found the courtyard. We built a round office and a rectangular phone, which gives us two things to argue about at lunch. The iPhone is meant to make work easier to carry around. I can show you where it helps and where it gets in the way."
     },
     "service.phone-shop.root.choices.0.label": {
       "template": "Buy an iPhone · {phonePrice} coins"
     },
     "service.phone-owned.root.intro": {
-      "template": "Your iPhone is {phoneStatus}. Still a beautiful rectangle."
+      "template": "Welcome back. Your iPhone is {phoneStatus}. I still take mine out to check the weather while standing in the courtyard. Old habit. If you’d like to change how you carry yours, we can do that here."
     },
     "service.phone-owned.root.choices.0.label": {
       "template": "{phoneToggle} iPhone"
@@ -3065,13 +3101,13 @@
       "template": "Your iPhone is now {phoneNewStatus}."
     },
     "service.robotaxi-shop.root.intro": {
-      "template": "A car with no driver. The sales pitch almost writes itself."
+      "template": "Have a look through the windshield. The empty driver’s seat takes some getting used to. I can sell you a robotaxi for the fleet. It goes out to find passengers on its own, so you can get on with whatever brought you across town."
     },
     "service.robotaxi-shop.root.choices.0.label": {
       "template": "Buy a robotaxi · {robotaxiPrice} coins"
     },
     "service.robotaxi-owned.root.intro": {
-      "template": "Your robotaxi is already out finding fares. We have monetized the part where you’re doing something else."
+      "template": "Good to see you again. Your robotaxi is out taking fares. A customer called us yesterday to compliment the driver for leaving them in peace. I’ve written it up as a service feature."
     },
     "service.robotaxi-owned.root.choices.0.label": {
       "template": "How is the robotaxi doing?"
@@ -3092,10 +3128,10 @@
       "template": "Fuel can · {fuelPrice}"
     },
     "service.growth-capital.root.intro": {
-      "template": "We sell growth equity in {growthBatches} coin batches. You can take it public. Investing carries risks."
+      "template": "Come on up. I take my meetings outside when the weather allows it. You can tell a lot about a pitch by what the founder says when the slides stop working. My desk handles growth equity. I sell it in blocks of {growthBatches} coins."
     },
     "service.growth-exchange.root.intro": {
-      "template": "I can arrange a public listing for your private growth equity. There’s a 5% listing fee. Markets have a way of forming their own opinions."
+      "template": "Welcome to the exchange. If you hold private growth equity, I can put it on the public board for a 5% listing fee. Once it’s listed, I can show you what buyers are offering. The bell makes quite a noise for something that tells you so little about a business."
     },
     "service.growth-exchange.root.choices.0.label": {
       "template": "Take my growth equity public · 5% fee"
@@ -3251,7 +3287,7 @@
       "template": "You try a slice of mandarin. It tastes like the optimistic part of winter."
     },
     "service.square-foreman.root.intro": {
-      "template": "Hillsborough is being demolished and replaced with Times Square. Same longitude, rather different committee meetings."
+      "template": "Vic, site foreman. This used to be Hillsborough. The sign says Times Square now, which took about an hour. Making a square people will actually want to spend time in is taking a bit longer. Mind the gravel and ask away."
     },
     "service.square-foreman.root.question": {
       "template": "What is happening here?"
@@ -3266,13 +3302,13 @@
       "template": "How is the demolition going?"
     },
     "service.square-foreman.root.choices.1.receipt": {
-      "template": "Very carefully. That excavator has a smaller turning circle than most of the former residents’ SUVs. The coffee seller gets final approval on dust."
+      "template": "We work one frontage at a time. Leo needs room for the book cart, and June needs to be louder than the excavator for at least one song. The machine gets a break during the quiet numbers. We’ve managed that much without a committee."
     },
     "service.square-foreman.root.choices.2.label": {
       "template": "What is staying?"
     },
     "service.square-foreman.root.choices.2.receipt": {
-      "template": "The trees, the neighbors, and the public right of way. We are building a neighborhood, not just somewhere to hang advertisements."
+      "template": "The trees, the old stone fronts, and a clear way through for people on foot. The coffee stand and the book cart are starting to give the square a reason to exist in the morning. A billboard has yet to buy anyone an espresso."
     },
     "service.ada-meridian.root.intro": {
       "template": "Welcome. We study machine consciousness by finding the center of things. The center of a circle is easy. The center of a committee requires a separate building."

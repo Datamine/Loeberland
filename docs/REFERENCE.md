@@ -303,9 +303,10 @@ its data, styles and JavaScript, so inspection needs no game server or network.
 - **Separate preview cannot connect:** use the `?server=ws://127.0.0.1:8787/ws`
   URL above. Endpoint selection uses the URL override, then the saved browser
   setting, then `multiplayer-config.json`.
-- **Old or failed map load:** rebuild, then use Help → Refresh map data. This
-  clears the `sf-static-world` IndexedDB cache without deleting character identity
-  or server progress. Deploy both the HTML and compiled map chunks.
+- **Old or failed map load:** rebuild and deploy both the HTML and compiled map
+  chunks. If the loading error screen appears, use **Reload map data** to clear
+  the `sf-static-world` IndexedDB cache. Character identity and server progress
+  are unaffected.
 - **Map or performance diagnosis:** inspect `SFMapDiagnostics.streaming`,
   `SFMapDiagnostics.navigation` and `SFMapDiagnostics.report` in the browser
   console. `:debug` shows coordinates and rendering FPS in the game.

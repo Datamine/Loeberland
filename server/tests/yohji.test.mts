@@ -85,6 +85,7 @@ test('Yohji will not create clothing without a real hide, and legacy ice gear re
   const game = await createGame({ geometry, store: createMemoryStore() }),
     a = await player(game, 8303, {
       'sf-purse-v1': '{"coins":25,"ownedEquipment":["ice-top","ice-pants"]}',
+      'sf-expeditions-v1': '{}',
       'sf-character-v1': '{"iceTop":true,"icePants":true}',
     });
   try {

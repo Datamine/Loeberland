@@ -1,7 +1,11 @@
-import type { Mesh } from './geometry.ts';
+import { rand, type Mesh } from './geometry.ts';
 
 /** Coastal village reached on foot through the Marin headlands. */
 export const BOLINAS = Object.freeze({ x: -8, z: -48, entry: { x: -7.5, y: -43.5 } });
+export const BOLINAS_BEACH = Object.freeze({
+  id: 'bolinas-beach',
+  entry: { x: -13.5, y: -48.5 },
+});
 export const EMF_WARRIOR = Object.freeze({
   id: 'bolinas-emf-warrior',
   combatKind: 'emf-warrior',
@@ -24,6 +28,17 @@ export const BOLINAS_PATH = Object.freeze([
   [-7, -44] satisfies [number, number],
   [-7, -55] satisfies [number, number],
 ]);
+export function bolinasBeachBlend(x: number, z: number) {
+  const shore = -12 + 0.3 * (z + 37.5);
+  const inland = (x - shore) / 5.7;
+  const length = Math.abs(z + 49.5) / 9;
+  const weight = Math.max(0, Math.min(1, (1 - Math.max(inland, length)) * 3));
+  return weight * weight * (3 - 2 * weight);
+}
+export function bolinasBeachHeight(x: number, z: number) {
+  const shore = -12 + 0.3 * (z + 37.5);
+  return 0.035 + Math.max(0, x - shore) * 0.115;
+}
 export function bolinasBlocks(x: number, z: number) {
   return (
     (Math.abs(x + 4.55) < 1.05 && Math.abs(z + 55.35) < 0.78) ||
@@ -58,7 +73,7 @@ export function drawBolinas(
         );
       }
   }
-  for (const h of BOLINAS_COTTAGES) {
+  for (const [index, h] of BOLINAS_COTTAGES.entries()) {
     const y = ground(h.x, h.z);
     m.box(h.x - 1.44, y - 0.38, h.z - 1.14, 2.88, 0.48, 2.28, '#888378', 'marinRock');
     m.box(h.x - 1.4, y, h.z - 1.1, 2.8, 1.8, 2.2, h.color, 'clapboard');
@@ -77,8 +92,8 @@ export function drawBolinas(
         [h.x + 1.6, y + 1.75, h.z + side * 1.3] satisfies [number, number, number],
         [h.x + 1.6, y + 2.65, h.z] satisfies [number, number, number],
         [h.x - 1.6, y + 2.65, h.z] satisfies [number, number, number],
-        '#596d6c',
-        'roof',
+        ['#526b6c', '#806450', '#5c6273', '#5f765d'][index],
+        'roofTile',
       );
       const xx = h.x + side * 0.85;
       m.box(xx - 0.31, y + 0.78, h.z + 1.11, 0.62, 0.62, 0.05, '#d2bd96', 'wood');
@@ -124,6 +139,80 @@ export function drawBolinas(
       z = -48.5,
       y = ground(x, z);
     m.box(x, y, z, 0.05, 0.6, 0.05, '#c6b78f', 'wood');
+  }
+  // Weathered boardwalk follows the cove without flattening its dunes.
+  for (let i = 0; i < 28; i++) {
+    const z = -44.5 - i * 0.34;
+    const x = -14.25 + (z + 48) * 0.22;
+    const y = ground(x, z);
+    m.box(
+      x - 0.37,
+      y + 0.014,
+      z,
+      0.74,
+      0.052,
+      0.31,
+      ['#a48b6b', '#b19b7c', '#927e62'][i % 3],
+      'marinTimber',
+    );
+    if (i % 3 === 0) {
+      m.box(x - 0.41, y, z, 0.06, 0.38, 0.06, '#74644f', 'wood');
+      m.sphere(
+        x + 0.59,
+        ground(x + 0.59, z) + 0.08,
+        z,
+        0.21,
+        0.15,
+        0.24,
+        '#817c6f',
+        7,
+        4,
+        'marinRock',
+      );
+    }
+  }
+  // Porch awnings, driftwood planters and low coastal vegetation.
+  for (const [i, cottage] of BOLINAS_COTTAGES.entries()) {
+    const y = ground(cottage.x, cottage.z);
+    for (let k = 0; k < 9; k++)
+      m.box(
+        cottage.x - 0.89 + k * 0.198,
+        y + 1.57,
+        cottage.z + 1.12,
+        0.198,
+        0.045,
+        0.45,
+        k % 2 ? '#d9c6a3' : ['#a76254', '#48756f', '#87734a', '#526b80'][i],
+        'canvasWeave',
+      );
+    for (const dx of [-1.17, 1.17])
+      m.box(
+        cottage.x + dx - 0.09,
+        y + 0.03,
+        cottage.z + 1.35,
+        0.18,
+        0.23,
+        0.22,
+        '#b27c62',
+        'brick',
+      );
+  }
+  for (let i = 0; i < 56; i++) {
+    const z = -43.5 - rand(i, 71) * 11.8;
+    const x = -14.2 + rand(i, 37) * 4.2;
+    if (bolinasBlocks(x, z) || Math.abs(x - (-14.25 + (z + 48) * 0.22)) < 0.62) continue;
+    const y = ground(x, z);
+    for (let n = 0; n < 4; n++) {
+      const a = n * 1.57 + i;
+      const dx = Math.cos(a) * 0.12,
+        dz = Math.sin(a) * 0.12;
+      m.tri(
+        [x - 0.04, y, z],
+        [x + dx, y + 0.21 + rand(i, n) * 0.2, z + dz],
+        [x + 0.04, y, z + 0.04],
+        ['#817d4b', '#aa9d5c', '#71805a'][i % 3],
+      );
+    }
   }
   drawWarriorCamp(m, ground);
   // An improvised antenna garden beside the warrior's patch of grass.

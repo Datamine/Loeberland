@@ -8,7 +8,6 @@ import { FERRARI_SPEED } from '../ferrari.ts';
 import { createActorAnimation } from '../animation-presentation.ts';
 import { serverConnected } from '../server-connection.ts';
 import { createDuelMenu } from '../finance-ui.ts';
-import { DUEL_ARENA, atDuelArena } from '../duel-layout.ts';
 import { TABLET_PLACES } from '../teleport-tablets.ts';
 import { ownedHat } from '../hat-catalog.ts';
 import { PEQUOD } from '../jurassic-layout.ts';
@@ -17,6 +16,8 @@ import { createWorldMultiplayer, setupMultiplayerSettings } from '../multiplayer
 import { interpolateGamePresentation, createRocketPresentation } from '../multiplayer-actions.ts';
 import { MP_ENTITY_INTERPOLATION_MS } from '../multiplayer-protocol.ts';
 import { normalizeCharacter } from '../character-config.ts';
+import { POLICE_PURSUIT_SECONDS } from '../encounters.ts';
+import { chairForGesture } from '../goblin-town.ts';
 
 /** Network services for the browser scene.
  * Dependencies are explicit live scene bindings, preserving initialization
@@ -33,14 +34,22 @@ export function createNetwork(context: WorldContext) {
       personalShipSource: PersonalSnapshot['ship'] | null = null,
       personalShipTime = 0;
     const playerAnimation = createActorAnimation();
+    let wasCycling = false;
     context.multiplayer.subscribe((message) => {
       if (message.type === 'instance') {
         priorPersonalShip = currentPersonalShip = personalShipSource = null;
       }
     });
     const rocketPresentation = createRocketPresentation({ groundHeight: context.characterGround });
+    function updateCustodyBanner(jailed = false) {
+      context.$('sf-custody').hidden =
+        !jailed ||
+        context.capture.state.active ||
+        !context.detention.walkable(context.player.x + 0.5, context.player.y + 0.5);
+    }
     function showTravel(travel: PersonalSnapshot['travel'] | null) {
       if (!travel) return;
+      context.player.waymoCab = travel.waymo;
       const rocketPhase = context.rocket.state.active ? context.rocket.state.phase : null,
         tahoeMode = context.tahoe.state.mode;
       const presentedRocket = rocketPresentation.sample();
@@ -53,18 +62,32 @@ export function createNetwork(context: WorldContext) {
       if (tahoeMode !== context.tahoe.state.mode) context.updateTahoeButton();
       const wasActive = context.sutroClimb.state.active,
         phase = context.sutroClimb.state.phase;
-      if (travel.sutro) Object.assign(context.sutroClimb.state, travel.sutro);
-      else Object.assign(context.sutroClimb.state, { active: false, phase: 'ground' });
+      if (travel.sutro?.active && travel.sutro.position && travel.sutro.pose)
+        Object.assign(context.sutroClimb.state, travel.sutro);
+      else
+        Object.assign(context.sutroClimb.state, {
+          active: false,
+          phase: 'ground',
+          position: null,
+          pose: null,
+        });
       if (
         wasActive !== context.sutroClimb.state.active ||
         phase !== context.sutroClimb.state.phase
       ) {
         context.updateClimbButton();
         if (wasActive && !context.sutroClimb.state.active)
-          context.announce('You step off the Sutro Tower ladder and return to the trail.', 'You');
+          context.announce(
+            contentText(
+              'world-message.src.world.network.you-step-off-the-sutro-tower-ladder-and-return-to-the-trail',
+            ),
+            'You',
+          );
         else if (phase !== 'top' && context.sutroClimb.state.phase === 'top')
           context.announce(
-            'You reach the upper platform of Sutro Tower. Use the arrows to look around; Climb down or E returns to the ground.',
+            contentText(
+              'world-message.src.world.network.you-reach-the-upper-platform-of-sutro-tower-use-the-arrows-to',
+            ),
             'You',
           );
       }
@@ -85,25 +108,12 @@ export function createNetwork(context: WorldContext) {
       },
       true,
     );
-    context.multiplayerSettings = setupMultiplayerSettings(context.multiplayer, {
-      showCharacter: context.showCharacter,
-      announce: context.announce,
-    });
+    context.multiplayerSettings = setupMultiplayerSettings(context.multiplayer);
     context.duelMenu = createDuelMenu({
       element: context.$('sf-duel'),
       client: context.multiplayer,
       player: context.player,
       announce: context.announce,
-    });
-    context.$('sf-duel-button').addEventListener('click', () => {
-      if (atDuelArena(context.player.x + 0.5, context.player.y + 0.5))
-        requiredValue(context.duelMenu, 'Duel menu').open();
-      else {
-        context.walkTo(DUEL_ARENA.entry.x, DUEL_ARENA.entry.y, () =>
-          requiredValue(context.duelMenu, 'Duel menu').open(),
-        );
-        context.announce('Walking to the Duel Arena gardens.', 'You');
-      }
     });
     for (const id of TABLET_PLACES)
       context.$('sf-tablet-' + id).addEventListener('click', () => context.useTeleportTablet(id));
@@ -181,6 +191,10 @@ export function createNetwork(context: WorldContext) {
         resolvePitch: (m) => context.dialogue.resolvePending(m.id || '', m.message),
       },
       applyPlayerState: (fields, state) => {
+        if (state?.vehicle?.bicycle) {
+          Object.assign(context.bike, state.vehicle.bicycle);
+          context.updateBikeButton();
+        }
         if (state?.ship && personalShipSource !== state.ship) {
           personalShipSource = state.ship;
           priorPersonalShip = currentPersonalShip || state.ship;
@@ -203,13 +217,24 @@ export function createNetwork(context: WorldContext) {
         if (state?.training !== undefined) context.training = state.training;
         if (fields['sf-sunglasses-v1']) context.updateSunglassesControl();
         if (state?.police) {
+          const elapsed = state.police.wanted ? (state.police.elapsed ?? 0) : 0;
+          const seconds = Math.max(1, Math.ceil(POLICE_PURSUIT_SECONDS - elapsed));
+          const countdown = context.$('sf-wanted-countdown');
+          const text = seconds + 's';
+          if (countdown.textContent !== text) countdown.textContent = text;
           context.$('sf-wanted').hidden = !state.police.wanted;
-          context.$('sf-custody').hidden = !state.police.jailed;
+          updateCustodyBanner(state.police.jailed);
         }
         context.questMenu?.render();
         context.updateAdventureUI();
       },
       applyServerPose: (p) => {
+        const cycling = p.mode === 'bike';
+        if (cycling !== wasCycling) {
+          wasCycling = cycling;
+          context.bike.riding = cycling;
+          context.updateBikeButton();
+        }
         if (p.gesture === 'work' && !context.player.serverWorking)
           context.player.gesture = {
             name: contentText('world.network.setupWorldMultiplayer.name-1', {}),
@@ -247,12 +272,14 @@ export function createNetwork(context: WorldContext) {
           angle: p.angle,
           phase: p.phase,
           motion: animation.motion,
+          atvTravel: animation.atvTravel,
+          motorcycleTrick: p.mode === 'motorcycle' ? animation : undefined,
           moving: !!p.moving,
           runBlend: animation.run,
           speed: p.moving ? context.WALK_SPEED : 0,
         });
-        context.player.ballChair = p.mode === 'sit' && p.gesture === 'chair';
-        context.player.benchSeat = p.mode === 'bench' || context.player.ballChair;
+        context.player.chair = p.mode === 'sit' ? chairForGesture(p.gesture) : undefined;
+        context.player.benchSeat = p.mode === 'bench' || !!context.player.chair;
         context.setSitting(p.mode === 'sit' || p.mode === 'bench', true);
         if (context.rocket.state.active) {
           const position = requiredValue(context.rocket.state.position, 'Active rocket position'),
@@ -433,6 +460,7 @@ export function createNetwork(context: WorldContext) {
         context.beginCapture(source === 'tiger' ? 'tiger' : 'alien', context.respawnAtHospital);
       },
       onPosition: (p) => {
+        context.cancelMovingInteraction(false);
         if (
           context.capture.state.active &&
           (['respawn', 'jail'] satisfies [string, string]).includes(p.reason || '')
@@ -453,6 +481,7 @@ export function createNetwork(context: WorldContext) {
           moving: false,
           motion: 0,
         });
+        updateCustodyBanner(context.chase.state.jailed);
         context.action = null;
         context.destination = null;
         if (p.reason === 'disembark' || p.reason === 'landed') {
@@ -467,9 +496,6 @@ export function createNetwork(context: WorldContext) {
 
   function publishMultiplayerPose() {
     if (!context.multiplayerWorld || !serverConnected(context.multiplayer)) return;
-    if (context.chase.state.jailed && !context.sentMultiplayerCustody)
-      context.multiplayer.command('personalTransit', { kind: 'jail' });
-    context.sentMultiplayerCustody = context.chase.state.jailed;
     const mode = context.tabletService?.state.active
       ? 'teleport'
       : context.secretWorld?.bomber.state.active

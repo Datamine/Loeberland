@@ -1,3 +1,4 @@
+import { contentText } from './content-runtime.ts';
 import { requiredValue } from './types/assert.ts';
 import type { ActionReceipt } from './types/world.ts';
 interface InterviewUIOptions {
@@ -61,8 +62,11 @@ export function createAIInterviewUI({
         ok: true,
         message:
           game.state.score >= AI_INTERVIEW_PASS_SCORE
-            ? 'You got the job! Welcome to the AI Lab.'
-            : 'Score: ' + game.state.score + '. You need 40 or more for the job.',
+            ? contentText('world-message.src.ai-interview-ui.you-got-the-job-welcome-to-the-ai-lab')
+            : contentText(
+                'world-message.src.ai-interview-ui.score-you-need-40-or-more-for-the-job',
+                { score: String(game.state.score) },
+              ),
       };
       $('sf-interview-result').textContent = result.message || 'The interview could not begin.';
       onResult(result);

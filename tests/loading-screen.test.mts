@@ -27,6 +27,7 @@ function fixture(returningCharacter: boolean) {
     elements: Record<string, ReturnType<typeof node>> = {
       '[data-loading-username]': form,
       '[data-loading-play]': play,
+      '[data-character-login-link]': node(),
       '[data-loading-percent]': node(),
       '[data-loading-stage]': node(),
       progress: node(),
@@ -54,19 +55,25 @@ function fixture(returningCharacter: boolean) {
     element,
     form,
     play,
+    login: elements['[data-character-login-link]'],
     get renames() {
       return renames;
     },
   };
 }
-test('returning characters skip the name picker and enter after initialization, including generated names', async () => {
+test('returning characters can play or log in without going through the name picker', async () => {
   const previous = globalThis.requestAnimationFrame;
   globalThis.requestAnimationFrame = (callback) => setTimeout(callback, 0);
   const f = fixture(true);
   try {
-    await f.loading.done();
-    assert.equal(f.element.hidden, true);
+    const entering = f.loading.done();
+    await new Promise((resolve) => setTimeout(resolve, 20));
     assert.equal(f.form.hidden, true);
+    assert.equal(f.play.hidden, false);
+    assert.equal(f.login.hidden, false);
+    await f.play.click();
+    await entering;
+    assert.equal(f.element.hidden, true);
     assert.equal(f.renames, 0);
   } finally {
     f.loading.hide();

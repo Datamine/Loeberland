@@ -1,3 +1,4 @@
+import { contentText } from './content-runtime.ts';
 import type { RocketState } from './rocket.ts';
 import type { PersonalSnapshot, ServerEvent } from './types/network.ts';
 import type { PlayerRuntime } from './types/player-runtime.ts';
@@ -132,7 +133,12 @@ export function createMultiplayerActions({
       if (r.message) announce(r.message, r.ok ? 'You' : 'Server');
       return r;
     });
-    return { ok: true, pending: true, message: 'Waiting for the server…', promise };
+    return {
+      ok: true,
+      pending: true,
+      message: contentText('world-message.src.multiplayer-actions.waiting-for-the-server'),
+      promise,
+    };
   }
   function apply(
     fields: Record<string, unknown> = {},

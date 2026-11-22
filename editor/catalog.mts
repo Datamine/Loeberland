@@ -22,7 +22,7 @@ import {
 } from '../src/interaction-targets.ts';
 import { createInteractions } from '../src/world/interactions.ts';
 import { actionTargetKind } from '../src/context-menu.ts';
-import { npcDisplayLabel, npcContextActions } from '../src/npc-interactions.ts';
+import { npcDisplayLabel, npcContextActions, npcPrimaryVerb } from '../src/npc-interactions.ts';
 import { actorLevel } from '../src/levels.ts';
 import { describeCharacter } from '../src/descriptions.ts';
 import { createEconomy } from '../src/economy.ts';
@@ -136,7 +136,6 @@ export function collectTargets(world: PreviewWorld) {
       label: 'Street / unlabelled scenery',
       kind: 'ground',
       entry: world.spawn,
-      description: 'Unlabelled scenery uses the ground action menu.',
     },
     'ground',
   );
@@ -298,6 +297,7 @@ function contextFor(
     strength: { state: { funded: !!profile.funded }, claim: noop },
     keys: new Set(),
     training: !!profile.training,
+    gymSelection: 'bench',
     dialogue: {
       active: false,
       open(person: RuntimeDialogue) {
@@ -320,19 +320,7 @@ function contextFor(
         level: actorLevel(n),
         revealed: !!(n.alienId && profile.theyLive?.started),
       }),
-    npcPrimary: (n: PreviewEntity) =>
-      n.wilderness
-        ? n.combatKind === 'bear'
-          ? 'pet'
-          : 'attack'
-        : n.police
-          ? 'examine'
-          : (['raptor', 'cow', 'kraken'] satisfies [string, string, string]).includes(
-                n.combatKind || '',
-              ) ||
-              (n.alienId && profile.theyLive?.started)
-            ? 'attack'
-            : 'talk',
+    npcPrimary: (n: PreviewEntity) => npcPrimaryVerb(n, !!(n.alienId && profile.theyLive?.started)),
     merchantApproach: () => ({ x: player.x, y: player.y }),
     playerGround: () => npc.base || 0,
     clearAt: () => true,
@@ -509,11 +497,14 @@ export async function inspectTarget(
               skin: target.entity.skin,
               shirt: target.entity.shirt,
               hair: target.entity.hair,
+              hairstyle: target.entity.hairstyle,
+              longHair: target.entity.longHair,
               pants: target.entity.pants,
               female: target.entity.female,
               gender: target.entity.female ? 'woman' : 'man',
               hat: target.entity.hat,
               cap: target.entity.cap,
+              topHat: target.entity.topHat,
               chef: target.entity.kind === 'chef',
               coat: target.entity.coat,
             }

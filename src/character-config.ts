@@ -1,14 +1,12 @@
 import { isFiniteNumber, isRecord, isOneOf } from './types/json.ts';
-import type { CharacterAppearance } from './characters.ts';
 
 import { clothingSelection } from './clothing.ts';
 import { hatById } from './hat-catalog.ts';
 import { Mesh } from './geometry.ts';
 import { drawCharacter } from './characters.ts';
 import { drawKrakenCape } from './jurassic-models.ts';
-import { drawWildMonster } from './wilderness-models.ts';
 import { HAIRSTYLES } from './config/hairstyles.ts';
-import { PLAYER_WEAPONS } from './item-stats.ts';
+import { normalizeBoots, PLAYER_WEAPONS } from './item-stats.ts';
 
 export const CHARACTER_DEFAULTS = Object.freeze({
   gender: 'man',
@@ -35,11 +33,13 @@ export const CHARACTER_DEFAULTS = Object.freeze({
   tinfoil: false,
 });
 export type CharacterSettings = {
-  -readonly [K in keyof typeof CHARACTER_DEFAULTS]: (typeof CHARACTER_DEFAULTS)[K] extends string
-    ? string
-    : (typeof CHARACTER_DEFAULTS)[K] extends boolean
-      ? boolean
-      : number;
+  -readonly [K in keyof typeof CHARACTER_DEFAULTS]: K extends 'boots'
+    ? boolean | 'party-boots'
+    : (typeof CHARACTER_DEFAULTS)[K] extends string
+      ? string
+      : (typeof CHARACTER_DEFAULTS)[K] extends boolean
+        ? boolean
+        : number;
 } & { gender: 'man' | 'woman' };
 export function normalizeCharacter(input: unknown = {}): CharacterSettings {
   const value = isRecord(input) ? input : {};
@@ -62,14 +62,15 @@ export function normalizeCharacter(input: unknown = {}): CharacterSettings {
     : value?.cape === true
       ? 'cape'
       : 'none';
-  result.neck = value?.neck === 'clock-amulet' ? 'clock-amulet' : 'none';
+  result.neck =
+    value?.neck === 'clock-amulet' || value?.neck === 'recoil-amulet' ? value.neck : 'none';
   result.cape = result.back === 'cape';
   result.rocketBurnUntil = isFiniteNumber(value?.rocketBurnUntil)
     ? Math.max(0, value.rocketBurnUntil)
     : 0;
   result.hat = hatById(typeof value.hat === 'string' ? value.hat : undefined)?.id || 'none';
   result.weapon = isOneOf(PLAYER_WEAPONS, value.weapon) ? value.weapon : 'unarmed';
-  result.boots = value?.boots === true;
+  result.boots = normalizeBoots(value.boots);
   result.iceTop = value?.iceTop === true;
   result.icePants = value?.icePants === true;
   return Object.assign(result, clothingSelection(value));
@@ -79,6 +80,7 @@ export function characterAppearance(settings: CharacterSettings & { phone?: bool
   return {
     ...settings,
     railgun: settings.weapon === 'railgun',
+    bayonet: settings.weapon === 'bayonet',
     battleaxe: settings.weapon === 'battleaxe',
     rollingPin: settings.weapon === 'rolling-pin',
     akibo: settings.weapon === 'akibo',
@@ -138,82 +140,6 @@ export function drawCharacterPreview(
       'rgb(' + t.color.map((v) => Math.round(Math.min(1, v * t.light) * 255)).join(',') + ')';
     ctx.beginPath();
     t.points.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
-    ctx.closePath();
-    ctx.fill();
-  }
-}
-
-export function drawChatHead(
-  canvas: HTMLCanvasElement,
-  person: CharacterAppearance & { combatKind?: string; kind?: string },
-) {
-  const ctx = canvas.getContext?.('2d');
-  if (!ctx) return;
-  const settings = normalizeCharacter({
-      ...person,
-      gender: person.female ? 'woman' : person.gender,
-      back: 'none',
-    }),
-    m = new Mesh();
-  const mechanic = person.kind === 'atv-rental';
-  const goblin = mechanic || person.combatKind === 'goblin-maker',
-    headBottom = goblin ? 0.88 : 1.43;
-  if (goblin) {
-    drawWildMonster(m, {
-      combatKind: mechanic ? 'goblin' : 'goblin-maker',
-      modelVariant: mechanic ? 'mechanic' : undefined,
-      x: 0,
-      z: 0,
-      base: 0,
-      angle: Math.PI / 2 + 0.16,
-    });
-  } else {
-    drawCharacter(m, 0, 0, 0, Math.PI / 2 + 0.16, 0, false, settings.skin, settings.shirt, {
-      ...person,
-      ...characterAppearance(settings),
-      height: 1,
-      mode: 'idle',
-      backpack: false,
-      railgun: false,
-      bayonet: false,
-      battleaxe: false,
-      rollingPin: false,
-      akibo: false,
-      motion: 0,
-    });
-  }
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  let headTop = goblin ? 1.24 : 1.82;
-  for (let i = 1; i < m.data.length; i += 11) headTop = Math.max(headTop, m.data[i]);
-  const triangles = [],
-    scale = Math.min(
-      canvas.width / (goblin ? 1.12 : 0.48),
-      (canvas.height * 0.84) / (headTop - headBottom),
-    );
-  for (let i = 0; i < m.data.length; i += 33) {
-    if (Math.max(m.data[i + 1], m.data[i + 12], m.data[i + 23]) < headBottom) continue;
-    const points = ([0, 11, 22] satisfies [number, number, number]).map(
-      (k) =>
-        [
-          canvas.width / 2 + m.data[i + k] * scale,
-          canvas.height * 0.08 +
-            (headTop - m.data[i + k + 1]) * scale -
-            m.data[i + k + 2] * scale * 0.08,
-        ] satisfies [number, number],
-    );
-    triangles.push({
-      points,
-      depth: (m.data[i + 2] + m.data[i + 13] + m.data[i + 24]) / 3,
-      color: m.data.slice(i + 6, i + 9),
-      light: 0.7 + Math.max(0, m.data[i + 4] * 0.6 + m.data[i + 5] * 0.6) * 0.3,
-    });
-  }
-  triangles.sort((a, b) => a.depth - b.depth);
-  for (const t of triangles) {
-    ctx.fillStyle =
-      'rgb(' + t.color.map((c) => Math.round(Math.min(1, c * t.light) * 255)).join(',') + ')';
-    ctx.beginPath();
-    t.points.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
     ctx.closePath();
     ctx.fill();
   }

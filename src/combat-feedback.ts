@@ -3,6 +3,7 @@ export interface CombatHit {
   id: number;
   damage: number;
   ttl: number;
+  other?: boolean;
 }
 export interface FeedbackActor<T extends object> {
   target: T;
@@ -35,13 +36,14 @@ export function createCombatFeedback<T extends object = object>() {
     show(target: T, hp: number, max: number) {
       track(target, hp, max).ttl = COMBAT_BAR_SECONDS;
     },
-    hit(target: T, damage: number, hp: number, max: number) {
+    hit(target: T, damage: number, hp: number, max: number, other = false) {
       const actor = track(target, hp, max);
       actor.ttl = actor.hp ? COMBAT_BAR_SECONDS : COMBAT_SPLAT_SECONDS;
       actor.hits.push({
         id: ++serial,
         damage: Math.max(0, Math.floor(damage)),
         ttl: COMBAT_SPLAT_SECONDS,
+        other,
       });
       if (actor.hits.length > 4) actor.hits.shift();
     },
@@ -130,6 +132,7 @@ export function createCombatOverlay(element: HTMLDivElement) {
           splat.hidden = false;
           splat.textContent = String(hit.damage);
           splat.dataset.miss = String(hit.damage === 0);
+          splat.dataset.other = String(hit.other === true);
           splat.style.transform =
             'translate(' + lane * 19 + 'px,' + (30 - age * 17 + (i % 2) * 9) + 'px)';
           splat.style.opacity = String(Math.min(1, hit.ttl / 0.22));

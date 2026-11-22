@@ -14,6 +14,7 @@ export const WORLD_FIELDS = Object.freeze({
     'hold',
     'level',
     'showStartedAt',
+    'bicycleTaken',
   ] as const,
   traffic: ['x', 'z', 'angle'] as const,
   cows: ['x', 'z', 'base', 'angle', 'hp', 'max', 'respawn', 'phase', 'motion'] as const,
@@ -31,6 +32,7 @@ export const WORLD_FIELDS = Object.freeze({
     'affection',
     'level',
     'combatKind',
+    'attackAnimation',
   ] as const,
   loot: [
     'kind',

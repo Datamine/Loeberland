@@ -279,6 +279,26 @@ export function drawHighwaySites(m: Mesh, car: HighwayCar, sites: HighwaySite[],
     pose(m, x, base, z, angle, () => {
       m.box(-2.4, -0.1, -1.9, 4.8, 0.12, 3.8, '#9ca6a3', 'concrete');
       if (site.kind === 'burger' || site.kind === 'dealership') {
+        m.box(-2.38, 0.015, 1.43, 4.76, 0.045, 0.46, '#c3b498', 'brick');
+        m.box(-2.38, 0.047, 1.82, 4.76, 0.042, 0.065, '#9b6e55', 'brick');
+        for (const side of [-1, 1]) {
+          const x = side * 1.82;
+          m.box(x - 0.36, 0.06, 1.52, 0.72, 0.25, 0.28, '#9e7359', 'brick');
+          for (let sprig = 0; sprig < 5; sprig++) {
+            const u = x - 0.24 + sprig * 0.12;
+            m.sphere(
+              u,
+              0.34,
+              1.66,
+              0.145,
+              0.16 + (sprig % 2) * 0.09,
+              0.135,
+              sprig % 2 ? '#607b59' : '#829369',
+              8,
+              5,
+            );
+          }
+        }
         m.box(
           -2,
           0.02,
@@ -286,10 +306,10 @@ export function drawHighwaySites(m: Mesh, car: HighwayCar, sites: HighwaySite[],
           4,
           1.7,
           2.8,
-          site.kind === 'burger' ? '#e3d9bd' : '#a3acb2',
+          site.kind === 'burger' ? '#e3d9bd' : '#a4b5ab',
           'stucco',
         );
-        m.box(-2.1, 1.72, -1.5, 4.2, 0.15, 3, site.kind === 'burger' ? '#bc4c43' : '#596c79');
+        m.box(-2.1, 1.72, -1.5, 4.2, 0.15, 3, site.kind === 'burger' ? '#bc4c43' : '#527976');
         for (let i = 0; i < 4; i++)
           drawFacadeWindow(m, {
             plane: 1.41,

@@ -240,7 +240,7 @@ test('professor quest branches come from the actual dispatcher without modifying
       (c) => c.label === 'Accept quest' && c.binding,
     ),
   );
-  assert.ok(requiredFixture(requiredFixture(start).dialogue).choices.some((c) => c.sharedPool));
+  assert.ok(requiredFixture(requiredFixture(start).dialogue).choices.every((c) => !c.sharedPool));
   assert.ok(
     requiredFixture(
       requiredFixture(r.dialogues.find((v) => v.states.includes('Monkey quest: carrying')))

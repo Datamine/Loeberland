@@ -1,3 +1,4 @@
+import { contentText } from '../src/content-runtime.ts';
 import '../src/types/assert.ts';
 import type { SimulationServices, ServerPlayer, ServerGeometry } from '../src/types/server.ts';
 import { createGuildMembership, insideGuild } from '../src/guild.ts';
@@ -24,7 +25,10 @@ export function guildAction(
       p.mode,
     )
   )
-    return { ok: false, message: 'Speak to Ray at the Freemasons’ Guild first.' };
+    return {
+      ok: false,
+      message: contentText('world-message.server.guild.speak-to-ray-at-the-freemasons-guild-first'),
+    };
   const membership = createGuildMembership(p.profile.guild, now, (saved) => {
     p.profile.guild = saved;
     dirty(p);

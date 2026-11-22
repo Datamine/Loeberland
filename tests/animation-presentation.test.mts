@@ -3,6 +3,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createActorAnimation, GESTURE_SECONDS } from '../src/animation-presentation.ts';
 import { drawRemotePlayer } from '../src/remote-player-models.ts';
+import { drawATV } from '../src/atv-model.ts';
+import { MOTORCYCLE_TRICKS } from '../src/motorcycle.ts';
 import { Mesh } from '../src/geometry.ts';
 import { drawCharacter, sampleCharacterPose } from '../src/characters.ts';
 import { characterAppearance, normalizeCharacter } from '../src/character-config.ts';
@@ -13,6 +15,7 @@ import {
   decodePlayerFrame,
 } from '../src/multiplayer-protocol.ts';
 import { interpolateNetworkPose } from '../src/multiplayer-client.ts';
+import type { AnimationFrame } from '../src/types/animation.ts';
 
 const pose = (
   extra:
@@ -40,6 +43,27 @@ const pose = (
   ...extra,
 });
 const look = characterAppearance(normalizeCharacter({ weapon: 'railgun' }));
+
+test('ATV wheels roll with travel and hold their angle at a stop', () => {
+  const animation = createActorAnimation();
+  const sample = (x: number, z: number, time: number, mode = 'atv') =>
+    animation.sample({ x, z, mode }, time).atvTravel;
+  const wheelMesh = (travel: number) => {
+    const mesh = new Mesh();
+    drawATV(mesh, 0, 0, 0, 0, travel);
+    return mesh.data;
+  };
+  const parked = sample(0, 0, 0);
+  const rolling = sample(0.3, 0, 50);
+  assert.equal(parked, 0);
+  assert.equal(rolling, 0.3);
+  assert.notDeepEqual(wheelMesh(rolling), wheelMesh(parked));
+  assert.equal(sample(0.3, 0, 100), rolling);
+  assert.equal(sample(0.3, 0.4, 150), 0.7);
+  assert.equal(sample(30, 40, 200), 0.7, 'position corrections do not spin the wheels');
+  assert.equal(sample(30, 40, 250, 'walk'), 0);
+});
+
 function meshBounds(m: Mesh) {
   const low = [Infinity, Infinity, Infinity] satisfies [number, number, number],
     high = low.map(() => -Infinity);
@@ -50,6 +74,26 @@ function meshBounds(m: Mesh) {
     }
   return { low, high };
 }
+
+test('motorcycle trick gestures animate the mounted mesh and return it to the road', () => {
+  const p = pose({ mode: 'motorcycle' });
+  const draw = (animation: AnimationFrame) => {
+    const mesh = new Mesh();
+    drawRemotePlayer(mesh, p, 0, { look, animation });
+    return meshBounds(mesh);
+  };
+  const idle = draw(createActorAnimation().sample(p, 0));
+  const peaks = MOTORCYCLE_TRICKS.map(({ id, duration }) => {
+    const animation = createActorAnimation();
+    assert.deepEqual(draw(animation.sample({ ...p, gesture: id }, 0)), idle);
+    const peak = draw(animation.sample({ ...p, gesture: id }, duration * 500));
+    assert.notDeepEqual(peak, idle);
+    assert.deepEqual(draw(animation.sample(p, duration * 1000 + 1)), idle);
+    return peak;
+  });
+  assert.ok(peaks[2].low[1] > idle.low[1] + 0.5, 'the hop lifts both wheels');
+  assert.notDeepEqual(peaks[0], peaks[1], 'the two axle pivots produce different poses');
+});
 
 test('short network gestures advance between packets and finish even when the server clears them', () => {
   for (const [gesture, duration] of Object.entries(GESTURE_SECONDS)) {

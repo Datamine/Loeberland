@@ -28,6 +28,7 @@ export function createComponentTracker() {
     instance: '',
     training: false,
     jailed: false,
+    atvRentalUntil: 0,
     publish<T>(key: string, fields: readonly unknown[], capture: () => T): ComponentEntry<T> {
       const previous = entries.get(key);
       if (
@@ -82,6 +83,7 @@ export function createPlayerComponents({
       police = r.police.state,
       keeper = r.keeper.state;
     const active =
+      !!s.waymo ||
       fishing.active ||
       delivery.pending ||
       !!pitch ||
@@ -101,6 +103,7 @@ export function createPlayerComponents({
         ]
       ).includes(p.mode);
     const identity = p.instance?.id || 'world';
+    const atvRentalUntil = movement.activeATVRentalUntil(p);
     if (
       !active &&
       !tracker.wasActive &&
@@ -108,7 +111,8 @@ export function createPlayerComponents({
       tracker.mode === p.mode &&
       tracker.instance === identity &&
       tracker.training === !!p.training &&
-      tracker.jailed === !!p.personalJailed
+      tracker.jailed === !!p.personalJailed &&
+      tracker.atvRentalUntil === atvRentalUntil
     )
       return tracker.entries;
     Object.assign(tracker, {
@@ -118,6 +122,7 @@ export function createPlayerComponents({
       instance: identity,
       training: !!p.training,
       jailed: !!p.personalJailed,
+      atvRentalUntil,
     });
     const publish = tracker.publish;
     publish('training', [!!p.training], () => !!p.training);
@@ -157,10 +162,15 @@ export function createPlayerComponents({
       elapsed: keeper.elapsed,
       actor: actorView(keeper.actor),
     }));
-    publish('vehicle', [p.mode, s.ferrari?.state.fuel], () => ({
-      mode: p.mode,
-      fuel: s.ferrari?.state.fuel,
-    }));
+    publish(
+      'vehicle',
+      [p.mode, s.ferrari?.state.fuel, p.profile.bicycle?.x, p.profile.bicycle?.y],
+      () => ({
+        mode: p.mode,
+        fuel: s.ferrari?.state.fuel,
+        bicycle: p.profile.bicycle,
+      }),
+    );
     const rocket = s.rocket.state,
       tahoe = s.tahoeValue?.state,
       sutro = s.sutro.state,
@@ -185,6 +195,12 @@ export function createPlayerComponents({
         p.bomberActive && bomber.rollElapsed,
         s.mode,
         s.mode === 'surf' && shared.clock,
+        atvRentalUntil,
+        s.waymo?.x,
+        s.waymo?.z,
+        s.waymo?.angle,
+        s.waymo?.phase,
+        s.waymo?.expiresAt,
       ],
       () => travelState(p),
     );

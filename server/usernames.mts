@@ -1,3 +1,4 @@
+import { contentText } from '../src/content-runtime.ts';
 interface ValidName {
   ok: true;
   name: string;
@@ -148,10 +149,20 @@ const substitutions: Record<string, string> = {
 };
 export function normalizeUsername(value: unknown): ValidName | InvalidName {
   if (typeof value !== 'string')
-    return { ok: false, message: 'Choose a username with 1–12 letters, numbers, or underscores.' };
+    return {
+      ok: false,
+      message: contentText(
+        'world-message.server.usernames.choose-a-username-with-1-12-letters-numbers-or-underscores',
+      ),
+    };
   const name = value.normalize('NFKC').trim();
   if (!/^[A-Za-z0-9_]{1,12}$/.test(name))
-    return { ok: false, message: 'Use 1–12 letters, numbers, or underscores.' };
+    return {
+      ok: false,
+      message: contentText(
+        'world-message.server.usernames.use-1-12-letters-numbers-or-underscores',
+      ),
+    };
   const canonical = name.toLowerCase(),
     letters = canonical
       .replace(/[01345789]/g, (c) => substitutions[c])
@@ -179,7 +190,12 @@ export function normalizeUsername(value: unknown): ValidName | InvalidName {
       ).includes(v) || forbidden.some((word) => v.includes(word) || fold(v).includes(fold(word))),
   );
   if (bad || /^guest\d+$/i.test(name))
-    return { ok: false, message: 'That username is unavailable. Please choose another.' };
+    return {
+      ok: false,
+      message: contentText(
+        'world-message.server.usernames.that-username-is-unavailable-please-choose-another',
+      ),
+    };
   return { ok: true, name, canonical };
 }
 export function renameDecision({
@@ -209,13 +225,16 @@ export function renameDecision({
   if (lastChanged && now < lastChanged + RENAME_COOLDOWN_MS)
     return {
       ok: false,
-      message:
-        'Wait ' +
-        Math.ceil((lastChanged + RENAME_COOLDOWN_MS - now) / 1000) +
-        ' seconds before changing your username.',
+      message: contentText(
+        'world-message.server.usernames.wait-seconds-before-changing-your-username',
+        { value1: String(Math.ceil((lastChanged + RENAME_COOLDOWN_MS - now) / 1000)) },
+      ),
       retryAt: lastChanged + RENAME_COOLDOWN_MS,
     };
   if (takenBy && takenBy !== owner)
-    return { ok: false, message: 'That username is already taken.' };
+    return {
+      ok: false,
+      message: contentText('world-message.server.usernames.that-username-is-already-taken'),
+    };
   return { ...result, retryAt: now + RENAME_COOLDOWN_MS };
 }

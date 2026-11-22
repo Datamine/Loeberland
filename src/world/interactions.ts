@@ -1,7 +1,12 @@
+import { TRAMPOLINE } from '../backyard-details.ts';
+import { GAMEPLAY } from '../config/gameplay.ts';
+import { drawNPCChatHead } from '../chat-head.ts';
+import { MARKET_STREETCAR, STREETCAR_BOARD_RANGE } from '../market-streetcar.ts';
 import readerContent from '../config/reader-content.json' with { type: 'json' };
 import type {
   EditableEntity,
   InteractionSight,
+  InteractiveActor,
   ActionReceipt,
   RuntimeDialogue,
   Place,
@@ -13,31 +18,43 @@ import { hasSiteEntry, isLootTarget } from '../interaction-sights.ts';
 import { isFiniteNumber } from '../types/json.ts';
 import { requiredValue } from '../types/assert.ts';
 
-import type { WorldPoint } from '../types/geometry.ts';
+import type { CommandResult } from '../types/network.ts';
+import type { Point, WorldPoint } from '../types/geometry.ts';
 
 import type { ExpeditionEvent } from '../types/expeditions.ts';
 import type { WorldContext } from './scene.ts';
 // MENU-ACTION-IDS
 // CONTENT-BINDINGS-MIGRATED
 import { contentText } from '../content-runtime.ts';
-import { setActionText, actionTargetKind } from '../context-menu.ts';
+import {
+  setActionText,
+  actionTargetKind,
+  orderPrimaryActions,
+  placeEntryVerb,
+} from '../context-menu.ts';
 import { applyEntityEdits } from '../world-edits.ts';
 import { menuFromContent, compileEntityDialogue } from '../content-game.ts';
 import { dialogueChoices } from '../dialogue-choices.ts';
-import {
-  createAmbientDialogue,
-  withAmbientConversation,
-  GOOSE_CHAINS,
-} from '../dialogues/ambient.ts';
+import { createAmbientDialogue, childConversation } from '../dialogues/ambient.ts';
+import { FIGHTER_YARD } from '../fighter-yard-layout.ts';
+import { CONSTRUCTION_SITE } from '../construction-layout.ts';
+import { FISH_PER_MUD, GOBLIN_SPACE_PROGRAM, MUD_BATH } from '../goblin-space-layout.ts';
 import { configuredDialogue } from '../dialogue-config.ts';
 import { mapInteractionResult } from '../interaction-results.ts';
 import { neighborhoodShopDialogue } from '../neighborhood-interactions.ts';
 import { serverConnected, serverCommand } from '../server-connection.ts';
 import { growthDialogue } from '../finance-ui.ts';
 import { atDuelArena } from '../duel-layout.ts';
+import { ILLUMINATI_INSTANCE, instanceTile } from '../map-instances.ts';
 import { debugTilePosition } from '../debug-console.ts';
 import { dogSurfingDialogue } from '../dog-surfing.ts';
-import { selectedWeapon, equipmentOwned, railgunUnlocked } from '../item-stats.ts';
+import {
+  ITEM_STATS,
+  selectedWeapon,
+  equipmentOwned,
+  MISSILE_PRICE,
+  isProjectileWeapon,
+} from '../item-stats.ts';
 import { besideBear, bearPettingApproach } from '../wilderness.ts';
 import { softwareSalesDialogue } from '../sales-conference.ts';
 import { techMerchantDialogue } from '../tech-ventures.ts';
@@ -57,6 +74,7 @@ import { theyLiveDialogue } from '../they-live.ts';
 import { squareNPCDialogue } from '../times-square-life.ts';
 import { SKATE_TRICKS } from '../skateboard.ts';
 import { parrotDialogue } from '../parrots.ts';
+import { proofBuyerChoice, proofPrice } from '../stochastic-parrot.ts';
 import { rehabilitationDialogue } from '../rehabilitation.ts';
 import { railWorkerDialogue } from '../rail-works.ts';
 import { createResearchDialogue } from '../research-dialogue.ts';
@@ -65,6 +83,13 @@ import '../airship-basket.ts';
 import { airshipAttendantDialogue } from '../airship-rental.ts';
 import { AIRSHIP_RULES } from '../config/airship.ts';
 import { MERCHANTS } from '../economy.ts';
+import {
+  GOBLIN_INDUSTRIALIST,
+  GOBLIN_PHONE_BUYER,
+  GOBLIN_PHONE_RESALE,
+  CLOTHIER_ITEMS,
+  ROBE_SELLER,
+} from '../goblin-industrialist.ts';
 import { guildDialogue, marketFarmerDialogue, TECHNOLOGIST_MARKET } from '../guild.ts';
 import { bankerDialogue } from '../banking.ts';
 import { npcContextActions, promoteWalkAction } from '../npc-interactions.ts';
@@ -72,18 +97,32 @@ import { describeCharacter, sightPrimaryVerb } from '../descriptions.ts';
 import { buildingNPCService } from '../building-interactions.ts';
 import { WHALE_JUMP_LEAD_MS } from '../wildlife.ts';
 import { dogWalkerDialogue } from '../companions.ts';
-import { FACTORY_CHAIRS, FACTORY_CHAIR_BUY, FACTORY_CHAIR_SELL } from '../goblin-town.ts';
+import {
+  FACTORY_CHAIRS,
+  FACTORY_CHAIR_BUY,
+  FACTORY_CHAIR_SELL,
+  GOBLIN_INCUBATOR,
+} from '../goblin-town.ts';
 import { houseClimb } from '../search-houses.ts';
-import { ATV_RENTAL } from '../atv.ts';
-import { NIGHTLIFE, inNightlife } from '../nightlife.ts';
+import { ATV_RENTAL, hasATVRental } from '../atv.ts';
+import churchDialogue from '../../content/dialogues/other/berkeley-church.json' with { type: 'json' };
+import girardDialogue from '../../content/dialogues/other/rene-girard.json' with { type: 'json' };
+import { NIGHTLIFE, inNightlife, nightlifeRebuff } from '../nightlife.ts';
+import { TAHOE_PELTS, TAHOE_PELT_PRICES } from '../config/tahoe-pelts.ts';
 import { WINDSURF_LAUNCH } from '../windsurfing.ts';
 import { SURF_TRICKS } from '../surfing.ts';
+import { BURNING_MAN, burningManDialogue, type BurningManAction } from '../burning-man.ts';
 
 /** Interactions services for the browser scene.
  * Dependencies are explicit live scene bindings, preserving initialization
  * order without globals. This module only reads bindings when a method runs. */
 export function createInteractions(context: WorldContext) {
   function openNPCDialogue(person: RuntimeDialogue & Partial<Actor>) {
+    const speaker =
+      context.approachingNPC ??
+      context.merchants.find((npc) => npc.id === person.id) ??
+      context.jailStaff.find((npc) => npc.id === person.id) ??
+      (typeof person.x === 'number' && typeof person.z === 'number' ? person : null);
     const owner =
       person.editorKey ||
       (person.id
@@ -107,8 +146,24 @@ export function createInteractions(context: WorldContext) {
         choices: [...dialogueChoices(person), offer('Buy 20 akimbo rounds · 5 coins', 'buyAmmo')],
         contentNodeId: 'world.interactions.openNPCDialogue.node-3',
       };
+    const dialogue = compileEntityDialogue(person, owner || '', context);
+    if (person.questRole === 'armorer')
+      dialogue.choices = [
+        ...dialogueChoices(dialogue),
+        { ...offer('Buy 1 missile · ' + MISSILE_PRICE + ' coins', 'buyMissile'), repeat: true },
+      ];
+    if (context.quests.state.stochasticParrot === 'proof' && person.id && proofPrice(person.id)) {
+      const id = person.id;
+      dialogue.choices = [
+        proofBuyerChoice(id, () => parrotQuestCommand('sell', { id })),
+        ...dialogueChoices(dialogue),
+      ];
+    }
     return context.dialogue.open(
-      compileEntityDialogue(withAmbientConversation(person), owner || '', context),
+      dialogue,
+      speaker
+        ? (canvas) => drawNPCChatHead(canvas, speaker, context.npcRevealed(speaker))
+        : undefined,
     );
   }
 
@@ -126,13 +181,7 @@ export function createInteractions(context: WorldContext) {
   }
 
   function playerWeapon() {
-    return selectedWeapon(context.playerLook.weapon, {
-      bayonet: context.quests.theyLive.state.bayonet,
-      railgun: railgunUnlocked(context.expeditions.state) && context.expeditions.state.equipped,
-      battleaxe: equipmentOwned(context.economy.state, 'battleaxe'),
-      'rolling-pin': equipmentOwned(context.economy.state, 'rolling-pin'),
-      akibo: equipmentOwned(context.economy.state, 'akibo'),
-    });
+    return selectedWeapon(context.playerLook.weapon, context.economy.state);
   }
 
   function attackWildMonster(npc: Actor) {
@@ -168,7 +217,7 @@ export function createInteractions(context: WorldContext) {
     return true;
   }
 
-  function petBear(npc: Actor, replans = 0): boolean {
+  function petBear(npc: Actor): boolean {
     if (
       context.capture.state.active ||
       context.chase?.state.jailed ||
@@ -179,21 +228,27 @@ export function createInteractions(context: WorldContext) {
     )
       return false;
     if (context.ferrari?.state.riding) return parkCarFirst();
-    const inReach = () =>
-      besideBear({ x: context.player.x + 0.5, z: context.player.y + 0.5 }, npc) &&
-      context.canTravel(context.player.x, context.player.y, npc.x - 0.5, npc.z - 0.5, true);
-    closeMenu();
-    const pet = () => {
-      // The bear may have wandered while we walked over. Re-plan beside
-      // its live position, never walk onto the animal's occupied tile.
-      if (!inReach()) return replans < 4 ? petBear(npc, replans + 1) : false;
-      context.wildTarget = null;
-      context.expeditions.stop();
-      setDancing(false);
-      if (context.bike.riding) parkBike();
-      parkMotorcycle(false);
-      context.skateboard.riding = false;
-      const finish = (result: ActionReceipt) => {
+    return approachMovingTarget({
+      target: () => (npc.hp === 0 ? null : npc),
+      inReach: () =>
+        besideBear({ x: context.player.x + 0.5, z: context.player.y + 0.5 }, npc) &&
+        context.canTravel(context.player.x, context.player.y, npc.x - 0.5, npc.z - 0.5, true),
+      approach: () =>
+        bearPettingApproach({
+          from: context.player,
+          bear: npc,
+          free: context.landClearAt,
+          canTravel: context.canTravel,
+          pathTo: context.pathTo,
+        }),
+      perform: async () => {
+        context.wildTarget = null;
+        context.expeditions.stop();
+        setDancing(false);
+        if (context.bike.riding) parkBike();
+        parkMotorcycle(false);
+        context.skateboard.riding = false;
+        const result = await context.multiplayer.command('petBear', { id: npc.id });
         if (result.ok) {
           context.player.angle = Math.atan2(
             npc.z - context.player.y - 0.5,
@@ -205,20 +260,9 @@ export function createInteractions(context: WorldContext) {
             duration: 1500,
           };
         }
-        return result.ok;
-      };
-      context.multiplayerWorld.command('petBear', { id: npc.id }).then(finish);
-      return true;
-    };
-    if (inReach()) return pet();
-    const point = bearPettingApproach({
-      from: context.player,
-      bear: npc,
-      free: context.landClearAt,
-      canTravel: context.canTravel,
-      pathTo: context.pathTo,
+        return result;
+      },
     });
-    return point ? walkTo(point.x, point.y, pet) : false;
   }
 
   function buyBattleaxe() {
@@ -327,20 +371,16 @@ export function createInteractions(context: WorldContext) {
       return false;
     if (npc.combatKind !== 'kraken' || !context.expeditions.ship.aboard) return false;
     const weapon = playerWeapon();
-    if (!(['railgun', 'akibo'] satisfies [string, string]).includes(weapon)) {
-      announce('Equip your railgun to fight the kraken.', 'Equipment');
-      return false;
-    }
-    if (
-      weapon === 'railgun' &&
-      (!railgunUnlocked(context.expeditions.state) || !context.expeditions.state.equipped)
-    ) {
-      announce('You do not have a suitable weapon equipped.');
+    if (!isProjectileWeapon(weapon)) {
+      announce(
+        contentText('world-message.src.world.interactions.equip-your-railgun-to-fight-the-kraken'),
+        'Equipment',
+      );
       return false;
     }
     closeMenu();
     const result = context.expeditions.attack(npc, weapon);
-    if (result.message) announce(result.message, 'Railgun');
+    if (result.message) announce(result.message, ITEM_STATS[weapon].name);
     context.canvas.focus({ preventScroll: true });
     return result.ok || result.cooldown;
   }
@@ -364,7 +404,7 @@ export function createInteractions(context: WorldContext) {
     closeMenu();
     const collect = () => {
       const r = context.expeditions.collect(item);
-      if (r.message) announce(r.message, 'Loot');
+      if (!('pending' in r && r.pending) && r.message) announce(r.message, 'Loot');
       context.updateAdventureUI();
       return r.ok;
     };
@@ -375,30 +415,20 @@ export function createInteractions(context: WorldContext) {
       const floor = item.base ?? context.characterGround(item.x, item.z);
       return distance < 1.5 && Math.abs(context.playerGround() - floor) < 2.5 ? collect() : false;
     }
-    if (distance < 1.5) return collect();
-    const point = nearestExpeditionPoint(item.x - 0.5, item.z - 0.5, 1.3, (x: number, y: number) =>
-      context.landClearAt(x, y),
+    if (
+      distance < 1.5 &&
+      (item.lootKind !== 'raptor' ||
+        context.canTravel(context.player.x, context.player.y, item.x - 0.5, item.z - 0.5))
+    )
+      return collect();
+    const point = nearestExpeditionPoint(
+      item.x - 0.5,
+      item.z - 0.5,
+      1.3,
+      (x: number, y: number) =>
+        context.landClearAt(x, y) && (item.lootKind !== 'raptor' || !!context.pathTo(x, y)),
     );
     return point ? walkTo(point.x, point.y, collect) : false;
-  }
-
-  function toggleRailgun() {
-    if (!railgunUnlocked(context.expeditions.state)) return false;
-    const equipped = playerWeapon() === 'railgun';
-    context.playerLook.weapon = equipped
-      ? context.quests.theyLive.state.bayonet
-        ? 'bayonet'
-        : 'unarmed'
-      : 'railgun';
-    context.expeditions.state.equipped = equipped;
-    if (context.expeditions.toggleWeapon()) {
-      context.alienCombat = null;
-      try {
-        localStorage.setItem('sf-character-v1', JSON.stringify(context.playerLook));
-      } catch {}
-      context.updateAdventureUI();
-    }
-    context.canvas.focus({ preventScroll: true });
   }
 
   function releaseTiger() {
@@ -533,8 +563,12 @@ export function createInteractions(context: WorldContext) {
     context.drawMini();
     announce(
       rehabilitated
-        ? 'Rehabilitation complete. You arrive outside UCSF in a completely different outfit, 100% inebriated.'
-        : 'You have died and respawned at UCSF Hospital',
+        ? contentText(
+            'world-message.src.world.interactions.rehabilitation-complete-you-arrive-outside-ucsf-in-a-completel',
+          )
+        : contentText(
+            'world-message.src.world.interactions.you-have-died-and-respawned-at-ucsf-hospital',
+          ),
       'Hospital',
     );
     context.canvas.focus({ preventScroll: true });
@@ -543,7 +577,9 @@ export function createInteractions(context: WorldContext) {
   function airshipUnavailable() {
     if (context.clickAttempt) context.clickAttempt.worked = false;
     announce(
-      'Return the airship to the terminal before using a vehicle or entering a building. Choose Return to terminal from the airship menu.',
+      contentText(
+        'world-message.src.world.interactions.return-the-airship-to-the-terminal-before-using-a-vehicle-or-e',
+      ),
     );
     return false;
   }
@@ -581,7 +617,9 @@ export function createInteractions(context: WorldContext) {
       context.currentInterior = null;
       context.updateAirshipButton();
       announce(
-        'You board the airship’s white flight basket. Click its floor to walk around; click the ground or minimap to fly.',
+        contentText(
+          'world-message.src.world.interactions.you-board-the-airships-white-flight-basket-click-its-floor-to',
+        ),
         'Pilot',
       );
       context.canvas.focus({ preventScroll: true });
@@ -635,13 +673,19 @@ export function createInteractions(context: WorldContext) {
             'Fly to Tahoe',
             () => {
               if (context.rope.state.deployed) {
-                announce('Retract the rope before flying.');
+                announce(
+                  contentText(
+                    'world-message.src.world.interactions.retract-the-rope-before-flying',
+                  ),
+                );
                 return false;
               }
               context.airship.flyTo(TAHOE.base.x, TAHOE.base.z);
               context.destination = { x: TAHOE.base.x - 0.5, y: TAHOE.base.z - 0.5 };
               announce(
-                'Flying northeast across California to Lake Tahoe. This is a long continuous flight.',
+                contentText(
+                  'world-message.src.world.interactions.flying-northeast-across-california-to-lake-tahoe-this-is-a-lon',
+                ),
                 'Pilot',
               );
               return true;
@@ -687,10 +731,7 @@ export function createInteractions(context: WorldContext) {
       menu.append(button);
     }
     promoteWalkAction(menu);
-    menu.hidden = false;
-    menu.style.left = Math.min(context.width - menu.offsetWidth - 12, Math.max(12, sx)) + 'px';
-    menu.style.top = Math.min(context.height - menu.offsetHeight - 12, Math.max(12, sy)) + 'px';
-    menu.querySelector<HTMLElementTagNameMap['button']>('button')!.focus({ preventScroll: true });
+    revealContextMenu(menu, sx, sy);
     return true;
   }
 
@@ -703,7 +744,11 @@ export function createInteractions(context: WorldContext) {
       return climbRope(false);
     }
     if (context.rope.state.deployed && !context.rope.retract()) {
-      announce('Wait for your passenger to finish climbing.');
+      announce(
+        contentText(
+          'world-message.src.world.interactions.wait-for-your-passenger-to-finish-climbing',
+        ),
+      );
       return false;
     }
     if (context.airship.state.active) {
@@ -716,7 +761,9 @@ export function createInteractions(context: WorldContext) {
       context.action = null;
       context.updateAirshipButton();
       announce(
-        'Returning to the private jet terminal. The airship will descend onto its mooring.',
+        contentText(
+          'world-message.src.world.interactions.returning-to-the-private-jet-terminal-the-airship-will-descend',
+        ),
         'Pilot',
       );
       context.canvas.focus({ preventScroll: true });
@@ -725,7 +772,11 @@ export function createInteractions(context: WorldContext) {
     if (context.sutroClimb.state.active) return climbUnavailable();
     if (context.surf.state.riding) {
       if (context.clickAttempt) context.clickAttempt.worked = false;
-      announce('Return to shore before renting an airship.');
+      announce(
+        contentText(
+          'world-message.src.world.interactions.return-to-shore-before-renting-an-airship',
+        ),
+      );
       return false;
     }
     const entry = AIRSHIP_TERMINAL.entry;
@@ -735,7 +786,12 @@ export function createInteractions(context: WorldContext) {
     closeMenu();
     const accepted = walkTo(entry.x, entry.y, showAirshipMenu);
     if (accepted)
-      announce('Walking south to the private jet terminal and airship rental stand.', 'Pilot');
+      announce(
+        contentText(
+          'world-message.src.world.interactions.walking-south-to-the-private-jet-terminal-and-airship-rental-s',
+        ),
+        'Pilot',
+      );
     context.canvas.focus({ preventScroll: true });
     return accepted;
   }
@@ -763,6 +819,14 @@ export function createInteractions(context: WorldContext) {
       context.$('sf-reader-shade').hidden = true;
       context.$('sf-reader').scrollTop = 0;
     });
+  }
+
+  function searchChurch(site: InteractionSight) {
+    if (!hasSiteEntry(site) || !canUseTablet()) return false;
+    closeMenu();
+    return walkTo(site.entry.x, site.entry.y, () =>
+      openNPCDialogue({ name: 'Unusual Church', contentResolved: true, ...churchDialogue.search }),
+    );
   }
 
   function searchHouseStorage(site: InteractionSight) {
@@ -814,7 +878,10 @@ export function createInteractions(context: WorldContext) {
                 serverCommand(context.multiplayer, 'travel', { kind: 'rocket' }).then((result) => {
                   if (!result.ok) {
                     announce(
-                      result.message || 'Unable to launch. Please speak to the attendant again.',
+                      result.message ||
+                        contentText(
+                          'world-message.src.world.interactions.unable-to-launch-please-speak-to-the-attendant-again',
+                        ),
                       'SpaceX',
                     );
                     return;
@@ -836,8 +903,10 @@ export function createInteractions(context: WorldContext) {
                   context.updateRocketControls();
                   context.drawMini();
                   announce(
-                    'You board the reusable rocket. Next stop: ' +
-                      (toTahoe ? 'Lake Tahoe.' : 'San Francisco.'),
+                    contentText(
+                      'world-message.src.world.interactions.you-board-the-reusable-rocket-next-stop',
+                      { value1: String(toTahoe ? 'Lake Tahoe.' : 'San Francisco.') },
+                    ),
                     'SpaceX',
                   );
                 });
@@ -872,8 +941,12 @@ export function createInteractions(context: WorldContext) {
         context.updateTahoeButton();
         announce(
           up
-            ? 'You board the gondola. The mountain rises far above the lake.'
-            : 'You board the gondola down to the lakeside station.',
+            ? contentText(
+                'world-message.src.world.interactions.you-board-the-gondola-the-mountain-rises-far-above-the-lake',
+              )
+            : contentText(
+                'world-message.src.world.interactions.you-board-the-gondola-down-to-the-lakeside-station',
+              ),
           'Gondola',
         );
       };
@@ -887,7 +960,11 @@ export function createInteractions(context: WorldContext) {
   function rentSkis() {
     if (context.ferrari?.state.riding) return parkCarFirst();
     if (context.tahoe.state.rented) {
-      announce('Your skis are already rented for this visit.');
+      announce(
+        contentText(
+          'world-message.src.world.interactions.your-skis-are-already-rented-for-this-visit',
+        ),
+      );
       return true;
     }
     return talkLiftAttendant(context.merchants.find((n) => n.kind === 'lift'));
@@ -910,7 +987,12 @@ export function createInteractions(context: WorldContext) {
         configuredDialogue('ski-lift', npc, {
           rentSkis: async () => {
             if (context.tahoe.state.rented)
-              return { ok: false, message: 'Your skis are already rented for this visit.' };
+              return {
+                ok: false,
+                message: contentText(
+                  'world-message.src.world.interactions.your-skis-are-already-rented-for-this-visit',
+                ),
+              };
             const result = await serverCommand(context.multiplayer, 'inventory', {
               op: 'trade',
               kind: 'skis',
@@ -920,7 +1002,9 @@ export function createInteractions(context: WorldContext) {
             return {
               ...result,
               message: result.ok
-                ? 'Your skis are ready. Use Ski down to begin your descent.'
+                ? contentText(
+                    'world-message.src.world.interactions.your-skis-are-ready-use-ski-down-to-begin-your-descent',
+                  )
                 : result.message,
             };
           },
@@ -939,7 +1023,12 @@ export function createInteractions(context: WorldContext) {
       context.tahoe.startSki();
       context.setCamera((-Math.PI * 3) / 4, 0.65);
       context.updateTahoeButton();
-      announce('You push off. Click to steer and press Space while airborne to flip!', 'Skiing');
+      announce(
+        contentText(
+          'world-message.src.world.interactions.you-push-off-click-to-steer-and-press-space-while-airborne-to',
+        ),
+        'Skiing',
+      );
     };
     if (
       Math.hypot(
@@ -964,6 +1053,99 @@ export function createInteractions(context: WorldContext) {
         ? startSkiRun()
         : rentSkis()
       : useGondola(true);
+  }
+
+  type MovingInteraction = {
+    target: () => WorldPoint | null;
+    inReach: (target: WorldPoint) => boolean;
+    approach: (target: WorldPoint) => Point | null;
+    perform: () => void | Promise<CommandResult>;
+    lastTarget?: WorldPoint;
+    nextPlan: number;
+    retryAfter: number;
+    pending: boolean;
+    routing: boolean;
+  };
+  let movingInteraction: MovingInteraction | null = null;
+
+  function cancelMovingInteraction(stop = true) {
+    if (!movingInteraction) return false;
+    movingInteraction = null;
+    context.destination = null;
+    if (stop && serverConnected(context.multiplayer)) context.multiplayer.command('stopMoving');
+    return true;
+  }
+
+  function updateMovingInteraction(now: number) {
+    const interaction = movingInteraction;
+    if (!interaction || interaction.pending) return;
+    const target = interaction.target();
+    if (!target) {
+      cancelMovingInteraction();
+      return;
+    }
+    if (now >= interaction.retryAfter && interaction.inReach(target)) {
+      interaction.pending = true;
+      context.destination = null;
+      if (serverConnected(context.multiplayer) && (interaction.lastTarget || context.player.moving))
+        context.multiplayer.command('stopMoving');
+      Promise.resolve(interaction.perform()).then((result) => {
+        if (movingInteraction !== interaction) return;
+        if (result?.retryApproach) {
+          interaction.pending = false;
+          interaction.lastTarget = undefined;
+          interaction.retryAfter = performance.now() + 200;
+          interaction.nextPlan = 0;
+        } else {
+          movingInteraction = null;
+          if (result?.message) announce(result.message, result.ok ? 'World' : 'Server');
+        }
+      });
+      return;
+    }
+    if (!serverConnected(context.multiplayer)) {
+      cancelMovingInteraction(false);
+      return;
+    }
+    if (interaction.routing || now < interaction.nextPlan) return;
+    if (
+      interaction.lastTarget &&
+      context.destination &&
+      Math.hypot(target.x - interaction.lastTarget.x, target.z - interaction.lastTarget.z) < 0.65
+    )
+      return;
+    interaction.nextPlan = now + 350;
+    const goal = interaction.approach(target);
+    if (!goal) return;
+    interaction.lastTarget = { x: target.x, z: target.z };
+    if (
+      !walkTo(goal.x, goal.y, null, (x, z) => {
+        interaction.routing = true;
+        context.multiplayerWorld.moveTo(x, z, (result) => {
+          interaction.routing = false;
+          if (movingInteraction !== interaction || interaction.pending) return;
+          context.destination =
+            result.ok && result.goal ? { x: result.goal.x - 0.5, y: result.goal.z - 0.5 } : null;
+        });
+      })
+    )
+      cancelMovingInteraction();
+  }
+
+  function approachMovingTarget(
+    options: Omit<
+      MovingInteraction,
+      'nextPlan' | 'retryAfter' | 'pending' | 'routing' | 'lastTarget'
+    >,
+  ) {
+    cancelMovingInteraction();
+    closeMenu();
+    closeReader();
+    if (context.dialogue.active) context.dialogue.close();
+    context.action = null;
+    movingInteraction = { ...options, nextPlan: 0, retryAfter: 0, pending: false, routing: false };
+    updateMovingInteraction(performance.now());
+    return true;
   }
 
   function approachNPC(
@@ -991,23 +1173,19 @@ export function createInteractions(context: WorldContext) {
         npc.angle = Math.atan2(context.player.y + 0.5 - npc.z, context.player.x + 0.5 - npc.x);
       begin();
     };
-    if (
-      distance === Infinity ||
-      Math.hypot(context.player.x + 0.5 - npc.x, context.player.y + 0.5 - npc.z) < distance
-    ) {
-      open();
-      return true;
-    }
-    const target = approach(npc);
-    if (!target) return false;
-    const accepted = walkTo(target.x, target.y, open);
-    if (accepted && context.player.path.length) {
-      context.approachingNPC = npc;
-      npc.waiting = true;
-      npc.moving = false;
-      npc.motion = 0;
-    }
-    return accepted;
+    return approachMovingTarget({
+      target: () => (npc.hp === 0 || npc.expeditionDead ? null : npc),
+      inReach: () =>
+        distance === Infinity ||
+        Math.hypot(context.player.x + 0.5 - npc.x, context.player.y + 0.5 - npc.z) < distance,
+      approach: () => {
+        const goal = approach(npc);
+        return goal && Math.hypot(goal.x + 0.5 - npc.x, goal.y + 0.5 - npc.z) < distance
+          ? goal
+          : actorWalkPoint(npc) || goal;
+      },
+      perform: open,
+    });
   }
 
   function releaseNPC() {
@@ -1067,7 +1245,9 @@ export function createInteractions(context: WorldContext) {
             context.destination = null;
             context.monkeyKeeper.start();
             announce(
-              '“Stop! That monkey has a keeper!” The zookeeper gives chase.',
+              contentText(
+                'world-message.src.world.interactions.stop-that-monkey-has-a-keeper-the-zookeeper-gives-chase',
+              ),
               'Monkey Business',
             );
           }
@@ -1087,7 +1267,13 @@ export function createInteractions(context: WorldContext) {
     context.player.speed = Math.min(context.player.speed, context.WALK_SPEED);
     if (!context.headless) {
       context.updateAdventureUI();
-      if (speak) announce('You park the motorcycle. Your rental remains valid.', 'You');
+      if (speak)
+        announce(
+          contentText(
+            'world-message.src.world.interactions.you-park-the-motorcycle-your-rental-remains-valid',
+          ),
+          'You',
+        );
     }
     return true;
   }
@@ -1120,7 +1306,9 @@ export function createInteractions(context: WorldContext) {
       context.destination = null;
       if (actionName === 'steal' && !context.motorcycle.state.rented) {
         announce(
-          'You try to steal the conveniently parked motorcycle. Its alarm summons the police!',
+          contentText(
+            'world-message.src.world.interactions.you-try-to-steal-the-conveniently-parked-motorcycle-its-alarm',
+          ),
           'You',
         );
         context.chase.start();
@@ -1130,10 +1318,18 @@ export function createInteractions(context: WorldContext) {
       if (context.motorcycle.state.rented) {
         context.motorcycle.mount();
         context.updateAdventureUI();
-        announce('You start the motorcycle. Click to ride; M parks.', 'You');
+        announce(
+          contentText(
+            'world-message.src.world.interactions.you-start-the-motorcycle-click-to-ride-m-parks',
+          ),
+          'You',
+        );
         return true;
       }
-      announce('You have not rented this motorcycle.', 'Motorcycle');
+      announce(
+        contentText('world-message.src.world.interactions.you-have-not-rented-this-motorcycle'),
+        'Motorcycle',
+      );
       return true;
     };
     const p = context.motorcycle.state;
@@ -1170,7 +1366,9 @@ export function createInteractions(context: WorldContext) {
                   return {
                     ...result,
                     message: result.ok
-                      ? 'The motorcycle is yours to ride. Click it or press M to get on.'
+                      ? contentText(
+                          'world-message.src.world.interactions.the-motorcycle-is-yours-to-ride-click-it-or-press-m-to-get-on',
+                        )
                       : result.message,
                   };
                 },
@@ -1271,6 +1469,7 @@ export function createInteractions(context: WorldContext) {
     instance: { kind: string };
     position?: { x: number; z: number };
   }) {
+    cancelMovingInteraction(false);
     if (context.headless) return;
     context.multiplayerWorld?.stopFollowing(true);
     context.expeditions.stop();
@@ -1367,8 +1566,17 @@ export function createInteractions(context: WorldContext) {
           ? () => context.secretWorld.leave()
           : () => context.secretWorld.boardBomber();
     if (sight.kind === 'secret-stairs' && !context.secretWorld.initiated) {
-      announce('You do not have access to this passage.');
+      announce(
+        contentText('world-message.src.world.interactions.you-do-not-have-access-to-this-passage'),
+      );
       return false;
+    }
+    if (
+      (sight.kind === 'secret-stairs' || sight.kind === 'cave-exit') &&
+      Math.hypot(context.player.x - sight.entry.x, context.player.y - sight.entry.y) < 0.75
+    ) {
+      closeMenu();
+      return secretAction(action());
     }
     return walkTo(sight.entry.x, sight.entry.y, () => secretAction(action()));
   }
@@ -1407,7 +1615,26 @@ export function createInteractions(context: WorldContext) {
     if (!canUseTablet()) return false;
     closeMenu();
     closeReader();
-    return approachNPC(npc, () => openNPCDialogue(marketFarmerDialogue(npc)));
+    return approachNPC(npc, () => {
+      const person = marketFarmerDialogue(npc);
+      if (npc.id !== GOBLIN_PHONE_BUYER || !equipmentOwned(context.economy.state, 'goblin-phone'))
+        return openNPCDialogue(person);
+      return openNPCDialogue({
+        ...person,
+        contentResolved: true,
+        choices: [
+          {
+            label: 'Sell Goblin Phone · ' + GOBLIN_PHONE_RESALE + ' coins',
+            accept: () =>
+              serverCommand(context.multiplayer, 'inventory', {
+                op: 'trade',
+                kind: 'goblin-phone-sale',
+              }),
+          },
+          ...dialogueChoices(person),
+        ],
+      });
+    });
   }
 
   function talkAirshipAttendant(npc: Actor | undefined) {
@@ -1461,7 +1688,9 @@ export function createInteractions(context: WorldContext) {
     if (npc.kind === 'duel-referee')
       return approachNPC(npc, () => {
         announce(
-          'Equal coin stakes and a fair 50–50 flip. Both players must agree here at the arena.',
+          contentText(
+            'world-message.src.world.interactions.equal-coin-stakes-and-a-fair-50-50-flip-both-players-must-agre',
+          ),
           'Referee',
         );
         context.duelMenu?.open();
@@ -1486,11 +1715,9 @@ export function createInteractions(context: WorldContext) {
       return approachNPC(
         npc,
         () => {
-          if (npc.kind?.startsWith('twitter-')) {
-            npc.speech =
-              npc.kind === 'twitter-poster'
-                ? 'Very busy, someone is wrong on the internet.'
-                : 'One envelope in, one bottle out. Please do not tap the backend.';
+          if (npc.kind === 'twitter-poster') openNPCDialogue(npc);
+          else if (npc.kind === 'twitter-worker') {
+            npc.speech = 'One envelope in, one bottle out. Please do not tap the backend.';
             npc.speechUntil = performance.now() + 4000;
           } else
             openNPCDialogue(
@@ -1643,7 +1870,10 @@ export function createInteractions(context: WorldContext) {
     ) {
       context.alienCombat = null;
       context.player.gesture = null;
-      announce('You break off the fight.', 'They Live');
+      announce(
+        contentText('world-message.src.world.interactions.you-break-off-the-fight'),
+        'They Live',
+      );
       return;
     }
     npc.hold = 2;
@@ -1736,8 +1966,12 @@ export function createInteractions(context: WorldContext) {
               const invited = context.rope.invite();
               announce(
                 invited
-                  ? 'A traveler accepts your offer and starts climbing. They will pay you 5 coins once aboard.'
-                  : 'Your passenger has already boarded or is still climbing.',
+                  ? contentText(
+                      'world-message.src.world.interactions.a-traveler-accepts-your-offer-and-starts-climbing-they-will-pa',
+                    )
+                  : contentText(
+                      'world-message.src.world.interactions.your-passenger-has-already-boarded-or-is-still-climbing',
+                    ),
                 'Airship',
               );
             },
@@ -1763,16 +1997,11 @@ export function createInteractions(context: WorldContext) {
       });
       menu.append(b);
     }
-    menu.hidden = false;
-    menu.style.left = Math.max(12, context.width / 2 - menu.offsetWidth / 2) + 'px';
-    menu.style.top = Math.max(12, context.height / 2 - menu.offsetHeight / 2) + 'px';
-    menu.querySelector<HTMLElementTagNameMap['button']>('button')?.focus();
+    revealContextMenu(menu);
     return true;
   }
 
-  function climbUnavailable(
-    text = 'Climb down from Sutro Tower before walking elsewhere. Use Climb down or press E.',
-  ) {
+  function climbUnavailable(text = contentText('world-message.sutro.climb-down-before-walking')) {
     if (context.clickAttempt) context.clickAttempt.worked = false;
     announce(text);
     return false;
@@ -1811,8 +2040,10 @@ export function createInteractions(context: WorldContext) {
       context.keys.clear();
       announce(
         kind === 'sutro'
-          ? 'You take the service ladder up Sutro Tower. Press E or Climb down to turn back.'
-          : 'You start climbing down Sutro Tower.',
+          ? contentText(
+              'world-message.src.world.interactions.you-take-the-service-ladder-up-sutro-tower-press-e-or-climb-do',
+            )
+          : contentText('world-message.src.world.interactions.you-start-climbing-down-sutro-tower'),
         'You',
       );
       context.canvas.focus({ preventScroll: true });
@@ -1828,31 +2059,59 @@ export function createInteractions(context: WorldContext) {
     if (context.chase?.state.jailed) return false;
     if (context.sutroClimb.state.active) return descendSutro();
     if (context.surf.state.riding)
-      return climbUnavailable('Return to shore before climbing Sutro Tower.');
+      return climbUnavailable(
+        contentText(
+          'world-message.src.world.interactions.return-to-shore-before-climbing-sutro-tower',
+        ),
+      );
     closeMenu();
     closeReader();
     if (context.sutroTravelPending) return false;
     const approach = context.sutroApproach();
-    if (!approach) return climbUnavailable('There is no clear route to the Sutro Tower ladder.');
+    if (!approach)
+      return climbUnavailable(
+        contentText(
+          'world-message.src.world.interactions.there-is-no-clear-route-to-the-sutro-tower-ladder',
+        ),
+      );
     const accepted = walkTo(approach.x, approach.y, () => {
       if (context.chase?.state.jailed) return;
       if (context.bike.riding) parkBike();
       requestSutroTravel('sutro');
     });
     if (accepted && !context.sutroClimb.state.active)
-      announce('Walking to the Sutro Tower service ladder…');
+      announce(
+        contentText(
+          'world-message.src.world.interactions.walking-to-the-sutro-tower-service-ladder',
+        ),
+      );
     context.canvas.focus({ preventScroll: true });
     return accepted;
   }
 
   function kickTaxi(s: InteractionSight) {
-    const car = context.streetTraffic?.cars.find((vehicle) => vehicle.id === s.id);
-    if (!car || !context.multiplayerWorld) return false;
-    const kick = () => context.multiplayerWorld.command('kickTaxi', { id: s.id });
-    if (Math.hypot(car.x - context.player.x - 0.5, car.z - context.player.y - 0.5) <= 1.8)
-      return kick();
-    const target = actorWalkPoint(car);
-    return target ? walkTo(target.x, target.y, kick) : false;
+    if (!context.multiplayerWorld) return false;
+    return approachMovingTarget({
+      target: () => context.streetTraffic?.cars.find((vehicle) => vehicle.id === s.id) || null,
+      inReach: (car) =>
+        Math.hypot(car.x - context.player.x - 0.5, car.z - context.player.y - 0.5) <= 1.8 &&
+        context.canTravel(context.player.x, context.player.y, car.x - 0.5, car.z - 0.5, true),
+      approach: actorWalkPoint,
+      perform: () => context.multiplayer.command('kickTaxi', { id: s.id }),
+    });
+  }
+
+  function seizeBicycle(npc: Actor) {
+    return approachMovingTarget({
+      target: () => (npc.rider && !npc.bicycleTaken && npc.networkVisible !== false ? npc : null),
+      inReach: (rider) =>
+        Math.hypot(rider.x - context.player.x - 0.5, rider.z - context.player.y - 0.5) <=
+          GAMEPLAY.interactionRange &&
+        context.canTravel(context.player.x, context.player.y, rider.x - 0.5, rider.z - 0.5, true),
+      approach: actorWalkPoint,
+      perform: () =>
+        context.multiplayer.command('playerAction', { verb: 'seizeBicycle', id: npc.id }),
+    });
   }
 
   function goToSight(s: InteractionSight | undefined): unknown {
@@ -1868,6 +2127,7 @@ export function createInteractions(context: WorldContext) {
       return useSecretSite(s);
     if (s.kind === 'airship-rope') return walkTo(s.entry.x, s.entry.y, () => climbRope(false));
     if (s.kind === 'house-storage') return searchHouseStorage(s);
+    if (s.kind === 'unusual-church') return searchChurch(s);
     if (s.kind === 'lore-book') return readLoreBook(s);
     if (s.kind === 'loot') return collectExpeditionLoot(s);
     if (s.kind === 'bench') return sitOnBench(s);
@@ -1928,11 +2188,16 @@ export function createInteractions(context: WorldContext) {
       context.rope.climbing ||
       context.currentInterior
     ) {
-      announce('Meet your DoorDash cooler on walkable ground.', 'Lucinda’s');
+      announce(
+        contentText(
+          'world-message.src.world.interactions.meet-your-doordash-cooler-on-walkable-ground',
+        ),
+        'Lucinda’s',
+      );
       return false;
     }
     const result = context.deli.order(context.player);
-    announce(result.message, 'Lucinda’s');
+    if (!('pending' in result && result.pending)) announce(result.message, 'Lucinda’s');
     context.updateAdventureUI();
     return result.ok;
   }
@@ -1958,11 +2223,26 @@ export function createInteractions(context: WorldContext) {
     if (context.ferrari?.state.riding) return parkCarFirst();
     closeMenu();
     closeReader();
-    return approachNPC(npc, () =>
-      openNPCDialogue(
-        configuredDialogue('burger', npc, { pickup: () => context.deli.pickup('in-n-out') }),
-      ),
-    );
+    return approachNPC(npc, () => {
+      const person = configuredDialogue('burger', npc, {
+        pickup: () => context.deli.pickup('in-n-out'),
+      });
+      if (npc.id !== BURNING_MAN.waterClerk || burningManStage() !== 'fetch-water')
+        return openNPCDialogue(person);
+      const menu = compileEntityDialogue(person, npc.editorKey || 'actor:' + npc.id, context);
+      return openNPCDialogue({
+        ...menu,
+        choices: [
+          ...dialogueChoices(menu),
+          {
+            label: 'Ask for a cup of water',
+            accept: () => burningManCommand('water'),
+            serverReceipt: true,
+          },
+        ],
+        contentResolved: true,
+      });
+    });
   }
 
   function talkDeli() {
@@ -2028,7 +2308,9 @@ export function createInteractions(context: WorldContext) {
 
   function talkToBani() {
     announce(
-      '“Best way to see the city? Borrow the bicycle, take Market west, and go say hello to the ducks.”',
+      contentText(
+        'world-message.src.world.interactions.best-way-to-see-the-city-borrow-the-bicycle-take-market-west-a',
+      ),
       'Bani',
     );
   }
@@ -2072,7 +2354,12 @@ export function createInteractions(context: WorldContext) {
             started: performance.now(),
             duration: 750,
           };
-          announce('You fill a sack with Ocean Beach sand.', 'You');
+          announce(
+            contentText(
+              'world-message.src.world.interactions.you-fill-a-sack-with-ocean-beach-sand',
+            ),
+            'You',
+          );
         }
         return receipt;
       });
@@ -2087,9 +2374,131 @@ export function createInteractions(context: WorldContext) {
       : walkTo(context.sandSite.entry.x, context.sandSite.entry.y, gather);
   }
 
+  const burningManStage = () =>
+    context.multiplayer?.state.playerState?.quests.burningMan?.stage ?? 'not-started';
+  function burningManCommand(step: BurningManAction) {
+    return serverCommand(context.multiplayer, 'playerAction', { verb: 'burningMan', step });
+  }
+
+  function parrotQuestCommand(
+    step: 'start' | 'catch' | 'deliver' | 'sell',
+    args: { id?: string; sandwich?: boolean } = {},
+  ) {
+    return serverCommand(context.multiplayer, 'playerAction', {
+      verb: 'stochasticParrot',
+      step,
+      ...args,
+    });
+  }
+
   function talkParrot(npc: Actor | undefined) {
     if (!npc) return false;
-    return approachNPC(npc, () => openNPCDialogue(parrotDialogue(npc)));
+    return approachNPC(npc, () => {
+      const dialogue = parrotDialogue(npc);
+      if (context.quests.state.stochasticParrot === 'accepted')
+        return openNPCDialogue({
+          ...dialogue,
+          contentResolved: true,
+          choices: [
+            {
+              label: 'Catch the parrot',
+              serverReceipt: true,
+              accept: () => parrotQuestCommand('catch', { id: npc.id }),
+            },
+            {
+              label: 'Lure it with a sandwich',
+              serverReceipt: true,
+              accept: () => parrotQuestCommand('catch', { id: npc.id, sandwich: true }),
+            },
+          ],
+        });
+      return openNPCDialogue(dialogue);
+    });
+  }
+
+  function talkGoblinScientist(npc: Actor) {
+    return approachNPC(
+      npc,
+      () => {
+        const stage = context.quests.state.stochasticParrot;
+        const aboutProof = () =>
+          openNPCDialogue({
+            ...npc,
+            contentResolved: true,
+            intro: 'Anyway, this parrot should move us straight to the frontier of AI research.',
+            choices: [
+              {
+                label: 'What am I supposed to do with a proof of the Collatz conjecture?',
+                receipt:
+                  'I don’t know. Maybe sell it to the government or to an industrialist. I hear there are mathematicians in Berkeley, too.',
+              },
+            ],
+          });
+        return openNPCDialogue({
+          ...npc,
+          contentResolved: true,
+          intro:
+            stage === 'not-started'
+              ? 'Mind the pipe by the door. It shakes when we ask the engine anything difficult. I keep hearing that stochastic parrots are the big new thing in AI. None of the papers says where to buy one, so I’ll have to find a bird the old-fashioned way. Would you be interested?'
+              : stage === 'accepted'
+                ? 'The grove north of Coit Tower is where I’d look. Take a sandwich if you have one. I’ve had better luck making introductions over lunch than by waving a clipboard at things.'
+                : stage === 'carrying'
+                  ? 'You caught one! Let it get settled somewhere away from the pressure gauge. The plumbers have been practicing how to greet it for an hour. I think we should let it speak first.'
+                  : 'The parrot has learned to say “funding” whenever the boiler goes quiet. We laughed the first time. Now the plumbers stop what they’re doing and check the coal bill.',
+          choices: [
+            ...(stage === 'not-started'
+              ? [
+                  {
+                    label: 'I’ll find you a stochastic parrot',
+                    accept: () => parrotQuestCommand('start'),
+                    receipt:
+                      'The parrots north of Coit Tower look stochastic to me. Try catching one. A sandwich might help.',
+                  },
+                ]
+              : []),
+            ...(stage === 'carrying'
+              ? [
+                  {
+                    label: 'Hand over the parrot',
+                    accept: async () => {
+                      const result = await parrotQuestCommand('deliver');
+                      return result.ok ? { ...result, after: aboutProof } : result;
+                    },
+                  },
+                ]
+              : []),
+            ...(stage === 'proof'
+              ? [
+                  {
+                    label: 'What am I supposed to do with this proof?',
+                    receipt:
+                      'I don’t know. Maybe sell it to the government or to an industrialist. I hear there are mathematicians in Berkeley, too.',
+                  },
+                ]
+              : []),
+            {
+              label:
+                ITEM_STATS['goblin-village-tablet'].name +
+                ' · ' +
+                ITEM_STATS['goblin-village-tablet'].price +
+                ' coins',
+              accept: () => context.tabletService.buy('goblin-village'),
+            },
+            {
+              label: 'You worked out the teleport coordinates yourself?',
+              receipt:
+                'Of course. I used to work remotely for the lab from the village. The reception was better there, and the kettle didn’t share a wall with a steam engine. After a few weeks of carrying my notes back and forth, I got the tablet working.',
+            },
+            {
+              label: 'Why build it around a steam engine?',
+              receipt:
+                'Because three plumbers already knew how to keep one running. We’d like to ask it for a difficult integral one day. At present you can ask it for hot water and get a surprisingly confident answer.',
+            },
+          ],
+        });
+      },
+      { approach: (actor) => context.regionalCitizenApproach(actor, true) },
+    );
   }
 
   function fishAtWharf() {
@@ -2106,7 +2515,10 @@ export function createInteractions(context: WorldContext) {
     )
       return false;
     if (context.economy.state.fish) {
-      announce('You can only carry one live fish.', 'Fishing');
+      announce(
+        contentText('world-message.src.world.interactions.you-can-only-carry-one-live-fish'),
+        'Fishing',
+      );
       return false;
     }
     const begin = () => {
@@ -2209,7 +2621,12 @@ export function createInteractions(context: WorldContext) {
         duration: 1500,
       };
       context.bunny.pet(now, context.player.angle + Math.PI);
-      announce('You pet the bunny. Its nose twitches approvingly.', 'You');
+      announce(
+        contentText(
+          'world-message.src.world.interactions.you-pet-the-bunny-its-nose-twitches-approvingly',
+        ),
+        'You',
+      );
       context.canvas.focus({ preventScroll: true });
     });
   }
@@ -2218,7 +2635,7 @@ export function createInteractions(context: WorldContext) {
     const s = requiredValue(sightById('ducks'), 'Missing authored entity: ducks');
     closeMenu();
     if (!context.economy.state.grain) {
-      announce('You have no grain.');
+      announce(contentText('world-message.src.world.interactions.you-have-no-grain'));
       return false;
     }
     return walkTo(s.entry.x, s.entry.y, () => {
@@ -2226,7 +2643,9 @@ export function createInteractions(context: WorldContext) {
         if (result.ok) {
           context.ducksFedUntil = performance.now() + 10000;
           announce(
-            'You scatter one bag of grain. Quack! The mallards and ducklings paddle over to investigate.',
+            contentText(
+              'world-message.src.world.interactions.you-scatter-one-bag-of-grain-quack-the-mallards-and-ducklings',
+            ),
             'Ducks',
           );
         }
@@ -2243,7 +2662,12 @@ export function createInteractions(context: WorldContext) {
     context.bike.y = y;
     context.player.speed = Math.min(context.player.speed, context.WALK_SPEED);
     context.updateBikeButton();
-    announce('You park the bicycle. It will be waiting here.', 'You');
+    announce(
+      contentText(
+        'world-message.src.world.interactions.you-park-the-bicycle-it-will-be-waiting-here',
+      ),
+      'You',
+    );
   }
 
   function mountBike() {
@@ -2256,7 +2680,12 @@ export function createInteractions(context: WorldContext) {
     context.destination = null;
     context.action = null;
     context.updateBikeButton();
-    announce('You hop on the bicycle. Click to ride; press B to park.', 'You');
+    announce(
+      contentText(
+        'world-message.src.world.interactions.you-hop-on-the-bicycle-click-to-ride-press-b-to-park',
+      ),
+      'You',
+    );
     context.canvas.focus({ preventScroll: true });
   }
 
@@ -2267,7 +2696,11 @@ export function createInteractions(context: WorldContext) {
     if (context.airship.state.active) return airshipUnavailable();
     if (context.surf.state.riding) {
       if (context.clickAttempt) context.clickAttempt.worked = false;
-      announce('Return to shore before collecting the bicycle.');
+      announce(
+        contentText(
+          'world-message.src.world.interactions.return-to-shore-before-collecting-the-bicycle',
+        ),
+      );
       return;
     }
     closeMenu();
@@ -2282,14 +2715,17 @@ export function createInteractions(context: WorldContext) {
       mountBike();
     else {
       walkTo(Math.round(context.bike.x), Math.round(context.bike.y), mountBike);
-      announce('Walking to the bicycle…');
+      announce(contentText('world-message.src.world.interactions.walking-to-the-bicycle'));
       context.canvas.focus({ preventScroll: true });
     }
   }
 
   function useSkateboard() {
     if (!context.quests.theyLive.state.skateboard) {
-      announce('You do not own a skateboard.', 'You');
+      announce(
+        contentText('world-message.src.world.interactions.you-do-not-own-a-skateboard'),
+        'You',
+      );
       return false;
     }
     if (
@@ -2323,8 +2759,10 @@ export function createInteractions(context: WorldContext) {
     context.updateAdventureUI();
     announce(
       context.skateboard.riding
-        ? 'You set down your skateboard. Click to skate; K puts it away.'
-        : 'You pick up your skateboard.',
+        ? contentText(
+            'world-message.src.world.interactions.you-set-down-your-skateboard-click-to-skate-k-puts-it-away',
+          )
+        : contentText('world-message.src.world.interactions.you-pick-up-your-skateboard'),
       'You',
     );
     context.canvas.focus({ preventScroll: true });
@@ -2407,7 +2845,9 @@ export function createInteractions(context: WorldContext) {
     ) {
       if (context.clickAttempt) context.clickAttempt.worked = false;
       announce(
-        'Borrow a windsurf board at Crissy Field to jump over the whales.',
+        contentText(
+          'world-message.src.world.interactions.borrow-a-windsurf-board-at-crissy-field-to-jump-over-the-whale',
+        ),
         'Whale watching',
       );
       return false;
@@ -2433,18 +2873,34 @@ export function createInteractions(context: WorldContext) {
         context.player.angle = requiredValue(context.surf.state.jump, 'Whale jump').angle;
         context.action = null;
         context.destination = null;
-        announce('You launch your board over the humpback whale!', 'Windsurfing');
+        announce(
+          contentText(
+            'world-message.src.world.interactions.you-launch-your-board-over-the-humpback-whale',
+          ),
+          'Windsurfing',
+        );
         context.canvas.focus({ preventScroll: true });
         return true;
       }
       const takeoff = context.surf.jumpApproach(context.player, target);
       if (!takeoff || attempts++ >= 3) {
         if (context.clickAttempt) context.clickAttempt.worked = false;
-        announce('Choose a whale with enough open water around it to jump.', 'Windsurfing');
+        announce(
+          contentText(
+            'world-message.src.world.interactions.choose-a-whale-with-enough-open-water-around-it-to-jump',
+          ),
+          'Windsurfing',
+        );
         return false;
       }
       const accepted = walkTo(takeoff.x, takeoff.y, launch);
-      if (accepted) announce('You sail into position to jump the humpback.', 'Windsurfing');
+      if (accepted)
+        announce(
+          contentText(
+            'world-message.src.world.interactions.you-sail-into-position-to-jump-the-humpback',
+          ),
+          'Windsurfing',
+        );
       return accepted;
     };
     return launch();
@@ -2478,8 +2934,12 @@ export function createInteractions(context: WorldContext) {
     context.updateSurfButton();
     announce(
       context.surf.state.mode === 'surf'
-        ? 'You paddle out from Pacifica. Click the water to paddle; Space catches a wave. 1 / 2 / 3 perform tricks while riding. U returns to the beach.'
-        : 'You launch from Crissy Field. Click the bay to windsurf; F returns you to shore.',
+        ? contentText(
+            'world-message.src.world.interactions.you-paddle-out-from-pacifica-click-the-water-to-paddle-space-c',
+          )
+        : contentText(
+            'world-message.src.world.interactions.you-launch-from-crissy-field-click-the-bay-to-windsurf-f-retur',
+          ),
       'You',
     );
   }
@@ -2499,8 +2959,12 @@ export function createInteractions(context: WorldContext) {
     context.updateSurfButton();
     announce(
       pacifica
-        ? 'You carry the board back onto Pacifica beach.'
-        : 'You carry the board back onto Crissy Field.',
+        ? contentText(
+            'world-message.src.world.interactions.you-carry-the-board-back-onto-pacifica-beach',
+          )
+        : contentText(
+            'world-message.src.world.interactions.you-carry-the-board-back-onto-crissy-field',
+          ),
       'You',
     );
   }
@@ -2524,14 +2988,41 @@ export function createInteractions(context: WorldContext) {
         ...requiredValue(sightById('windsurf'), 'Missing authored entity: windsurf').entry,
       };
       if (walkTo(context.surf.state.shore.x, context.surf.state.shore.y, mountSurf))
-        announce('Walking to the windsurf board at Crissy Field…');
+        announce(
+          contentText(
+            'world-message.src.world.interactions.walking-to-the-windsurf-board-at-crissy-field',
+          ),
+        );
     }
     context.canvas.focus({ preventScroll: true });
   }
 
   function talkRehabilitation(npc: Actor) {
-    if (!context.chase.state.jailed || context.rehabilitation.state.active) return false;
+    if (context.rehabilitation.state.active) return false;
     closeMenu();
+    if (!context.chase.state.jailed)
+      return approachNPC(
+        npc,
+        () =>
+          openNPCDialogue({
+            ...npc,
+            contentResolved: true,
+            intro:
+              'Good afternoon. It’s quiet out here between appointments. I spend most of that time watching the fog come in.',
+            choices: [
+              {
+                label: 'Do you ever get tired of the view?',
+                receipt:
+                  'I thought I would. Then I started noticing how the fog takes a different route over the hill every day.',
+              },
+              {
+                label: 'What do you do on your days off?',
+                receipt: 'I walk down to the coast and leave my watch at home.',
+              },
+            ],
+          }),
+        { approach: (actor) => context.regionalCitizenApproach(actor) },
+      );
     context.keys.clear();
     context.player.path = [];
     context.player.speed = 0;
@@ -2610,7 +3101,9 @@ export function createInteractions(context: WorldContext) {
     context.drawMini();
     context.updateSurfButton();
     announce(
-      'You are under arrest! You have been placed in the Carceral Urbanist Facility in the Marin Headlands. Click the floor to walk within your cell, or talk through the bars to the rehabilitation specialist.',
+      contentText(
+        'world-message.src.world.interactions.you-are-under-arrest-you-have-been-placed-in-the-carceral-urba',
+      ),
       'Police',
     );
   }
@@ -2685,35 +3178,109 @@ export function createInteractions(context: WorldContext) {
       if (verb === 'follow') return context.multiplayerWorld.followPlayer(npc);
       return walkToActor(npc);
     }
+    if (verb === 'talk' && npc.id === FIGHTER_YARD.tyler.id) {
+      return approachNPC(npc, () => {
+        const admitted = equipmentOwned(context.economy.state, FIGHTER_YARD.pass);
+        const enter = {
+          label: admitted
+            ? 'Enter the Fighter Yard'
+            : 'Pay ' + FIGHTER_YARD.price + ' coins for admission',
+          accept: async () => {
+            const after = () => walkTo(FIGHTER_YARD.inside.x, FIGHTER_YARD.inside.y);
+            if (admitted) return { ok: true, after, message: 'Go on in. You’re on the list.' };
+            const result = await serverCommand(context.multiplayer, 'inventory', {
+              op: 'trade',
+              kind: 'fighter-yard-admission',
+            });
+            return result.ok ? { ...result, after } : result;
+          },
+        };
+        return openNPCDialogue({
+          ...npc,
+          contentResolved: true,
+          intro: admitted
+            ? 'I’ve got your waiver right here. Caveat emptor.'
+            : 'Ten coins gets you in. Pick someone your own size, or don’t. Caveat emptor.',
+          choices: [
+            enter,
+            {
+              label: 'What about the ethics of this?',
+              next: {
+                intro:
+                  'I consulted a panel of professional ethicists and obtained signed waiver forms. I keep them in separate folders.',
+                choices: [enter],
+              },
+            },
+          ],
+        });
+      });
+    }
+    if (verb === 'talk' && (npc.id === GOBLIN_INDUSTRIALIST.id || npc.id === ROBE_SELLER)) {
+      const phone = npc.id === GOBLIN_INDUSTRIALIST.id;
+      const items: readonly string[] = phone ? ['goblin-phone'] : CLOTHIER_ITEMS;
+      return approachNPC(npc, () =>
+        openNPCDialogue({
+          ...npc,
+          contentResolved: true,
+          intro: phone
+            ? 'Behold the Goblin Phone. We call this finish Unfired Clay.'
+            : 'The pink robe comes in two pieces. I also stock cream cashmere turtlenecks and buy bear and fox pelts from Tahoe.',
+          choices: [
+            ...items.map((kind) => ({
+              label: 'Buy ' + ITEM_STATS[kind].name + ' · ' + ITEM_STATS[kind].price + ' coins',
+              accept: () => serverCommand(context.multiplayer, 'inventory', { op: 'trade', kind }),
+            })),
+            ...(!phone
+              ? TAHOE_PELTS.map((pelt) => ({
+                  label:
+                    'Sell ' +
+                    ITEM_STATS[pelt].name.toLowerCase() +
+                    ' · ' +
+                    TAHOE_PELT_PRICES[pelt] +
+                    ' coins',
+                  repeat: true,
+                  accept: () =>
+                    serverCommand(context.multiplayer, 'inventory', {
+                      op: 'trade',
+                      kind: 'sell-' + pelt,
+                    }),
+                }))
+              : []),
+          ],
+        }),
+      );
+    }
     if (verb === 'talk' && npc.id === ATV_RENTAL.npcId) {
-      const action = (kind: string, minutes?: number) =>
-        serverCommand(context.multiplayer, 'travel', { kind, minutes });
+      const rent = (minutes: number) =>
+        serverCommand(context.multiplayer, 'travel', { kind: 'atvRent', minutes });
       return approachNPC(
         npc,
         () =>
           openNPCDialogue({
             ...npc,
             contentResolved: true,
-            intro:
-              'I rent the quad by the minute. Take the flagged roof ramp, then roll or spin in the air. The flat dirt is good for donuts.',
-            choices: [
-              {
-                label: 'Rent for 1 minute · ' + ATV_RENTAL.prices[1] + ' coins',
-                accept: () => action('atvRent', 1),
-              },
-              {
-                label: 'Rent for 10 minutes · ' + ATV_RENTAL.prices[10] + ' coins',
-                accept: () => action('atvRent', 10),
-              },
-              { label: 'Mount rented ATV', accept: () => action('atvMount') },
-            ],
+            intro: atvRented()
+              ? 'Your rental is still running. Click the parked quad when you’re ready to ride.'
+              : 'I rent the quad by the minute. Once you’ve paid, click it to mount. Take the flagged roof ramp for air tricks or try donuts on flat dirt.',
+            choices: atvRented()
+              ? []
+              : [
+                  {
+                    label: 'Rent for 1 minute · ' + ATV_RENTAL.prices[1] + ' coins',
+                    accept: () => rent(1),
+                  },
+                  {
+                    label: 'Rent for 10 minutes · ' + ATV_RENTAL.prices[10] + ' coins',
+                    accept: () => rent(10),
+                  },
+                ],
           }),
         { approach: (actor) => context.regionalCitizenApproach(actor) },
       );
     }
     if (verb === 'talk' && npc.combatKind === 'goblin-maker')
       return approachNPC(npc, () => furnitureDialogue(npc, 'buy'), {
-        approach: (actor) => context.regionalCitizenApproach(actor),
+        approach: (actor) => context.regionalCitizenApproach(actor, true),
       });
     if (verb === 'talk' && npc.stroller && String(npc.id).startsWith('noe-parent-'))
       return approachNPC(npc, () => furnitureDialogue(npc, 'sell'));
@@ -2758,6 +3325,21 @@ export function createInteractions(context: WorldContext) {
         }),
       );
     if (npc.kind === 'market-farmer' && verb === 'talk') return talkMarketFarmer(npc);
+    if (verb === 'talk' && (npc.kind === BURNING_MAN.matilda || npc.kind === BURNING_MAN.dj))
+      return approachNPC(npc, () =>
+        openNPCDialogue(burningManDialogue(npc, burningManStage(), burningManCommand)),
+      );
+    if (verb === 'talk' && npc.kind === 'burning-man-guest')
+      return approachNPC(npc, () =>
+        openNPCDialogue({
+          ...npc,
+          contentResolved: true,
+          intro:
+            npc.id === BURNING_MAN.partyDJ
+              ? 'I brought my records. Whoever said a wicker statue couldn’t hold the floor was thinking of the wrong kind of party.'
+              : 'Welcome to the party. Matilda’s hosting. If you came in fancy dress, congratulations. If you didn’t, we’ll assume it’s very subtle.',
+        }),
+      );
     if (npc.wilderness)
       return verb === 'pet'
         ? petBear(npc)
@@ -2766,9 +3348,171 @@ export function createInteractions(context: WorldContext) {
           : examine(npc);
     if (npc.police) return examine(npc);
 
+    if (npc.id === GOBLIN_INCUBATOR.founder.id && verb === 'talk')
+      return approachNPC(npc, () =>
+        openNPCDialogue({
+          ...npc,
+          contentResolved: true,
+          repeat: true,
+          decline: 'Leave',
+          intro: 'Early-stage equity. Ten coins buys you a stake in the future.',
+          choices: [
+            {
+              label: 'Buy startup equity · 10 coins',
+              serverReceipt: true,
+              accept: () =>
+                serverCommand(context.multiplayer, 'inventory', { op: 'trade', kind: 'equity' }),
+            },
+            {
+              label: 'What is this?',
+              receipt:
+                'We don’t have good legal infrastructure. A live fish is the best contractual instrument we have.',
+            },
+          ],
+        }),
+      );
+    if (npc.kind === 'legacy-developer' && verb === 'talk')
+      return approachNPC(npc, () =>
+        openNPCDialogue({
+          ...npc,
+          contentResolved: true,
+          repeat: true,
+          decline: 'Leave',
+          intro:
+            'I’m the developer here. I used to give demos in that meeting room. The software still runs beautifully, provided you can get to the keyboard. The last customer asked whether the bugs were figurative, then something moved under the projector. Could you take a look inside?',
+          choices: [
+            {
+              label: 'What kind of bugs?',
+              receipt:
+                'Spiders, beetles, caterpillars. I tried to track which rooms they were in. Then I noticed the web in the stairwell had annexed two departments since breakfast. Wear something you’re happy to come back in.',
+            },
+            {
+              label: 'I’ll take a look',
+              receipt:
+                'The door’s open. If you get inside, could you tell me how far they’ve spread? I’d like to give the staff a better answer than “somewhere past reception.”',
+            },
+          ],
+        }),
+      );
+    if (npc.kind === 'biomed-entrepreneur' && verb === 'talk')
+      return approachNPC(npc, () =>
+        openNPCDialogue({
+          ...npc,
+          contentResolved: true,
+          intro:
+            'My radical new biomedical technology will change medicine. Invest any amount today and I’ll double your money.',
+          choices: [
+            {
+              label: 'Invest coins',
+              accept: () => {
+                const value = window.prompt('How many coins do you want to hand her?');
+                if (value === null) return { ok: false, message: 'You keep your coins.' };
+                return serverCommand(context.multiplayer, 'inventory', {
+                  op: 'fundBiomed',
+                  amount: Number(value),
+                });
+              },
+            },
+            {
+              label: 'What does the technology do?',
+              receipt:
+                'I’m under an NDA. Once you invest, I can tell you why I still can’t tell you.',
+            },
+          ],
+          repeat: true,
+          decline: 'Keep your money',
+        }),
+      );
     if (npc.kind === 'guild-master' && verb === 'talk') return talkGuildRay(npc);
     if (npc.kind === 'illuminati-elder' && verb === 'talk') return talkOldMan(npc);
     if (npc.kind === 'tablet-wizard' && verb === 'talk') return talkTabletWizard(npc);
+    if (npc.kind === 'goblin-scientist' && verb === 'talk') return talkGoblinScientist(npc);
+    if (
+      (npc.kind === 'berkeley-mathematician' || npc.kind === 'enterprising-industrialist') &&
+      verb === 'talk'
+    )
+      return approachNPC(npc, () =>
+        openNPCDialogue({
+          ...npc,
+          contentResolved: true,
+          intro:
+            npc.kind === 'berkeley-mathematician'
+              ? 'I’m off to lunch. If you’ve solved a famous open problem, now is a good time to stop me.'
+              : 'I invest in things that will look impressive on my office wall. The foundry also sells iron armor.',
+          ...(npc.kind === 'enterprising-industrialist' && {
+            choices: [
+              {
+                label: 'Buy iron armor · ' + ITEM_STATS['iron-armor'].price + ' coins',
+                accept: () =>
+                  serverCommand(context.multiplayer, 'inventory', {
+                    op: 'trade',
+                    kind: 'iron-armor',
+                  }),
+              },
+            ],
+            repeat: true,
+            decline: 'Leave',
+          }),
+        }),
+      );
+    if (npc.id === GOBLIN_SPACE_PROGRAM.engineer.id && verb === 'talk')
+      return approachNPC(npc, () => {
+        const helped = (context.multiplayer.state.playerState?.progress.goblinSpaceMud || 0) > 0;
+        const trade = (label: string, all = false) => ({
+          label,
+          serverReceipt: true,
+          accept: async () => {
+            const result = await serverCommand(context.multiplayer, 'playerAction', {
+              verb: 'tradeMud',
+              all,
+            });
+            return result.ok && !helped
+              ? {
+                  ...result,
+                  after: () =>
+                    context.dialogue.open({
+                      name: 'You',
+                      intro: 'Directionally correct progress.',
+                    }),
+                }
+              : result;
+          },
+        });
+        return openNPCDialogue({
+          ...npc,
+          contentResolved: true,
+          intro: helped
+            ? 'Good to see you again. Feel free to bring me more mud anytime. The ladder still has a long way to go.'
+            : 'I’m building a ladder to the moon. I have plenty of wood, but I need mud to hold it together. There’s a mud bath in South San Francisco, west of the Armory. I’ll give you five live fish for every mud you bring me.',
+          choices: [
+            trade('Trade 1 mud for ' + FISH_PER_MUD + ' live fish'),
+            ...(helped && context.economy.state.mud > 1 ? [trade('Trade all my mud', true)] : []),
+          ],
+        });
+      });
+    if (npc.kind === 'goblin-plumber' && verb === 'talk')
+      return approachNPC(
+        npc,
+        () => openNPCDialogue({ ...npc, contentResolved: true, intro: npc.localLine }),
+        { approach: (actor) => context.regionalCitizenApproach(actor, true) },
+      );
+    if (npc.kind === 'rene-girard' && verb === 'talk')
+      return approachNPC(
+        npc,
+        () => openNPCDialogue({ ...npc, contentResolved: true, ...girardDialogue }),
+        { approach: (actor) => context.regionalCitizenApproach(actor) },
+      );
+    if (npc.kind === 'churchgoer' && verb === 'talk')
+      return approachNPC(
+        npc,
+        () =>
+          openNPCDialogue({
+            ...npc,
+            contentResolved: true,
+            ...(npc.id === 'berkeley-churchgoer-1' ? churchDialogue.mara : churchDialogue.elias),
+          }),
+        { approach: (actor) => context.regionalCitizenApproach(actor) },
+      );
     if (npc.kind === 'yohji' && verb === 'talk') return talkYohji(npc);
     if (npc.kind === 'banker' && verb === 'talk') return talkBanker(npc);
     if (npc.dogSurfJudge)
@@ -2792,17 +3536,22 @@ export function createInteractions(context: WorldContext) {
     if (npc.alienId && verb === 'attack') return approachNPC(npc, () => attackAlien(npc));
     if (npc.rehabilitation) return talkRehabilitation(npc);
     if (npc.parrot) return talkParrot(npc);
-    if (npc.dog === true && !npc.dogWalker) {
-      npc.speech = 'Woof!';
-      npc.speechUntil = performance.now() + 3000;
-      context.player.gesture = {
-        name: contentText('world.interactions.interactCitizen.name-37', {}),
-        started: performance.now(),
-        duration: 900,
-      };
-      announce('You pet the dog. Its afternoon has improved considerably.', 'You');
-      return true;
-    }
+    if (npc.dog === true && !npc.dogWalker)
+      return approachNPC(npc, () => {
+        npc.speech = 'Woof!';
+        npc.speechUntil = performance.now() + 3000;
+        context.player.gesture = {
+          name: contentText('world.interactions.interactCitizen.name-37', {}),
+          started: performance.now(),
+          duration: 900,
+        };
+        announce(
+          contentText(
+            'world-message.src.world.interactions.you-pet-the-dog-its-afternoon-has-improved-considerably',
+          ),
+          'You',
+        );
+      });
     if (npc.neighborhoodService && verb === 'talk')
       return approachNPC(npc, () =>
         openNPCDialogue(
@@ -2840,27 +3589,30 @@ export function createInteractions(context: WorldContext) {
     closeMenu();
     if (context.dialogue.active) context.dialogue.close();
     if (context.sutroClimb.state.active) return climbUnavailable();
-    if (npc.baby && npc.parent) npc.parent.hold = 8;
-    npc.hold = 8;
-    npc.lookAt = { x: context.player.x + 0.5, z: context.player.y + 0.5 };
-    const target = npc.approach
-      ? { ...npc.approach }
-      : npc.regional
-        ? context.regionalCitizenApproach(npc)
-        : context.nearestNavigation(npc.x - 0.5, npc.z - 0.5, 2, (x: number, y: number) => {
-            const d = Math.hypot(x + 0.5 - npc.x, y + 0.5 - npc.z);
-            return d >= 0.8 && d < 1.5 && (!npc.interior || context.placeAt(x, y) === npc.interior);
-          });
+    const target = () =>
+      npc.approach
+        ? { ...npc.approach }
+        : npc.regional
+          ? context.regionalCitizenApproach(npc, true)
+          : context.nearestNavigation(npc.x - 0.5, npc.z - 0.5, 2, (x: number, y: number) => {
+              const d = Math.hypot(x + 0.5 - npc.x, y + 0.5 - npc.z);
+              return (
+                d >= 0.8 && d < 1.5 && (!npc.interior || context.placeAt(x, y) === npc.interior)
+              );
+            });
     const perform = () => {
       if (context.multiplayerWorld && verb !== 'talk') {
-        context.multiplayerWorld.actions.request('attackPersonal', {
+        return context.multiplayer.command('playerAction', {
+          verb: 'attackPersonal',
           id: npc.id,
           weapon: playerWeapon(),
           steal: verb !== 'attack',
         });
-        return true;
       }
-      if (npc.alienId && verb === 'attack') return attackAlien(npc);
+      if (npc.alienId && verb === 'attack') {
+        attackAlien(npc);
+        return;
+      }
       if (npc.baby && npc.parent) npc.parent.hold = 3;
       npc.hold = 3;
       npc.lookAt = { x: context.player.x + 0.5, z: context.player.y + 0.5 };
@@ -2887,41 +3639,55 @@ export function createInteractions(context: WorldContext) {
           context.action = null;
           context.destination = null;
           context.keys.clear();
-          openNPCDialogue(createAmbientDialogue(npc, npc.child ? { chain: GOOSE_CHAINS[1] } : {}));
+          openNPCDialogue(
+            npc.club
+              ? { ...npc, contentResolved: true, intro: nightlifeRebuff(npc.gender || 'man') }
+              : createAmbientDialogue(npc, npc.child ? { chain: childConversation() } : {}),
+          );
         }
       } else {
         npc.speech = 'Help! Police!';
         npc.speechUntil = performance.now() + 4500;
         announce(
           verb === 'attack'
-            ? 'You attack the ' + npc.label.toLowerCase() + '. They call for the police.'
-            : 'You steal a few coins from the ' +
-                npc.label.toLowerCase() +
-                '. They raise the alarm.',
+            ? contentText(
+                'world-message.src.world.interactions.you-attack-the-they-call-for-the-police',
+                { value1: String(npc.label.toLowerCase()) },
+              )
+            : contentText(
+                'world-message.src.world.interactions.you-steal-a-few-coins-from-the-they-raise-the-alarm',
+                { value1: String(npc.label.toLowerCase()) },
+              ),
           'You',
         );
         context.chase.start();
         context.$('sf-wanted').hidden = false;
-        announce('Stop! You are under arrest!', 'Police');
+        announce(
+          contentText('world-message.src.world.interactions.stop-you-are-under-arrest'),
+          'Police',
+        );
       }
     };
-    if (
-      Math.hypot(context.player.x + 0.5 - npc.x, context.player.y + 0.5 - npc.z) < 1.8 &&
-      (!npc.interior || context.currentInterior === npc.interior)
-    )
-      perform();
-    else if (!target || !walkTo(target.x, target.y, perform)) {
-      if (context.clickAttempt) context.clickAttempt.worked = false;
-      npc.hold = 0;
-      announce('Move closer to the ' + npc.label.toLowerCase() + '.');
-    }
     context.canvas.focus({ preventScroll: true });
+    return approachMovingTarget({
+      target: () => (npc.hp === 0 || npc.expeditionDead ? null : npc),
+      inReach: () =>
+        Math.hypot(context.player.x + 0.5 - npc.x, context.player.y + 0.5 - npc.z) < 1.8 &&
+        (!npc.interior || context.currentInterior === npc.interior),
+      approach: target,
+      perform,
+    });
   }
 
   function debugTeleport(x: number, y: number, serverApproved = false) {
     if (context.multiplayerWorld && !serverApproved) {
       context.multiplayerWorld.teleport(x, y);
-      return { ok: true, message: 'Teleport requested from the server.' };
+      return {
+        ok: true,
+        message: contentText(
+          'world-message.src.world.interactions.teleport-requested-from-the-server',
+        ),
+      };
     }
     if (context.bankMenu?.active) context.bankMenu.close();
     const target = debugTilePosition(x, y),
@@ -2930,8 +3696,9 @@ export function createInteractions(context: WorldContext) {
     if (!context.landClearAt(target.x, target.y) && !inCell)
       return {
         ok: false,
-        message:
-          'That point is blocked or outside the walkable map. Choose a road, path, or open ground.',
+        message: contentText(
+          'world-message.src.world.interactions.that-point-is-blocked-or-outside-the-walkable-map-choose-a-roa',
+        ),
       };
     // Close committed dialogue receipts first, then cancel any travel they
     // started. No delayed arrival, capture or rehabilitation can undo :tp.
@@ -3018,12 +3785,23 @@ export function createInteractions(context: WorldContext) {
     context.debugConsole?.update();
     return {
       ok: true,
-      message: 'Teleported to ' + Number(x.toFixed(4)) + ', ' + Number(y.toFixed(4)) + '.',
+      message: contentText('world-message.src.world.interactions.teleported-to', {
+        value1: String(Number(x.toFixed(4))),
+        value2: String(Number(y.toFixed(4))),
+      }),
     };
   }
 
-  function walkTo(x: number, y: number, onArrival: (() => void) | null = null): boolean {
+  function walkTo(
+    x: number,
+    y: number,
+    onArrival: (() => void) | null = null,
+    requestMove?: (x: number, z: number) => void,
+  ): boolean {
+    if (!isFiniteNumber(x) || !isFiniteNumber(y)) return false;
+    if (!requestMove) cancelMovingInteraction();
     if (!serverConnected(context.multiplayer)) return false;
+    if (context.multiplayerWorld?.selfMode === 'streetcar') return false;
     if (context.multiplayerWorld?.selfMode === 'roof') {
       context.multiplayerWorld.command('travel', { kind: 'houseRoof' });
       return true;
@@ -3042,18 +3820,22 @@ export function createInteractions(context: WorldContext) {
     context.multiplayerWorld?.stopFollowing(false);
     context.expeditions.stop();
     if (context.expeditions.ship.aboard) {
-      announce('Speak to Captain Ahab to return to shore.');
+      announce(
+        contentText(
+          'world-message.src.world.interactions.speak-to-captain-ahab-to-return-to-shore',
+        ),
+      );
       return false;
     }
     if (context.clickAttempt && !onArrival) context.clickAttempt.walking = true;
-    if (onArrival) context.skateboard.riding = false;
+    if (onArrival || requestMove) context.skateboard.riding = false;
     if (context.alienCombat) {
       context.alienCombat = null;
       context.player.gesture = null;
     }
     if (context.training) stopTraining();
     if (context.ferrari?.state.riding) {
-      if (onArrival) return parkCarFirst();
+      if (onArrival || requestMove) return parkCarFirst();
       return driveFerrari(x, y);
     }
     if (context.capture.state.active) return false;
@@ -3076,7 +3858,9 @@ export function createInteractions(context: WorldContext) {
     if (context.rope.climbing) return false;
     if (context.flying()) {
       if (context.rope.state.deployed) {
-        announce('Retract the rope before flying.');
+        announce(
+          contentText('world-message.src.world.interactions.retract-the-rope-before-flying'),
+        );
         return false;
       }
       const accepted = context.airship.flyTo(x + 0.5, y + 0.5);
@@ -3126,7 +3910,7 @@ export function createInteractions(context: WorldContext) {
       context.destination = { x, y };
       closeReader();
       closeMenu();
-      context.multiplayerWorld.moveTo(x + 0.5, y + 0.5);
+      (requestMove || context.multiplayerWorld.moveTo)(x + 0.5, y + 0.5);
       context.drawMini();
       return true;
     }
@@ -3136,10 +3920,16 @@ export function createInteractions(context: WorldContext) {
     if (!p) return false;
     closeMenu();
     if (p.id === 'freemasons-guild' && !guildStatus().member) {
-      announce('The guild admits members only.', 'Guild');
+      announce(
+        contentText('world-message.src.world.interactions.the-guild-admits-members-only'),
+        'Guild',
+      );
       return false;
     }
-    if (walkTo(p.inside.x, p.inside.y, () => enter(p))) announce('Walking to ' + p.label + '…');
+    if (walkTo(p.inside.x, p.inside.y, () => enter(p)))
+      announce(
+        contentText('world-message.src.world.interactions.walking-to', { label: String(p.label) }),
+      );
     context.canvas.focus({ preventScroll: true });
   }
 
@@ -3174,12 +3964,17 @@ export function createInteractions(context: WorldContext) {
       context.visited.add(p.id);
       announce(
         p.id === 'orin-house'
-          ? 'You step inside Orin’s house. Purple tablets and a well-worn armchair suggest a wizard who dislikes commuting.'
+          ? contentText(
+              'world-message.src.world.interactions.you-step-inside-orins-house-purple-tablets-and-a-well-worn-arm',
+            )
           : p.id === 'freemasons-guild'
-            ? 'You enter the lodge. A checkerboard floor, brass compasses, and extremely exclusive biscuits.'
-            : 'You enter the ' +
-              TECHNOLOGIST_MARKET +
-              '. The farmers wear black coats and sunglasses. The produce may know kung fu.',
+            ? contentText(
+                'world-message.src.world.interactions.you-enter-the-lodge-a-checkerboard-floor-brass-compasses-and-e',
+              )
+            : contentText(
+                'world-message.src.world.interactions.you-enter-the-the-farmers-wear-black-coats-and-sunglasses-the',
+                { TECHNOLOGIST_MARKET: String(TECHNOLOGIST_MARKET) },
+              ),
         'You',
       );
       context.drawMini();
@@ -3189,8 +3984,16 @@ export function createInteractions(context: WorldContext) {
       closeReader();
       closeMenu();
       context.visited.add(p.id);
-      if (context.aiLabJob.state.hired) announce('Welcome back to the AI Lab.', 'AI Lab');
-      else announce('You enter the AI Lab.', 'AI Lab');
+      if (context.aiLabJob.state.hired)
+        announce(
+          contentText('world-message.src.world.interactions.welcome-back-to-the-ai-lab'),
+          'AI Lab',
+        );
+      else
+        announce(
+          contentText('world-message.src.world.interactions.you-enter-the-ai-lab'),
+          'AI Lab',
+        );
       context.drawMini();
       return;
     }
@@ -3240,10 +4043,6 @@ export function createInteractions(context: WorldContext) {
     context.$('sf-reader').hidden = false;
     context.$('sf-reader-shade').hidden = true;
     context.$('sf-reader').scrollTop = 0;
-    announce(
-      'You step inside ' + p.label + '. The roof is hidden; walk out to return to the street.',
-      'You',
-    );
     context.drawMini();
   }
 
@@ -3260,8 +4059,19 @@ export function createInteractions(context: WorldContext) {
     context.$('sf-context').hidden = true;
   }
 
+  function revealContextMenu(menu: HTMLDivElement, sx?: number, sy?: number) {
+    menu.hidden = false;
+    const width = context.width - menu.offsetWidth;
+    const height = context.height - menu.offsetHeight;
+    menu.style.left = Math.max(12, Math.min(width - 12, sx ?? width / 2)) + 'px';
+    menu.style.top = Math.max(12, Math.min(height - 12, sy ?? height / 2)) + 'px';
+    menu.scrollTop = 0;
+    menu.querySelector('button')?.focus({ preventScroll: true });
+  }
+
   function clicked(sx: unknown, sy: unknown, fn: () => unknown) {
     if (!context.built || context.tabletService?.state.active) return false;
+    cancelMovingInteraction();
     const previous = context.clickAttempt,
       attempt = { worked: true, walking: false };
     context.clickAttempt = attempt;
@@ -3313,15 +4123,7 @@ export function createInteractions(context: WorldContext) {
 
   function examine(p: { description?: string } | null | undefined) {
     closeMenu();
-    if (!p)
-      p = applyEntityEdits(
-        {
-          id: 'unlabelled-ground',
-          description: contentText('world.interactions.examine.description-40', {}),
-        },
-        'sight:unlabelled-ground',
-      );
-    if (p.description) announce(p.description, 'Examine');
+    if (p?.description) announce(p.description, 'Examine');
     context.canvas.focus({ preventScroll: true });
   }
 
@@ -3344,12 +4146,392 @@ export function createInteractions(context: WorldContext) {
     );
   }
 
+  function worldTarget(
+    sx: number,
+    sy: number,
+    pressed?: { npc: InteractiveActor | null; sight: InteractionSight | null },
+  ) {
+    const picked = context.pick?.(sx, sy);
+    const npc =
+      pressed?.npc ||
+      (!pressed?.sight
+        ? picked?.npc ||
+          (!picked?.sight || picked.sight.kind === 'guest' ? context.hitCitizen(sx, sy) : null)
+        : null);
+    const sight = pressed?.sight || picked?.sight || (!npc ? context.hitSight(sx, sy) : null);
+    const useLoot = sight?.kind === 'loot' && !npc?.networkPlayer && !npc?.police;
+    const selectedNPC = useLoot ? null : npc;
+    const selectedSight = selectedNPC ? null : (sight ?? null);
+    let tile: Point | undefined;
+    return {
+      sx,
+      sy,
+      npc: selectedNPC,
+      sight: selectedSight,
+      place: selectedNPC || selectedSight ? null : picked?.place || context.hitPlace(sx, sy),
+      get tile() {
+        return (tile ??= context.tileAt(sx, sy));
+      },
+      researchRoom: !!picked?.researchRoom,
+    };
+  }
+
+  type WorldAction = { id: string; label: string; run: () => unknown };
+
+  function examineNPC(npc: InteractiveActor) {
+    announce(
+      context.npcLabel(npc, false) +
+        ': ' +
+        (context.npcRevealed(npc)
+          ? 'An alien silhouette ripples beneath a coating of green slime.'
+          : describeCharacter(npc)),
+      'Examine',
+    );
+    context.canvas.focus({ preventScroll: true });
+  }
+
+  function primaryNPCAction(npc: InteractiveActor): WorldAction {
+    const verb = context.npcPrimary(npc);
+    const label = context.npcLabel(npc, verb !== 'examine');
+    return {
+      id: 'npc.' + verb,
+      label:
+        { talk: 'Talk-To', attack: 'Attack', examine: 'Examine', pet: 'Pet', walk: 'Walk here' }[
+          verb
+        ] +
+        ' ' +
+        label,
+      run:
+        verb === 'walk'
+          ? () => walkToActor(npc)
+          : verb === 'examine'
+            ? () => examineNPC(npc)
+            : () => interactCitizen(npc, verb),
+    };
+  }
+
+  function atvRented() {
+    return hasATVRental(context.multiplayer.state.personal?.travel?.atvRentalUntil);
+  }
+
+  function primarySightAction(sight: InteractionSight): WorldAction {
+    const { id, kind, label } = sight;
+    const action = (id: string, label: string, run = () => goToSight(sight)): WorldAction => ({
+      id,
+      label,
+      run,
+    });
+    if (id === 'rich-table' && hasSiteEntry(sight)) {
+      const { entry } = sight;
+      return action('uni.trade', 'Sell Uni · 40 coins', () =>
+        walkTo(entry.x, entry.y, () => {
+          context.multiplayerWorld.command('inventory', { op: 'trade', kind: 'sell-uni' });
+        }),
+      );
+    }
+    if (sight.enterableInstitute && context.activeInstituteRoom()?.id !== id)
+      return action('interaction.13', 'Enter ' + label);
+    if (buildingNPCService(sight)) return action('examine', 'Examine ' + label);
+    if (id === 'sutro') return action('interaction.25', 'Climb ' + label);
+    if (id === 'zoo-monkeys') return action('interaction.19', 'Steal monkey');
+    switch (kind) {
+      case MARKET_STREETCAR.kind:
+        return action('streetcar.board', 'Ride ' + label, () =>
+          approachMovingTarget({
+            target: context.streetcarPose,
+            inReach: (car) =>
+              Math.hypot(context.player.x + 0.5 - car.x, context.player.y + 0.5 - car.z) <=
+              STREETCAR_BOARD_RANGE,
+            approach: actorWalkPoint,
+            perform: () => context.multiplayerWorld.command('travel', { kind: 'streetcarBoard' }),
+          }),
+        );
+      case CONSTRUCTION_SITE.id: {
+        const work = context.multiplayerWorld;
+        if (work.selfMode === 'construction')
+          return action('construction.stop', 'Stop construction', () => {
+            work.command('playerAction', { verb: 'constructionStop' });
+          });
+        const { x, z } = CONSTRUCTION_SITE.work;
+        return action('construction.start', 'Contribute to construction', () => {
+          walkTo(x - 0.5, z - 0.5, () => {
+            work.command('playerAction', { verb: 'constructionStart' });
+          });
+        });
+      }
+      case MUD_BATH.id: {
+        const world = context.multiplayerWorld;
+        if (
+          world.selfMode === 'sit' &&
+          Math.hypot(context.player.x + 0.5 - MUD_BATH.x, context.player.y + 0.5 - MUD_BATH.z) <
+            0.15
+        )
+          return action('mud-bath.stand', 'Get out of Mud Bath', () =>
+            world.command('activity', { mode: 'walk' }),
+          );
+        const { x, y } = MUD_BATH.entry;
+        return action('mud-bath.sit', 'Sit in Mud Bath', () =>
+          walkTo(x, y, () => world.command('activity', { mode: 'sit', mudBath: true })),
+        );
+      }
+      case ATV_RENTAL.siteId:
+        if (atvRented() && hasSiteEntry(sight)) {
+          const { entry } = sight;
+          return action('atv.mount', 'Mount ' + label, () => {
+            const mount = () => context.multiplayerWorld.command('travel', { kind: 'atvMount' });
+            const { x, z } = ATV_RENTAL.parking;
+            if (
+              context.multiplayerWorld.selfMode === 'walk' &&
+              Math.hypot(context.player.x + 0.5 - x, context.player.y + 0.5 - z) <=
+                ATV_RENTAL.mountRange - 0.15
+            )
+              return mount();
+            return walkTo(entry.x, entry.y, mount);
+          });
+        }
+        break;
+      case 'swing': {
+        const { entry } = sight;
+        if (!entry) break;
+        const travel = context.multiplayerWorld;
+        if (
+          travel.selfMode === 'swing' &&
+          Math.hypot(context.player.x - entry.x, context.player.y - entry.y) < 0.7
+        )
+          return action('swing.exit', 'Get off swing', () =>
+            travel.command('travel', { kind: 'swingExit' }),
+          );
+        return action('swing.board', 'Swing on ' + label, () =>
+          walkTo(entry.x, entry.y, () => {
+            travel.command('travel', { kind: 'swingBoard', id });
+          }),
+        );
+      }
+      case 'trampoline': {
+        const { x, z } = TRAMPOLINE;
+        return action('yard.jump', 'Jump on trampoline', () =>
+          walkTo(x - 0.5, z - 0.5, () =>
+            context.multiplayerWorld.command('playerAction', { verb: 'trampoline' }),
+          ),
+        );
+      }
+      case 'hot-trapdoor':
+      case 'lab-exit': {
+        if (!hasSiteEntry(sight)) break;
+        const { entry } = sight;
+        return action(
+          kind,
+          kind === 'hot-trapdoor' ? 'Descend hot trapdoor' : 'Climb laboratory stairs',
+          () =>
+            walkTo(entry.x, entry.y, () => {
+              if (kind === 'lab-exit') context.secretWorld.leave();
+              else context.multiplayerWorld.command('instanceEnter', { kind: 'berkeley-lab' });
+            }),
+        );
+      }
+      case 'ferrari':
+        return action('interaction.28', 'Drive / park ' + label);
+      case 'called-waymo':
+        if (
+          context.multiplayer.state.personal?.travel?.waymo?.phase === 'parked' &&
+          hasSiteEntry(sight)
+        )
+          return action('waymo.board', 'Board ' + label, () => {
+            const board = () => context.multiplayerWorld.command('travel', { kind: 'waymoBoard' });
+            return Math.hypot(context.player.x - sight.entry.x, context.player.y - sight.entry.y) <=
+              1.4
+              ? board()
+              : walkTo(sight.entry.x, sight.entry.y, board);
+          });
+        break;
+      case 'waymo':
+      case 'robotaxi':
+        return action('taxi.kick', 'Kick ' + label);
+      case 'airship-rope':
+        return action('interaction.7', 'Climb airship rope');
+      case 'house-storage':
+        return action('interaction.8', 'Search ' + label);
+      case 'unusual-church':
+        return action('church.search', 'Search ' + label);
+      case 'lore-book':
+        return action('interaction.9', 'Read ' + label);
+      case 'loot':
+        return action('interaction.10', 'Take ' + label);
+      case 'bench':
+        return action('interaction.11', 'Sit on ' + label);
+      case 'neighborhood-garden':
+        if (sight.seats?.length) return action('interaction.12', 'Sit in garden');
+        break;
+      case 'secret-stairs':
+      case 'cave-exit':
+      case 'stealth-bomber':
+        return action('interaction.15', sightPrimaryVerb(sight) + ' ' + label);
+      case 'sunglasses':
+        if (!context.sunglasses.state.owned) return action('interaction.16', 'Take ' + label);
+        break;
+      case 'sand':
+        return action('interaction.17', 'Collect Ocean Beach sand');
+      case 'fishing':
+        return action('interaction.18', 'Catch live fish');
+      case 'motorcycle':
+        if (context.motorcycle.state.rented) return action('interaction.20', 'Ride motorcycle');
+        break;
+      case 'bunny':
+        return action('interaction.22', 'Pet bunny');
+      case 'zoo':
+        if (context.zoo.state.phase === 'caged') return action('interaction.23', 'Release tiger');
+        break;
+      case 'gondola':
+        return action(
+          'interaction.24',
+          id === 'gondola-base' ? 'Ride gondola up' : 'Ride gondola down',
+        );
+      case 'gym':
+        if (context.training) return action('interaction.27', 'Stop training');
+        return action(
+          'gym.' + context.gymSelection,
+          'Perform ' + gymExercise(context.gymSelection).label,
+        );
+      case 'airship':
+        return action('interaction.30', 'Rent an airship');
+      case 'bike':
+        return action('interaction.31', 'Ride bicycle');
+      case 'windsurf':
+        return action('interaction.32', 'Go windsurfing');
+      case 'surfing':
+        return action('interaction.33', 'Paddle out');
+      case 'whale':
+        return action('interaction.34', 'Jump over ' + label);
+      case 'guest':
+        return action('interaction.35', 'Talk to Bani');
+      case 'ducks':
+        return action('interaction.36', 'Feed ducks');
+      case 'nightlife':
+        if (!inNightlife(context.player.x + 0.5, context.player.y + 0.5))
+          return action('nightlife.enter', 'Enter ' + label);
+        break;
+    }
+    return action('examine', 'Examine ' + label, () => examine(sight));
+  }
+
+  function groundAction(tile: Point): WorldAction {
+    if (context.multiplayerWorld?.selfMode === 'waymo')
+      return { id: 'waymo.drive-here', label: 'Drive here', run: () => walkTo(tile.x, tile.y) };
+    if (context.ferrari?.state.riding)
+      return {
+        id: 'ferrari.drive-here',
+        label: 'Drive here',
+        run: () => driveFerrari(tile.x, tile.y),
+      };
+    const bomber = context.secretWorld?.bomber.state;
+    if (bomber?.active)
+      return bomber.phase === 'flying'
+        ? { id: 'interaction.1', label: 'Fly here', run: () => walkTo(tile.x, tile.y) }
+        : { id: 'examine', label: 'Examine B-2', run: () => examine(context.bomberSite) };
+    if (context.secretWorld?.kind === 'illuminati' || context.secretWorld?.kind === 'berkeley-lab')
+      return {
+        id: 'walk',
+        label: 'Walk here',
+        run: () => context.clearAt(tile.x, tile.y) && walkTo(tile.x, tile.y),
+      };
+    if (context.surf.state.riding && context.surf.water(tile.x + 0.5, tile.y + 0.5))
+      return {
+        id: 'interaction.37',
+        label: context.surf.state.mode === 'surf' ? 'Paddle here' : 'Windsurf here',
+        run: () => walkTo(tile.x, tile.y),
+      };
+    const road =
+      isFiniteNumber(tile.x) && isFiniteNumber(tile.y)
+        ? context.goldenGate?.targetAt(tile.x + 0.5, tile.y + 0.5) ||
+          context.regionalRoad?.targetAt(tile.x + 0.5, tile.y + 0.5)
+        : null;
+    return {
+      id: 'walk',
+      label: 'Walk here',
+      run: () => walkTo(road?.x ?? tile.x, road?.y ?? tile.y),
+    };
+  }
+
+  function primaryWorldAction(target: ReturnType<typeof worldTarget>): WorldAction {
+    const { npc, sight, place, researchRoom } = target;
+    if (context.multiplayerWorld?.selfMode === 'streetcar') {
+      return sight?.kind === MARKET_STREETCAR.kind
+        ? {
+            id: 'streetcar.exit',
+            label: 'Get off cable car',
+            run: () => context.multiplayerWorld.command('travel', { kind: 'streetcarExit' }),
+          }
+        : { id: 'streetcar.ride', label: 'Riding the cable car', run: () => false };
+    }
+    if (context.multiplayerWorld?.selfMode === 'roof')
+      return {
+        id: 'house.descend',
+        label: 'Climb down',
+        run: () => walkTo(target.tile.x, target.tile.y),
+      };
+    if (
+      context.multiplayerWorld?.selfMode === 'atv' ||
+      context.multiplayerWorld?.selfMode === 'waymo'
+    )
+      return groundAction(target.tile);
+    if (npc?.networkPlayer || npc?.police) return primaryNPCAction(npc);
+    if (context.secretWorld?.bomber.state.active) return groundAction(target.tile);
+    if (context.flying()) {
+      const floor = context.basket.pick(
+        context.mouseRay(target.sx, target.sy),
+        requiredValue(context.airship.state.position, 'Airship deck position'),
+        context.airship.state.heading,
+      );
+      return floor
+        ? { id: 'walk', label: 'Walk here', run: () => walkInBasket(floor) }
+        : {
+            id: 'airship.float-here',
+            label: 'Float here',
+            run: () => walkTo(target.tile.x, target.tile.y),
+          };
+    }
+    if (sight?.kind === 'loot') return primarySightAction(sight);
+    if (context.chase?.state.jailed)
+      return npc?.rehabilitation ? primaryNPCAction(npc) : groundAction(target.tile);
+    if (context.ferrari?.state.riding) {
+      if (sight?.kind === 'ferrari') return primarySightAction(sight);
+      return npc?.kind === 'fuel-attendant' ? primaryNPCAction(npc) : groundAction(target.tile);
+    }
+    if (npc) return primaryNPCAction(npc);
+    if (sight) {
+      if (
+        walkAtSight(sight, target.tile, researchRoom) ||
+        (sight.kind === 'bridge' &&
+          (context.goldenGate?.targetAt(target.tile.x + 0.5, target.tile.y + 0.5) ||
+            context.regionalRoad?.targetAt(target.tile.x + 0.5, target.tile.y + 0.5)))
+      )
+        return groundAction(target.tile);
+      return primarySightAction(sight);
+    }
+    if (place) {
+      const verb = placeEntryVerb(place, context.currentInterior);
+      if (verb === 'Enter')
+        return {
+          id: 'interaction.14',
+          label: verb + ' ' + place.label,
+          run: () => goToPlace(place),
+        };
+      if (context.clearAt(target.tile.x, target.tile.y)) return groundAction(target.tile);
+      if (verb === 'Browse')
+        return { id: 'interaction.14', label: verb + ' ' + place.label, run: () => enter(place) };
+      return { id: 'examine', label: 'Examine ' + place.label, run: () => examine(place) };
+    }
+    return groundAction(target.tile);
+  }
+
   function showMenu(sx: number, sy: number) {
     if (context.tabletService?.state.active) return false;
     if (context.rocket.state.active) return false;
     if (context.surf.state.jump) return false;
-    if (context.tahoe.state.mode !== 'ground') return false;
-    if (context.flying() && !context.hitCitizen(sx, sy)?.networkPlayer)
+    if (context.tahoe.state.mode !== 'ground' || context.multiplayerWorld?.selfMode === 'atv')
+      return false;
+    const target = worldTarget(sx, sy);
+    if (context.flying() && !target.npc?.networkPlayer && !target.npc?.police)
       return showAirshipMenu(sx, sy);
     if (context.sutroClimb.state.active) {
       const menu = context.$('sf-context');
@@ -3396,20 +4578,44 @@ export function createInteractions(context: WorldContext) {
           kind: 'object',
         },
       ]);
-      menu.hidden = false;
-      menu.style.left = Math.min(context.width - menu.offsetWidth - 12, Math.max(12, sx)) + 'px';
-      menu.style.top = Math.min(context.height - menu.offsetHeight - 12, Math.max(12, sy)) + 'px';
-      menu.querySelector<HTMLElementTagNameMap['button']>('button')!.focus({ preventScroll: true });
+      revealContextMenu(menu, sx, sy);
       return true;
     }
-    const npc = context.hitCitizen(sx, sy),
-      s = npc ? null : context.hitSight(sx, sy),
-      p = s || npc ? null : context.hitPlace(sx, sy),
-      t = context.tileAt(sx, sy),
-      menu = context.$('sf-context');
+    const { npc, sight: s, place: p, tile: t } = target;
+    if (
+      !npc &&
+      !s &&
+      !p &&
+      (!isFiniteNumber(t.x) || !isFiniteNumber(t.y)) &&
+      !context.secretWorld?.bomber.state.active
+    ) {
+      closeMenu();
+      return false;
+    }
+    const inCave = context.secretWorld?.kind === 'illuminati';
+    let caveFloor = null;
+    if (inCave && !npc && !s && !p && !context.secretWorld.bomber.state.active) {
+      const floor = instanceTile(ILLUMINATI_INSTANCE, t.x + 0.5, t.y + 0.5);
+      if (!floor || floor.type === 'rock') {
+        closeMenu();
+        return false;
+      }
+      caveFloor = {
+        label: floor.type === 'hangar' ? 'hangar floor' : 'stone passage',
+        description: contentText(
+          floor.type === 'hangar'
+            ? 'world.interactions.examine.hangar-floor'
+            : 'world.interactions.examine.stone-passage',
+        ),
+      };
+    }
+    const primary = primaryWorldAction(target);
+    const entryVerb = p && placeEntryVerb(p, context.currentInterior);
+    const menu = context.$('sf-context');
     const owner: EditableEntity = npc ||
       s ||
-      p || {
+      p ||
+      caveFloor || {
         id: 'unlabelled-ground',
         label: contentText('world.interactions.showMenu.label-43', {}),
       };
@@ -3449,28 +4655,20 @@ export function createInteractions(context: WorldContext) {
       b.addEventListener('click', (e) =>
         clicked(e.clientX, e.clientY, () => {
           closeMenu();
-          fn();
+          (actionId === primary.id ? primary.run : fn)();
         }),
       );
       menu.append(b);
+      return b;
     };
-    const revealMenu = () => {
-      menu.hidden = false;
-      menu.style.left = Math.min(context.width - menu.offsetWidth - 12, Math.max(12, sx)) + 'px';
-      menu.style.top = Math.min(context.height - menu.offsetHeight - 12, Math.max(12, sy)) + 'px';
-      menu.querySelector('button')?.focus({ preventScroll: true });
-    };
-    if (context.multiplayerWorld?.selfMode === 'atv') {
-      const action = (kind: string, trick?: string) =>
-        context.multiplayerWorld.command('travel', { kind, trick });
-      add('Drive here', () => walkTo(t.x, t.y), 'atv.drive');
-      add('Jump the village roof', () => action('atvJump'), 'atv.jump');
-      add('Do a donut', () => action('atvDonut'), 'atv.donut');
-      add('Air roll · R', () => action('atvTrick', 'roll'), 'atv.roll');
-      add('Air spin · T', () => action('atvTrick', 'spin'), 'atv.spin');
-      add('Dismount ATV', () => action('atvDismount'), 'atv.dismount');
-      revealMenu();
-      return;
+    if (context.multiplayerWorld?.selfMode === 'streetcar') {
+      add(
+        'Get off cable car',
+        () => context.multiplayerWorld.command('travel', { kind: 'streetcarExit' }),
+        'streetcar.exit',
+      );
+      revealContextMenu(menu, sx, sy);
+      return true;
     }
     if (context.multiplayerWorld?.selfMode === 'roof') {
       add(
@@ -3478,7 +4676,7 @@ export function createInteractions(context: WorldContext) {
         () => context.multiplayerWorld.command('travel', { kind: 'houseRoof' }),
         'house.descend',
       );
-      revealMenu();
+      revealContextMenu(menu, sx, sy);
       return;
     }
     if (!npc && context.secretWorld?.bomber.state.active) {
@@ -3526,7 +4724,13 @@ export function createInteractions(context: WorldContext) {
           npc.mode !== 'bomber' &&
           !context.secretWorld?.bomber.state.active,
       })) {
-        if (verb === 'duel')
+        if (verb === 'trade' && npc.networkPlayer)
+          add(
+            'Trade with ' + npc.label,
+            () => context.multiplayerWorld.command('tradeRequest', { id: npc.id }),
+            'npc.trade',
+          );
+        else if (verb === 'duel')
           add(
             'Challenge to coin duel',
             () => {
@@ -3545,21 +4749,7 @@ export function createInteractions(context: WorldContext) {
         else if (verb === 'unfollow')
           add('Stop following', () => context.multiplayerWorld.stopFollowing(true), 'npc.unfollow');
         else if (verb === 'examine')
-          add(
-            'Examine ' + context.npcLabel(npc, false),
-            () => {
-              announce(
-                context.npcLabel(npc, false) +
-                  ': ' +
-                  (context.npcRevealed(npc)
-                    ? 'An alien silhouette ripples beneath a coating of green slime.'
-                    : describeCharacter(npc)),
-                'Examine',
-              );
-              context.canvas.focus({ preventScroll: true });
-            },
-            'npc.examine',
-          );
+          add('Examine ' + context.npcLabel(npc, false), () => examineNPC(npc), 'npc.examine');
         else if (verb === 'walk') {
           const target = actorWalkPoint(npc);
           if (target)
@@ -3577,33 +4767,13 @@ export function createInteractions(context: WorldContext) {
             'npc.' + verb,
           );
       }
-    if (s?.kind === 'airship-rope') add('Climb airship rope', () => goToSight(s), 'interaction.7');
-    if (s?.kind === 'house-storage')
-      add('Search ' + s.label, () => searchHouseStorage(s), 'interaction.8');
-    if (s?.kind === 'lore-book') add('Read ' + s.label, () => readLoreBook(s), 'interaction.9');
-    if (s?.kind === 'loot')
-      add('Take ' + s.label, () => collectExpeditionLoot(s), 'interaction.10');
-    if (s?.kind === 'bench') add('Sit on ' + s.label, () => sitOnBench(s), 'interaction.11');
-    if (s?.kind === 'neighborhood-garden' && s.seats?.length)
+    const sightAction = s && primarySightAction(s);
+    if (sightAction && sightAction.id !== 'examine')
+      add(sightAction.label, sightAction.run, sightAction.id);
+    if (p && entryVerb)
       add(
-        'Sit in garden',
-        () => sitOnBench(sightById(requiredValue(s.seats, 'Garden seats')[0].id)),
-        'interaction.12',
-      );
-    if (s?.kind === 'waymo' || s?.kind === 'robotaxi') {
-      add('Kick ' + s.label, () => kickTaxi(s), 'taxi.kick');
-      add('Examine ' + s.label, () => examine(s), 'examine');
-    }
-    if (s?.enterableInstitute && context.activeInstituteRoom()?.id !== s.id)
-      add('Enter ' + s.label, () => goToSight(s), 'interaction.13');
-    if (p && !(context.currentInterior === p && (p.searchHome || p.activityBuilding)))
-      add(
-        (context.currentInterior === p
-          ? p.activityBuilding
-            ? 'Walk inside '
-            : 'Browse '
-          : 'Enter ') + p.label,
-        () => (context.currentInterior === p ? enter(p) : goToPlace(p)),
+        entryVerb + ' ' + p.label,
+        () => (entryVerb === 'Browse' ? enter(p) : goToPlace(p)),
         'interaction.14',
       );
     if (p && houseClimb(p.id))
@@ -3615,54 +4785,22 @@ export function createInteractions(context: WorldContext) {
           ),
         'house.climb',
       );
-    if (s && !buildingNPCService(s)) {
-      if (
-        (
-          ['secret-stairs', 'cave-exit', 'stealth-bomber'] satisfies [string, string, string]
-        ).includes(s.kind)
-      )
-        add(sightPrimaryVerb(s) + ' ' + s.label, () => useSecretSite(s), 'interaction.15');
-      if (s.kind === 'sunglasses' && !context.sunglasses.state.owned)
-        add('Take ' + s.label, pickUpSunglasses, 'interaction.16');
-      if (s.kind === 'sand') add('Collect Ocean Beach sand', collectOceanSand, 'interaction.17');
-      if (s.kind === 'fishing') add('Catch live fish', fishAtWharf, 'interaction.18');
-      if (s.id === 'zoo-monkeys') add('Steal monkey', stealQuestMonkey, 'interaction.19');
-      if (s.kind === 'motorcycle') {
-        if (context.motorcycle.state.rented)
-          add('Ride motorcycle', () => useMotorcycle(), 'interaction.20');
-        else add('Steal motorcycle', () => useMotorcycle('steal'), 'interaction.21');
-      }
-      if (s.kind === 'bunny') add('Pet bunny', petBunny, 'interaction.22');
-      if (s.kind === 'zoo' && context.zoo.state.phase === 'caged')
-        add('Release tiger', releaseTiger, 'interaction.23');
-      if (s.kind === 'gondola')
-        add(
-          s.id === 'gondola-base' ? 'Ride gondola up' : 'Ride gondola down',
-          () => useGondola(s.id === 'gondola-base'),
-          'interaction.24',
-        );
-      else if (s.id === 'sutro') {
-        add('Climb Sutro Tower', climbSutro, 'interaction.25');
-        add('Walk to Sutro Tower', () => goToSight(s), 'interaction.26');
-      } else if (s.kind === 'gym') {
-        for (const exercise of GYM_EXERCISES)
-          add('Perform ' + exercise.label, () => useGym(exercise.id), 'gym.' + exercise.id);
-        if (context.training) add('Stop training', stopTraining, 'interaction.27');
-      } else if (s.kind === 'ferrari') {
-        add('Drive / park Ferrari', useFerrari, 'interaction.28');
-        if (context.economy.state.fuelCans) add('Use fuel can', useFuelCan, 'interaction.29');
-      } else if (s.kind === 'airship') add('Rent an airship', useAirship, 'interaction.30');
-      else if (s.kind === 'bike') add('Ride bicycle', useBike, 'interaction.31');
-      else if (s.kind === 'windsurf') add('Go windsurfing', useSurf, 'interaction.32');
-      else if (s.kind === 'surfing') add('Paddle out', usePacificaSurf, 'interaction.33');
-      else if (s.kind === 'whale')
-        add('Jump over ' + s.label, () => jumpWhale(s), 'interaction.34');
-      else if (s.kind === 'guest') add('Talk to Bani', () => goToSight(s), 'interaction.35');
-      else if (s.kind === 'ducks') add('Feed ducks', feedDucks, 'interaction.36');
+    if (s?.kind === 'motorcycle' && !context.motorcycle.state.rented)
+      add('Steal motorcycle', () => useMotorcycle('steal'), 'interaction.21');
+    if (s?.id === 'sutro' && s.entry) {
+      const entry = s.entry;
+      add('Walk to Sutro Tower', () => walkTo(entry.x, entry.y), 'interaction.26');
     }
-    const roadTarget =
-      context.goldenGate?.targetAt(t.x + 0.5, t.y + 0.5) ||
-      context.regionalRoad?.targetAt(t.x + 0.5, t.y + 0.5);
+    if (s?.kind === 'gym')
+      for (const exercise of GYM_EXERCISES)
+        if (sightAction?.id !== 'gym.' + exercise.id)
+          add('Perform ' + exercise.label, () => useGym(exercise.id), 'gym.' + exercise.id);
+    if (s?.kind === 'ferrari' && context.economy.state.fuelCans)
+      add('Use fuel can', useFuelCan, 'interaction.29');
+    const roadTarget = inCave
+      ? null
+      : context.goldenGate?.targetAt(t.x + 0.5, t.y + 0.5) ||
+        context.regionalRoad?.targetAt(t.x + 0.5, t.y + 0.5);
     if (!npc) {
       if (s?.kind !== 'loot' && s?.kind !== 'sunglasses') {
         if (context.surf.state.riding && context.surf.water(t.x + 0.5, t.y + 0.5))
@@ -3674,66 +4812,67 @@ export function createInteractions(context: WorldContext) {
             },
             'interaction.37',
           );
-        else if (roadTarget) add('Walk here', () => walkTo(roadTarget.x, roadTarget.y), 'walk');
+        else if ((s?.kind === 'secret-stairs' || s?.kind === 'cave-exit') && hasSiteEntry(s)) {
+          add('Walk here', () => walkTo(s.entry.x, s.entry.y), 'walk');
+        } else if (s?.kind === 'ferrari' && s.entry) {
+          const { x, y } = roadTarget || (context.clearAt(t.x, t.y) ? t : s.entry);
+          add(
+            'Walk here',
+            () => {
+              if (context.ferrari.state.riding) parkFerrari();
+              return walkTo(x, y);
+            },
+            'walk',
+          );
+        } else if (roadTarget) add('Walk here', () => walkTo(roadTarget.x, roadTarget.y), 'walk');
         else if (context.clearAt(t.x, t.y)) add('Walk here', () => walkTo(t.x, t.y), 'walk');
         else if (p) add('Walk to entrance', () => walkTo(p.entry.x, p.entry.y), 'walk');
       }
-      if (!(['waymo', 'robotaxi'] satisfies [string, string]).includes(s?.kind || ''))
-        add(
-          'Examine ' +
-            (s
-              ? s.label
-              : p
-                ? p.label
-                : context.inPark(t.x, t.y)
-                  ? 'Golden Gate Park'
-                  : owner.label),
-          () => examine(s || p || (context.inPark(t.x, t.y) ? sightById('park') : null)),
-          'examine',
-        );
+      const examineTarget =
+        s || p || caveFloor || (!inCave && context.inPark(t.x, t.y) ? sightById('park') : null);
+      if (examineTarget)
+        add('Examine ' + examineTarget.label, () => examine(examineTarget), 'examine');
     }
-    if (!npc && equipmentOwned(context.economy.state, 'ball-chair'))
-      add(
-        'Sit (chair)',
-        () => context.multiplayerWorld.command('activity', { mode: 'sit', chair: true }),
-        'interaction.38',
-      );
     if (!npc && !s && !p && context.skateboard.riding)
       for (const trick of SKATE_TRICKS)
         add(trick.label, () => performSkateTrick(trick.id), 'trick.' + trick.id);
-    const sightAction =
-      s?.kind === 'waymo' || s?.kind === 'robotaxi'
-        ? 'taxi.kick'
-        : s?.kind === 'motorcycle' && !context.motorcycle.state.rented
-          ? 'examine'
-          : [...menu.querySelectorAll<HTMLButtonElement>('button')].find(
-              (button) =>
-                button.dataset.actionId !== 'examine' &&
-                button.dataset.actionId !== 'walk' &&
-                button.dataset.actionId !== 'interaction.38',
-            )?.dataset.actionId || (s ? 'examine' : 'walk');
-    const walkFirst =
-      s?.kind !== 'waymo' &&
-      s?.kind !== 'robotaxi' &&
-      s?.kind !== 'loot' &&
-      s?.kind !== 'sunglasses' &&
-      (roadTarget ||
-        walkAtSight(s, t, !!(s?.enterableInstitute && context.pick?.(sx, sy)?.researchRoom)) ||
-        (p && context.currentInterior === p && context.clearAt(t.x, t.y)));
-    const primary = npc
-      ? 'npc.' + context.npcPrimary(npc)
-      : walkFirst
-        ? 'walk'
-        : p
-          ? 'interaction.14'
-          : sightAction;
+    const buttons = [...menu.querySelectorAll<HTMLButtonElement>('button')];
+    const primaryButton =
+      buttons.find((button) => button.dataset.actionId === primary.id) ||
+      (caveFloor && !context.clearAt(t.x, t.y)
+        ? undefined
+        : add(primary.label, primary.run, primary.id));
     editMenuLabels(menu, owner, actionTargets);
-    const first = menu.querySelector('button'),
-      preferred = [...menu.querySelectorAll<HTMLButtonElement>('button')].find(
-        (button) => button.dataset.actionId === primary && !button.disabled,
-      );
-    if (preferred && preferred !== first) menu.insertBefore(preferred, first);
-    revealMenu();
+    if (npc && !npc.networkPlayer && npc.rider && !npc.bicycleTaken)
+      add('Seize Bicycle', () => seizeBicycle(npc), 'npc.seize-bicycle');
+    if (!npc)
+      for (const chair of FACTORY_CHAIRS) {
+        if (!equipmentOwned(context.economy.state, chair.id)) continue;
+        add(
+          'Sit in ' + chair.name,
+          async () => {
+            const result = await context.multiplayerWorld.command('activity', {
+              mode: 'sit',
+              chair: chair.id,
+            });
+            if (!result.ok) return;
+            context.action = null;
+            context.destination = null;
+            context.player.path = [];
+            setSitting(true, true);
+          },
+          'chair.' + chair.id,
+        );
+      }
+    if (s?.kind === 'ferrari') {
+      for (const id of ['walk', 'examine']) {
+        const button = buttons.find((candidate) => candidate.dataset.actionId === id);
+        if (button && !menu.contains(button)) menu.append(button);
+      }
+    }
+    if (primaryButton)
+      orderPrimaryActions(menu, primaryButton, s?.kind === 'ferrari' ? ['walk', 'examine'] : []);
+    revealContextMenu(menu, sx, sy);
   }
 
   function editMenuLabels(
@@ -3756,7 +4895,10 @@ export function createInteractions(context: WorldContext) {
   }
 
   function parkCarFirst() {
-    announce('Park the Ferrari with R before doing that.', 'Ferrari');
+    announce(
+      contentText('world-message.src.world.interactions.park-the-ferrari-with-r-before-doing-that'),
+      'Ferrari',
+    );
     return false;
   }
 
@@ -3784,7 +4926,9 @@ export function createInteractions(context: WorldContext) {
       if (s && Math.abs(s.distance - context.ferrari.state.distance) <= 6)
         return useFuel(sightById(s.id));
       announce(
-        'Out of gas. Park with R, walk to a gas station for a fuel can, then bring it back.',
+        contentText(
+          'world-message.src.world.interactions.out-of-gas-park-with-r-walk-to-a-gas-station-for-a-fuel-can-th',
+        ),
         'Ferrari',
       );
       return false;
@@ -3834,7 +4978,12 @@ export function createInteractions(context: WorldContext) {
     if (context.training) stopTraining();
     if (context.ferrari.state.riding) {
       parkFerrari();
-      announce('You park the Ferrari. It will be waiting here.', 'Ferrari');
+      announce(
+        contentText(
+          'world-message.src.world.interactions.you-park-the-ferrari-it-will-be-waiting-here',
+        ),
+        'Ferrari',
+      );
       return true;
     }
     const p = context.ferrari.position,
@@ -3857,7 +5006,9 @@ export function createInteractions(context: WorldContext) {
         closeMenu();
         closeReader();
         announce(
-          'The Ferrari does twenty times walking speed. Click the road or minimap to drive, or use Drive to Tahoe. Keep an eye on the gas gauge. R parks.',
+          contentText(
+            'world-message.src.world.interactions.the-ferrari-does-twenty-times-walking-speed-click-the-road-or',
+          ),
           'Ferrari',
         );
         context.canvas.focus({ preventScroll: true });
@@ -3866,7 +5017,8 @@ export function createInteractions(context: WorldContext) {
       mount();
       return true;
     }
-    return walkTo(p.x - 0.5, p.z - 0.5, mount);
+    const point = actorWalkPoint(p);
+    return point ? walkTo(point.x, point.y, mount) : false;
   }
 
   function useFuelCan() {
@@ -3883,7 +5035,7 @@ export function createInteractions(context: WorldContext) {
       return false;
     if (context.flying()) return airshipUnavailable();
     if (!context.economy.state.fuelCans) {
-      announce('You have no fuel can.', 'Fuel');
+      announce(contentText('world-message.src.world.interactions.you-have-no-fuel-can'), 'Fuel');
       return false;
     }
     closeMenu();
@@ -3976,7 +5128,9 @@ export function createInteractions(context: WorldContext) {
       context.player.x = p.x - 0.5;
       context.player.y = p.z - 0.5;
       announce(
-        'You switch to ' + gymExercise(context.gymSelection).label.toLowerCase() + '.',
+        contentText('world-message.src.world.interactions.you-switch-to', {
+          value1: String(gymExercise(context.gymSelection).label.toLowerCase()),
+        }),
         'Gym',
       );
     }
@@ -4005,7 +5159,12 @@ export function createInteractions(context: WorldContext) {
     )
       return false;
     if (context.strength.status.level === 50) {
-      announce('You have reached the maximum strength level, 50.', 'Gym');
+      announce(
+        contentText(
+          'world-message.src.world.interactions.you-have-reached-the-maximum-strength-level-50',
+        ),
+        'Gym',
+      );
       return true;
     }
     const begin = async () => {
@@ -4036,9 +5195,10 @@ export function createInteractions(context: WorldContext) {
       context.destination = null;
       context.updateAdventureUI();
       announce(
-        'You begin ' +
-          gymExercise(context.gymSelection).label.toLowerCase() +
-          '. Every exercise earns the same strength XP. Choose another exercise to switch, or Stop training / Escape to finish.',
+        contentText(
+          'world-message.src.world.interactions.you-begin-every-exercise-earns-the-same-strength-xp-choose-ano',
+          { value1: String(gymExercise(context.gymSelection).label.toLowerCase()) },
+        ),
         'Gym',
       );
       return true;
@@ -4172,7 +5332,12 @@ export function createInteractions(context: WorldContext) {
       context.secretWorld?.bomber.state.active ||
       context.expeditions.ship.aboard
     ) {
-      announce('Find a place on foot before sitting down.', 'You');
+      announce(
+        contentText(
+          'world-message.src.world.interactions.find-a-place-on-foot-before-sitting-down',
+        ),
+        'You',
+      );
       return false;
     }
     context.multiplayerWorld?.stopFollowing(true);
@@ -4221,7 +5386,10 @@ export function createInteractions(context: WorldContext) {
       context.surf.state.riding ||
       context.tahoe.state.mode !== 'ground'
     ) {
-      announce('Find your feet before dancing.', 'You');
+      announce(
+        contentText('world-message.src.world.interactions.find-your-feet-before-dancing'),
+        'You',
+      );
       return false;
     }
     context.fishing.cancel();
@@ -4285,7 +5453,12 @@ export function createInteractions(context: WorldContext) {
             : context.canTravel(from.x, from.y, to.x, to.y),
       );
       if (!target || Math.hypot(target.x - context.player.x, target.y - context.player.y) < 0.4) {
-        announce('There is no room to roll forward. Face some open ground.', 'You');
+        announce(
+          contentText(
+            'world-message.src.world.interactions.there-is-no-room-to-roll-forward-face-some-open-ground',
+          ),
+          'You',
+        );
         return false;
       }
       context.player.path = [target];
@@ -4319,13 +5492,14 @@ export function createInteractions(context: WorldContext) {
     expeditionEvent,
     nearestExpeditionPoint,
     collectExpeditionLoot,
-    toggleRailgun,
     beginCapture,
     respawnAtHospital,
     airshipUnavailable,
     walkInBasket,
     useAirship,
     useTahoeActivity,
+    cancelMovingInteraction,
+    updateMovingInteraction,
     releaseNPC,
     parkMotorcycle,
     useMotorcycle,
@@ -4339,6 +5513,8 @@ export function createInteractions(context: WorldContext) {
     climbUnavailable,
     descendSutro,
     climbSutro,
+    worldTarget,
+    primaryWorldAction,
     goToSight,
     walkAtSight,
     orderDoorDash,

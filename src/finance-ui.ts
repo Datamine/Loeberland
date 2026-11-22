@@ -1,3 +1,4 @@
+import { contentText } from './content-runtime.ts';
 import type { GrowthSnapshot, DuelOffer } from './types/finance.ts';
 import type { ActionReceipt, LocalPlayer, Actor } from './types/world.ts';
 import type { createMultiplayerClient } from './multiplayer-client.ts';
@@ -26,13 +27,14 @@ export function growthDialogue(
       list: () => service.list(),
       sell: () => service.sell(),
     });
+  const dialogue = configuredDialogue(
+    'growth-capital',
+    npc,
+    {},
+    { growthBatches: GROWTH_EQUITY.batches.map((n) => n.toLocaleString('en-US')).join(', ') },
+  );
   return {
-    ...configuredDialogue(
-      'growth-capital',
-      npc,
-      {},
-      { growthBatches: GROWTH_EQUITY.batches.map((n) => n.toLocaleString('en-US')).join(', ') },
-    ),
+    ...dialogue,
     choices: [
       ...(!funded
         ? [
@@ -52,6 +54,7 @@ export function growthDialogue(
         contentNodeId: 'finance-ui.growthDialogue.node-5',
         actionId: 'finance-ui.growthDialogue.action-7' + ':' + [amount].join(':'),
       })),
+      ...(dialogue.choices || []),
     ],
     contentNodeId: 'finance-ui.growthDialogue.node-1',
   };
@@ -226,7 +229,12 @@ export function createDuelMenu({
       resultUntil = 0;
       offer = m.offer;
       open();
-      announce('A ' + offer.stake + ' coin duel offer awaits your agreement.', 'Duel Arena');
+      announce(
+        contentText('world-message.src.finance-ui.a-coin-duel-offer-awaits-your-agreement', {
+          stake: String(offer.stake),
+        }),
+        'Duel Arena',
+      );
     } else if (m.type === 'duelClosed') {
       resultUntil = Date.now() + 5000;
       offer = null;

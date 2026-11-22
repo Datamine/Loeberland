@@ -1,6 +1,7 @@
 /** NPC trade prices, in coins. */
 export const TRADE_PRICES = Object.freeze({
   equity: 10,
+  incubatorEquity: 10,
   secondary: 20,
   grain: 1,
   passenger: 5,

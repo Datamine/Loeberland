@@ -26,6 +26,7 @@ import {
 } from '../src/stealth-bomber.ts';
 import {
   createIlluminatiCaveMesh,
+  drawCaveExitStair,
   drawStealthBomber,
   drawBombEffect,
   drawParachute,
@@ -102,6 +103,8 @@ test('every cave tile has a material and the entrance connects to the hangar aro
   );
   const instance = ILLUMINATI_INSTANCE;
   assert.equal(requiredFixture(instanceTile(instance, 13.5, 24.5)).type, 'stone');
+  assert.equal(CAVE_NAVIGATION.free(13, 24), true, 'the bottom landing is reachable');
+  assert.equal(CAVE_NAVIGATION.free(13, 25), false, 'the staircase occupies its own tile');
   assert.equal(instanceTile(instance, -1, 24), null);
   assert.equal(sameMapInstance({ instance }, { instance: ILLUMINATI_INSTANCE }), true);
   assert.equal(
@@ -241,13 +244,19 @@ test('parachute and abandoned bomber meshes stay finite and their small explosio
     assert.equal(effect.data.length > 0, t < 6200);
   }
 });
-test('cave surfaces, camera-facing wall groups and the B-2 are finite reusable meshes', () => {
+test('cave surfaces, exit stairs and the B-2 are finite reusable meshes', () => {
   const cave = createIlluminatiCaveMesh(),
-    plane = new Mesh();
+    plane = new Mesh(),
+    stairs = new Mesh();
   drawStealthBomber(plane, { x: 0, y: 35, z: 0 }, 0.6, { bank: 0.25 });
+  drawCaveExitStair(stairs);
   assert.equal(cave.walls.length, 4);
-  for (const mesh of [cave, ...cave.walls.map((w) => w.mesh), plane])
+  for (const mesh of [cave, ...cave.walls.map((w) => w.mesh), plane, stairs])
     assert.ok(mesh.data.length > 0 && mesh.data.every(Number.isFinite));
+  assert.ok(stairs.data.filter((_, i) => i % 11 === 1).every((y) => y >= ILLUMINATI_CAVE.floor));
+  assert.ok(
+    stairs.data.filter((_, i) => i % 11 === 2).every((z) => z > ILLUMINATI_CAVE.entrance.z),
+  );
   assert.ok(plane.data.length / 33 < 1500, 'the flying wing is a small low-poly model');
 });
 test('bomb visuals remain valid throughout free fall, impact, smoke and disappearance', () => {
@@ -285,7 +294,8 @@ test('Ahab boarding awaits the server, exposes rejections, permits retries, and 
   const scene = createSecretAdventures({ client }),
     ship = { aboard: false },
     game = {
-      state: { railgun: true, krakenReward: false },
+      state: { krakenReward: false },
+      hasRailgun: () => true,
       ship,
       board() {
         assert.fail('client cannot start authoritative travel');

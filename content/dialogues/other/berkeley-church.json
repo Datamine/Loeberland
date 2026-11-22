@@ -1,0 +1,41 @@
+{
+  "search": {
+    "intro": "The noticeboard advertises tea after Sunday service. Behind the rota is a Powerful and Evil Goose Corporation invoice for “ongoing simulation operations.” Someone has circled the total and written, “How many more lifetimes?”",
+    "choices": [
+      {
+        "label": "Read the order of service",
+        "receipt": "The opening hymn is followed by a reading from Goose Corp’s maintenance schedule. In the margin: “A perfect simulation can still be a terrible place to live.”"
+      },
+      {
+        "label": "Look through the meeting notes",
+        "receipt": "The notes track projected centuries of suffering and argue that every extra run adds more. The last motion passed unanimously: “Stop the simulation.”"
+      }
+    ]
+  },
+  "mara": {
+    "intro": "Hello. If you came for the service, we’ve just put the kettle on.",
+    "choices": [
+      {
+        "label": "When do you meet?",
+        "receipt": "Sunday mornings. You can hear the bell from the library if the wind is right."
+      },
+      {
+        "label": "Why does the order of service mention Goose Corp?",
+        "receipt": "We believe the Powerful and Evil Goose Corporation runs the simulation we live in. Some of us think shutting it down is the only way to prevent the suffering in all the lives it would run next."
+      }
+    ]
+  },
+  "elias": {
+    "intro": "Morning. Mind the loose step. I’ve been telling them about it for weeks.",
+    "choices": [
+      {
+        "label": "What do you do here?",
+        "receipt": "Mostly chairs and the door rota. Mara makes the tea."
+      },
+      {
+        "label": "What did you vote to stop?",
+        "receipt": "The simulation. The others call it the last service. We think Goose Corp means to keep it running forever. I voted yes, but I still lie awake wondering who gets to decide when everyone else’s world ends."
+      }
+    ]
+  }
+}

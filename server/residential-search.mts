@@ -1,3 +1,4 @@
+import { contentText } from '../src/content-runtime.ts';
 import type { SimulationServices, ServerPlayer } from '../src/types/server.ts';
 import { HOUSE_SEARCHES, SEARCH_ROCKET } from '../src/config/search-houses.ts';
 import { itemLoot, equipmentOwned } from '../src/item-stats.ts';
@@ -11,7 +12,13 @@ export function createResidentialSearch({
 }: Pick<SimulationServices, 'geometry' | 'now' | 'dirty'>) {
   const definitions = new Map(HOUSE_SEARCHES.map((s) => [s.id, s]));
   function search(p: ServerPlayer, id: unknown) {
-    if (typeof id !== 'string') return { ok: false, message: 'Stand beside the container first.' };
+    if (typeof id !== 'string')
+      return {
+        ok: false,
+        message: contentText(
+          'world-message.server.residential-search.stand-beside-the-container-first',
+        ),
+      };
     const site = geometry.searchSites?.find((s) => s.id === id),
       definition = definitions.get(id);
     if (
@@ -26,7 +33,12 @@ export function createResidentialSearch({
       (p.instance?.kind || 'world') !== 'world' ||
       !(['walk', 'sit', 'bench'] satisfies [string, string, string]).includes(p.mode)
     )
-      return { ok: false, message: 'Stand beside the container first.' };
+      return {
+        ok: false,
+        message: contentText(
+          'world-message.server.residential-search.stand-beside-the-container-first',
+        ),
+      };
     const outdoors = definition.container === 'doghouse',
       room = geometry.placeAt?.(p.x - 0.5, p.z - 0.5);
     if (
@@ -38,14 +50,20 @@ export function createResidentialSearch({
       return {
         ok: false,
         message: outdoors
-          ? 'Stand by the dog house in the yard first.'
-          : 'Stand beside the container inside the house first.',
+          ? contentText(
+              'world-message.server.residential-search.stand-by-the-dog-house-in-the-yard-first',
+            )
+          : contentText(
+              'world-message.server.residential-search.stand-beside-the-container-inside-the-house-first',
+            ),
       };
     const claimed = (p.profile.houseSearches ??= []);
     if (claimed.includes(id))
       return {
         ok: false,
-        message: 'You have already searched this. There is nothing else inside.',
+        message: contentText(
+          'world-message.server.residential-search.you-have-already-searched-this-there-is-nothing-else-inside',
+        ),
       };
     const reward = itemLoot(definition.reward.item, definition.reward.amount),
       duplicate =
@@ -62,12 +80,15 @@ export function createResidentialSearch({
       ok: true,
       inventory: p.inventory.snapshot(),
       message: duplicate
-        ? 'You find ' + reward.label + '. You already own one.'
-        : 'You search the ' +
-          site.label.toLowerCase() +
-          ' and find ' +
-          (reward.lootKind === 'sandwich' ? reward.amount + ' sandwiches' : reward.label) +
-          '.',
+        ? contentText('world-message.server.residential-search.you-find-you-already-own-one', {
+            label: String(reward.label),
+          })
+        : contentText('world-message.server.residential-search.you-search-the-and-find', {
+            value1: String(site.label.toLowerCase()),
+            value2: String(
+              reward.lootKind === 'sandwich' ? reward.amount + ' sandwiches' : reward.label,
+            ),
+          }),
     };
   }
   function light(p: ServerPlayer) {
@@ -78,12 +99,20 @@ export function createResidentialSearch({
       p.appearance.back !== 'new-year-rocket' ||
       !equipmentOwned(p.inventory.economy.state, 'new-year-rocket')
     )
-      return { ok: false, message: 'Wear your decorative rocket first.' };
+      return {
+        ok: false,
+        message: contentText(
+          'world-message.server.residential-search.wear-your-decorative-rocket-first',
+        ),
+      };
     const readyAt = p.profile.decorativeRocketReadyAt || 0;
     if (now() < readyAt)
       return {
         ok: false,
-        message: 'The rocket needs ' + Math.ceil((readyAt - now()) / 1000) + ' more seconds.',
+        message: contentText(
+          'world-message.server.residential-search.the-rocket-needs-more-seconds',
+          { value1: String(Math.ceil((readyAt - now()) / 1000)) },
+        ),
         readyAt,
       };
     p.profile.decorativeRocketReadyAt = now() + SEARCH_ROCKET.cooldownMs;
@@ -97,8 +126,9 @@ export function createResidentialSearch({
       inventory: p.inventory.snapshot(),
       readyAt: p.profile.decorativeRocketReadyAt,
       burningUntil: p.profile.decorativeRocketBurnUntil,
-      message:
-        'You light the rocket. It gives you a little lift! Press Space to hop again while it burns.',
+      message: contentText(
+        'world-message.server.residential-search.you-light-the-rocket-it-gives-you-a-little-lift-press-space-to',
+      ),
     };
   }
   function expire(p: ServerPlayer) {
@@ -123,18 +153,31 @@ export function createResidentialSearch({
       (p.instance?.kind || 'world') !== 'world' ||
       !(['walk', 'dance'] satisfies [string, string]).includes(p.mode)
     )
-      return { ok: false, message: 'Find your feet on the ground before jumping.' };
+      return {
+        ok: false,
+        message: contentText(
+          'world-message.server.residential-search.find-your-feet-on-the-ground-before-jumping',
+        ),
+      };
     if (
       p.appearance.back !== 'new-year-rocket' ||
       !equipmentOwned(p.inventory.economy.state, 'new-year-rocket') ||
       !(p.profile.decorativeRocketBurnUntil > now())
     )
-      return { ok: false, message: 'Light the rocket on your back before jumping.' };
+      return {
+        ok: false,
+        message: contentText(
+          'world-message.server.residential-search.light-the-rocket-on-your-back-before-jumping',
+        ),
+      };
     if (
       p.profile.decorativeRocketHopAt &&
       now() < p.profile.decorativeRocketHopAt + SEARCH_ROCKET.jumpMs
     )
-      return { ok: false, message: 'Land before jumping again.' };
+      return {
+        ok: false,
+        message: contentText('world-message.server.residential-search.land-before-jumping-again'),
+      };
     p.profile.decorativeRocketHopAt = now();
     p.appearance.rocketHopAt = now();
     p.revision++;

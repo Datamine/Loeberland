@@ -2,9 +2,18 @@ import type { ContentBundle, TextValues } from './types/content.ts';
 import { validateContent } from '../content/validate.js';
 import entities from '../content/entities.json' with { type: 'json' };
 import dialogues from '../content/dialogues.json' with { type: 'json' };
+import tweetDerived from '../content/dialogues/tweet-derived/chains.json' with { type: 'json' };
+import other from '../content/dialogues/other/chains.json' with { type: 'json' };
+import { mergeDialogueSources } from '../content/dialogue-sources.ts';
 import texts from '../content/texts.json' with { type: 'json' };
+import worldMessages from '../content/world-messages.json' with { type: 'json' };
+import { mergeWorldMessages } from '../content/world-message-sources.ts';
 
-export const CONTENT: ContentBundle = validateContent({ entities, dialogues, texts });
+export const CONTENT: ContentBundle = validateContent({
+  entities,
+  dialogues: mergeDialogueSources(dialogues, tweetDerived, other),
+  texts: mergeWorldMessages(texts, worldMessages),
+});
 const listeners = new Set<(content: ContentBundle) => void>();
 export function installContent(bundle: ContentBundle) {
   for (const key of ['entities', 'dialogues', 'texts'] as const)

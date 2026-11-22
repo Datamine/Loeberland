@@ -19,7 +19,7 @@ import type {
 // CONTENT-BINDINGS-MIGRATED
 import { contentText } from './content-runtime.ts';
 import { MONSTER_STATS, rollMonsterDrops } from './monster-drops.ts';
-import { ITEM_STATS, isOwnedWeapon, weaponAttackInterval } from './item-stats.ts';
+import { ITEM_STATS, weaponOwned, isProjectileWeapon, weaponAttackInterval } from './item-stats.ts';
 import { JURASSIC, cowSpawns, PEQUOD, KRAKEN_CAPE_TEXT } from './jurassic-layout.ts';
 import { rollWeaponDamage, rollEnemyDamage } from './combat.ts';
 import type { ActionReceipt, Actor, RuntimeDialogue } from './types/world.ts';
@@ -36,9 +36,9 @@ export function createExpeditions({
   health,
   economy,
   food = () => {},
-  hasBayonet = () => false,
   level = () => 1,
   defense = () => 0,
+  reflect = () => 0,
   inebriation = () => 0,
   sharedWorld = () => false,
   player = () => ({ x: 0, z: 0, base: 0, eligible: true }),
@@ -72,7 +72,11 @@ export function createExpeditions({
     loot: [],
     victims: [],
   };
-  if (state.raptor !== 'not-started') state.railgun = true;
+  if (!sharedWorld() && state.raptor !== 'not-started') state.railgun = true;
+  const ownsWeapon = (weapon: string) =>
+    weaponOwned(economy?.state, weapon) ||
+    (!sharedWorld() && weapon === 'railgun' && state.railgun);
+  const hasRailgun = () => ownsWeapon('railgun');
   if (state.krakenReward) {
     state.cape = true;
     state.krakenDefeated = true;
@@ -212,12 +216,19 @@ export function createExpeditions({
     dropMonster('raptor', raptor.x, raptor.z);
     event(
       'raptor-dead',
-      by === 'player' ? 'The velociraptor falls.' : 'A citizen defeats the velociraptor!',
+      by === 'player'
+        ? contentText('world-message.src.jurassic.the-velociraptor-falls')
+        : contentText('world-message.src.jurassic.a-citizen-defeats-the-velociraptor'),
     );
   }
   function startQuest() {
     if (state.raptor !== 'not-started')
-      return { ok: false, message: 'Your recovery assignment is already in the Quest Menu.' };
+      return {
+        ok: false,
+        message: contentText(
+          'world-message.src.jurassic.your-recovery-assignment-is-already-in-the-quest-menu',
+        ),
+      };
     state.raptor = 'escaped';
     state.railgun = true;
     state.equipped = true;
@@ -226,9 +237,16 @@ export function createExpeditions({
     save();
     event(
       'released',
-      'The scientist hands you a railgun and opens the cage. The velociraptor is loose! Click it to fire from up to five tiles away.',
+      contentText(
+        'world-message.src.jurassic.the-scientist-hands-you-a-railgun-and-opens-the-cage-the-veloc',
+      ),
     );
-    return { ok: true, message: 'Railgun issued. Emergency recovery protocol initiated.' };
+    return {
+      ok: true,
+      message: contentText(
+        'world-message.src.jurassic.railgun-issued-the-gate-is-opening-follow-the-velociraptor-sou',
+      ),
+    };
   }
   function recover() {
     if (state.raptor !== 'escaped' || raptor.phase !== 'dead') return { ok: false };
@@ -238,18 +256,22 @@ export function createExpeditions({
     save();
     return {
       ok: true,
-      message: 'You recover the velociraptor remains.',
+      message: contentText('world-message.src.jurassic.you-recover-the-velociraptor-remains'),
     };
   }
   function finishQuest() {
     if (state.raptor !== 'carrying')
-      return { ok: false, message: 'Recover the velociraptor first.' };
+      return {
+        ok: false,
+        message: contentText('world-message.src.jurassic.recover-the-velociraptor-first'),
+      };
     state.raptor = 'completed';
     save();
     return {
       ok: true,
-      message:
-        '“This was a good test of the raptor escape and emergency recovery protocol.” Quest complete. You keep the railgun.',
+      message: contentText(
+        'world-message.src.jurassic.this-was-a-good-test-of-the-raptor-escape-and-emergency-recove',
+      ),
     };
   }
   function setHarbor(home: WorldPoint) {
@@ -258,17 +280,20 @@ export function createExpeditions({
     ship.z = home.z;
   }
   function board() {
-    if (!state.railgun)
+    if (!hasRailgun())
       return {
         ok: false,
-        message: 'Ahab refuses to board you without a sufficiently powerful weapon.',
+        message: contentText(
+          'world-message.src.jurassic.ahab-refuses-to-board-you-without-a-sufficiently-powerful-weap',
+        ),
       };
     if (ship.aboard) return { ok: false };
     if (state.krakenReward)
       return {
         ok: false,
-        message:
-          'Ahab is still writing the incident report. You already claimed the kraken’s reward.',
+        message: contentText(
+          'world-message.src.jurassic.ahab-is-still-writing-the-incident-report-you-already-claimed',
+        ),
       };
     state.krakenStarted = true;
     save();
@@ -279,8 +304,11 @@ export function createExpeditions({
     kraken.hp = MONSTER_STATS.kraken.hp;
     kraken.enraged = false;
     state.target = null;
-    event('boarded', 'You board the Pequod. Ahab sets sail into the western Pacific.');
-    return { ok: true, message: 'All aboard the Pequod.' };
+    event(
+      'boarded',
+      contentText('world-message.src.jurassic.the-pequod-sets-sail-into-the-western-pacific'),
+    );
+    return { ok: true, message: contentText('world-message.src.jurassic.all-aboard-the-pequod') };
   }
   function returnShip() {
     if (!ship.aboard) return false;
@@ -303,7 +331,10 @@ export function createExpeditions({
   }
   function collect(item: ExpeditionLoot) {
     if (!state.loot.includes(item))
-      return { ok: false, message: 'That loot has already been collected.' };
+      return {
+        ok: false,
+        message: contentText('world-message.src.jurassic.that-loot-has-already-been-collected'),
+      };
     if (item.lootKind === 'raptor') return recover();
     if (item.lootKind === 'coins') economy!.credit(item.amount);
     if (item.lootKind === 'sandwich') food(1);
@@ -315,7 +346,9 @@ export function createExpeditions({
       save();
       event(
         'cape',
-        'You collect 100 coins and a commemorative cape. Equip it in Character settings.',
+        contentText(
+          'world-message.src.jurassic.you-collect-100-coins-and-a-commemorative-cape-equip-it-in-cha',
+        ),
       );
     }
     state.loot.splice(state.loot.indexOf(item), 1);
@@ -323,10 +356,12 @@ export function createExpeditions({
       ok: true,
       message:
         item.lootKind === 'sandwich'
-          ? 'You store a sandwich in your food bag.'
+          ? undefined
           : item.lootKind === 'kraken'
-            ? '100 coins and one lousy cape.'
-            : 'You pick up ' + item.amount + ' coins.',
+            ? contentText('world-message.src.jurassic.100-coins-and-one-lousy-cape')
+            : contentText('world-message.src.jurassic.you-pick-up-coins', {
+                amount: String(item.amount),
+              }),
     };
   }
   function shoot(
@@ -335,22 +370,29 @@ export function createExpeditions({
     weapon = state.weapon || 'railgun',
   ): { ok: boolean; message?: string; cooldown?: boolean; damage?: number } {
     if (ITEM_STATS[weapon]?.slot !== 'weapon')
-      return { ok: false, message: 'That weapon is unavailable.' };
-    if (
-      (weapon === 'railgun' && (!state.railgun || !state.equipped)) ||
-      (isOwnedWeapon(weapon) && !economy!.state.ownedEquipment.includes(weapon)) ||
-      (weapon === 'bayonet' && !hasBayonet())
-    )
       return {
         ok: false,
-        message: 'You do not have a suitable weapon equipped.',
+        message: contentText('world-message.src.jurassic.that-weapon-is-unavailable'),
+      };
+    if (!ownsWeapon(weapon))
+      return {
+        ok: false,
+        message: contentText(
+          'world-message.src.jurassic.you-do-not-have-a-suitable-weapon-equipped',
+        ),
       };
     if (state.cooldown > 1e-8) return { ok: false, cooldown: true };
     if (target?.combatKind === 'kraken') {
       if (!ship.aboard || ship.phase !== 'fighting')
-        return { ok: false, message: 'There is no active target.' };
-      if (weapon !== 'railgun' && weapon !== 'akibo')
-        return { ok: false, message: 'Equip your railgun to fight the kraken.' };
+        return {
+          ok: false,
+          message: contentText('world-message.src.jurassic.there-is-no-active-target'),
+        };
+      if (!isProjectileWeapon(weapon))
+        return {
+          ok: false,
+          message: contentText('world-message.src.jurassic.equip-your-railgun-to-fight-the-kraken'),
+        };
       // Shoot from the deck even during the tick that moves the ship into range.
       origin = { ...origin, x: ship.x, z: ship.z, base: PEQUOD.deck };
     }
@@ -363,7 +405,10 @@ export function createExpeditions({
     )
       return { ok: false };
     if (target.combatKind === 'raptor' && raptor.phase !== 'loose')
-      return { ok: false, message: 'There is no active target.' };
+      return {
+        ok: false,
+        message: contentText('world-message.src.jurassic.there-is-no-active-target'),
+      };
     const supply = consumeShot(weapon);
     if (!supply.ok) {
       state.target = null;
@@ -375,8 +420,9 @@ export function createExpeditions({
       damage = (['spectre', 'pedestrian'] satisfies [string, string]).includes(kind)
         ? 0
         : Math.min(target.hp!, rollWeaponDamage(level(), weapon, random, inebriation()));
-    if ((['railgun', 'akibo'] satisfies [string, string]).includes(weapon))
+    if (isProjectileWeapon(weapon))
       state.beams.push({
+        weapon,
         from: { x: origin.x, y: (origin.base || 0) + 1.14, z: origin.z },
         to: {
           x: target.x,
@@ -394,15 +440,25 @@ export function createExpeditions({
     });
     if (kind === 'pedestrian') {
       state.target = null;
-      event('illegal', 'You fire at a pedestrian. The police are on their way!', { target });
+      event(
+        'illegal',
+        contentText(
+          'world-message.src.jurassic.you-fire-at-a-pedestrian-the-police-are-on-their-way',
+        ),
+        { target },
+      );
       return { ok: true, damage: 0 };
     }
     if (kind === 'spectre')
       return {
         ok: true,
         damage: 0,
-        message: '0 — the blue beam passes through the alien.',
+        message: contentText('world-message.src.jurassic.0-the-blue-beam-passes-through-the-alien'),
       };
+    damageTarget(target, damage);
+    return { ok: true, damage };
+  }
+  function damageTarget(target: Actor, damage: number) {
     target.hp! -= damage;
     if (!target.hp) {
       if (target === raptor) killRaptor();
@@ -410,7 +466,7 @@ export function createExpeditions({
         target.respawn = MONSTER_STATS.cow.respawn;
         state.target = null;
         dropMonster('cow', target.x, target.z);
-        event('cow-down', 'The cow drops a sandwich.');
+        event('cow-down', contentText('world-message.src.jurassic.the-cow-drops-a-sandwich'));
       } else if (target === kraken) {
         state.target = null;
         ship.phase = 'victory';
@@ -419,11 +475,12 @@ export function createExpeditions({
         dropMonster('kraken', ship.x, ship.z);
         event(
           'kraken-dead',
-          'The kraken sinks beneath the waves. Collect its spoils from the deck, then speak to Ahab to return.',
+          contentText(
+            'world-message.src.jurassic.the-kraken-sinks-beneath-the-waves-collect-its-spoils-from-the',
+          ),
         );
       }
     }
-    return { ok: true, damage };
   }
   function attack(target: Actor | null, weapon = 'railgun') {
     const result = shoot(target, player(), weapon);
@@ -433,12 +490,23 @@ export function createExpeditions({
     }
     return result;
   }
-  function damagePlayer(amount: number, source: string, target: Actor) {
+  function damagePlayer(amount: number, target: Actor) {
     const damage = health!.damage(rollEnemyDamage(amount, level(), random, defense()));
     event('damage', null, { damage, target, hp: health!.state.hp, max: health!.state.max });
+    const reflected = Math.min(target.hp || 0, reflect(damage));
+    if (reflected) {
+      state.splats.push({ target, damage: reflected, ttl: 0.8 });
+      event('shot', null, {
+        target,
+        damage: reflected,
+        hp: target.hp! - reflected,
+        max: target.max || target.hp,
+      });
+      damageTarget(target, reflected);
+    }
     if (!health!.state.hp) {
       state.target = null;
-      event('death', 'You have died and respawned at UCSF Hospital');
+      event('death', null);
     }
   }
   function advance(dt: number) {
@@ -483,10 +551,13 @@ export function createExpeditions({
             !state.loot.some((l) => l.lootKind === 'kraken')
           )
             dropMonster('kraken', ship.x, ship.z);
-          event(
-            'kraken-arrived',
-            'Ahab: “Moby Dick was too hard. We’ll just hunt the kraken instead.” Click the kraken to fire. Stronger hunters hit harder.',
-          );
+          if (!state.krakenDefeated)
+            event(
+              'kraken-arrived',
+              contentText(
+                'world-message.src.jurassic.click-the-kraken-to-fire-stronger-hunters-hit-harder',
+              ),
+            );
         }
       } else if (ship.phase === 'inbound') {
         ship.progress = Math.min(1, ship.progress + dt / 5);
@@ -494,7 +565,10 @@ export function createExpeditions({
         if (ship.progress >= 1 - 1e-8) {
           ship.progress = 1;
           abandonShip();
-          event('disembarked', 'The Pequod returns you to the beach.');
+          event(
+            'disembarked',
+            contentText('world-message.src.jurassic.the-pequod-returns-you-to-the-beach'),
+          );
         }
       } else if (ship.phase === 'fighting' && p.eligible) {
         const stats = MONSTER_STATS.kraken;
@@ -503,17 +577,15 @@ export function createExpeditions({
           ship.attackIn = Math.min(ship.attackIn, stats.enrageInterval);
           event(
             'kraken-enraged',
-            'The kraken is enraged! Its tentacles strike faster and harder. Ahab: “I may have underestimated the squid.”',
+            contentText(
+              'world-message.src.jurassic.the-kraken-is-enraged-its-tentacles-strike-faster-and-harder',
+            ),
           );
         }
         ship.attackIn -= dt;
         if (ship.attackIn <= 1e-8) {
           ship.attackIn += kraken.enraged ? stats.enrageInterval : stats.interval;
-          damagePlayer(
-            stats.damage + (kraken.enraged ? stats.enrageDamageBonus : 0),
-            'The kraken',
-            kraken,
-          );
+          damagePlayer(stats.damage + (kraken.enraged ? stats.enrageDamageBonus : 0), kraken);
         }
       }
     }
@@ -536,7 +608,7 @@ export function createExpeditions({
       state.spectreAttack = (state.spectreAttack || 0) + dt;
       if (state.spectreAttack >= 1.25) {
         state.spectreAttack = 0;
-        damagePlayer(7, 'The spectre', state.target);
+        damagePlayer(7, state.target);
       }
     }
     if (sharedWorld()) return;
@@ -614,7 +686,7 @@ export function createExpeditions({
     raptor.attackIn = MONSTER_STATS.raptor.interval;
     if (prey === p || prey.isPlayer) {
       if (p.eligible && !ship.aboard && distance(raptor, p) < 1.3)
-        damagePlayer(MONSTER_STATS.raptor.damage, 'The velociraptor', raptor);
+        damagePlayer(MONSTER_STATS.raptor.damage, raptor);
     } else {
       const victimDies = random() < 0.5,
         raptorDies = random() < 0.5;
@@ -625,12 +697,20 @@ export function createExpeditions({
         drop('coins', prey.x, prey.z, 3 + Math.floor(random() * 5));
         event(
           'citizen-down',
-          'The velociraptor attacks a ' + prey.label!.toLowerCase() + '. Coins fall to the ground.',
+          contentText(
+            'world-message.src.jurassic.the-velociraptor-attacks-a-coins-fall-to-the-ground',
+            { value1: String(prey.label!.toLowerCase()) },
+          ),
         );
       }
       if (raptorDies) killRaptor('citizen');
       if (!victimDies && !raptorDies)
-        event('standoff', 'A citizen fends off the velociraptor. Neither looks pleased.');
+        event(
+          'standoff',
+          contentText(
+            'world-message.src.jurassic.a-citizen-fends-off-the-velociraptor-neither-looks-pleased',
+          ),
+        );
       raptor.replan = 0;
     }
   }
@@ -687,6 +767,7 @@ export function createExpeditions({
     ship,
     kraken,
     startQuest,
+    hasRailgun,
     recover,
     finishQuest,
     setHarbor,
@@ -700,13 +781,6 @@ export function createExpeditions({
     entries,
     stop() {
       state.target = null;
-    },
-    toggleWeapon() {
-      if (!state.railgun) return false;
-      state.equipped = !state.equipped;
-      state.target = null;
-      save();
-      return true;
     },
   };
 }
@@ -725,16 +799,30 @@ export function scientistDialogue(
       ...p,
       intro: contentText('jurassic.scientistDialogue.intro-12', {}),
       question: contentText('jurassic.scientistDialogue.question-13', {}),
-      choice: contentText('jurassic.scientistDialogue.choice-14', {}),
-      accept: () => game.startQuest(),
+      choices: [
+        {
+          label: contentText('jurassic.scientistDialogue.choice-14', {}),
+          contentNodeId: 'jurassic.scientistDialogue.node-11.choice',
+          next: {
+            contentNodeId: 'jurassic.scientistDialogue.briefing',
+            intro: contentText('jurassic.scientistDialogue.briefing.intro', {}),
+            decline: p.decline,
+            choices: [
+              {
+                label: contentText('jurassic.scientistDialogue.briefing.accept', {}),
+                contentNodeId: 'jurassic.scientistDialogue.briefing.choice',
+                actionId: 'jurassic.scientistDialogue.action-15',
+                accept: () => game.startQuest(),
+              },
+            ],
+          },
+        },
+      ],
       contentNodeId: 'jurassic.scientistDialogue.node-11',
       introTextId: 'jurassic.scientistDialogue.intro-12',
       introTextValues: {},
       questionTextId: 'jurassic.scientistDialogue.question-13',
       questionTextValues: {},
-      choiceTextId: 'jurassic.scientistDialogue.choice-14',
-      choiceTextValues: {},
-      actionId: 'jurassic.scientistDialogue.action-15',
     };
   if (game.state.raptor === 'carrying')
     return {
@@ -774,7 +862,8 @@ export function scientistDialogue(
     intro: contentText('jurassic.scientistDialogue.intro-27', {}),
     question: contentText('jurassic.scientistDialogue.question-28', {}),
     choice: contentText('jurassic.scientistDialogue.choice-29', {}),
-    receipt: contentText('jurassic.scientistDialogue.receipt-30', {}),
+    accept: () => game.startQuest(),
+    actionId: 'jurassic.scientistDialogue.action-reopen-cage',
     contentNodeId: 'jurassic.scientistDialogue.node-26',
     introTextId: 'jurassic.scientistDialogue.intro-27',
     introTextValues: {},
@@ -782,14 +871,13 @@ export function scientistDialogue(
     questionTextValues: {},
     choiceTextId: 'jurassic.scientistDialogue.choice-29',
     choiceTextValues: {},
-    receiptTextId: 'jurassic.scientistDialogue.receipt-30',
-    receiptTextValues: {},
   };
 }
 export function ahabDialogue(
   npc: RuntimeDialogue | undefined,
   game: {
-    state: Partial<Pick<ExpeditionState, 'railgun' | 'krakenReward'>>;
+    state: Partial<Pick<ExpeditionState, 'krakenReward'>>;
+    hasRailgun: () => boolean;
     ship: { aboard: boolean; phase?: string };
     returnShip?: ExpeditionDialogueController['returnShip'];
     board: ExpeditionDialogueController['board'];
@@ -808,7 +896,12 @@ export function ahabDialogue(
       accept: () => {
         const result = requiredValue(game.returnShip, 'Aboard ship return action')();
         return typeof result === 'boolean'
-          ? { ok: result, message: 'Ahab turns the Pequod toward the coast.' }
+          ? {
+              ok: result,
+              message: contentText(
+                'world-message.src.jurassic.ahab-turns-the-pequod-toward-the-coast',
+              ),
+            }
           : result;
       },
       contentNodeId: 'jurassic.ahabDialogue.node-31',
@@ -839,7 +932,7 @@ export function ahabDialogue(
       receiptTextId: 'jurassic.ahabDialogue.receipt-40',
       receiptTextValues: {},
     };
-  if (!game.state.railgun)
+  if (!game.hasRailgun())
     return {
       ...npc,
       intro: contentText('jurassic.ahabDialogue.intro-42', {}),

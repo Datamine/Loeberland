@@ -1,3 +1,4 @@
+import { inBerkeleyLab } from './berkeley-lab.ts';
 import { requiredValue } from './types/assert.ts';
 import type { WorldModel } from './types/server.ts';
 import type { Point } from './types/geometry.ts';
@@ -64,10 +65,12 @@ export function auditWorldNavigation(world: WorldModel) {
     }
   }
   destinations.push(
-    ...(world.wilderness?.actors || []).map((n) => ({
-      id: n.id + '-encounter',
-      point: { x: n.x - 0.5, y: n.z - 0.5 },
-    })),
+    ...(world.wilderness?.actors || [])
+      .filter((n) => !inBerkeleyLab(n.x, n.z))
+      .map((n) => ({
+        id: n.id + '-encounter',
+        point: { x: n.x - 0.5, y: n.z - 0.5 },
+      })),
   );
   if (world.marinLand)
     destinations.push(

@@ -1,3 +1,4 @@
+import { contentText } from './content-runtime.ts';
 /** Only fields consumed by this presentation controller, independent of transport envelopes. */
 type SecretMessage = Pick<ServerEvent, 'guild' | 'illuminati' | 'bomber'> &
   (
@@ -67,7 +68,9 @@ export function createSecretAdventures({
     if (bomberOwned) return;
     bomberOwned = true;
     onMessage(
-      'Quest complete: Illuminatus! Your personal B-2 and replacement privileges are unlocked.',
+      contentText(
+        'world-message.src.secret-adventures.quest-complete-illuminatus-your-personal-b-2-and-replacement-p',
+      ),
       'Quest',
     );
     onProgress();
@@ -138,16 +141,25 @@ export function createSecretAdventures({
   }
   async function boardKraken(game: {
     ship: { aboard: boolean };
-    state: { railgun: boolean; krakenReward: boolean };
+    state: { krakenReward: boolean };
+    hasRailgun: () => boolean;
   }) {
     if (!serverConnected(client)) return serverCommand(client, 'instanceEnter', { kind: 'kraken' });
-    if (boardPending || game.ship.aboard || !game.state.railgun || game.state.krakenReward)
-      return { ok: false, message: 'The Pequod is not ready to sail.' };
+    if (boardPending || game.ship.aboard || !game.hasRailgun() || game.state.krakenReward)
+      return {
+        ok: false,
+        message: contentText('world-message.src.secret-adventures.the-pequod-is-not-ready-to-sail'),
+      };
     boardPending = true;
     try {
       const result = await serverCommand(client, 'instanceEnter', { kind: 'kraken' });
       return result.ok
-        ? { ...result, message: 'Ahab unfurls the sails. The Pequod sets off toward the kraken.' }
+        ? {
+            ...result,
+            message: contentText(
+              'world-message.src.secret-adventures.ahab-unfurls-the-sails-the-pequod-sets-off-toward-the-kraken',
+            ),
+          }
         : result;
     } finally {
       boardPending = false;

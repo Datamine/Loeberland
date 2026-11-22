@@ -1,6 +1,8 @@
 /** A sampled display pose is independent of authoritative movement state. */
 export interface AnimationPose {
   mode: string;
+  x?: number;
+  z?: number;
   hp?: number;
   motion?: number;
   moving?: boolean;
@@ -9,6 +11,7 @@ export interface AnimationPose {
 }
 export interface AnimationFrame {
   mode: string;
+  atvTravel: number;
   modeAt: number;
   motion: number;
   run: number;

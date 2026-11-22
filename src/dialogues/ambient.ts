@@ -1,19 +1,30 @@
 import type { RuntimeDialogue } from '../types/world.ts';
 // CONTENT-BINDINGS-MIGRATED
 import { CONTENT, contentText } from '../content-runtime.ts';
-import archive from './chains.json' with { type: 'json' };
-import goose from './goose-corp.json' with { type: 'json' };
+import tweetDerived from '../../content/dialogues/tweet-derived/chains.json' with { type: 'json' };
+import other from '../../content/dialogues/other/chains.json' with { type: 'json' };
 import { applyDialogueEdits } from '../world-edits.ts';
-import { dialogueChoices } from '../dialogue-choices.ts';
 import type { SharedConversation } from '../types/content.ts';
 
 export const AMBIENT_CHAINS = Object.freeze(
-  archive.dialogues.map((c) => CONTENT.dialogues.shared[c.id] || c),
+  Object.keys(tweetDerived).map((id) => CONTENT.dialogues.shared[id]),
 );
 export const GOOSE_CHAINS = Object.freeze(
-  goose.ambient.map((c) => CONTENT.dialogues.shared[c.id] || c),
+  ['goose_corp_1', 'goose_corp_2'].map((id) => CONTENT.dialogues.shared[id]),
 );
-export const CONVERSATION_POOL = Object.freeze([...AMBIENT_CHAINS, ...GOOSE_CHAINS]);
+export const CONVERSATION_POOL = Object.freeze([
+  ...AMBIENT_CHAINS,
+  ...Object.keys(other).map((id) => CONTENT.dialogues.shared[id]),
+]);
+const simulationChains = Object.keys(other)
+  .filter((id) => id.startsWith('simulation_'))
+  .map((id) => CONTENT.dialogues.shared[id]);
+
+export function childConversation(random = Math.random) {
+  if (simulationChains.length && random() < 0.2)
+    return simulationChains[Math.floor(random() * simulationChains.length)];
+  return GOOSE_CHAINS[1];
+}
 
 /** Draw without replacement so a walk through town does not repeat one topic. */
 export function createConversationPicker({ pool = CONVERSATION_POOL, random = Math.random } = {}) {
@@ -100,36 +111,4 @@ export function createAmbientDialogue<T extends RuntimeDialogue>(
     },
     'shared:' + chain.id,
   );
-}
-
-/** Keep the casual branch in the voice of the existing speaker. */
-export function withAmbientConversation<T extends RuntimeDialogue>(person: T): T & RuntimeDialogue {
-  if (person.ambientConversation || person.parrot || person.dog === true || person.baby)
-    return person;
-  const choices = dialogueChoices(person);
-  if (choices.some((choice) => choice.ambientConversation)) return person;
-  return {
-    ...person,
-    choices: [
-      ...choices,
-      {
-        label: contentText('dialogues.ambient.withAmbientConversation.label-16', {}),
-        ambientConversation: true,
-        actionId: 'ambient.chat',
-        next: {
-          name: person.name || person.named || person.label,
-          intro:
-            person.id === 'tablet-wizard'
-              ? 'I used to walk to Cupertino. These days I only do it when I need to think. That is how I got the idea for the tablet.'
-              : person.intro,
-          repeat: false,
-          choices: [],
-        },
-        contentNodeId: 'dialogues.ambient.withAmbientConversation.node-15',
-        labelTextId: 'dialogues.ambient.withAmbientConversation.label-16',
-        labelTextValues: {},
-      },
-    ],
-    contentNodeId: person.contentNodeId || 'dialogues.ambient.withAmbientConversation.node-14',
-  };
 }

@@ -85,7 +85,13 @@ export function drawBison(
   });
 }
 
-export function drawBisonHide(m: Mesh, x: number, base: number, z: number) {
+export function drawBisonHide(
+  m: Mesh,
+  x: number,
+  base: number,
+  z: number,
+  { fur = '#77583c', center = '#514034', size = 1 } = {},
+) {
   const points = [
     [-0.23, -0.25] satisfies [number, number],
     [-0.4, -0.29] satisfies [number, number],
@@ -107,11 +113,11 @@ export function drawBisonHide(m: Mesh, x: number, base: number, z: number) {
       b = points[(i + 1) % points.length];
     m.tri(
       [x, base + 0.045, z] satisfies [number, number, number],
-      [x + b[0], base + 0.025, z + b[1]] satisfies [number, number, number],
-      [x + a[0], base + 0.025, z + a[1]] satisfies [number, number, number],
-      '#77583c',
+      [x + b[0] * size, base + 0.025, z + b[1] * size] satisfies [number, number, number],
+      [x + a[0] * size, base + 0.025, z + a[1] * size] satisfies [number, number, number],
+      fur,
       'stucco',
     );
   }
-  m.sphere(x + 0.06, base + 0.055, z, 0.19, 0.035, 0.22, '#514034', 12, 6, 'stucco');
+  m.sphere(x + 0.06, base + 0.055, z, 0.19 * size, 0.035, 0.22 * size, center, 12, 6, 'stucco');
 }

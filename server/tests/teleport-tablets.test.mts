@@ -12,10 +12,12 @@ async function setup() {
   const geometry = fixtureGeometry();
   geometry.merchants = [
     { label: 'tablet-wizard', id: 'tablet-wizard', x: 92.2, z: 120, base: 1.15 },
+    { label: 'Goblin Scientist', id: 'goblin-scientist', x: 108, z: 120, base: 1.15 },
   ];
   geometry.tabletDestinations = {
     downtown: { label: 'Downtown', x: 75, y: 1.15, z: 40 },
     tahoe: { label: 'Tahoe', x: 150, y: 1.15, z: -50 },
+    'goblin-village': { label: 'Goblin Village', x: 29, y: 1.15, z: -18 },
   };
   const store = createMemoryStore(),
     game = await createGame({ geometry, store, now: () => time });
@@ -38,6 +40,27 @@ async function act(
   await a.p.queue;
   return latestResult(a.messages);
 }
+test('Goblin Village Teleports are exclusive to the goblin scientist and land at the village', async (t) => {
+  const { game, advance } = await setup();
+  t.after(() => game.close());
+  const a = await player(game, 824, { 'sf-purse-v1': '{"coins":45}' });
+  const destination = 'goblin-village';
+  assert.equal(requiredFixture(await act(game, a, 'buyTablet', { destination })).ok, false);
+  a.p.x = 108;
+  assert.equal(
+    requiredFixture(await act(game, a, 'buyTablet', { destination: 'tahoe' })).ok,
+    false,
+  );
+  assert.equal(requiredFixture(await act(game, a, 'buyTablet', { destination })).ok, true);
+  assert.equal(a.p.inventory.economy.state.coins, 25);
+  assert.equal(requiredFixture(await act(game, a, 'useTablet', { destination })).ok, true);
+  advance(2900);
+  game.tick();
+  assert.equal(a.p.x, 29);
+  assert.equal(a.p.z, -18);
+  assert.equal(a.p.inventory.snapshot().tablets[destination], 0);
+});
+
 test('wizard validates proximity, destination and epoch, charges 20 exactly and durably consumes a tablet', async () => {
   const { game, store, advance } = await setup(),
     a = await player(game, 820, {

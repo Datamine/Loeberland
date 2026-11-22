@@ -50,6 +50,8 @@ const shopKinds = new Set([
   'motorcycle-clerk',
   'lift',
   'battery-seller',
+  'goblin-industrialist',
+  'decorative-robe-seller',
 ]);
 /** All layers share the same actor sources and use live rendered positions. */
 export function minimapActors(context: MinimapContext) {

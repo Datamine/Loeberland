@@ -1,7 +1,7 @@
 import type { AircraftPoint, VisibleBomb, VisibleCrash } from './types/aircraft.ts';
 import type { CharacterAppearance } from './characters.ts';
 import { Mesh, pose, rand } from './geometry.ts';
-import { CAVE_TILES, ILLUMINATI_CAVE } from './map-instances.ts';
+import { CAVE_TILES, HANGAR_GOOSE, ILLUMINATI_CAVE } from './map-instances.ts';
 import { drawCharacter } from './characters.ts';
 
 const BOMBER_MODEL_SCALE = 0.25;
@@ -12,7 +12,7 @@ export function drawSecretStair(m: Mesh, x: number, y: number, z: number, angle 
     for (let i = 0; i < 5; i++)
       m.box(
         -0.32,
-        0.025 - i * 0.055,
+        0.245 - i * 0.055,
         -0.33 + i * 0.13,
         0.64,
         0.06,
@@ -35,6 +35,22 @@ export function drawSecretStair(m: Mesh, x: number, y: number, z: number, angle 
         '#bca772',
         9,
       );
+    }
+  });
+}
+export function drawCaveExitStair(m: Mesh) {
+  const { entrance, floor } = ILLUMINATI_CAVE;
+  const front = entrance.z + 0.52;
+  pose(m, entrance.x, floor, front, 0, () => {
+    for (let i = 0; i < 5; i++) {
+      const height = (i + 1) * 0.19;
+      m.box(-0.46, 0, i * 0.18, 0.92, height, 0.18, '#777d6c', 'stone');
+      m.box(-0.46, height - 0.032, i * 0.18, 0.92, 0.033, 0.042, '#b0aa8b', 'stone');
+    }
+    for (const x of [-0.44, 0.44]) {
+      m.rod([x, 0.19, 0.06], [x, 0.63, 0.06], 0.022, '#bca772', 9);
+      m.rod([x, 0.95, 0.84], [x, 1.39, 0.84], 0.022, '#bca772', 9);
+      m.rod([x, 0.63, 0.06], [x, 1.39, 0.84], 0.026, '#bca772', 9);
     }
   });
 }
@@ -512,4 +528,35 @@ export function drawBombEffect(
       { emissive: Math.max(0.001, 0.5 - a) },
     );
   }
+}
+
+export function drawHangarGoose(m: Mesh) {
+  const { x, z } = HANGAR_GOOSE;
+  drawCagedGoose(m, x, ILLUMINATI_CAVE.floor + 0.025, z);
+}
+
+export function drawCagedGoose(m: Mesh, x: number, base: number, z: number) {
+  pose(m, x, base, z, 0, () => {
+    m.box(-0.46, 0.015, -0.43, 0.92, 0.065, 0.86, '#777265', { metal: 0.46 });
+    for (const edge of [-1, 1]) {
+      for (const height of [0.12, 1.07]) {
+        m.rod([-0.45, height, edge * 0.42], [0.45, height, edge * 0.42], 0.024, '#667c80', 6);
+        m.rod([edge * 0.45, height, -0.42], [edge * 0.45, height, 0.42], 0.024, '#667c80', 6);
+      }
+      for (let i = 0; i < 7; i++) {
+        const a = -0.42 + i * 0.14;
+        m.rod([a, 0.12, edge * 0.42], [a, 1.07, edge * 0.42], 0.015, '#778789', 6);
+        m.rod([edge * 0.45, 0.12, a], [edge * 0.45, 1.07, a], 0.015, '#778789', 6);
+      }
+    }
+    m.sphere(-0.07, 0.39, 0, 0.235, 0.15, 0.19, '#d9d9c9', 12, 7);
+    m.rod([0.07, 0.42, 0], [0.19, 0.66, 0], 0.07, '#e8e7d8', 8);
+    m.rod([0.19, 0.66, 0], [0.168, 0.81, 0], 0.055, '#ecebdb', 8);
+    m.sphere(0.21, 0.81, 0, 0.09, 0.071, 0.07, '#ecebdb', 10, 7);
+    m.sphere(0.303, 0.79, 0, 0.074, 0.029, 0.044, '#e4a341', 9, 6);
+    for (const side of [-1, 1]) {
+      m.sphere(0.236, 0.828, side * 0.058, 0.012, 0.014, 0.011, '#2d2c29', 6, 4);
+      m.rod([0, 0.29, side * 0.068], [-0.02, 0.14, side * 0.068], 0.022, '#cf8f3d', 6);
+    }
+  });
 }

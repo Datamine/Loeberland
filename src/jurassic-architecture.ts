@@ -277,7 +277,12 @@ export function drawRaptorEnclosureGate(
     b = JURASSIC.base,
     w = RAPTOR_ENCLOSURE.gateWidth,
     H = RAPTOR_ENCLOSURE.height,
-    open = game.raptor.phase === 'caged' ? 0 : Math.min(1, game.raptor.release || 1);
+    open =
+      game.raptor.phase === 'caged'
+        ? 0
+        : game.raptor.phase === 'releasing'
+          ? Math.min(1, game.raptor.release ?? 0)
+          : 1;
   pose(m, c.x - w / 2, b, c.z + c.d / 2, -open * Math.PI * 0.48, () => {
     drawRaptorFencePanel(
       m,

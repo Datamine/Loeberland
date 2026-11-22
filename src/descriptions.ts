@@ -133,6 +133,7 @@ export function sightPrimaryVerb(
   if (sight.kind === 'gym') return 'Perform exercises at';
   if (sight.kind === 'airship-rope') return 'Climb';
   if (sight.kind === 'lore-book') return 'Read';
+  if (sight.kind === 'unusual-church') return 'Search';
   if (sight.kind === 'secret-stairs') return 'Descend';
   if (sight.kind === 'cave-exit') return 'Climb';
   if (sight.kind === 'stealth-bomber') return 'Board';
@@ -154,6 +155,7 @@ export function sightPrimaryVerb(
     gondola: 'Ride gondola',
     airship: 'Rent airship',
     bike: 'Ride bicycle',
+    ferrari: 'Drive / park',
     windsurf: 'Go windsurfing',
     whale: 'Jump over',
     guest: 'Talk to',

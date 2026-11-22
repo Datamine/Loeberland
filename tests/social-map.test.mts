@@ -2,10 +2,21 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Mesh } from '../src/geometry.ts';
 import { drawSocialBuildings, socialNavigationPolygons } from '../src/social-buildings.ts';
-import { TWITTER_HQ, socialFixtures, streamDistance } from '../src/social-layout.ts';
+import {
+  CONFERENCE_PANELS,
+  TWITTER_HQ,
+  SALES_CONFERENCE,
+  socialFixtures,
+  streamDistance,
+} from '../src/social-layout.ts';
 import { drawBottlePostAnimation, drawRunoffBanks } from '../src/bottle-post.ts';
 import { partitionRunoff } from '../src/runoff-surface.ts';
-import { instituteHiddenSections } from '../src/institute-interiors.ts';
+import {
+  insideInstitute,
+  instituteHiddenSections,
+  raycastInstituteFloor,
+} from '../src/institute-interiors.ts';
+import { compileEntityDialogue } from '../src/content-game.ts';
 import { sampleCharacterPose } from '../src/characters.ts';
 
 const area = (poly: readonly (readonly number[])[]) =>
@@ -57,7 +68,8 @@ test('social room fixtures share native collision shapes and cut away toward eve
     assert.ok(s.interior.mesh.data.every(Number.isFinite));
     assert.ok(s.interior.mesh.data.length / 33 < 2000);
     assert.equal(s.navigationPolygons.length, socialNavigationPolygons(s).length);
-    assert.equal(s.navigationPolygons.length, 5 + socialFixtures(s).length);
+    const walls = 'ellipse' in s ? CONFERENCE_PANELS - 2 : 5;
+    assert.equal(s.navigationPolygons.length, walls + socialFixtures(s).length);
     for (let yaw = 0; yaw < Math.PI * 2; yaw += Math.PI / 8) {
       const hidden = instituteHiddenSections(
         s,
@@ -73,6 +85,26 @@ test('social room fixtures share native collision shapes and cut away toward eve
     }
   }
 });
+test('the tent floor and indoor check follow the round footprint', () => {
+  const tent = SALES_CONFERENCE;
+  const center = { origin: [tent.x, 10, tent.z], dir: [0, -1, 0] };
+  const corner = { origin: [tent.x + tent.w * 0.44, 10, tent.z + tent.d * 0.43], dir: center.dir };
+  assert.ok(insideInstitute(tent, tent.x, tent.z));
+  assert.equal(insideInstitute(tent, corner.origin[0], corner.origin[2]), false);
+  assert.ok(raycastInstituteFloor(tent, center));
+  assert.equal(raycastInstituteFloor(tent, corner), null);
+});
+
+test('the Poster has an authored reply in a dialogue panel', () => {
+  const person = compileEntityDialogue(
+    { id: 'twitter-poster', label: 'Poster', choices: [] },
+    'actor:twitter-poster',
+  );
+  assert.equal(person.name, 'Poster');
+  assert.equal(person.intro, 'Very busy, someone is wrong on the internet.');
+  assert.deepEqual(person.choices, []);
+});
+
 test('bottle posting is animated with a bound on dynamic geometry and proper rig motion', () => {
   const terrain = { height: () => 3 },
     worker = {

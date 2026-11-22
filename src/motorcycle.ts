@@ -1,7 +1,9 @@
+import { contentText } from './content-runtime.ts';
 import { isFiniteNumber, isRecord } from './types/json.ts';
 
 import type { Point } from './types/geometry.ts';
 import type { Economy } from './types/controllers.ts';
+import type { AnimationFrame } from './types/animation.ts';
 import { pitchAroundPoint, transformMeshRange } from './rendering/mesh-transform.ts';
 import { Mesh, pose } from './geometry.ts';
 
@@ -9,6 +11,11 @@ export const MOTORCYCLE_RENTAL_PRICE = 5,
   MOTORCYCLE_SPEED = 14;
 export const MOTORCYCLE_EXAMINE =
   'A parked motorcycle with a gleaming tank and a neatly printed rental note: “5 coins.”';
+export const MOTORCYCLE_TRICKS = [
+  { id: 'motorcycle-wheelie', duration: 1.4 },
+  { id: 'motorcycle-endo', duration: 1.05 },
+  { id: 'motorcycle-hop', duration: 0.9 },
+] as const;
 
 export function createMotorcycle({
   home,
@@ -34,11 +41,19 @@ export function createMotorcycle({
     onSave({ rented: state.rented, x: state.x, y: state.y, angle: state.angle });
   };
   function rent(economy: Economy, { pursued = false } = {}) {
-    if (state.rented) return { ok: false, message: 'Your motorcycle rental is already paid for.' };
+    if (state.rented)
+      return {
+        ok: false,
+        message: contentText(
+          'world-message.src.motorcycle.your-motorcycle-rental-is-already-paid-for',
+        ),
+      };
     if (pursued)
       return {
         ok: false,
-        message: 'The rental desk is closed while a pursuit is in progress.',
+        message: contentText(
+          'world-message.src.motorcycle.the-rental-desk-is-closed-while-a-pursuit-is-in-progress',
+        ),
       };
     const result = economy.trade('motorcycle-rental');
     if (!result.ok) return result;
@@ -46,7 +61,9 @@ export function createMotorcycle({
     save();
     return {
       ok: true,
-      message: 'You rent the motorcycle for 5 coins. Click it to ride, or use Motorcycle / M.',
+      message: contentText(
+        'world-message.src.motorcycle.you-rent-the-motorcycle-for-5-coins-click-it-to-ride-or-use-mo',
+      ),
     };
   }
   function mount() {
@@ -268,6 +285,7 @@ export function pitchMotorcycleMesh(
   z: number,
   angle: number,
   ground: (x: number, z: number) => number,
+  trick?: Pick<AnimationFrame, 'action' | 'actionT'>,
 ) {
   const fx = Math.cos(angle),
     fz = Math.sin(angle);
@@ -276,4 +294,31 @@ export function pitchMotorcycleMesh(
     1.27,
   );
   transformMeshRange(m, start, pitchAroundPoint(x, base, z, angle, -pitch));
+  if (!trick?.action) return;
+  const lift = Math.sin(Math.PI * trick.actionT);
+  if (trick.action === 'motorcycle-hop') {
+    const bounce = pitchAroundPoint(
+      x,
+      base,
+      z,
+      angle,
+      -0.13 * Math.sin(Math.PI * 2 * trick.actionT),
+    );
+    bounce[13] += lift * 0.52;
+    transformMeshRange(m, start, bounce);
+  } else if (trick.action === 'motorcycle-wheelie' || trick.action === 'motorcycle-endo') {
+    const axle = trick.action === 'motorcycle-wheelie' ? -0.63 : 0.64;
+    const tilt = axle < 0 ? -0.57 : 0.39;
+    transformMeshRange(
+      m,
+      start,
+      pitchAroundPoint(
+        x + fx * axle * Math.cos(pitch),
+        base + axle * Math.sin(pitch),
+        z + fz * axle * Math.cos(pitch),
+        angle,
+        tilt * lift,
+      ),
+    );
+  }
 }

@@ -55,6 +55,8 @@ function adminAuthorization(username: string | undefined, password: string | und
     timingSafeEqual(expected, digest(Buffer.from(header.slice(6), 'base64')));
 }
 
+const isAccountKey = (key: string) => /^(character-password:|character-session:)/.test(key);
+
 function validate(
   kind: string,
   key: string,
@@ -361,11 +363,13 @@ export async function startAdmin({
       if (req.method === 'GET' && url.pathname === '/api/records') {
         const { keys, names } = await store.list(),
           owners = new Map(names.map((row) => [row.owner, row.name]));
-        const records = keys.map((key) => ({
-          kind: 'state',
-          key,
-          label: key.startsWith('player:') ? owners.get(key.slice(7)) || 'Unnamed player' : key,
-        }));
+        const records = keys
+          .filter((key) => !isAccountKey(key))
+          .map((key) => ({
+            kind: 'state',
+            key,
+            label: key.startsWith('player:') ? owners.get(key.slice(7)) || 'Unnamed player' : key,
+          }));
         records.push(
           ...names.map((row) => ({ kind: 'usernames', key: row.owner, label: row.name })),
         );
@@ -373,12 +377,9 @@ export async function startAdmin({
         return;
       }
       if (req.method === 'GET' && url.pathname === '/api/record') {
-        send(200, {
-          raw: await store.get(
-            url.searchParams.get('kind') || '',
-            url.searchParams.get('key') || '',
-          ),
-        });
+        const key = url.searchParams.get('key') || '';
+        if (isAccountKey(key)) throw fail(404, 'Record not found.');
+        send(200, { raw: await store.get(url.searchParams.get('kind') || '', key) });
         return;
       }
       if (req.method === 'PUT' && url.pathname === '/api/record') {
@@ -405,6 +406,7 @@ export async function startAdmin({
         if (!isRecord(body)) throw fail(400, 'Send a record object.');
         if (typeof body.kind !== 'string' || typeof body.key !== 'string')
           throw fail(400, 'Choose an existing record.');
+        if (isAccountKey(body.key)) throw fail(404, 'Record not found.');
         await store.save(body.kind, body.key, body.original, body.value);
         send(200, { raw: JSON.stringify(body.value) });
         return;

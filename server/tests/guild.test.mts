@@ -55,18 +55,19 @@ async function act(
   );
 }
 
-test('shared peptides spawn once every ten minutes and two collectors cannot both take a vial', async () => {
+test('shared peptides spawn once every five minutes and two collectors cannot both take a vial', async () => {
   const { game, advance, store } = await guildFixture(),
     a = await player(game, 401),
     b = await player(game, 402);
-  assert.equal(game.shared.snapshot(a.p).peptideSpawnAt, 1000000 + PEPTIDE_SPAWN_MS);
-  advance(PEPTIDE_SPAWN_MS - 1);
+  assert.equal(game.shared.snapshot(a.p).peptideSpawnAt, 1000000 + 5 * 60 * 1000);
+  advance(5 * 60 * 1000 - 1);
   game.tick(0.05);
   assert.equal(game.shared.loot.size, 0);
   advance(1);
   game.tick(0.05);
   const vial = [...game.shared.loot.values()][0];
   assert.equal(vial.lootKind, 'peptides');
+  assert.equal(vial.wallExpiresAt, 1000000 + (5 + 20) * 60 * 1000);
   assert.equal(game.shared.snapshot(b.p).peptideSpawnAt, 1000000 + 2 * PEPTIDE_SPAWN_MS);
   game.broadcast();
   assert.equal(
@@ -198,4 +199,20 @@ test('a persisted spawn schedule resumes after restart without a restart-reset o
     'old vials expire and a missed interval produces only one new vial',
   );
   await restored.close();
+});
+
+test('a saved ten-minute peptide schedule adopts the five-minute interval on restart', async () => {
+  const { game, geometry, store, advance, now } = await guildFixture();
+  await game.close();
+  const saved = await storedWorldFixture(store, 'world');
+  saved.shared.nextPeptideAt = now() + 10 * 60 * 1000;
+  await store.batch([['world', saved]]);
+  const restored = await createGame({ geometry, store, now, random: () => 0.5 });
+  try {
+    advance(5 * 60 * 1000);
+    restored.tick(0.05);
+    assert.equal(restored.shared.loot.size, 1);
+  } finally {
+    await restored.close();
+  }
 });

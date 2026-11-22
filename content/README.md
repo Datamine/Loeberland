@@ -4,8 +4,11 @@ Run `npm run dev`, then open **http://localhost:8080/editor.html**.
 The editor writes these source files directly; a text/menu edit does not rebuild map geometry.
 
 - `entities.json`: shared entity definitions, names, NPC/object categories, descriptions, placement references, ordered action menus and registered capabilities. There are 238 definitions and 316 placements. Repeated cows/houses share definitions. Changing a name keeps its ID.
-- `dialogues.json`: 107 state variants with explicitly identified nodes, choices, links and action IDs; service templates and 102 shared casual conversations.
+- `dialogues.json`: state variants with explicitly identified nodes, choices, links and action IDs, plus service templates.
+- [`dialogues/tweet-derived/chains.json`](dialogues/tweet-derived/chains.json) contains the 100 tweet-derived pedestrian conversations.
+- [`dialogues/other/chains.json`](dialogues/other/chains.json) contains the special-purpose pedestrian conversations, including the Goose Corp rumors and the pond rumor children use.
 - `texts.json`: reusable text templates. `{name}` or `{v0}` placeholders are substituted with values supplied by registered code or declarative state bindings. They are never evaluated as JavaScript.
+- [`world-messages.json`](world-messages.json): adventure log messages, action receipts and gameplay errors. Browse or edit them in **World messages**. Keep message IDs and placeholder names stable. Examine text is under its object's or NPC's entry.
 - `player-state-defaults.json`: the version-2 JSON player document, including quest progress, inventory, skills, vehicles, employment, finance and activities.
 - `player-state-bindings.json`: legacy save mappings and the quest marker index. Existing saves import recognized game data on connection. Gameplay controllers access that data through compatibility aliases backed by the `playerState` document. Loading an older document drops the obsolete migration metadata, including any archived data from unknown modules.
 - `schemas/`: JSON Schemas. Validation also checks references, registered actions, duplicate IDs and dialogue cycles.

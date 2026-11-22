@@ -34,6 +34,7 @@ export interface NetworkNPC {
   hold: number;
   level: number;
   showStartedAt?: number;
+  bicycleTaken?: boolean;
 }
 export type PackedNPC = [
   id: string,
@@ -57,7 +58,12 @@ export interface InventorySnapshot extends InventoryLedger {
   max?: number;
 }
 export interface CommandResult extends ActionReceipt {
+  highScores?: import('../high-scores.ts').HighScores;
   unchanged?: boolean;
+  retryApproach?: boolean;
+  appearance?: Appearance;
+  hasCharacterPassword?: boolean;
+  loginToken?: string;
   paid?: number;
   damage?: number;
   hp?: number;
@@ -82,6 +88,7 @@ export interface NetworkTraffic extends WorldPoint {
   angle: number;
 }
 export interface NetworkCreature extends WorldPoint {
+  attackAnimation?: number;
   combatKind?: string;
   id: string;
   hp: number;
@@ -161,8 +168,10 @@ export interface PersonalSnapshot extends PersonalPursuits {
   ship?: ReturnType<typeof import('../jurassic.ts').createExpeditions>['ship'];
   kraken?: Partial<ReturnType<typeof import('../jurassic.ts').createExpeditions>['kraken']>;
   loot?: import('./expeditions.ts').ExpeditionLoot[];
-  vehicle?: { mode: string; fuel?: number };
+  vehicle?: { mode: string; fuel?: number; bicycle?: import('./geometry.ts').Point };
   travel?: {
+    atvRentalUntil: number;
+    waymo?: import('../waymo-rental.ts').WaymoRentalView | null;
     rocket: import('../rocket.ts').RocketState | null;
     tahoe: Partial<import('./movement.ts').MovementRuntime['tahoe']['state']> | null;
     sutro: import('./movement.ts').MovementRuntime['sutro']['state'] | null;
@@ -193,6 +202,7 @@ export interface MultiplayerState {
   max?: number;
   inventory?: InventorySnapshot;
   returningCharacter?: boolean;
+  hasCharacterPassword?: boolean;
   autoName?: boolean;
   serverOffset?: number;
   pendingAwards?: import('./content.ts').PendingAward[];
@@ -237,6 +247,7 @@ export interface WelcomeMessage extends ServerEnvelope {
   id: number;
   name: string;
   returningCharacter: boolean;
+  hasCharacterPassword?: boolean;
   autoName: boolean;
   renameAt: number;
   time: number;
@@ -312,6 +323,8 @@ export type ServerEvent = ServerEnvelope &
         from: Position;
         to: Position;
       }
+    | { type: 'scientistExplosive'; from: Position; to: Position }
+    | { type: 'robotShot'; weapon: 'akimbo' | 'robocop-laser'; from: Position; to: Position }
     | { type: 'caught'; source: string }
     | {
         type: 'damage';
@@ -321,6 +334,7 @@ export type ServerEvent = ServerEnvelope &
         source?: string;
         attacker?: string | number;
       }
+    | { type: 'pvpBound'; target: number; duration: number }
     | { type: 'pvpKill'; target: number; name: string; drops: string[] }
     | { type: 'say'; id: number; text: string }
     | {
@@ -342,6 +356,16 @@ export type ServerEvent = ServerEnvelope &
         crash: import('./aircraft.ts').BomberCrash;
       }
     | { type: 'bomberLanded'; message: string }
+    | { type: 'tradeView'; trade: import('./trade.ts').TradeView }
+    | {
+        type: 'tradeClosed';
+        id: string;
+        message: string;
+        completed: boolean;
+        appearance?: Appearance;
+        inventory?: InventorySnapshot;
+        grapplingHook?: boolean;
+      }
     | { type: 'duelOffer'; offer: import('./finance.ts').DuelOffer }
     | { type: 'duelClosed'; id: string; message: string }
     | { type: 'duelSettled'; winner: number; winnerName: string; stake: number }

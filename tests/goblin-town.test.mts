@@ -7,7 +7,12 @@ import { drawWildMonster } from '../src/wilderness-models.ts';
 import { drawBallChair, GOBLIN_SPAWNS } from '../src/goblin-town.ts';
 import { equipmentOptions } from '../src/equipment-options.ts';
 import { ownedEquipmentDefense } from '../src/item-stats.ts';
-import { dogSurfingRound, drawDogSurfingCompetition } from '../src/dog-surfing.ts';
+import {
+  DOG_SURFING,
+  dogSurfingRound,
+  dogSurfingRun,
+  drawDogSurfingCompetition,
+} from '../src/dog-surfing.ts';
 import { dialogueFixture } from './helpers/dialogue-fixture.mts';
 
 test('goblins drop a few coins, boots use a 1/8 roll and the stronger maker has a separate 1/12 chair roll', () => {
@@ -78,7 +83,7 @@ test('boots require ownership for defense and wardrobe availability; all new mes
   const chair = new Mesh();
   drawBallChair(chair, 0, 0, 0);
   assert.ok(chair.data.every(Number.isFinite));
-  assert.equal(GOBLIN_SPAWNS.filter((p) => p.z < 0).length, 4);
+  assert.equal(GOBLIN_SPAWNS.filter((p) => p.z < 0).length, 7);
 });
 
 test('dog surfing heats share deterministic scores and keep dogs and boards finite during surfing and judging', () => {
@@ -87,10 +92,27 @@ test('dog surfing heats share deterministic scores and keep dogs and boards fini
   assert.deepEqual(a, b);
   assert.equal(a.scores.length, 3);
   assert.ok(a.scores.some((s) => s.name === a.winner.name));
-  for (const t of [0, 12, 36, 47, 48] satisfies [number, number, number, number, number]) {
+  const takeoff = dogSurfingRun(5.3, 0);
+  const nearShore = dogSurfingRun(10.8, 0);
+  assert.ok(takeoff.riding && nearShore.riding && takeoff.offshore - nearShore.offshore > 5);
+  assert.ok(dogSurfingRun(9, 0).roll !== 0);
+  assert.ok(dogSurfingRun(13.4, 2).hop > 0.4);
+  assert.ok(dogSurfingRun(13, 0).shoreDistance > 0.5);
+  for (const t of [0, 4, 8, 13.4, 20, 34, 36, 47, 48]) {
     const m = new Mesh();
-    drawDogSurfingCompetition(m, t);
+    const labels: string[] = [];
+    drawDogSurfingCompetition(
+      m,
+      t,
+      () => 0.05,
+      (start, sight) => {
+        assert.ok(start < m.data.length);
+        assert.ok(sight.description);
+        labels.push(sight.label);
+      },
+    );
     assert.ok(m.data.every(Number.isFinite));
+    assert.deepEqual(labels, DOG_SURFING.names);
   }
 });
 

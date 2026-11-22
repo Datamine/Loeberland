@@ -1,3 +1,4 @@
+import { contentText } from './content-runtime.ts';
 import { isFiniteNumber } from './types/json.ts';
 type PitchActor = Pick<Actor, 'id'> & Partial<Actor>;
 interface SalesPitch {
@@ -49,12 +50,14 @@ export function createSocialBusiness({
     if (state.pitch)
       return {
         ok: false,
-        message: 'One salesman is already thinking about your pitch. Give him ten seconds.',
+        message: contentText(
+          'world-message.src.sales-conference.one-salesman-is-already-thinking-about-your-pitch-give-him-ten',
+        ),
       };
     if (!economy.state.softwareCopies)
       return {
         ok: false,
-        message: 'You have no software to pitch.',
+        message: contentText('world-message.src.sales-conference.you-have-no-software-to-pitch'),
       };
     const percent = inebriation.state.percent,
       chance = softwareSalesChance(percent);
@@ -64,7 +67,9 @@ export function createSocialBusiness({
     return {
       ok: true,
       pending: true,
-      message: '“Let me think about how this helps me sell more sales software…”',
+      message: contentText(
+        'world-message.src.sales-conference.let-me-think-about-how-this-helps-me-sell-more-sales-software',
+      ),
     };
   }
   function update(
@@ -83,14 +88,18 @@ export function createSocialBusiness({
     const accepted = random() < pitch.chance,
       result: EconomyReceipt = accepted ? economy.trade('sales-software-sale') : { ok: false };
     const message = result.ok
-      ? '“This will help me sell more software for selling software!” He buys one copy for ' +
-        result.earned +
-        ' coins' +
-        (result.bonus ? ' (including your iPhone bonus)' : '') +
-        '.'
+      ? contentText(
+          'world-message.src.sales-conference.this-will-help-me-sell-more-software-for-selling-software-he-b',
+          {
+            earned: String(result.earned),
+            value2: String(result.bonus ? ' (including your iPhone bonus)' : ''),
+          },
+        )
       : accepted
         ? result.message
-        : '“Let us circle back next quarter.” He declines. You keep your copy and can try another pitch.';
+        : contentText(
+            'world-message.src.sales-conference.let-us-circle-back-next-quarter-he-declines-you-keep-your-copy',
+          );
     const event = {
       type: 'sales-decision',
       npc: pitch.npc,

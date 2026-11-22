@@ -23,6 +23,7 @@ const MOTION_FIELDS = [
   'phase',
   'travel',
   'motion',
+  'attackAnimation',
   'elapsed',
   'gate',
   'release',

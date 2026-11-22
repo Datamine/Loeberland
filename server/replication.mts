@@ -1,3 +1,4 @@
+import { LAB_INSTANCE } from '../src/berkeley-lab.ts';
 import type { SimulationServices, ServerPlayer } from '../src/types/server.ts';
 import type { Appearance } from '../src/types/content.ts';
 import type { WorldKind, WorldPatch } from '../src/world-deltas.ts';
@@ -74,7 +75,9 @@ export function createReplication({
       [...players.values()].filter((p) => (p.instance?.kind || 'world') === 'world'),
     );
     basementIndex.rebuild(
-      [...players.values()].filter((p) => p.instance?.id === ILLUMINATI_INSTANCE.id),
+      [...players.values()].filter(
+        (p) => p.instance?.id === ILLUMINATI_INSTANCE.id || p.instance?.id === LAB_INSTANCE.id,
+      ),
     );
     frames.capture(players.values());
     for (const [id, peer] of members)
@@ -94,6 +97,7 @@ export function createReplication({
     };
     const world = entityFrame ? shared.snapshot() : null,
       packed: Partial<Record<WorldKind, Map<string, PackedActor>>> = {},
+      dispatchedByPlayer = new Map<number, ReplicatedActor[]>(),
       globals: Partial<
         Record<'raptor' | 'tiger' | 'airship' | 'peptideSpawnAt', { text: string; value: unknown }>
       > = {};
@@ -105,6 +109,15 @@ export function createReplication({
         indices[kind].rebuild(records);
         packed[kind] = new Map();
         for (const n of records) {
+          if (
+            kind === 'wilderness' &&
+            'dispatchedFor' in n &&
+            typeof n.dispatchedFor === 'number'
+          ) {
+            const dispatched = dispatchedByPlayer.get(n.dispatchedFor);
+            if (dispatched) dispatched.push(n);
+            else dispatchedByPlayer.set(n.dispatchedFor, [n]);
+          }
           let values: readonly unknown[] = worldRecord(kind, n),
             old = previous.get(n.id);
           if (old && !worldPatch(n.id, values, old)) values = old;
@@ -156,7 +169,7 @@ export function createReplication({
         const nearbyIndex =
           (p.instance?.kind || 'world') === 'world'
             ? playerIndex
-            : p.instance?.id === ILLUMINATI_INSTANCE.id
+            : p.instance?.id === ILLUMINATI_INSTANCE.id || p.instance?.id === LAB_INSTANCE.id
               ? basementIndex
               : null;
         if (visible.length < MP_MAX_NEIGHBORS && nearbyIndex)
@@ -197,6 +210,9 @@ export function createReplication({
           state: Record<string, unknown> = {};
         const publicWorld = (p.instance?.kind || 'world') === 'world';
         for (const kind of kinds) {
+          const visible =
+            publicWorld ||
+            (p.instance?.id === LAB_INSTANCE.id && (kind === 'loot' || kind === 'wilderness'));
           const previous = p.entityVersions[kind] || new Map<string, readonly unknown[]>(),
             next = new Map<string, readonly unknown[]>(),
             radius = kind === 'npcs' ? 38 : 45,
@@ -206,7 +222,7 @@ export function createReplication({
                 : kind === 'loot'
                   ? GAMEPLAY.maxNearbyLoot
                   : 12,
-            records = !publicWorld
+            nearby = !visible
               ? []
               : kind === 'npcs'
                 ? indices[kind].near(p.x, p.z, radius, limit)
@@ -215,8 +231,17 @@ export function createReplication({
                     .filter(
                       (n): n is ReplicatedActor =>
                         !!n && Math.hypot(n.x - p.x, n.z - p.z) <= radius,
-                    );
-          if (publicWorld && records.length < limit) {
+                    ),
+            dispatched =
+              visible && kind === 'wilderness'
+                ? (dispatchedByPlayer.get(p.id) || []).filter(
+                    (n) => Math.hypot(n.x - p.x, n.z - p.z) <= radius,
+                  )
+                : [],
+            records = dispatched.length
+              ? [...dispatched, ...nearby.filter((n) => !dispatched.includes(n))].slice(0, limit)
+              : nearby;
+          if (visible && records.length < limit) {
             const ids = new Set(records.map((n) => n.id));
             for (const n of indices[kind].near(p.x, p.z, radius, limit))
               if (!ids.has(n.id) && records.length < limit) {

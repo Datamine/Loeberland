@@ -3,7 +3,7 @@ import type { RoadPoint, RoadSegment } from './types/roads.ts';
 import type { Point, Ray } from './types/geometry.ts';
 import { Mesh, rayBox, rayTriangle } from './geometry.ts';
 import { BAY_BRIDGE_WIDTH, bayBridgeRoute } from './downtown.ts';
-import { TAHOE, TAHOE_VILLAGE, nearTahoe, regionalGroundHeight } from './tahoe.ts';
+import { TAHOE_ARRIVAL_ROAD, nearTahoe, regionalGroundHeight } from './tahoe.ts';
 import { EAST_BAY_COAST_X } from './geography.ts';
 
 /** A deliberately short East Bay approach gets walkers to the Ferrari quickly;
@@ -20,10 +20,7 @@ export const TAHOE_HIGHWAY = Object.freeze(
     [1200, -745] satisfies [number, number],
     [1410, -870] satisfies [number, number],
     [1560, -960] satisfies [number, number],
-    [1705, -1060] satisfies [number, number],
-    [TAHOE.base.x + 10, TAHOE.base.z + 16] satisfies [number, number],
-    [TAHOE.base.x + 10, TAHOE.base.z + 10] satisfies [number, number],
-    [TAHOE_VILLAGE.arrival.x, TAHOE_VILLAGE.arrival.z] satisfies [number, number],
+    ...TAHOE_ARRIVAL_ROAD.map(({ x, z }) => [x, z] satisfies [number, number]),
   ].map((value) => Object.freeze(value)),
 );
 export function createRegionalRoad({
@@ -31,11 +28,15 @@ export function createRegionalRoad({
   groundHeight = regionalGroundHeight,
   cityGate = null,
   route = null,
+  landEnd = false,
+  landStart = false,
 }: {
   scale?: number;
   groundHeight?: (x: number, z: number) => number;
   cityGate?: Point | null;
   route?: number[][] | null;
+  landEnd?: boolean;
+  landStart?: boolean;
 } = {}) {
   const halfWidth = BAY_BRIDGE_WIDTH / 2,
     gradeReach = 0.95,
@@ -244,12 +245,23 @@ export function createRegionalRoad({
   function mesh() {
     const m = new Mesh();
     for (const s of segments.slice(bridgeCount - 1)) {
-      m.quad(s.quad[0], s.quad[1], s.quad[2], s.quad[3], '#78817c', 'asphalt');
+      const endDistance = landEnd ? s.a.z - points.at(-1)!.z : Infinity;
+      const startDistance = landStart ? points[0].z - s.b.z : Infinity;
+      const gravel = endDistance < 0.85;
+      m.quad(
+        s.quad[0],
+        s.quad[1],
+        s.quad[2],
+        s.quad[3],
+        gravel ? '#a29174' : '#78817c',
+        gravel ? 'dirt' : 'asphalt',
+      );
       const point = (p: { x: number; y: number; z: number }, offset: number, h = 0) =>
         [p.x + s.nx * offset, p.y + h, p.z + s.nz * offset] satisfies [number, number, number];
       for (const side of [-1, 1] satisfies [number, number]) {
         const edge = side * s.w;
-        if (!route && s.a.x >= EAST_BAY_COAST_X) continue;
+        if (startDistance < 1.4 || endDistance < 2.1 || (!route && s.a.x >= EAST_BAY_COAST_X))
+          continue;
         m.quad(
           point(s.a, edge),
           point(s.b, edge),
@@ -260,7 +272,7 @@ export function createRegionalRoad({
         );
         m.rod(point(s.a, edge, 0.18), point(s.b, edge, 0.18), 0.018, '#aabcb5', 4);
       }
-      if (s.index % 2 === 0) {
+      if (startDistance >= 1.1 && endDistance >= 1.4 && s.index % 2 === 0) {
         const half = Math.min(0.45, s.length * 0.34),
           f = half / s.length,
           at = (t: number, side: number) => [
@@ -341,36 +353,33 @@ export function createGoldenGateCrossing({
   groundHeight: (x: number, z: number) => number;
   marinHeight: (x: number, z: number) => number;
 }) {
-  const x = 18.8 * scale,
-    route = [
-      [
-        cityGate.x + 0.5,
-        groundHeight(cityGate.x + 0.5, cityGate.y + 0.5) + 0.025,
-        cityGate.y + 0.5,
-      ],
-    ];
-  // Grade the southern approach too: the Presidio rises above the span's
-  // level deck, so a single straight ramp would disappear into the hillside.
-  for (const end of [
-    [x, 2, 10 * scale] satisfies [number, number, number],
-    [x, 2, 10] satisfies [number, number, number],
-    [x, 2, 0.5 * scale] satisfies [number, number, number],
-  ]) {
-    const from = route.at(-1)!,
-      n = end[2] < 10 ? 1 : Math.ceil(Math.hypot(end[0] - from[0], end[2] - from[2]) / 0.15);
-    for (let i = 1; i <= n; i++) {
-      const t = i / n,
-        xx = from[0] + (end[0] - from[0]) * t,
-        z = from[2] + (end[2] - from[2]) * t,
-        baseline = from[1] + (end[1] - from[1]) * t;
-      const h =
-        z > 10
-          ? Math.max(groundHeight(xx, z), groundHeight(xx - 0.5, z), groundHeight(xx + 0.5, z)) +
-            0.04
-          : 2;
-      route.push([xx, Math.max(baseline, h), z]);
-    }
+  const x = 18.8 * scale;
+  const startX = cityGate.x + 0.5;
+  const startZ = cityGate.y + 0.5;
+  const approachEnd = 8 * scale;
+  const half = BAY_BRIDGE_WIDTH / 2;
+  const groundAcross = (xx: number, z: number) =>
+    Math.max(
+      groundHeight(xx, z),
+      groundHeight(xx - half, z),
+      groundHeight(xx + half, z),
+      groundHeight(xx, z - half),
+      groundHeight(xx, z + half),
+    ) + 0.04;
+  const startY = groundAcross(startX, startZ);
+  const length = Math.hypot(x - startX, startZ - 10);
+  const samples = Math.ceil(length / 0.16);
+  const route: number[][] = [];
+  for (let i = 0; i <= samples; i++) {
+    const t = i / samples;
+    const z = startZ + (10 - startZ) * t;
+    const turn = Math.min(1, (startZ - z) / Math.max(0.16, startZ - approachEnd));
+    const xx = startX + (x - startX) * turn * turn * (3 - 2 * turn);
+    const baseline = startY + (2 - startY) * t;
+    const ground = z > 10 ? groundAcross(xx, z) : 2;
+    route.push([xx, Math.max(baseline, ground), z]);
   }
+  route.push([x, 2, 0.5 * scale]);
   // Continue onto the headland, grading the walkway above the terrain rather
   // than stopping in the water at the end of the suspension span.
   for (let z = 0.5 * scale - 0.25; z >= -3 * scale; z -= 0.25) {
@@ -381,7 +390,7 @@ export function createGoldenGateCrossing({
       number,
     ]);
   }
-  const road = createRegionalRoad({ route }),
+  const road = createRegionalRoad({ route, landEnd: true, landStart: true }),
     city = road.gate('city'),
     marin = road.gate('tahoe');
   function path(
@@ -405,7 +414,52 @@ export function createGoldenGateCrossing({
       }
     return result;
   }
-  return { ...road, path, gate: (side: string) => (side === 'marin' ? marin : city) };
+  function mesh() {
+    const m = road.mesh();
+    const start = road.points[0];
+    // Flare the asphalt into the Presidio path and follow the surrounding terrain.
+    const apronEdge = (step: number, side: number) => {
+      const t = step / 8;
+      const x = start.x + side * start.width * (1 + t * 0.32);
+      const z = start.z + t * 1.35;
+      return [x, start.y + (groundHeight(x, z) + 0.035 - start.y) * Math.min(1, t * 2), z];
+    };
+    for (let i = 0; i < 8; i++)
+      m.quad(
+        apronEdge(i, 1),
+        apronEdge(i, -1),
+        apronEdge(i + 1, -1),
+        apronEdge(i + 1, 1),
+        '#78817c',
+        'asphalt',
+      );
+    for (const segment of road.segments) {
+      if (start.z - segment.a.z > 3) break;
+      for (const [a, b] of [
+        [segment.quad[0], segment.quad[3]],
+        [segment.quad[2], segment.quad[1]],
+      ]) {
+        const foot = (p: number[]) => [
+          p[0],
+          Math.min(p[1] - 0.025, groundHeight(p[0], p[2])),
+          p[2],
+        ];
+        m.quad(a, b, foot(b), foot(a), '#a2967b', 'concrete');
+      }
+    }
+    const end = road.points.at(-1)!;
+    for (let i = 0; i < 8; i++) {
+      const edge = (step: number, side: number) => {
+        const t = step / 8;
+        const x = end.x + side * end.width * (1 - t * 0.64);
+        const z = end.z - t * 1.8;
+        return [x, end.y + (marinHeight(x, z) + 0.035 - end.y) * t, z];
+      };
+      m.quad(edge(i, -1), edge(i, 1), edge(i + 1, 1), edge(i + 1, -1), '#a29174', 'dirt');
+    }
+    return m;
+  }
+  return { ...road, mesh, path, gate: (side: string) => (side === 'marin' ? marin : city) };
 }
 
 export function drawHighwayMinimap(

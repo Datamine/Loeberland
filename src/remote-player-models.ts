@@ -3,11 +3,13 @@ import type { AnimationFrame } from './types/animation.ts';
 import type { PoseCoordinates, NetworkPose } from './types/network.ts';
 import type { SignAtlas } from './types/world.ts';
 import type { Appearance } from './types/content.ts';
-import { drawBallChair } from './goblin-town.ts';
+import { chairForGesture, drawOwnedChair } from './goblin-town.ts';
+import { drawWaymo } from './street-traffic.ts';
 import { drawATVRider } from './atv-model.ts';
+import { drawSwingRider } from './swings.ts';
 import { drawCharacter } from './characters.ts';
 import { drawBicycle } from './bicycle-model.ts';
-import { drawMotorcycle } from './motorcycle.ts';
+import { drawMotorcycle, pitchMotorcycleMesh } from './motorcycle.ts';
 import { drawFerrari } from './ferrari.ts';
 import { drawPlayerSkateboard } from './skateboard.ts';
 import { drawWindsurfer } from './windsurfing.ts';
@@ -16,10 +18,11 @@ import { drawSkiRider, drawGondolaCabin } from './tahoe.ts';
 import { drawStealthBomber, drawParachute } from './illuminati-models.ts';
 import { drawTabletTeleport } from './teleport-models.ts';
 import { drawDrinkingCoffee } from './bank-models.ts';
-import { drawKrakenCape, drawRailgun } from './jurassic-models.ts';
+import { drawKrakenCape } from './jurassic-models.ts';
 import { applyForwardRollMesh } from './forward-roll.ts';
 import { collapseCharacterMesh } from './capture-animation.ts';
 import { drawGymExercise } from './gym-exercises.ts';
+import { drawConstructionWorker } from './construction-animation.ts';
 import { rocketHopForPose } from './rocket-hop.ts';
 import type { Mesh } from './geometry.ts';
 
@@ -85,6 +88,7 @@ export function drawRemotePlayer(
     drawStealthBomber(m, position, p.angle, { bank: p.phase, time, pilot: outfit });
   else if (p.mode === 'ski')
     drawSkiRider(m, { position, angle: p.angle, flipAngle: p.phase }, time, false, outfit);
+  else if (p.mode === 'construction') drawConstructionWorker(m, p, time, outfit);
   else if (p.mode === 'train')
     drawGymExercise(
       m,
@@ -94,7 +98,9 @@ export function drawRemotePlayer(
       time,
       outfit,
     );
-  else if (p.mode === 'atv') drawATVRider(m, p.x, p.y, p.z, p.angle, p.phase, outfit);
+  else if (p.mode === 'waymo') drawWaymo(m, p);
+  else if (p.mode === 'atv') drawATVRider(m, p.x, p.y, p.z, p.angle, p.phase, outfit, a.atvTravel);
+  else if (p.mode === 'swing' && !dead) drawSwingRider(m, p, outfit);
   else if (p.mode === 'surf') {
     if (p.gesture === 'paddle' || p.gesture === 'surfboard')
       drawWaveSurfer(
@@ -133,8 +139,8 @@ export function drawRemotePlayer(
             : p.mode === 'ferrari'
               ? 0.12
               : 0);
-    const chair = p.mode === 'sit' && p.gesture === 'chair';
-    if (chair) drawBallChair(m, p.x, base, p.z, p.angle);
+    const chair = p.mode === 'sit' ? chairForGesture(p.gesture) : undefined;
+    if (chair) drawOwnedChair(m, chair, p.x, base, p.z, p.angle);
     const mode = dead
       ? 'idle'
       : p.mode === 'bench' || p.mode === 'ferrari' || chair
@@ -154,33 +160,27 @@ export function drawRemotePlayer(
                     : p.moving
                       ? 'move'
                       : 'idle';
-    drawCharacter(m, p.x, p.z, base, p.angle, p.phase, false, look.skin, look.shirt, {
-      ...outfit,
-      mode,
-      height: p.mode === 'ferrari' ? 0.65 : 1,
-      ground: (['walk', 'dance', 'sit'] satisfies [string, string, string]).includes(p.mode)
-        ? hop.active
-          ? (x: number, z: number) => ground(x, z) + hop.height
-          : ground
-        : null,
-    });
-    if (
-      look.railgun &&
-      !hop.active &&
-      !dead &&
-      !(
-        ['roll', 'bike', 'motorcycle', 'skateboard', 'ferrari', 'climb', 'gondola'] satisfies [
-          string,
-          string,
-          string,
-          string,
-          string,
-          string,
-          string,
-        ]
-      ).includes(p.mode)
-    )
-      drawRailgun(m, p.x, base + 1.14, p.z, p.angle);
+    drawCharacter(
+      m,
+      p.x,
+      p.z,
+      base + (chair?.height ?? 0),
+      p.angle,
+      p.phase,
+      false,
+      look.skin,
+      look.shirt,
+      {
+        ...outfit,
+        mode,
+        height: p.mode === 'ferrari' ? 0.65 : 1,
+        ground: (['walk', 'dance', 'sit'] satisfies [string, string, string]).includes(p.mode)
+          ? hop.active
+            ? (x: number, z: number) => ground(x, z) + hop.height
+            : ground
+          : null,
+      },
+    );
     if (p.mode === 'bike') drawBicycle(m, p.x, p.z, p.y + 0.055, p.angle, p.phase);
     if (p.mode === 'motorcycle')
       drawMotorcycle(m, p.x, p.z, p.y + 0.015, p.angle, p.phase / Math.PI);
@@ -199,12 +199,7 @@ export function drawRemotePlayer(
   if (p.mode === 'teleport')
     drawTabletTeleport(m, { position, base: ground(p.x, p.z), progress: a.actionT * 0.2 }, time);
   if (p.mode === 'parachute') drawParachute(m, position, p.angle, time);
-  if (
-    look.cape &&
-    !(['bomber', 'roll', 'train', 'ferrari'] satisfies [string, string, string, string]).includes(
-      p.mode,
-    )
-  )
+  if (look.cape && !['bomber', 'roll', 'train', 'ferrari', 'swing'].includes(p.mode))
     drawKrakenCape(m, p.x, p.z, p.y + 0.07, p.angle, time, signs);
   if (a.action === 'drink' && p.mode !== 'bomber')
     drawDrinkingCoffee(
@@ -214,5 +209,7 @@ export function drawRemotePlayer(
       time,
       a.gestureStarted,
     );
+  if (p.mode === 'motorcycle')
+    pitchMotorcycleMesh(m, start, p.x, p.y + 0.015, p.z, p.angle, ground, a);
   if (a.fall > 0) collapseCharacterMesh(m, start, p.x, p.y + 0.07, p.z, p.angle, a.fall);
 }

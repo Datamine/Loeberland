@@ -18,6 +18,7 @@ export function planEditorWrite(
   const roots = new Map<string, BoundRecord>([
     ...catalog.records.map((r): [string, BoundRecord] => [r.key, r]),
     ...catalog.sharedDialogue.map((r): [string, BoundRecord] => ['shared:' + r.id, r]),
+    ...catalog.worldMessages.map((r): [string, BoundRecord] => [r.key, r]),
   ]);
   const next = structuredClone(existing),
     written = new Map<string, unknown>();

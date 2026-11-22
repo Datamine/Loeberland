@@ -179,7 +179,7 @@ export interface Appearance {
   rocketHopAt?: number;
   hat?: string;
   weapon?: string;
-  boots?: boolean;
+  boots?: boolean | 'party-boots';
   iceTop?: boolean;
   icePants?: boolean;
   torso?: string;
@@ -199,6 +199,7 @@ export interface EconomyState {
   bouquets: number;
   fuelCans: number;
   fish: number;
+  mud: number;
   sand: number;
   saltLetters: number;
   saltLettersDelivered: number;
@@ -246,8 +247,13 @@ export interface InventoryLedger {
   deliveryPending: boolean;
   peptides: number;
   bisonHides: number;
+  uni?: number;
+  armorTrimmingKits?: number;
+  bindTablets?: number;
+  pelts?: Partial<Record<import('../config/tahoe-pelts.ts').TahoePelt, number>>;
   coffee: number;
   akimboAmmo: number;
+  missiles?: number;
   railgunCharge: number;
   railgunBatteries: number;
   tablets: Record<string, number>;
@@ -297,6 +303,8 @@ export interface PlayerDocument {
   };
   quests: {
     monkey: { stage: MonkeyStage };
+    stochasticParrot: { stage: import('../stochastic-parrot.ts').ParrotQuestStage };
+    burningMan: import('../burning-man.ts').BurningManProgress;
     theyLive: AlienProgress;
     expeditions: ExpeditionProgress;
     illuminatus: { guild: GuildProgress | null; initiated: boolean; bomberOwned: boolean };
@@ -311,6 +319,8 @@ export interface PlayerDocument {
     delivery: JSONObject;
     monkeyKeeper: JSONObject;
     laborReadyAt: Record<string, number>;
+    gym: { workedSeconds: number; readyAt: number };
+    construction: { workedSeconds: number; readyAt: number };
     [key: string]: JSONValue;
   };
   conditions: {
@@ -326,7 +336,7 @@ export interface PlayerDocument {
     growth: import('./finance.ts').GrowthPosition | null;
   };
   social: { pvp: { enabled: boolean; disableAt: number } | null };
-  progress: { houseSearches: string[] };
+  progress: { houseSearches: string[]; goblinSpaceMud: number };
   rewards: { pending: PendingAward[]; serial: number };
   equipment: { decorativeRocket: { readyAt: number; burnUntil: number; hopAt: number } };
 }

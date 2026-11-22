@@ -19,6 +19,15 @@ export const ILLUMINATI_CAVE = Object.freeze({
   bomber: { x: 13.5, z: 11.5 },
   boarding: { x: 13.5, z: 16.5 },
 });
+export const HANGAR_GOOSE = Object.freeze({
+  id: 'hangar-goose',
+  kind: 'goose-cage',
+  label: 'Goose in a cage',
+  x: 19.5,
+  z: 7.5,
+  entry: { x: 19, y: 8.5 },
+  description: 'Is this Goose powerful and evil?',
+});
 export const CAVE_TILES = Object.freeze(
   Array.from({ length: 28 * 28 }, (_, i) => {
     const x = i % 28,
@@ -26,12 +35,14 @@ export const CAVE_TILES = Object.freeze(
       hall = x >= 3 && x <= 24 && z >= 3 && z <= 19 && ((x >= 5 && x <= 22) || (z >= 5 && z <= 17)),
       passage = x >= 12 && x <= 15 && z >= 19 && z <= 25;
     const floor = hall || passage,
-      aircraft = x >= 12 && x <= 14 && z >= 10 && z <= 12;
+      aircraft = x >= 12 && x <= 14 && z >= 10 && z <= 12,
+      stairs = x === 13 && z === 25,
+      cage = x === Math.floor(HANGAR_GOOSE.x) && z === Math.floor(HANGAR_GOOSE.z);
     return Object.freeze({
       x,
       z,
       type: floor ? (hall ? 'hangar' : 'stone') : 'rock',
-      walkable: floor && !aircraft,
+      walkable: floor && !aircraft && !stairs && !cage,
     });
   }),
 );

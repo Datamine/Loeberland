@@ -1,3 +1,4 @@
+import { contentText } from './content-runtime.ts';
 import type { ActionReceipt } from './types/world.ts';
 import { isFiniteNumber, isSafeInteger, isRecord } from './types/json.ts';
 export interface BankSnapshot {
@@ -55,28 +56,45 @@ export function createBankAccount(
       !isSafeInteger(amount) ||
       amount <= 0
     )
-      return { ok: false, message: 'Enter a whole number of coins greater than zero.' };
+      return {
+        ok: false,
+        message: contentText(
+          'world-message.src.banking.enter-a-whole-number-of-coins-greater-than-zero',
+        ),
+      };
     settle();
     if (kind === 'deposit') {
       if (amount > purse.coins)
         return {
           ok: false,
-          message: 'You do not have that many coins in your purse.',
+          message: contentText(
+            'world-message.src.banking.you-do-not-have-that-many-coins-in-your-purse',
+          ),
           bank: snapshot(),
         };
       if (state.balance > bankLimit - amount)
-        return { ok: false, message: 'Your bank account is full.', bank: snapshot() };
+        return {
+          ok: false,
+          message: contentText('world-message.src.banking.your-bank-account-is-full'),
+          bank: snapshot(),
+        };
       purse.coins -= amount;
       state.balance += amount;
     } else {
       if (amount > bankWholeCoins(state.balance))
         return {
           ok: false,
-          message: 'You do not have that many whole coins deposited.',
+          message: contentText(
+            'world-message.src.banking.you-do-not-have-that-many-whole-coins-deposited',
+          ),
           bank: snapshot(),
         };
       if (!Number.isSafeInteger(purse.coins + amount))
-        return { ok: false, message: 'Your coin purse is full.', bank: snapshot() };
+        return {
+          ok: false,
+          message: contentText('world-message.src.banking.your-coin-purse-is-full'),
+          bank: snapshot(),
+        };
       state.balance = Math.max(0, state.balance - amount);
       purse.coins += amount;
     }
@@ -84,13 +102,16 @@ export function createBankAccount(
     return {
       ok: true,
       bank: snapshot(),
-      message:
-        (kind === 'deposit' ? 'Deposited ' : 'Withdrew ') +
-        amount.toLocaleString('en-US') +
-        ' coins. ' +
-        (kind === 'deposit'
-          ? 'Your deposit earns 5% per hour, including while you are away.'
-          : 'Your coins are now in your purse.'),
+      message: contentText('world-message.src.banking.coins', {
+        value1: String(
+          (kind === 'deposit' ? 'Deposited ' : 'Withdrew ') + amount.toLocaleString('en-US'),
+        ),
+        value2: String(
+          kind === 'deposit'
+            ? 'Your deposit earns 5% per hour, including while you are away.'
+            : 'Your coins are now in your purse.',
+        ),
+      }),
     };
   }
   return { state, settle, snapshot, transfer };

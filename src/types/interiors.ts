@@ -9,6 +9,7 @@ export interface RoomGeometry {
   base: number;
   rotation?: number;
   front?: number;
+  ellipse?: boolean;
   id?: string;
 }
 export interface InteriorSection {

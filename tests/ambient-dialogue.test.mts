@@ -2,16 +2,19 @@ import { requiredFixture } from './helpers/required.mts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { CONTENT } from '../src/content-runtime.ts';
+import { compileEntityDialogue } from '../src/content-game.ts';
 import {
   AMBIENT_CHAINS,
   GOOSE_CHAINS,
   CONVERSATION_POOL,
   createConversationPicker,
   createAmbientDialogue,
-  withAmbientConversation,
 } from '../src/dialogues/ambient.ts';
 import { CASUAL_DIALOGUE_IDS } from '../src/dialogues/catalog.ts';
 import { configuredDialogue } from '../src/dialogue-config.ts';
+import { createEconomy } from '../src/economy.ts';
+import { growthDialogue } from '../src/finance-ui.ts';
+import { techMerchantDialogue } from '../src/tech-ventures.ts';
 import { createInteractions } from '../src/world/interactions.ts';
 import { dialogueFixture } from './helpers/dialogue-fixture.mts';
 import type { RuntimeDialogue } from '../src/types/world.ts';
@@ -121,46 +124,119 @@ test('every ambient and Goose ending renders with the actual NPC and player, the
     }
   }
   assert.equal(effects, 0);
-  assert.equal(endings, 406);
+  assert.equal(endings, 412);
   assert.equal(JSON.stringify(CONVERSATION_POOL), original);
 });
 
-test('service menus keep their actions but casual chat never executes or inherits them', () => {
+test('service menus show their authored choices without a shortcut that repeats the intro', () => {
   let purchases = 0;
-  const person = withAmbientConversation({
-    name: 'Seller',
-    intro: 'Shop',
-    repeat: true,
-    choice: 'Buy',
-    accept: () => {
-      purchases++;
-      return { ok: true };
+  const person = compileEntityDialogue(
+    configuredDialogue('founder', { name: 'Seller' }),
+    'actor:founder-merchant',
+  );
+  const f = dialogueFixture(
+    {},
+    {
+      trade: () => {
+        purchases++;
+        return { ok: true };
+      },
     },
-    receipt: 'Bought',
-  });
-  assert.equal(withAmbientConversation(person), person, 'chat is not appended twice');
+  );
+  try {
+    f.dialogue.open(person);
+    f.advance();
+    assert.deepEqual(
+      f.buttons().map((button) => button.textContent),
+      ['Buy one share · 10 coins', 'What does a share get me?', 'Leave'],
+    );
+    f.click('Buy one share · 10 coins');
+    assert.equal(purchases, 1);
+  } finally {
+    f.restore();
+  }
+});
+
+test('Tim Apple and the Sand Hill partner offer information without committing a transaction', () => {
+  let transactions = 0;
+  const transact = () => {
+    transactions++;
+    return { ok: true };
+  };
+  const f = dialogueFixture();
+  try {
+    for (const owned of [false, true]) {
+      const economy = createEconomy({ iphoneOwned: owned });
+      const tim = techMerchantDialogue(
+        { kind: 'tim-apple' },
+        { buyPhone: transact, equipPhone: transact, buyRobotaxi: transact },
+        economy,
+      );
+      f.dialogue.open(compileEntityDialogue(tim, 'actor:tim-apple', { economy }));
+      f.advance();
+      f.click(owned ? 'When should I put the phone away?' : 'Is there a catch?');
+      assert.match(f.element.textContent, /doomscrolling/);
+      assert.equal(transactions, 0);
+      f.advance();
+      f.click(owned ? 'Equip iPhone' : 'Buy an iPhone · 100 coins');
+      assert.equal(transactions, 1);
+      f.advance();
+      assert.equal(f.dialogue.active, false);
+      transactions = 0;
+    }
+    for (const funded of [false, true]) {
+      const capital = growthDialogue(
+        undefined,
+        { buy: transact, list: transact, sell: transact },
+        { capital: true, funded, claimFunding: transact },
+      );
+      const person = compileEntityDialogue(capital, 'actor:sand-hill-partner', {
+        strength: { state: { xp: 0, funded } },
+      });
+      f.dialogue.open(person);
+      f.advance();
+      f.click('What am I buying?');
+      assert.match(f.element.textContent, /private when you buy it/);
+      f.advance();
+      f.click('What does taking it public mean?');
+      assert.match(f.element.textContent, /stockbroker in Times Square/);
+      assert.equal(transactions, 0);
+      f.advance();
+      assert.equal(
+        f.buttons().some((button) => button.textContent === 'Ask about founder funding'),
+        !funded,
+      );
+      f.click('Buy growth equity · 1,000 coins');
+      assert.equal(transactions, 1);
+      transactions = 0;
+    }
+  } finally {
+    f.restore();
+  }
+});
+
+test('Orin’s tablet story is a distinct branch that ends without reopening his shop menu', () => {
+  const person = compileEntityDialogue(
+    configuredDialogue(
+      'wizard',
+      { id: 'tablet-wizard' },
+      {
+        buyTablet: () => {
+          throw Error('Unexpected purchase');
+        },
+      },
+    ),
+    'actor:tablet-wizard',
+  );
   const f = dialogueFixture();
   try {
     f.dialogue.open(person);
     f.advance();
-    f.click('Let’s just talk.');
-    const chat = requiredFixture(
-      requiredFixture(person.choices).find((c) => c.ambientConversation),
-    ).next;
-    assert.equal(chat?.name, 'Seller');
-    assert.equal(chat?.intro, 'Shop');
-    assert.equal(chat?.conversationId, undefined);
-    assert.deepEqual(
-      f.buttons().map((button) => button.textContent),
-      ['OK'],
-    );
+    assert.ok(f.buttons().every((button) => button.textContent !== 'Let’s just talk.'));
+    f.click('How did you invent the tablets?');
+    assert.match(f.element.textContent, /I used to walk to Cupertino/);
     f.advance();
-    assert.equal(purchases, 0);
     assert.equal(f.dialogue.active, false);
-    f.dialogue.open(person);
-    f.advance();
-    f.click('Buy');
-    assert.equal(purchases, 1);
   } finally {
     f.restore();
   }
@@ -194,7 +270,10 @@ test('Talk to an ordinary pedestrian opens real choices, holds the speaker, and 
     approachingNPC: null as import('../src/types/world.ts').Actor | null,
     player: { x: 0, y: 0, path: [1], speed: 1 },
     keys: new Set(['w']),
-    quests: { theyLive: { isDefeated: () => false } },
+    quests: {
+      theyLive: { isDefeated: () => false },
+      state: { stochasticParrot: 'not-started' },
+    },
     flying: () => false,
     chase: { state: {} },
     surf: { state: {} },
@@ -203,6 +282,7 @@ test('Talk to an ordinary pedestrian opens real choices, holds the speaker, and 
     tahoe: { state: { mode: 'ground' } },
     sutroClimb: { state: {} },
     dialogue: f.dialogue,
+    npcRevealed: () => false,
     nearestNavigation: () => ({ x: 0, y: 0 }),
     $: () => ({ hidden: true }),
     canvas: { focus() {} },

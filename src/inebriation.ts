@@ -1,3 +1,4 @@
+import { contentText } from './content-runtime.ts';
 import { isFiniteNumber } from './types/json.ts';
 import type { Economy } from './types/controllers.ts';
 import type { Mesh } from './geometry.ts';
@@ -19,14 +20,19 @@ export function createInebriation(saved = 0, onChange: (value0: number) => void 
       if (state.percent >= 100)
         return {
           ok: false,
-          message: 'The bartender suggests a glass of water. You are already 100% inebriated.',
+          message: contentText(
+            'world-message.src.inebriation.the-bartender-suggests-a-glass-of-water-you-are-already-100-in',
+          ),
         };
       const result = economy.trade('beer');
       if (!result.ok) return result;
       set(Math.min(100, state.percent + 10));
       return {
         ok: true,
-        message: 'A cold beer, one coin. You are ' + Math.round(state.percent) + '% inebriated.',
+        message: contentText(
+          'world-message.src.inebriation.a-cold-beer-one-coin-you-are-inebriated',
+          { value1: String(Math.round(state.percent)) },
+        ),
       };
     },
     update(

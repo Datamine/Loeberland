@@ -566,7 +566,7 @@
     "sight:personal-b2": {
       "id": "sight:personal-b2",
       "name": "B-2 Stealth Bomber",
-      "category": "npc",
+      "category": "object",
       "kind": "stealth-bomber",
       "description": "Your personal flying wing, its dark fuselage disappearing into the hangar\u2019s shadows.",
       "menus": [
@@ -2969,17 +2969,7 @@
             {
               "id": "npc.talk",
               "action": "npc.talk",
-              "label": "Talk-To {name} (Level {level})"
-            },
-            {
-              "id": "npc.attack",
-              "action": "npc.attack",
-              "label": "Attack {name} (Level {level})"
-            },
-            {
-              "id": "npc.steal",
-              "action": "npc.steal",
-              "label": "Steal-from {name} (Level {level})"
+              "label": "Talk-To {name}"
             },
             {
               "id": "npc.examine",
@@ -2990,7 +2980,7 @@
         }
       ],
       "dialogues": ["actor:cotogna-diner-2.dialogue-1"],
-      "capabilities": ["npc.walk", "npc.talk", "npc.attack", "npc.steal", "npc.examine"]
+      "capabilities": ["npc.walk", "npc.talk", "npc.examine"]
     },
     "actor:south-cow-0": {
       "id": "actor:south-cow-0",
@@ -3832,7 +3822,7 @@
       "name": "Dog surfing judge",
       "category": "npc",
       "kind": "dog-surfing-judge",
-      "description": "A local adventurer. Currently undertaking the difficult quest called \u201cone more errand.\u201d",
+      "description": "The judge paces the beach in a yellow shirt, watching each dog from takeoff to landing.",
       "menus": [
         {
           "id": "actor:pacifica-dog-surf-judge.menu-1",
@@ -4625,7 +4615,7 @@
     "sight:ferrari-car": {
       "id": "sight:ferrari-car",
       "name": "Ferrari",
-      "category": "npc",
+      "category": "object",
       "kind": "ferrari",
       "description": "A very fast red Ferrari: twenty times walking speed, with a tank that lasts 56% of the drive to Tahoe.",
       "menus": [
@@ -4635,14 +4625,14 @@
           "placements": ["sight:ferrari-car"],
           "actions": [
             {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
               "id": "interaction.28",
               "action": "interaction.28",
               "label": "Drive / park {name}"
+            },
+            {
+              "id": "walk",
+              "action": "walk",
+              "label": "Walk here"
             },
             {
               "id": "examine",
@@ -4657,24 +4647,24 @@
           "placements": ["sight:ferrari-car"],
           "actions": [
             {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
               "id": "interaction.28",
               "action": "interaction.28",
               "label": "Drive / park {name}"
             },
             {
-              "id": "interaction.29",
-              "action": "interaction.29",
-              "label": "Use fuel can"
+              "id": "walk",
+              "action": "walk",
+              "label": "Walk here"
             },
             {
               "id": "examine",
               "action": "examine",
               "label": "Examine {name}"
+            },
+            {
+              "id": "interaction.29",
+              "action": "interaction.29",
+              "label": "Use fuel can"
             },
             {
               "id": "interaction.38",
@@ -7232,6 +7222,7 @@
         "npc.talk",
         "npc.examine",
         "jurassic.scientistDialogue.action-15",
+        "jurassic.scientistDialogue.action-reopen-cage",
         "jurassic.scientistDialogue.action-20"
       ]
     },
@@ -8825,6 +8816,11 @@
           "placements": ["sight:nightlife"],
           "actions": [
             {
+              "id": "nightlife.enter",
+              "action": "nightlife.enter",
+              "label": "Enter {name}"
+            },
+            {
               "id": "walk",
               "action": "walk",
               "label": "Walk here"
@@ -8841,6 +8837,11 @@
           "states": ["Equipment and rentals available"],
           "placements": ["sight:nightlife"],
           "actions": [
+            {
+              "id": "nightlife.enter",
+              "action": "nightlife.enter",
+              "label": "Enter {name}"
+            },
             {
               "id": "walk",
               "action": "walk",
@@ -8864,7 +8865,7 @@
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["nightlife.enter", "walk", "examine", "interaction.38"]
     },
     "sight:beach": {
       "id": "sight:beach",
@@ -11009,8 +11010,6 @@
           "placements": [
             "actor:lucindas-deli-diner-0",
             "actor:lucindas-deli-diner-1",
-            "actor:rich-table-diner-0",
-            "actor:rich-table-diner-1",
             "actor:shanghai-kelly-diner-0",
             "actor:shanghai-kelly-diner-1"
           ],
@@ -11045,6 +11044,27 @@
       ],
       "dialogues": ["actor:lucindas-deli-diner-0.dialogue-1"],
       "capabilities": ["npc.walk", "npc.talk", "npc.attack", "npc.steal", "npc.examine"]
+    },
+    "actor:rich-table-diner-0": {
+      "id": "actor:rich-table-diner-0",
+      "name": "Rich Table diner",
+      "category": "npc",
+      "kind": "person",
+      "description": "Contemplating a small plate with the seriousness usually reserved for a lunar landing.",
+      "menus": [
+        {
+          "id": "actor:rich-table-diner-0.menu-1",
+          "states": ["New visitor"],
+          "placements": ["actor:rich-table-diner-0", "actor:rich-table-diner-1"],
+          "actions": [
+            { "id": "npc.talk", "action": "npc.talk", "label": "Talk-To {name}" },
+            { "id": "npc.walk", "action": "npc.walk", "label": "Walk here {name}" },
+            { "id": "npc.examine", "action": "npc.examine", "label": "Examine {name}" }
+          ]
+        }
+      ],
+      "dialogues": ["actor:lucindas-deli-diner-0.dialogue-1"],
+      "capabilities": ["npc.talk", "npc.walk", "npc.examine"]
     },
     "place:rose": {
       "id": "place:rose",
@@ -12257,7 +12277,7 @@
       "name": "Software Sales Conference",
       "category": "object",
       "kind": "sales-conference",
-      "description": "A red-and-cream circus tent dedicated to selling sales software to people who sell sales software. The ringmaster calls it a pipeline.",
+      "description": "A round circus tent with a striped canopy and colorful pennants. Inside, the ringmaster is selling sales software to people who sell sales software.",
       "menus": [
         {
           "id": "sight:sales-conference.menu-1",
@@ -13056,7 +13076,7 @@
       "name": "Street / unlabelled scenery",
       "category": "object",
       "kind": "ground",
-      "description": "Unlabelled scenery uses the ground action menu.",
+      "description": { "text": "world.interactions.examine.description-40" },
       "menus": [
         {
           "id": "sight:unlabelled-ground.menu-1",
@@ -14972,7 +14992,7 @@
     },
     "sight:twitter-hq": {
       "id": "sight:twitter-hq",
-      "name": "Twitter HQ",
+      "name": "Posting HQ",
       "category": "object",
       "kind": "twitter-hq",
       "description": "Messages travel down a conveyor, into bottles and out to sea. The backend is surprisingly wet.",
@@ -16385,8 +16405,7 @@
       "appearance": {
         "gender": "man",
         "chef": false
-      },
-      "level": 1
+      }
     },
     "actor:cotogna-diner-3": {
       "id": "actor:cotogna-diner-3",
@@ -16400,8 +16419,7 @@
       "appearance": {
         "gender": "man",
         "chef": false
-      },
-      "level": 1
+      }
     },
     "actor:south-cow-0": {
       "id": "actor:south-cow-0",
@@ -17387,8 +17405,8 @@
       "actor": true,
       "source": "merchants",
       "position": {
-        "x": 79.25,
-        "z": 165.125
+        "x": 64.25,
+        "z": 127.725
       },
       "appearance": {
         "skin": "#b58b6c",
@@ -17405,8 +17423,8 @@
       "actor": false,
       "source": "sights",
       "position": {
-        "x": 78.5,
-        "z": 164.5
+        "x": 63.5,
+        "z": 127.1
       }
     },
     "sight:hiking-supplies": {
@@ -18526,7 +18544,7 @@
     },
     "actor:rich-table-diner-0": {
       "id": "actor:rich-table-diner-0",
-      "definition": "actor:lucindas-deli-diner-0",
+      "definition": "actor:rich-table-diner-0",
       "actor": true,
       "source": "restaurantDiners",
       "position": {
@@ -18536,12 +18554,11 @@
       "appearance": {
         "gender": "man",
         "chef": false
-      },
-      "level": 1
+      }
     },
     "actor:rich-table-diner-1": {
       "id": "actor:rich-table-diner-1",
-      "definition": "actor:lucindas-deli-diner-0",
+      "definition": "actor:rich-table-diner-0",
       "actor": true,
       "source": "restaurantDiners",
       "position": {
@@ -18551,8 +18568,7 @@
       "appearance": {
         "gender": "man",
         "chef": false
-      },
-      "level": 1
+      }
     },
     "actor:shanghai-kelly-diner-0": {
       "id": "actor:shanghai-kelly-diner-0",

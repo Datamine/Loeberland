@@ -2,6 +2,7 @@ import { requiredFixture } from './helpers/required.mts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createExpeditions, scientistDialogue, ahabDialogue } from '../src/jurassic.ts';
+import { dialogueChoices } from '../src/dialogue-choices.ts';
 import { createHitpoints } from '../src/combat.ts';
 import { createEconomy } from '../src/economy.ts';
 import { createDeli } from '../src/deli.ts';
@@ -103,7 +104,9 @@ test('the scientist grants a railgun, visibly releases the raptor, and accepts i
   assert.equal(g.board().ok, false);
   const d = scientistDialogue({ name: 'Scientist' }, g);
   assert.equal(g.raptor.phase, 'caged');
-  assert.equal(requiredFixture(await requiredFixture(await requiredFixture(d.accept)())).ok, true);
+  const briefing = requiredFixture(dialogueChoices(d)[0].next);
+  const accept = requiredFixture(dialogueChoices(briefing)[0].accept);
+  assert.equal(requiredFixture(await accept()).ok, true);
   assert.equal(g.raptor.phase, 'releasing');
   assert.equal(g.startQuest().ok, false);
   g.update(1);
@@ -265,7 +268,7 @@ test('Ahab requires a railgun; 120 boss hits deplete 1,200 HP and yield one 100-
   assert.equal(economy.state.coins, before + 100);
   assert.equal(g.state.cape, true);
   assert.equal(g.collect(requiredFixture(spoils)).ok, false);
-  assert.match(requiredFixture(g.entries().at(-1)).description, /lousy cape/);
+  assert.equal(requiredFixture(g.entries().at(-1)).description, KRAKEN_CAPE_TEXT);
   const restored = createExpeditions({ saved: saved.at(-1) });
   assert.equal(restored.state.cape, true);
   assert.equal(restored.state.krakenReward, true);
@@ -275,7 +278,7 @@ test('Ahab requires a railgun; 120 boss hits deplete 1,200 HP and yield one 100-
   assert.equal(g.ship.aboard, false);
   assert.equal(g.ship.x, 0);
   assert.match(ahabDialogue({ name: 'Ahab' }, setup().game).intro, /railgun/);
-  assert.match(KRAKEN_CAPE_TEXT, /I killed the kraken/);
+  assert.equal(KRAKEN_CAPE_TEXT, 'I Killed the Kraken and All I Got Was This Lousy Cape');
 });
 test('automatic ranged attacks remain frame-rate independent against the level-60 kraken', () => {
   const run = (step: number) => {
@@ -319,8 +322,23 @@ test('all expedition models and cape inscriptions produce finite geometry within
   drawSpectre(mesh, { id: 'alien', label: 'Alien', x: 0, z: 0 }, 400);
   drawPequod(mesh, { x: 0, z: 0 }, 400, signs);
   drawKraken(mesh, { x: 0, z: 0 }, 400);
-  drawBeam(mesh, { from: { x: 0, y: 1, z: 0 }, to: { x: 4, y: 1, z: 0 } });
+  drawBeam(mesh, { from: { x: 0, y: 1, z: 0 }, to: { x: 4, y: 1, z: 0 }, ttl: 0.22 });
   drawKrakenCape(mesh, 0, 0, 0, 0, 400, signs);
   assert.ok(mesh.data.every(Number.isFinite));
   assert.ok(mesh.data.length / 33 < 26000, 'new models stay in the shared mesh batch');
+});
+
+test('Akibo shots occupy a small volume moving along the shot path', () => {
+  const from = { x: 0, y: 1, z: 0 };
+  const to = { x: 4, y: 1, z: 0 };
+  for (const [ttl, center] of [
+    [0.165, 1],
+    [0.055, 3],
+  ]) {
+    const mesh = new Mesh();
+    drawBeam(mesh, { from, to, ttl, weapon: 'akibo' });
+    const xPositions = mesh.data.filter((_, i) => i % 11 === 0);
+    assert.ok(xPositions.length > 0);
+    assert.ok(xPositions.every((x) => Math.abs(x - center) < 0.1));
+  }
 });

@@ -3,7 +3,13 @@ import { MERCHANTS } from './config/npcs.ts';
 import { applyEntityEdits } from './world-edits.ts';
 /** Menu capability, shared by combat labels and action construction. */
 export function npcOffersAttack(npc: ActorMetadata = {}) {
-  if (npc.networkPlayer) return false;
+  if (
+    npc.networkPlayer ||
+    npc.id === 'nia' ||
+    (typeof npc.id === 'string' &&
+      (npc.id.startsWith('cotogna-diner-') || npc.id.startsWith('rich-table-diner-')))
+  )
+    return false;
   if (
     npc.wilderness ||
     (['raptor', 'cow', 'kraken', 'spectre'] satisfies [string, string, string, string]).includes(
@@ -16,6 +22,19 @@ export function npcOffersAttack(npc: ActorMetadata = {}) {
     npc.neighborhoodService ||
     npc.police ||
     npc.kind === 'atv-rental' ||
+    npc.kind === 'goblin-scientist' ||
+    npc.kind === 'goblin-plumber' ||
+    npc.kind === 'goblin-space-engineer' ||
+    npc.kind === 'goblin-industrialist' ||
+    npc.kind === 'decorative-robe-seller' ||
+    npc.kind === 'fighter-yard-host' ||
+    npc.kind === 'enterprising-industrialist' ||
+    npc.kind === 'legacy-developer' ||
+    npc.kind === 'biomed-entrepreneur' ||
+    npc.kind === 'berkeley-mathematician' ||
+    npc.kind === 'churchgoer' ||
+    npc.kind?.startsWith('burning-man-') ||
+    npc.kind === 'rene-girard' ||
     npc.keeper ||
     npc.parrot ||
     npc.rehabilitation ||
@@ -69,6 +88,18 @@ export function npcDisplayLabel(
   if (npc.networkPlayer) return name + ' - Level ' + level;
   return name + (npcOffersAttack(npc) ? ' (Level ' + level + ')' : '');
 }
+export function npcPrimaryVerb(npc: ActorMetadata, revealed = false) {
+  if (npc.wilderness)
+    return npc.combatKind === 'bear'
+      ? 'pet'
+      : npc.combatKind === 'goblin-maker'
+        ? 'talk'
+        : 'attack';
+  if (npc.police) return 'examine';
+  if (npc.networkPlayer) return 'walk';
+  return revealed || ['raptor', 'cow', 'kraken'].includes(npc.combatKind || '') ? 'attack' : 'talk';
+}
+
 /** Both ordinary clicks and context-menu actions dispatch through the same
  * actor interaction handler. Keep menu eligibility independent of rendering. */
 export function npcContextActions(
@@ -77,6 +108,7 @@ export function npcContextActions(
 ) {
   if (npc.networkPlayer)
     return [
+      'trade',
       ...(duel ? ['duel'] : []),
       'follow',
       ...(following ? ['unfollow'] : []),

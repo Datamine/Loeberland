@@ -94,12 +94,23 @@
                         "$ref": "#/definitions/condition"
                       }
                     },
-                    "required": ["id", "label"],
+                    "required": [
+                      "id",
+                      "label"
+                    ],
                     "additionalProperties": false
                   }
                 }
               },
-              "required": ["id", "intro", "question", "decline", "repeat", "skipIntro", "choices"],
+              "required": [
+                "id",
+                "intro",
+                "question",
+                "decline",
+                "repeat",
+                "skipIntro",
+                "choices"
+              ],
               "additionalProperties": false
             }
           },
@@ -113,10 +124,17 @@
             "type": "string"
           },
           "panel": {
-            "type": ["string", "null"]
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
-        "required": ["id", "states", "placements"],
+        "required": [
+          "id",
+          "states",
+          "placements"
+        ],
         "additionalProperties": false
       }
     },
@@ -169,22 +187,38 @@
                         "$ref": "#/definitions/condition"
                       }
                     },
-                    "required": ["id", "text", "next"],
+                    "required": [
+                      "id",
+                      "text",
+                      "next"
+                    ],
                     "additionalProperties": false
                   }
                 }
               },
-              "required": ["id", "text"],
+              "required": [
+                "id",
+                "text"
+              ],
               "additionalProperties": false
             }
           }
         },
-        "required": ["id", "start", "nodes"],
+        "required": [
+          "id",
+          "start",
+          "nodes"
+        ],
         "additionalProperties": true
       }
     }
   },
-  "required": ["schema", "services", "variants", "shared"],
+  "required": [
+    "schema",
+    "services",
+    "variants",
+    "shared"
+  ],
   "additionalProperties": false,
   "definitions": {
     "condition": {
@@ -203,7 +237,9 @@
               }
             }
           },
-          "required": ["all"],
+          "required": [
+            "all"
+          ],
           "additionalProperties": false
         },
         {
@@ -217,7 +253,9 @@
               }
             }
           },
-          "required": ["any"],
+          "required": [
+            "any"
+          ],
           "additionalProperties": false
         },
         {
@@ -227,7 +265,9 @@
               "$ref": "#/definitions/condition"
             }
           },
-          "required": ["not"],
+          "required": [
+            "not"
+          ],
           "additionalProperties": false
         },
         {
@@ -238,10 +278,18 @@
               "pattern": "^(?!.*(?:__proto__|constructor|prototype))[A-Za-z][A-Za-z0-9_.-]*$"
             },
             "eq": {
-              "type": ["string", "number", "boolean", "null"]
+              "type": [
+                "string",
+                "number",
+                "boolean",
+                "null"
+              ]
             }
           },
-          "required": ["path", "eq"],
+          "required": [
+            "path",
+            "eq"
+          ],
           "additionalProperties": false
         },
         {
@@ -252,10 +300,18 @@
               "pattern": "^(?!.*(?:__proto__|constructor|prototype))[A-Za-z][A-Za-z0-9_.-]*$"
             },
             "ne": {
-              "type": ["string", "number", "boolean", "null"]
+              "type": [
+                "string",
+                "number",
+                "boolean",
+                "null"
+              ]
             }
           },
-          "required": ["path", "ne"],
+          "required": [
+            "path",
+            "ne"
+          ],
           "additionalProperties": false
         },
         {
@@ -268,11 +324,19 @@
             "in": {
               "type": "array",
               "items": {
-                "type": ["string", "number", "boolean", "null"]
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
               }
             }
           },
-          "required": ["path", "in"],
+          "required": [
+            "path",
+            "in"
+          ],
           "additionalProperties": false
         },
         {
@@ -283,10 +347,18 @@
               "pattern": "^(?!.*(?:__proto__|constructor|prototype))[A-Za-z][A-Za-z0-9_.-]*$"
             },
             "contains": {
-              "type": ["string", "number", "boolean", "null"]
+              "type": [
+                "string",
+                "number",
+                "boolean",
+                "null"
+              ]
             }
           },
-          "required": ["path", "contains"],
+          "required": [
+            "path",
+            "contains"
+          ],
           "additionalProperties": false
         },
         {
@@ -300,7 +372,10 @@
               "type": "boolean"
             }
           },
-          "required": ["path", "exists"],
+          "required": [
+            "path",
+            "exists"
+          ],
           "additionalProperties": false
         },
         {
@@ -314,7 +389,10 @@
               "type": "number"
             }
           },
-          "required": ["path", "gte"],
+          "required": [
+            "path",
+            "gte"
+          ],
           "additionalProperties": false
         },
         {
@@ -328,7 +406,10 @@
               "type": "number"
             }
           },
-          "required": ["path", "gt"],
+          "required": [
+            "path",
+            "gt"
+          ],
           "additionalProperties": false
         },
         {
@@ -342,7 +423,10 @@
               "type": "number"
             }
           },
-          "required": ["path", "lte"],
+          "required": [
+            "path",
+            "lte"
+          ],
           "additionalProperties": false
         },
         {
@@ -356,7 +440,10 @@
               "type": "number"
             }
           },
-          "required": ["path", "lt"],
+          "required": [
+            "path",
+            "lt"
+          ],
           "additionalProperties": false
         },
         {
@@ -389,7 +476,10 @@
               "additionalProperties": false
             }
           },
-          "required": ["path", "count"],
+          "required": [
+            "path",
+            "count"
+          ],
           "additionalProperties": false
         }
       ]
@@ -407,7 +497,9 @@
               "minLength": 1
             }
           },
-          "required": ["text"],
+          "required": [
+            "text"
+          ],
           "additionalProperties": false
         },
         {
@@ -426,7 +518,10 @@
                     "$ref": "#/definitions/text"
                   }
                 },
-                "required": ["when", "text"],
+                "required": [
+                  "when",
+                  "text"
+                ],
                 "additionalProperties": false
               }
             },
@@ -434,7 +529,10 @@
               "$ref": "#/definitions/text"
             }
           },
-          "required": ["select", "default"],
+          "required": [
+            "select",
+            "default"
+          ],
           "additionalProperties": false
         }
       ]

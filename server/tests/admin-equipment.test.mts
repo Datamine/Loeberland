@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { adminEquipmentOptions, grantAndEquip } from '../admin-equipment.ts';
 import { createPlayerDocument } from '../../src/player-document.ts';
-import { createTheyLiveQuest } from '../../src/they-live.ts';
 import { createGame } from '../game.mts';
 import { createMemoryStore } from '../store.mts';
 import { fixtureGeometry, player } from './fixtures.mts';
@@ -31,9 +30,10 @@ test('admin can unlock locked gear that the game accepts on login', async (t) =>
     'black-cloak-bottom',
     'combat-boots',
     'clock-amulet',
+    'railgun',
   ]);
   assert.deepEqual(document.inventory.economy.ownedHats, [hat]);
-  assert.equal(document.quests.expeditions.raptor, 'escaped');
+  assert.equal(document.quests.expeditions.raptor, 'not-started');
   assert.equal(document.quests.expeditions.krakenReward, false);
   Object.assign(document, { appearance: draft.player.appearance });
   const store = createMemoryStore();
@@ -55,12 +55,13 @@ test('admin can unlock locked gear that the game accepts on login', async (t) =>
   assert.equal(look.hair, '#112233');
 });
 
-test('granting the bayonet supplies its prerequisites and putting it away retains ownership', () => {
+test('granting the bayonet leaves the quest untouched and putting it away retains ownership', () => {
   const document = createPlayerDocument();
   const draft = { player: {}, ...document };
   assert.equal(grantAndEquip(draft, 'weapon', 'bayonet'), true);
-  assert.equal(createTheyLiveQuest(document.quests.theyLive).state.bayonet, true);
+  assert.equal(document.quests.theyLive.started, false);
+  assert.deepEqual(document.inventory.economy.ownedEquipment, ['bayonet']);
   assert.equal(document.quests.theyLive.completed, false);
   assert.equal(grantAndEquip(draft, 'weapon', 'unarmed'), true);
-  assert.equal(document.quests.theyLive.bayonet, true);
+  assert.deepEqual(document.inventory.economy.ownedEquipment, ['bayonet']);
 });

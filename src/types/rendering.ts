@@ -40,6 +40,7 @@ export type ShaderProgram = WebGLProgram & {
   vp: WebGLUniformLocation | null;
   eye: WebGLUniformLocation | null;
   focus: WebGLUniformLocation | null;
+  fogDistanceScale: WebGLUniformLocation | null;
   light: WebGLUniformLocation | null;
   shadows: WebGLUniformLocation | null;
   time: WebGLUniformLocation | null;

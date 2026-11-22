@@ -1,3 +1,5 @@
+import { legacyBugSpawns } from './legacy-software-layout.ts';
+import { contentText } from './content-runtime.ts';
 import { isFiniteNumber } from './types/json.ts';
 import type {
   WildernessSpawn,
@@ -11,11 +13,13 @@ interface WildernessOptions<P extends WildernessPerson> {
   spawns?: readonly WildernessSpawn[];
   ground?: (x: number, z: number) => number;
   canTravel?: (from: WorldPoint, to: WorldPoint) => boolean;
+  canShoot?: (from: WildernessActor, to: P) => boolean;
   route?: (from: WildernessActor, to: WorldPoint) => WorldPoint[] | null | undefined;
   random?: () => number;
   onHit?: (event: { actor: WildernessActor; attacker: WildernessPerson; damage: number }) => void;
   onDrop?: (drop: WildernessDrop, attacker: WildernessPerson) => void;
   onDamage?: (person: P, amount: number, actor: WildernessActor) => void;
+  onReflect?: (attacker: WildernessPerson, amount: number, actor: WildernessActor) => void;
 }
 type WalkingMonster = MonsterStats & {
   speed: number;
@@ -23,6 +27,9 @@ type WalkingMonster = MonsterStats & {
   interval: number;
   respawn: number;
 };
+import { FIGHTER_SPAWNS, isYardFighter, inFighterYard } from './fighter-yard-layout.ts';
+import { SCAPEGOAT } from './girard-layout.ts';
+import { POINT_REYES_URCHINS } from './point-reyes.ts';
 import { EMF_WARRIOR } from './bolinas.ts';
 import { GOBLIN_SPAWNS } from './goblin-town.ts';
 import { SOMA_ZOMBIE_SPAWNS } from './downtown.ts';
@@ -91,14 +98,37 @@ export function wildernessSpawns({ marin, tahoe }: { marin: Point; tahoe: WorldP
       x: tahoe.x + dx,
       z: tahoe.z + dz,
     })),
+    ...(
+      [
+        [-22, 10, 'tahoe-bear'],
+        [-30, -5, 'tahoe-bear'],
+        [2, 18, 'tahoe-fox'],
+        [-11, 16, 'tahoe-fox'],
+        [-7, -22, 'tahoe-fox'],
+      ] as const
+    ).map(([dx, dz, combatKind], i) => ({
+      id: 'tahoe-wildlife-' + (i + 1),
+      combatKind,
+      x: tahoe.x + dx,
+      z: tahoe.z + dz,
+    })),
     { ...OUTLAW_SITE },
     { ...LOST_PIRATE_SITE },
     { ...LANDSHARK_SITE },
     { ...TERMINATOR_SITE },
     { ...BISON_SITE },
     ...GOBLIN_SPAWNS,
+    ...FIGHTER_SPAWNS,
+    ...legacyBugSpawns(),
+    SCAPEGOAT,
+    ...POINT_REYES_URCHINS,
     ...SOMA_ZOMBIE_SPAWNS.map((spawn) => ({ ...spawn })),
+    { id: 'presidio-coyote', combatKind: 'coyote', x: 27.5, z: 23.5 },
     { ...EMF_WARRIOR },
+    { id: 'marin-ridge-fox-1', combatKind: 'tahoe-fox', x: 4, z: -34 },
+    { id: 'marin-ridge-fox-2', combatKind: 'tahoe-fox', x: 14, z: -28 },
+    { id: 'marin-ridge-bear-1', combatKind: 'tahoe-bear', x: 8, z: -27 },
+    { id: 'marin-ridge-bear-2', combatKind: 'tahoe-bear', x: 19, z: -24 },
     ...[[22, 18.5] as const, [20.5, 21.5] as const, [20.5, 25.5] as const].map(([x, z], i) => ({
       id: 'presidio-seagull-' + i,
       combatKind: 'seagull',
@@ -119,11 +149,13 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
   spawns = [],
   ground = () => 0,
   canTravel = () => true,
+  canShoot = canTravel,
   route = (a, b) => (canTravel(a, b) ? [b] : null),
   random = Math.random,
   onHit = () => {},
   onDrop = () => {},
   onDamage = () => {},
+  onReflect = () => {},
 }: WildernessOptions<P> = {}) {
   let clock = 0;
   const statsByKind = new Map<string, WalkingMonster>();
@@ -189,12 +221,22 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
     const actor = actors.find((n) => n.id === id),
       weapon = ITEM_STATS[attacker.weapon || 'unarmed'] || ITEM_STATS.unarmed;
     if (!actor?.hp)
-      return { ok: false, message: 'That creature is resting. Come back after it respawns.' };
+      return {
+        ok: false,
+        message: contentText(
+          'world-message.src.wilderness.that-creature-is-resting-come-back-after-it-respawns',
+        ),
+      };
     if (
       Math.hypot(actor.x - attacker.x, actor.z - attacker.z) >
       (weapon.range ?? ITEM_STATS.unarmed.range) + 0.01
     )
-      return { ok: false, message: 'Move closer to the ' + actor.label.toLowerCase() + '.' };
+      return {
+        ok: false,
+        message: contentText('world-message.src.wilderness.move-closer-to-the', {
+          value1: String(actor.label.toLowerCase()),
+        }),
+      };
     return damage(
       id,
       rollWeaponDamage(attacker.level, attacker.weapon, random, attacker.inebriation),
@@ -206,25 +248,39 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
     const actor = actors.find((n) => n.id === id);
     if (!actor?.hp || !isFiniteNumber(amount) || amount < 0) return { ok: false };
     if (actor.combatKind === 'emf-warrior' && attacker?.tinfoil !== true)
-      return { ok: false, message: 'A wall of static forces you back.' };
+      return {
+        ok: false,
+        message: contentText('world-message.src.wilderness.a-wall-of-static-forces-you-back'),
+      };
     const hit = Math.min(actor.hp, Math.floor(amount));
     actor.hp -= hit;
-    if (retaliate && actor.enemy !== attacker.id) {
+    const stats = walkingStats(actor.combatKind);
+    const reflected = stats.reflectDamage ? Math.ceil(hit * stats.reflectDamage) : 0;
+    const pursues = retaliate && !stats.reflectDamage;
+    const newTarget = pursues && actor.enemy !== attacker.id;
+    if (newTarget) {
       actor.chaseUntil = 0;
       actor.enemyPosition = { x: attacker.x, z: attacker.z };
     }
-    actor.enemy = retaliate ? attacker.id : null;
-    actor.returning = false;
+    if (pursues && actor.enemy === null) actor.attackAt = Math.max(actor.attackAt, clock + 0.6);
+    if (pursues) {
+      actor.enemy = attacker.id;
+      actor.returning = false;
+      if (newTarget) actor.repath = 0;
+    }
     if (actor.dispatchedFor !== undefined) actor.lastCombatAt = clock;
     actor.affection = 0;
-    actor.repath = 0;
-    actor.attackAt = Math.max(actor.attackAt, clock + 0.6);
     onHit({ actor, attacker, damage: hit });
+    if (reflected) {
+      actor.angle = Math.atan2(attacker.z - actor.z, attacker.x - actor.x);
+      actor.attackAnimation = 1;
+      onReflect(attacker, reflected, actor);
+    }
     if (!actor.hp) {
       actor.enemy = null;
       actor.path = [];
       actor.motion = 0;
-      actor.respawn = walkingStats(actor.combatKind).respawn;
+      actor.respawn = stats.respawn;
       for (const drop of rollMonsterDrops(actor.combatKind, random))
         onDrop({ ...drop, x: actor.x, z: actor.z, base: actor.base + 0.025 }, attacker);
     }
@@ -232,13 +288,15 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
   }
   function pet(id: string, person: { z: number; x: number }) {
     const actor = actors.find((n) => n.id === id);
-    if (
-      actor?.combatKind !== 'bear' ||
-      !actor.hp ||
-      !besideBear(person, actor) ||
-      !canTravel(person, actor)
-    )
-      return { ok: false, message: 'Stand beside the friendly bear to pet it.' };
+    const available = actor?.combatKind === 'bear' && actor.hp > 0;
+    if (!available || !besideBear(person, actor) || !canTravel(person, actor))
+      return {
+        ok: false,
+        retryApproach: available,
+        message: contentText(
+          'world-message.src.wilderness.stand-beside-the-friendly-bear-to-pet-it',
+        ),
+      };
     actor.enemy = null;
     actor.path = [];
     actor.motion = 0;
@@ -246,8 +304,9 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
     actor.angle = Math.atan2(person.z - actor.z, person.x - actor.x);
     return {
       ok: true,
-      message:
-        'You pet the bear. It leans into your hand and makes a very contented huff. What a nice bear.',
+      message: contentText(
+        'world-message.src.wilderness.you-pet-the-bear-it-leans-into-your-hand-and-makes-a-very-cont',
+      ),
     };
   }
   function update(dt: unknown, people: readonly P[] = []) {
@@ -262,11 +321,20 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
     }
     for (const [i, actor] of actors.entries()) {
       const stats = walkingStats(actor.combatKind),
+        yardFighter = isYardFighter(actor.combatKind),
+        attackRange = stats.attackRange ?? 1.6,
+        inFiringRange = (person: P) =>
+          Math.hypot(person.x - actor.x, person.z - actor.z) <= attackRange &&
+          canShoot(actor, person),
         inTerritory = (p: WorldPoint) =>
-          !stats.territoryHalfWidth ||
-          Math.max(Math.abs(p.x - actor.home.x), Math.abs(p.z - actor.home.z)) <=
-            stats.territoryHalfWidth;
+          yardFighter
+            ? inFighterYard(p.x, p.z)
+            : !stats.territoryHalfWidth ||
+              Math.max(Math.abs(p.x - actor.home.x), Math.abs(p.z - actor.home.z)) <=
+                stats.territoryHalfWidth;
       actor.affection = Math.max(0, actor.affection - dt);
+      if (actor.attackAnimation)
+        actor.attackAnimation = Math.max(0, actor.attackAnimation - dt / 0.45);
       if (!actor.hp) {
         actor.respawn = Math.max(0, actor.respawn - dt);
         if (!actor.respawn)
@@ -284,9 +352,10 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
         continue;
       }
       let enemy: P | null = (actor.enemy === null ? undefined : byId.get(actor.enemy)) || null;
-      const canPursue = (person: WorldPoint) =>
-        Math.hypot(person.x - actor.home.x, person.z - actor.home.z) <= stats.leash &&
-        inTerritory(person);
+      const canPursue = (person: P) =>
+        inTerritory(person) &&
+        (person.attack === actor.id ||
+          Math.hypot(person.x - actor.home.x, person.z - actor.home.z) <= stats.leash);
       if (enemy) {
         const distance = Math.hypot(enemy.x - actor.x, enemy.z - actor.z),
           previous = actor.enemyPosition,
@@ -294,7 +363,12 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
             previous && distance > Math.hypot(previous.x - actor.x, previous.z - actor.z) + 0.00001,
           canReach = canPursue(enemy);
         actor.enemyPosition = { x: enemy.x, z: enemy.z };
-        if (canReach && distance < 1.6) actor.chaseUntil = 0;
+        if (
+          canReach &&
+          (enemy.attack === actor.id ||
+            (stats.attackRange ? inFiringRange(enemy) : distance < attackRange))
+        )
+          actor.chaseUntil = 0;
         else if (!actor.chaseUntil && (movingAway || !canReach)) actor.chaseUntil = clock - dt + 3;
         if (actor.chaseUntil && clock + 1e-8 >= actor.chaseUntil) enemy = null;
       }
@@ -368,7 +442,7 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
       }
       const distance = enemy ? Math.hypot(enemy.x - actor.x, enemy.z - actor.z) : Infinity;
       let budget =
-        enemy && distance < 1.35
+        enemy && (stats.attackRange ? inFiringRange(enemy) : distance < 1.35)
           ? 0
           : dt * (enemy || actor.returning ? stats.speed : stats.roamSpeed || 0.45);
       actor.motion = 0;
@@ -399,13 +473,16 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
       if (
         enemy &&
         canPursue(enemy) &&
-        (stats.territoryHalfWidth
-          ? inTerritory(enemy)
-          : Math.hypot(enemy.x - actor.x, enemy.z - actor.z) < 1.6) &&
-        clock >= actor.attackAt &&
-        clear(actor, enemy)
+        (stats.attackRange
+          ? inFiringRange(enemy)
+          : (stats.territoryHalfWidth ||
+              Math.hypot(enemy.x - actor.x, enemy.z - actor.z) < attackRange) &&
+            clear(actor, enemy)) &&
+        clock >= actor.attackAt
       ) {
         actor.attackAt = clock + stats.interval;
+        actor.angle = Math.atan2(enemy.z - actor.z, enemy.x - actor.x);
+        actor.attackAnimation = 1;
         if (actor.dispatchedFor !== undefined) actor.lastCombatAt = clock;
         onDamage(enemy, stats.damage, actor);
       }

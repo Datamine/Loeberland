@@ -1,3 +1,4 @@
+import { contentText } from '../src/content-runtime.ts';
 import { isSafeInteger } from '../src/types/json.ts';
 import type { SimulationServices, ServerPlayer } from '../src/types/server.ts';
 import type { AirshipLease } from '../src/types/shared-world.ts';
@@ -111,21 +112,29 @@ export function createAirshipRental({
   function purchase(p: ServerPlayer, price: unknown) {
     const cost = nextPrice();
     if (!Number.isSafeInteger(cost) || cost <= 0)
-      return { ok: false, message: 'Please wait for the hourly airship price reset.' };
+      return {
+        ok: false,
+        message: contentText(
+          'world-message.server.airship-rental.please-wait-for-the-hourly-airship-price-reset',
+        ),
+      };
     if (price !== cost)
       return {
         ok: false,
-        message:
-          'The airship price has changed. The next rental costs ' +
-          cost +
-          ' coins. Ask the attendant for a new quote.',
+        message: contentText(
+          'world-message.server.airship-rental.the-airship-price-has-changed-the-next-rental-costs-coins-ask',
+          { cost: String(cost) },
+        ),
         airship: status(p),
       };
     const purse = p.inventory.economy.state;
     if (!Number.isSafeInteger(purse.coins) || purse.coins < cost)
       return {
         ok: false,
-        message: 'This rental costs ' + cost + ' coins. You do not have enough in your purse.',
+        message: contentText(
+          'world-message.server.airship-rental.this-rental-costs-coins-you-do-not-have-enough-in-your-purse',
+          { cost: String(cost) },
+        ),
         airship: status(p),
       };
     purse.coins -= cost;
@@ -137,20 +146,40 @@ export function createAirshipRental({
   function command(p: ServerPlayer, action: string, args: Record<string, unknown> = {}) {
     tick();
     if (!nearAgent(p))
-      return { ok: false, message: 'Speak to the airship attendant at the private jet terminal.' };
+      return {
+        ok: false,
+        message: contentText(
+          'world-message.server.airship-rental.speak-to-the-airship-attendant-at-the-private-jet-terminal',
+        ),
+      };
     if (action === 'airshipStatus') return { ok: true, airship: status(p) };
-    if (action !== 'airshipRecall') return { ok: false, message: 'Unknown airship rental action.' };
+    if (action !== 'airshipRecall')
+      return {
+        ok: false,
+        message: contentText('world-message.server.airship-rental.unknown-airship-rental-action'),
+      };
     if (!airship.state.active && !reservation)
       return {
         ok: false,
-        message: 'The airship is at the terminal. The next rental costs ' + nextPrice() + ' coins.',
+        message: contentText(
+          'world-message.server.airship-rental.the-airship-is-at-the-terminal-the-next-rental-costs-coins',
+          { value1: String(nextPrice()) },
+        ),
         airship: status(p),
       };
-    if (captain() === p.id) return { ok: false, message: 'You are already directing the airship.' };
+    if (captain() === p.id)
+      return {
+        ok: false,
+        message: contentText(
+          'world-message.server.airship-rental.you-are-already-directing-the-airship',
+        ),
+      };
     if (reservation?.owner === p.owner)
       return {
         ok: false,
-        message: 'You have already paid for the reserved rental. Walk to the basket to board.',
+        message: contentText(
+          'world-message.server.airship-rental.you-have-already-paid-for-the-reserved-rental-walk-to-the-bask',
+        ),
         airship: status(p),
       };
     const payment = purchase(p, args.price);
@@ -160,14 +189,14 @@ export function createAirshipRental({
     return {
       ...payment,
       airship: status(p),
-      message:
-        'You pay ' +
-        payment.paid +
-        ' coins. The airship and its passengers have returned safely. You have ' +
-        Math.round(AIRSHIP_RULES.reservationMs / 1000) +
-        ' seconds to board at no additional cost, unless someone outbids you for ' +
-        nextPrice() +
-        ' coins. Click OK to walk to the basket.',
+      message: contentText(
+        'world-message.server.airship-rental.you-pay-coins-the-airship-and-its-passengers-have-returned-saf',
+        {
+          paid: String(payment.paid),
+          value2: String(Math.round(AIRSHIP_RULES.reservationMs / 1000)),
+          value3: String(nextPrice()),
+        },
+      ),
     };
   }
   function mayBoard(p: ServerPlayer) {
@@ -175,12 +204,10 @@ export function createAirshipRental({
     if (reservation && reservation.owner !== p.owner)
       return {
         ok: false,
-        message:
-          'The airship is reserved for ' +
-          reservation.name +
-          '. Pay ' +
-          nextPrice() +
-          ' coins at the attendant to outbid them.',
+        message: contentText(
+          'world-message.server.airship-rental.the-airship-is-reserved-for-pay-coins-at-the-attendant-to-outb',
+          { name: String(reservation.name), value2: String(nextPrice()) },
+        ),
         airship: status(p),
       };
     return { ok: true };

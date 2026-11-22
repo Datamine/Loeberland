@@ -1,4 +1,5 @@
 import type { Actor, SignAtlas } from './types/world.ts';
+import { ENERGY_BOLT_SECONDS, SCIENTIST_EXPLOSIVE } from './config/gameplay.ts';
 import { drawBisonHide } from './bison-model.ts';
 import { drawJurassicArchitecture, drawRaptorEnclosureGate } from './jurassic-architecture.ts';
 import type { Mesh } from './geometry.ts';
@@ -202,13 +203,10 @@ export function drawCow(
   });
 }
 export function drawSpectre(m: Mesh, n: Actor, time: number) {
-  pose(m, n.x, (n.base || 0) + 0.16 + Math.sin(time * 0.002 + n.x) * 0.1, n.z, n.angle || 0, () => {
+  const base = (n.base || 0) + 0.16 + Math.sin(time * 0.002 + n.x) * 0.1;
+  pose(m, n.x, base, n.z, n.angle || 0, () => {
     m.sphere(0, 1.05, 0, 0.34, 0.48, 0.27, '#5eab69', 20, 12, { emissive: 0.12 });
-    m.sphere(0.13, 1.4, 0, 0.22, 0.24, 0.19, '#8ac67c', 18, 10);
-    m.sphere(0.25, 1.31, 0, 0.16, 0.11, 0.17, '#609958', 14, 8);
-    for (const side of [-1, 1] satisfies [number, number]) {
-      m.sphere(0.22, 1.45, side * 0.16, 0.05, 0.043, 0.018, '#173d30', 10, 6);
-      m.sphere(0.235, 1.45, side * 0.177, 0.018, 0.022, 0.006, '#d2ed84', 9, 6, { emissive: 0.6 });
+    for (const side of [-1, 1]) {
       let last = [0.02, 1.1, side * 0.23] satisfies [number, number, number];
       for (let i = 1; i <= 5; i++) {
         const q = [
@@ -232,6 +230,17 @@ export function drawSpectre(m: Mesh, n: Actor, time: number) {
         m.rod(last, q, 0.09 * (1 - j / 5), '#539c68', 10);
         last = q;
       }
+    }
+  });
+  drawSpectreHead(m, { x: n.x, z: n.z, base, angle: n.angle });
+}
+export function drawSpectreHead(m: Mesh, n: Pick<Actor, 'x' | 'z' | 'base' | 'angle'>) {
+  pose(m, n.x, n.base ?? 0, n.z, n.angle ?? 0, () => {
+    m.sphere(0.13, 1.4, 0, 0.22, 0.24, 0.19, '#8ac67c', 18, 10);
+    m.sphere(0.25, 1.31, 0, 0.16, 0.11, 0.17, '#609958', 14, 8);
+    for (const side of [-1, 1] satisfies [number, number]) {
+      m.sphere(0.22, 1.45, side * 0.16, 0.05, 0.043, 0.018, '#173d30', 10, 6);
+      m.sphere(0.235, 1.45, side * 0.177, 0.018, 0.022, 0.006, '#d2ed84', 9, 6, { emissive: 0.6 });
     }
   });
 }
@@ -347,21 +356,91 @@ export function drawKraken(m: Mesh, n: { x: number; z: number }, time: number) {
     }
   });
 }
-export function drawRailgun(m: Mesh, x: number, y: number, z: number, angle: number) {
-  pose(m, x, y, z, angle, () => {
-    m.box(-0.13, -0.07, -0.08, 0.65, 0.14, 0.16, '#4c626b', { metal: 0.45 });
-    for (const side of [-1, 1] satisfies [number, number])
-      m.box(0.05, -0.04, side * 0.1, 0.72, 0.045, 0.035, '#9cbabd', { metal: 0.5 });
-    m.box(0.24, -0.025, -0.04, 0.56, 0.05, 0.08, '#85ddeb', { emissive: 0.65 });
-    m.box(-0.08, -0.24, -0.045, 0.1, 0.2, 0.09, '#45535c');
-  });
-}
-export function drawBeam(
-  m: Mesh,
-  beam: { from: { x: number; y: number; z: number }; to: { x: number; y: number; z: number } },
-) {
+export function drawBeam(m: Mesh, beam: import('./types/expeditions.ts').ExpeditionBeam) {
   const a = beam.from,
     b = beam.to;
+  if (beam.weapon === 'scientist-explosive') {
+    const { flight, burst } = SCIENTIST_EXPLOSIVE;
+    if (beam.ttl > burst) {
+      const t = 1 - (beam.ttl - burst) / flight;
+      const x = a.x + (b.x - a.x) * t;
+      const y = a.y + (b.y - a.y) * t + Math.sin(t * Math.PI) * 0.9;
+      const z = a.z + (b.z - a.z) * t;
+      m.sphere(x, y, z, 0.11, 0.12, 0.11, '#383f45', 11, 7, { metal: 0.4 });
+      m.sphere(x, y + 0.12, z, 0.038, 0.038, 0.038, '#ffc077', 8, 4, { emissive: 0.95 });
+    } else {
+      const progress = 1 - beam.ttl / burst;
+      const radius = 0.14 + 0.62 * progress;
+      for (let i = 0; i < 6; i++) {
+        const angle = (i * Math.PI) / 3;
+        m.sphere(
+          b.x + Math.cos(angle) * radius,
+          b.y + radius * 0.55,
+          b.z + Math.sin(angle) * radius,
+          0.14,
+          0.13,
+          0.14,
+          progress < 0.45 ? '#ffab56' : '#8b8374',
+          8,
+          5,
+          { emissive: 0.8 * (1 - progress) },
+        );
+      }
+    }
+    return;
+  }
+  if (beam.weapon === 'missile-launcher') {
+    const t = Math.max(0, Math.min(1, 1 - beam.ttl / 0.22));
+    const position = (f: number): [number, number, number] => [
+      a.x + (b.x - a.x) * f,
+      a.y + (b.y - a.y) * f + Math.sin(Math.PI * f) * 0.28,
+      a.z + (b.z - a.z) * f,
+    ];
+    const nose = position(t),
+      tail = position(Math.max(0, t - 0.07));
+    if (t > 0.001) m.rod(tail, nose, 0.055, '#a09981', 9, { metal: 0.42 });
+    m.sphere(...tail, 0.075, 0.075, 0.075, '#eead62', 10, 6, { emissive: 0.96 });
+    for (let i = 1; i <= 4; i++)
+      m.sphere(
+        ...position(Math.max(0, t - 0.07 - i * 0.025)),
+        0.04 + i * 0.017,
+        0.045 + i * 0.014,
+        0.04 + i * 0.017,
+        '#a29484',
+        8,
+        4,
+      );
+    return;
+  }
+  if (beam.weapon === 'robocop-laser') {
+    const progress = Math.max(0, Math.min(1, 1 - beam.ttl / ENERGY_BOLT_SECONDS));
+    const position = (t: number): [number, number, number] => [
+      a.x + (b.x - a.x) * t,
+      a.y + (b.y - a.y) * t,
+      a.z + (b.z - a.z) * t,
+    ];
+    const tip = position(progress);
+    if (progress > 0) {
+      const tail = position(Math.max(0, progress - 0.2));
+      m.rod(tail, tip, 0.038, '#46c9ff', 8, { emissive: 0.95 });
+      m.rod(tail, tip, 0.016, '#ddfaff', 8, { emissive: 1 });
+    }
+    m.sphere(...tip, 0.044, 0.044, 0.044, '#a2ebff', 10, 6, { emissive: 1 });
+    return;
+  }
+  if (beam.weapon === 'akibo') {
+    const progress = Math.max(0, Math.min(1, 1 - beam.ttl / ENERGY_BOLT_SECONDS));
+    for (const side of [-1, 1]) {
+      const distance = Math.hypot(b.x - a.x, b.z - a.z) || 1;
+      const offset = 0.16 * side * (1 - progress);
+      const x = a.x + (b.x - a.x) * progress - ((b.z - a.z) / distance) * offset;
+      const y = a.y + (b.y - a.y) * progress;
+      const z = a.z + (b.z - a.z) * progress + ((b.x - a.x) / distance) * offset;
+      m.sphere(x, y, z, 0.08, 0.065, 0.08, '#ff2822', 12, 7, { emissive: 1 });
+      m.sphere(x, y + 0.016, z, 0.033, 0.033, 0.033, '#ffc1a6', 9, 5, { emissive: 1 });
+    }
+    return;
+  }
   m.rod([a.x, a.y, a.z], [b.x, b.y, b.z], 0.045, '#2e9dff', 12, { emissive: 0.9 });
   m.rod([a.x, a.y, a.z], [b.x, b.y, b.z], 0.018, '#c4f3ff', 10, { emissive: 1 });
   m.sphere(b.x, b.y, b.z, 0.1, 0.1, 0.1, '#7fe4ff', 12, 7, { emissive: 0.85 });
@@ -400,8 +479,50 @@ export function drawExpeditionLoot(
 ) {
   const x = item.x,
     z = item.z;
-  if (item.lootKind === 'bison-hide') {
+  if (item.lootKind === 'bind-tablet') {
+    m.box(x - 0.12, base + 0.03, z - 0.15, 0.24, 0.07, 0.3, '#babdc4', 'stone');
+    m.rod(
+      [x - 0.068, base + 0.105, z - 0.09],
+      [x + 0.068, base + 0.105, z + 0.09],
+      0.014,
+      '#e5f3ff',
+      6,
+      { emissive: 0.6 },
+    );
+  } else if (item.lootKind === 'armor-trimming-kit') {
+    m.box(x - 0.13, base + 0.02, z - 0.11, 0.26, 0.12, 0.22, '#4d4037', 'wood');
+    m.box(x - 0.078, base + 0.14, z - 0.056, 0.156, 0.014, 0.112, '#bf9448', { metal: 0.46 });
+  } else if (item.lootKind === 'uni') {
+    m.box(x - 0.18, base + 0.015, z - 0.13, 0.36, 0.045, 0.26, '#63524c', 'wood');
+    for (let i = 0; i < 4; i++)
+      m.sphere(
+        x - 0.12 + i * 0.08,
+        base + 0.075,
+        z,
+        0.032,
+        0.043,
+        0.086,
+        i % 2 ? '#eaa84a' : '#d68d35',
+        8,
+        5,
+      );
+  } else if (item.lootKind === 'sand-bucket') {
+    m.cylinder(x, base, z, 0.086, 0.17, '#879a9b', 10, 0.12, { metal: 0.44 });
+    m.sphere(x, base + 0.165, z, 0.106, 0.026, 0.106, '#d3b27d', 8, 4);
+  } else if (item.lootKind === 'equipment' && item.itemId === 'missile-launcher') {
+    m.rod([x - 0.3, base + 0.08, z], [x + 0.3, base + 0.08, z], 0.075, '#55614b', 10, {
+      metal: 0.45,
+    });
+    m.rod([x + 0.25, base + 0.08, z], [x + 0.32, base + 0.08, z], 0.082, '#323c3e', 10);
+  } else if (item.lootKind === 'equipment' && item.itemId === 'recoil-amulet') {
+    m.sphere(x, base + 0.055, z, 0.12, 0.033, 0.112, '#6a697b', 12, 6, { metal: 0.5 });
+    m.sphere(x, base + 0.082, z, 0.076, 0.025, 0.07, '#e69589', 8, 5, { emissive: 0.32 });
+  } else if (item.lootKind === 'bison-hide') {
     drawBisonHide(m, x, base, z);
+  } else if (item.lootKind === 'bear-pelt') {
+    drawBisonHide(m, x, base, z, { fur: '#585049', center: '#372f2a' });
+  } else if (item.lootKind === 'fox-pelt') {
+    drawBisonHide(m, x, base, z, { fur: '#b3623a', center: '#e4b783', size: 0.72 });
   } else if (item.lootKind === 'goose-membership-card') {
     drawGooseMembershipCard(m, x, base, z);
   } else if (item.lootKind === 'peptides') {
@@ -438,8 +559,7 @@ export function drawExpeditionLoot(
     m.box(x - 0.17, base + 0.1, z - 0.12, 0.34, 0.04, 0.24, '#719852');
     m.box(x - 0.18, base + 0.14, z - 0.12, 0.36, 0.07, 0.24, '#e3c48a');
   } else if (item.lootKind === 'raptor') {
-    m.sphere(x, base + 0.1, z, 0.32, 0.14, 0.19, '#788964', 14, 8);
-    m.rod([x - 0.3, base + 0.1, z], [x - 0.8, base + 0.08, z + 0.15], 0.04, '#adba8f', 10);
+    drawVelociraptor(m, { x, z, base, angle: 0, phase: 'dead' }, time || 0);
   } else if (item.lootKind === 'kraken') {
     m.box(x - 0.27, base + 0.025, z - 0.2, 0.54, 0.24, 0.4, '#8b6b45', 'wood');
     m.box(x - 0.29, base + 0.265, z - 0.22, 0.58, 0.065, 0.44, '#b09865', 'wood');

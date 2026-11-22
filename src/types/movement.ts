@@ -4,7 +4,13 @@ export interface MovementRuntime {
   route: Point[];
   combatTarget?: WorldPoint;
   queuedWalk?: WorldPoint;
+  waymo?: import('../waymo-rental.ts').WaymoRentalView & {
+    route: Point[];
+    pickup: WorldPoint;
+    rerouteAt: number;
+  };
   atv?: import('../atv.ts').ATVState;
+  swingElapsed?: number;
   houseClimb?: {
     id: string;
     from: NetworkPosition;

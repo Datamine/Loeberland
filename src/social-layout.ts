@@ -19,6 +19,7 @@ export const TWITTER_HQ = Object.freeze({
 });
 export const SALES_CONFERENCE = Object.freeze({
   id: 'sales-conference',
+  ellipse: true,
   label: contentText('social-layout.module.label-2', {}),
   x: 24.8,
   z: 114.8,
@@ -123,6 +124,29 @@ export function inSocialGrounds(x: number, z: number, margin = 0) {
     ) || streamDistance(x, z) < 0.35 + margin
   );
 }
+export const CONFERENCE_PANELS = 20;
+export function conferenceRimPoint(room: RoomGeometry, index: number, radius = 1) {
+  const angle = (2 * Math.PI * index) / CONFERENCE_PANELS;
+  return [
+    Math.sin(angle) * (room.w / 2) * radius,
+    Math.cos(angle) * (room.d / 2) * radius,
+  ] as const;
+}
+
+export function socialFootprint(room: RoomGeometry) {
+  if (!room.ellipse) return socialRect(room, { x: 0, z: 0, w: room.w, d: room.d });
+  return Array.from({ length: CONFERENCE_PANELS }, (_, i) => {
+    const p = socialLocalPoint(room, ...conferenceRimPoint(room, i));
+    return [p.x, p.z] satisfies [number, number];
+  });
+}
+
+export const CONFERENCE_FIXTURE_SHIFT = Object.freeze({
+  booth: { x: 0.3, z: 0.23 },
+  screen: { x: -0.32, z: 0.37 },
+  coffee: { x: -0.27, z: -0.25 },
+});
+
 export function socialFixtures(room: RoomGeometry) {
   const box = (id: string, x: number, z: number, w: number, d: number) => ({ id, x, z, w, d });
   return room.id === 'twitter-hq'
@@ -133,9 +157,27 @@ export function socialFixtures(room: RoomGeometry) {
         box('poster-chair', 1.35, 0.86, 0.42, 0.42),
       ]
     : [
-        box('redhead-booth', -1.43, -0.95, 0.7, 1.0),
-        box('sales-screen', 1.33, -1.33, 1.08, 0.24),
-        box('coffee', 1.53, 1.12, 0.52, 0.42),
+        box(
+          'redhead-booth',
+          -1.43 + CONFERENCE_FIXTURE_SHIFT.booth.x,
+          -0.95 + CONFERENCE_FIXTURE_SHIFT.booth.z,
+          0.7,
+          1.0,
+        ),
+        box(
+          'sales-screen',
+          1.33 + CONFERENCE_FIXTURE_SHIFT.screen.x,
+          -1.33 + CONFERENCE_FIXTURE_SHIFT.screen.z,
+          1.08,
+          0.24,
+        ),
+        box(
+          'coffee',
+          1.53 + CONFERENCE_FIXTURE_SHIFT.coffee.x,
+          1.12 + CONFERENCE_FIXTURE_SHIFT.coffee.z,
+          0.52,
+          0.42,
+        ),
       ];
 }
 export function socialLocalPoint(room: RoomGeometry, u: number, v: number) {

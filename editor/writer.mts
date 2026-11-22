@@ -6,7 +6,14 @@ import { readFile, rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { buildEditor } from '../tools/build-editor.mts';
-import { readContent, atomicWrite, contentFiles } from '../content/build.mts';
+import {
+  readContent,
+  readAuthoredContent,
+  atomicWrite,
+  contentSourceKeys,
+  contentSourcePaths,
+  writableContentSources,
+} from '../content/build.mts';
 import { projectCatalog } from './project.mts';
 import { planEditorWrite } from './write-plan.mts';
 interface EditorRequest extends AsyncIterable<string | Uint8Array> {
@@ -41,7 +48,7 @@ export function createEditorWriter({
     available: true,
     token,
     busy,
-    file: 'content/*.json',
+    file: 'content/**/*.json',
     job,
   });
   async function body(req: EditorRequest): Promise<Record<string, unknown>> {
@@ -87,14 +94,15 @@ export function createEditorWriter({
     busy = true;
     try {
       const request = await body(req),
-        existing = await readContent(root);
+        { sources, bundle: existing } = await readAuthoredContent(root);
       if (request.catalogFingerprint !== existing.revision)
         throw Object.assign(new Error('Content changed. Reload the editor before saving.'), {
           status: 409,
         });
       const next = planEditorWrite(projectCatalog(existing), existing, request.changes);
+      const updated = writableContentSources(next, Object.keys(sources.tweetDerived));
       const files = [
-        ...contentFiles.map((key) => 'content/' + key + '.json'),
+        ...contentSourceKeys.map((key) => 'content/' + contentSourcePaths[key]),
         'content/runtime.json',
         'content/manifest.json',
         'editor.html',
@@ -112,15 +120,17 @@ export function createEditorWriter({
         ),
       );
       try {
-        for (const key of contentFiles)
-          if (JSON.stringify(existing[key]) !== JSON.stringify(next[key]))
-            await atomicWrite(
-              resolve(root, 'content/' + key + '.json'),
-              await format(JSON.stringify(next[key], null, 2), {
-                ...(await resolveConfig(resolve(root, 'content/' + key + '.json'))),
-                parser: 'json',
-              }),
-            );
+        for (const key of contentSourceKeys) {
+          if (JSON.stringify(sources[key]) === JSON.stringify(updated[key])) continue;
+          const file = resolve(root, 'content', contentSourcePaths[key]);
+          await atomicWrite(
+            file,
+            await format(JSON.stringify(updated[key], null, 2), {
+              ...(await resolveConfig(file)),
+              parser: 'json',
+            }),
+          );
+        }
         await rebuild(next);
       } catch (error) {
         for (const [file, value] of backups)
