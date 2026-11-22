@@ -41,7 +41,7 @@ if [[ ! -f $auth_file ]]; then
     exit 2
 fi
 auth_file="$(cd -- "$(dirname -- "$auth_file")" && pwd)/$(basename -- "$auth_file")"
-compose=(docker compose -f "$script_dir/compose.yaml")
+compose=(docker compose -f "$script_dir/compose.yaml" --profile admin)
 env_file=${COMPOSE_ENV_FILE:-$script_dir/.env}
 if [[ -n ${COMPOSE_ENV_FILE:-} && ! -f $env_file ]]; then
     echo "Compose environment file not found: $env_file" >&2
@@ -64,7 +64,14 @@ fi
 ADMIN_ENV_FILE="$auth_file" "${admin_compose[@]}" run --rm --no-deps game node admin.mjs --check-auth
 "${compose[@]}" up -d --wait redis
 running=$("${compose[@]}" ps --status running --quiet game)
+running_admin=$("${compose[@]}" ps --status running --quiet admin)
 restart_game=0
+restart_admin=0
+
+if (( read_only && port == 8788 )) && [[ -n $running_admin ]]; then
+    echo 'The read-only panel is already running at http://127.0.0.1:8788/.'
+    exit 0
+fi
 
 cleanup() {
     local status=$?
@@ -73,12 +80,19 @@ cleanup() {
         echo 'Restarting the game to load saved changes…'
         "${compose[@]}" start game || status=1
     fi
+    if (( restart_admin )); then
+        "${compose[@]}" start admin || status=1
+    fi
     exit "$status"
 }
 trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
+if (( port == 8788 )) && [[ -n $running_admin ]]; then
+    restart_admin=1
+    "${compose[@]}" stop admin
+fi
 if [[ -n $running && $read_only == 0 ]]; then
     restart_game=1
     echo 'Stopping the game and flushing its latest checkpoint…'

@@ -1,5 +1,7 @@
-aws_region      = "us-west-1"
-game_domain     = "game.example.com"
-allowed_origins = ["https://johnloeber.com", "https://www.johnloeber.com", "https://datamine.github.io"]
-# Uses the region's default VPC and one of its default public subnets.
-instance_type = "t3.large"
+# Optional settings. deploy/aws.sh supplies the SSH public key and CIDR.
+# aws_region = "us-west-2"
+# instance_type = "c8i.large"
+# max_players = 100
+# existing_elastic_ip = "203.0.113.10"
+# game_domain = "game.example.com"
+# allowed_origins = ["https://www.example.com"]

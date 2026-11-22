@@ -12,6 +12,8 @@
 **/.aws
 **/.codex
 **/.agents
+**/.deploy
+**/*.pem
 **/.DS_Store
 **/__pycache__
 

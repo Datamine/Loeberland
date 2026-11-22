@@ -13,7 +13,7 @@ directory or runs inside an EC2 session.
 - [Run locally](#run-locally)
 - [Deployment](#deployment)
 - [Persistence](#persistence)
-- [Hourly SQLite backups](#hourly-sqlite-backups)
+- [SQLite backups](#sqlite-backups)
 - [State editor](#simple-database-editor)
 - [Configuration](#configuration)
 - [Health and diagnostics](#health-and-diagnostics)
@@ -65,7 +65,7 @@ point a backend hostname at the host, set `GAME_DOMAIN` and `ALLOWED_ORIGINS`, a
 ```sh
 GAME_DOMAIN=game.example.com \
 ALLOWED_ORIGINS=https://johnloeber.com,https://www.johnloeber.com \
-docker compose -f server/compose.yaml --profile production up --build -d
+docker compose -f server/compose.yaml --profile production up --build -d game proxy
 ```
 
 Create `multiplayer-config.json` beside the statically hosted game:
@@ -82,89 +82,15 @@ shows the connection form and waits for authentication.
 
 ### Single EC2 instance with Terraform
 
-`server/deploy/` provisions one Ubuntu 24.04 x86_64 instance in **us-west-1**,
-an Elastic IP, security group, instance role, and private S3 bucket. It uses
-the region's existing default VPC/public subnets. Only HTTP/HTTPS are open;
-administration uses AWS Systems Manager Session Manager, without SSH keys.
-The default instance is `t3.large` with an encrypted 40 GiB gp3 root disk.
-Instance sizing has not been load-tested on EC2. EC2, EBS, public IPv4 and S3
-incur AWS charges.
+Run `./deploy/aws.sh` from the repository root using your AWS credentials.
+The [deployment guide](../deploy/README.md) covers prerequisites, optional DNS,
+SSH, the private admin panel and release updates. The same host runs the game,
+admin, Redis and Caddy, and sends its five-minute checkpoint exports to private S3.
 
-Install Terraform >=1.6 and authenticate the AWS CLI to your deployment
-account. From the repository root, build and package the **current working tree**,
-including uncommitted changes, then configure the backend hostname you control:
-
-```sh
-npm run build
-bash server/deploy/package.sh
-cd server/deploy
-cp terraform.tfvars.example terraform.tfvars
-# Edit game_domain in terraform.tfvars. Region defaults to us-west-1.
-terraform init
-terraform plan
-terraform apply
-```
-
-Packaging excludes local databases/backups, dependencies, environment files,
-Terraform state and AWS/Codex credential directories. The archive includes
-the static site, game modules, world cache, textures and billboard assets.
-Terraform uploads it to S3. First boot installs Docker, Compose, the AWS CLI
-and cron, builds the game image, and starts game + Redis + Caddy. Caddy manages
-HTTPS for `game_domain`. Point that hostname's DNS **A record** to the
-`elastic_ip` output and remove any stale AAAA record pointing elsewhere.
-Bootstrap may take several minutes after Terraform finishes. Check:
-
-```sh
-terraform output -raw connect
-# Run the printed aws ssm start-session command (requires the session-manager plugin).
-# Inside the session:
-sudo tail -n 100 /var/log/cloud-init-output.log
-sudo docker compose --env-file /etc/loeberland/compose.env \
-  -f /opt/loeberland/current/sf/server/compose.yaml --profile production ps
-```
-
-Visit the `game_url` output. For a separately hosted GitHub Pages frontend,
-put the `websocket_url` output in its root `multiplayer-config.json`, as shown
-above. Add that frontend's exact origin to `allowed_origins`. The backend's
-own HTTPS origin is always included.
-
-The hourly cron is installed automatically, with seven days of local SQLite
-backups and 30-day expiration in the versioned S3 bucket (noncurrent versions
-are removed 30 days later). Redis also keeps its normal AOF
-in a Docker volume. To list/download off-host backups from an authenticated
-operator machine:
-
-```sh
-aws s3 ls "s3://$(terraform output -raw backup_bucket)/backups/"
-aws s3 cp "s3://$(terraform output -raw backup_bucket)/backups/CHOSEN.sqlite" ./restore.sqlite
-```
-
-To update code, run `package.sh` again and `terraform apply` to upload the
-new archive, then run the command printed by `terraform output -raw deploy_update`.
-It builds before replacing the game container, whose graceful shutdown saves
-the final checkpoint. Reconnects recover from Redis. Check the returned SSM
-command's status and `/healthz`; deploying is not a zero-downtime operation.
-Only successful deployments update the `current` link and cron script.
-Failed builds preserve the running game; a failed game startup needs operator
-intervention using the retained previous release under `/opt/loeberland/releases`.
-
-Terraform deliberately ignores AMI/bootstrap changes on an existing instance
-to avoid replacing a live world during an ordinary code update. Changes to
-domain/origins require editing `/etc/loeberland/compose.env` on that host and
-running `/usr/local/sbin/loeberland-deploy`; revised bootstrap/AMI settings need
-an intentional instance replacement and recovery from backup. Root disk/Docker
-volumes do not survive replacement. Preserve the Terraform state and download
-a backup before rebuilding an instance. Initial deployment starts an empty
-world; moving an existing world requires the [restore procedure](#hourly-sqlite-backups).
-
-The S3 bucket refuses automatic deletion while it contains objects; retain or
-explicitly empty it when dismantling the stack. Source archives are versioned
-and old versions expire after 30 days. Old unpacked releases/images on the
-instance remain available for rollback and need occasional pruning.
-
-References: [Ubuntu AMI discovery](https://ubuntu.com/aws/docs/aws-how-to/instances/find-ubuntu-images/),
-[Terraform EC2 resource](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/instance),
-[Redis atomic read scripts](https://redis.io/docs/latest/develop/interact/programmability/).
+For off-host recovery, get the bucket name with
+`terraform -chdir=server/deploy output -raw backup_bucket` and choose a backup
+from its `backups/` prefix. The bucket is protected against automatic deletion
+while it contains objects. Preserve the Terraform state and the SSH PEM.
 
 ## Persistence
 
@@ -212,7 +138,7 @@ worker for disk I/O. Switching from SQLite to Redis does not copy data between
 backends: use the existing backend for an existing world until its data has
 been migrated. Redis in Compose uses a named volume and AOF.
 
-### Hourly SQLite backups
+### SQLite backups
 
 `backup.mts` exports every registered Redis game checkpoint into one standalone
 SQLite database compatible with the existing SQLite store and state editor.
@@ -239,10 +165,11 @@ bash server/backup.sh
 
 The wrapper takes a nonblocking lock, writes UTC timestamped files under
 `server/backups/` (override with Compose's `BACKUP_DIR`), and removes files
-older than seven days after a successful run. It requires Bash, Docker Compose,
-Python 3 and `flock`. Set `COMPOSE_ENV_FILE` if your Compose settings live
-outside `server/.env`. Set `S3_BACKUP_URI=s3://your-bucket/backups` to upload
-each completed file using the AWS CLI before pruning local backups.
+at least 24 hours old each time it runs, including when the next export fails.
+It requires Bash, Docker Compose, Python 3 and `flock`. Set `COMPOSE_ENV_FILE`
+if your Compose settings live outside `server/.env`. Set
+`S3_BACKUP_URI=s3://your-bucket/backups` to upload each completed file and expire
+older snapshot versions in that prefix using the AWS CLI.
 
 For Node without Docker:
 
@@ -250,11 +177,12 @@ For Node without Docker:
 REDIS_URL=redis://127.0.0.1:6379 npm --prefix server run backup -- --output /safe/path/world.sqlite
 ```
 
-The EC2 bootstrap installs `deploy/loeberland-backup.cron` at
-`/etc/cron.d/loeberland-backup`. It runs at minute zero every hour, with a
-50-minute timeout and rotated logs at `/var/log/loeberland-backup.log`.
-Local backups live at `/var/lib/loeberland/backups`; S3 expires them after 30
-days (noncurrent versions are removed 30 days later).
+The first EC2 release installs `deploy/loeberland-backup.cron` at
+`/etc/cron.d/loeberland-backup`. It runs every five minutes, with a
+four-minute timeout and rotated logs at `/var/log/loeberland-backup.log`.
+Local snapshots live at `/var/lib/loeberland/backups`. Each run discards
+snapshots aged 24 hours or more from local disk and private S3, including
+noncurrent S3 versions. An S3 lifecycle rule backs up that cleanup.
 To trigger it manually on EC2:
 
 ```sh
@@ -269,14 +197,15 @@ database (here DB 1), preserving the previous DB 0:
 ```sh
 sudo -i
 cd /opt/loeberland/current
-compose=(docker compose --env-file /etc/loeberland/compose.env -f server/compose.yaml)
+compose=(docker compose --env-file compose.env -f sf/server/compose.yaml --profile production)
 "${compose[@]}" stop game
 # Copy the chosen SQLite file to /var/lib/loeberland/backups/restore.sqlite first.
 "${compose[@]}" run --rm --no-deps -T --user 0:0 --entrypoint node \
   --env REDIS_URL=redis://redis:6379/1 game backup.mjs --restore /backups/restore.sqlite
-# Only after restore succeeds, set REDIS_URL=redis://redis:6379/1 in
-# /etc/loeberland/compose.env, then restart using the same env file:
-"${compose[@]}" up -d --wait game
+# Only after restore succeeds, persist the Redis DB selection for future releases.
+printf 'REDIS_URL=redis://redis:6379/1\n' > /etc/loeberland/overrides.env
+cat /etc/loeberland/overrides.env >> compose.env
+"${compose[@]}" up -d --wait game admin
 ```
 
 For SQLite recovery instead, stop the server and run it with `REDIS_URL` unset

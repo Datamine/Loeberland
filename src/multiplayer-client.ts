@@ -457,6 +457,7 @@ export function createMultiplayerClient({
     state.following = null;
     selfSamples.length = 0;
     state.connected = false;
+    state.population = 0;
     peers.clear();
     state.self = null;
     for (const request of requests.values()) {
@@ -662,9 +663,14 @@ export async function bootMultiplayer() {
   endpoint = multiplayerEndpoint(endpoint);
   const client = createMultiplayerClient({
     endpoint,
-    onStatus: (state: { status: string | null }) => {
+    onStatus: (state) => {
       const label = document.getElementById('sf-multiplayer-status');
       if (label) label.textContent = state.status;
+      const count = document.getElementById('sf-online-count');
+      if (count) {
+        const text = (state.connected ? state.population : 0).toLocaleString() + ' online';
+        if (count.textContent !== text) count.textContent = text;
+      }
     },
   });
   const result = await client.first;

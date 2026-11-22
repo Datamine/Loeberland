@@ -1,1 +1,0 @@
-window.__sfWorldAsset("307f204f68c96a663d97","62,-45","H4sIAAAAAAACA7NgYGCIrlbKTS3OULIyNtBRKirNK1ayio42NjIz1DHTMYjViTY2MjfWMdYxi43VUcpJzUsvyVCysrSsjc36a+3CaNtj73iB+YiAxFyrd//r7T2uhez6+OGDXVMjo/3PHz/sGBgWHGBgYGBgP2Dj8nJdt/1JNhaCapXmQNQesyZN7cVfs6ze/6+3//UjkKAbCKndH2frslup296viLDazU9sXGqdeuzNPMBqdwHV7geqtbpxPdz+zGlv+5kzJOwZGBr2g7CemK1LvESP/b1UwmrrnkHMneBKWC0ARqiBqMgBAAA=");

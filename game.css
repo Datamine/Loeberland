@@ -2551,10 +2551,17 @@ body.sf-mode .sf-toggle {
 
 .sf-action-tabs {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr auto;
+  align-items: center;
   gap: 6px;
   padding-top: 0.3rem;
   border-top: 1px solid #93866a;
+}
+.sf-online-count {
+  color: #554731;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 .sf-actions[data-tab='scores'] > :not(.sf-high-scores, .sf-action-tabs) {
   display: none;

@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { access } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { buildRuntime, gameRoot, runtimeRoot } from './build-runtime.mts';
 
@@ -9,6 +10,13 @@ if (
   )
 )
   throw new Error('Unknown server entry point: ' + entry);
+if (entry === 'index') {
+  const hasMap = await access(resolve(gameRoot, 'world-cache/manifest.json')).then(
+    () => true,
+    () => false,
+  );
+  if (!hasMap) await (await import('./build.mts')).build();
+}
 await buildRuntime();
 const env: NodeJS.ProcessEnv = {
   ...process.env,

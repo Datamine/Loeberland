@@ -1,4 +1,5 @@
 game.tar.gz
+.package.*/
 .terraform/
 *.tfstate
 *.tfstate.*

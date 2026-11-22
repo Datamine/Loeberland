@@ -1,14 +1,17 @@
 services:
   game:
+    image: ${COMPOSE_PROJECT_NAME:-server}-runtime:${RELEASE_TAG:-local}
     build:
       context: ..
       dockerfile: server/Dockerfile
+      args:
+        PREBUILT_CLIENT: ${PREBUILT_CLIENT:-0}
     restart: unless-stopped
     init: true
     ports: ['127.0.0.1:8787:8787']
     environment:
       HOST: 0.0.0.0
-      MAX_PLAYERS: 2000
+      MAX_PLAYERS: ${MAX_PLAYERS:-2000}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://johnloeber.com,https://www.johnloeber.com,https://datamine.github.io}
       ALLOW_DEBUG: '0'
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
@@ -21,6 +24,37 @@ services:
       redis:
         condition: service_healthy
     stop_grace_period: 30s
+  admin:
+    image: ${COMPOSE_PROJECT_NAME:-server}-runtime:${RELEASE_TAG:-local}
+    pull_policy: never
+    profiles: [admin, production]
+    command: ['node', '--enable-source-maps', 'admin.mjs']
+    restart: unless-stopped
+    init: true
+    env_file:
+      - path: ${ADMIN_ENV_FILE:-.env}
+        required: false
+    environment:
+      ADMIN_ENV_FILE: ''
+      ADMIN_HOST: 0.0.0.0
+      ADMIN_PORT: 8788
+      ADMIN_READ_ONLY: '1'
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+    ports: ['127.0.0.1:8788:8788']
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:8788/').then(r => process.exit(r.status === 401 ? 0 : 1), () => process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 12
   redis:
     image: redis:7-alpine
     restart: unless-stopped
@@ -32,13 +66,16 @@ services:
       timeout: 1s
       retries: 15
   proxy:
-    image: caddy:2-alpine
+    image: caddy:2.11-alpine
     profiles: [production]
     restart: unless-stopped
     ports: ['80:80', '443:443']
     environment:
       GAME_DOMAIN: ${GAME_DOMAIN:-localhost}
-    volumes: ['./Caddyfile:/etc/caddy/Caddyfile:ro', 'caddy-data:/data', 'caddy-config:/config']
+    volumes:
+      - ./${CADDY_CONFIG:-Caddyfile}:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
     depends_on: [game]
 volumes:
   world-data:

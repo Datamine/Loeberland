@@ -130,26 +130,11 @@ Use a disposable world for load tests because they create real player profiles.
 
 ## Deploy
 
-The [server operations guide](../server/README.md#deployment) covers Docker Compose,
-GitHub Pages with a separate backend, and a single EC2 instance with Terraform.
-The Terraform default region is **us-west-1**. Build before packaging so the
-archive includes the current generated client and map:
-
-```sh
-npm run build
-bash server/deploy/package.sh
-cd server/deploy
-cp terraform.tfvars.example terraform.tfvars
-# Set game_domain and allowed_origins before proceeding.
-terraform init
-terraform plan
-terraform apply
-```
-
-The guide covers DNS, HTTPS, subsequent releases and health checks. EC2 bootstrap
-installs the hourly Redis-to-SQLite cron backup and S3 upload. Review
-[backup and restore](../server/README.md#hourly-sqlite-backups) before moving an
-existing world or replacing an instance.
+Use [the deployment guide](../deploy/README.md) for a single EC2 host or a local
+Docker Compose stack. `./deploy/aws.sh` builds and deploys the game and the
+private admin panel on AWS. `./deploy/local.sh` runs the same services locally.
+Review [backup and restore](../server/README.md#sqlite-backups) before
+moving an existing world.
 
 ## Admin panel
 

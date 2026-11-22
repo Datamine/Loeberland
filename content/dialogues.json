@@ -1625,6 +1625,7 @@
     },
     "guild-admissions": {
       "id": "service.guild-admissions.root",
+      "intro": "The admissions book is open.",
       "choices": [
         {
           "id": "service.guild-admissions.root.choices.0",
@@ -1635,8 +1636,7 @@
             "text": "service.guild-admissions.root.choices.0.receipt"
           }
         }
-      ],
-      "skipIntro": true
+      ]
     },
     "neighborhood-menottis": {
       "intro": {

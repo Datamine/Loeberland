@@ -84,7 +84,7 @@
       "format": "esm"
     },
     "content/entities.json": {
-      "bytes": 586522,
+      "bytes": 586450,
       "imports": [],
       "format": "esm",
       "with": {
@@ -92,7 +92,7 @@
       }
     },
     "content/dialogues.json": {
-      "bytes": 433715,
+      "bytes": 433059,
       "imports": [],
       "format": "esm",
       "with": {
@@ -121,7 +121,7 @@
       "format": "esm"
     },
     "content/texts.json": {
-      "bytes": 146398,
+      "bytes": 147898,
       "imports": [],
       "format": "esm",
       "with": {
@@ -129,7 +129,7 @@
       }
     },
     "content/world-messages.json": {
-      "bytes": 98106,
+      "bytes": 98253,
       "imports": [],
       "format": "esm",
       "with": {
@@ -432,7 +432,7 @@
       "format": "esm"
     },
     "src/multiplayer-client.ts": {
-      "bytes": 24483,
+      "bytes": 24731,
       "imports": [
         {
           "path": "src/types/json.ts",
@@ -4412,7 +4412,7 @@
       "format": "esm"
     },
     "src/guild.ts": {
-      "bytes": 9182,
+      "bytes": 9590,
       "imports": [
         {
           "path": "src/types/json.ts",
@@ -4680,7 +4680,7 @@
       "format": "esm"
     },
     "src/config/neighborhood-services.ts": {
-      "bytes": 2733,
+      "bytes": 2850,
       "imports": [
         {
           "path": "src/config/dialogue.ts",
@@ -4752,7 +4752,7 @@
       "format": "esm"
     },
     "src/southern-craft.ts": {
-      "bytes": 17884,
+      "bytes": 19349,
       "imports": [
         {
           "path": "src/types/assert.ts",
@@ -6093,7 +6093,7 @@
       "format": "esm"
     },
     "src/southern-neighborhood.ts": {
-      "bytes": 10606,
+      "bytes": 10710,
       "imports": [
         {
           "path": "src/legacy-software-layout.ts",
@@ -7775,7 +7775,7 @@
       "format": "esm"
     },
     "src/npc-interactions.ts": {
-      "bytes": 4564,
+      "bytes": 4598,
       "imports": [
         {
           "path": "src/config/npcs.ts",
@@ -7839,7 +7839,7 @@
       }
     },
     "src/world/interactions.ts": {
-      "bytes": 195376,
+      "bytes": 195457,
       "imports": [
         {
           "path": "src/backyard-details.ts",
@@ -9694,7 +9694,7 @@
       "imports": [],
       "exports": [],
       "inputs": {},
-      "bytes": 9334806
+      "bytes": 9339432
     },
     "explore.js": {
       "imports": [],
@@ -9744,10 +9744,10 @@
           "bytesInOutput": 1568
         },
         "content/entities.json": {
-          "bytesInOutput": 336909
+          "bytesInOutput": 336856
         },
         "content/dialogues.json": {
-          "bytesInOutput": 257688
+          "bytesInOutput": 257542
         },
         "content/dialogues/tweet-derived/chains.json": {
           "bytesInOutput": 184173
@@ -9759,10 +9759,10 @@
           "bytesInOutput": 236
         },
         "content/texts.json": {
-          "bytesInOutput": 122189
+          "bytesInOutput": 123539
         },
         "content/world-messages.json": {
-          "bytesInOutput": 88405
+          "bytesInOutput": 88570
         },
         "content/world-message-sources.ts": {
           "bytesInOutput": 96
@@ -9819,7 +9819,7 @@
           "bytesInOutput": 1254
         },
         "src/multiplayer-client.ts": {
-          "bytesInOutput": 14797
+          "bytesInOutput": 15004
         },
         "src/server-connection.ts": {
           "bytesInOutput": 2280
@@ -10326,7 +10326,7 @@
           "bytesInOutput": 922
         },
         "src/guild.ts": {
-          "bytesInOutput": 3342
+          "bytesInOutput": 3503
         },
         "src/world/navigation.ts": {
           "bytesInOutput": 10913
@@ -10365,7 +10365,7 @@
           "bytesInOutput": 494676
         },
         "src/config/neighborhood-services.ts": {
-          "bytesInOutput": 1237
+          "bytesInOutput": 1320
         },
         "src/neighborhood-palette.ts": {
           "bytesInOutput": 718
@@ -10377,7 +10377,7 @@
           "bytesInOutput": 3768
         },
         "src/southern-craft.ts": {
-          "bytesInOutput": 9369
+          "bytesInOutput": 10272
         },
         "src/cupertino-gardens.ts": {
           "bytesInOutput": 2473
@@ -10536,7 +10536,7 @@
           "bytesInOutput": 2380
         },
         "src/southern-neighborhood.ts": {
-          "bytesInOutput": 4523
+          "bytesInOutput": 4558
         },
         "src/regional-road.ts": {
           "bytesInOutput": 9279
@@ -10641,7 +10641,7 @@
           "bytesInOutput": 1957
         },
         "src/npc-interactions.ts": {
-          "bytesInOutput": 2616
+          "bytesInOutput": 2642
         },
         "src/descriptions.ts": {
           "bytesInOutput": 8755
@@ -10656,7 +10656,7 @@
           "bytesInOutput": 1477
         },
         "src/world/interactions.ts": {
-          "bytesInOutput": 131765
+          "bytesInOutput": 131826
         },
         "src/ai-lab.ts": {
           "bytesInOutput": 3137
@@ -10722,7 +10722,7 @@
           "bytesInOutput": 573
         }
       },
-      "bytes": 4283059
+      "bytes": 4285851
     }
   }
 }

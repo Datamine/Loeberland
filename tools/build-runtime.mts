@@ -1,7 +1,7 @@
 import { buildAuxiliary } from './build-auxiliary.mts';
 import ts from 'typescript';
-import { cp, mkdir, readdir, rm } from 'node:fs/promises';
-import { resolve, relative, extname } from 'node:path';
+import { cp, mkdir, rm } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const gameRoot = fileURLToPath(new URL('../', import.meta.url));
@@ -33,35 +33,31 @@ export async function buildRuntime(): Promise<void> {
   const emitted = program.emit();
   if (emitted.emitSkipped || emitted.diagnostics.length)
     throw new Error(ts.formatDiagnosticsWithColorAndContext(emitted.diagnostics, diagnosticsHost));
-  async function assets(directory: string): Promise<void> {
-    for (const entry of await readdir(directory, { withFileTypes: true })) {
-      if (
-        [
-          'node_modules',
-          '.git',
-          '.build',
-          '.terraform',
-          'data',
-          'backups',
-          'tests',
-          'reports',
-        ].includes(entry.name) ||
-        entry.name.startsWith('.env')
-      )
-        continue;
-      const source = resolve(directory, entry.name),
-        local = relative(gameRoot, source);
-      if (entry.isDirectory()) await assets(source);
-      else if (
-        !['.ts', '.mts', '.cts', '.map', '.tf', '.tftpl', '.csv'].includes(extname(source))
-      ) {
-        const target = resolve(runtimeRoot, local);
-        await mkdir(resolve(target, '..'), { recursive: true });
-        await cp(source, target);
-      }
-    }
+  for (const path of [
+    'package.json',
+    'index.html',
+    'editor.html',
+    'game.css',
+    'favicon.ico',
+    'billboards',
+    'textures',
+    'content/validate.js',
+    'content/runtime.json',
+    'content/manifest.json',
+    'server/package.json',
+    'server/admin.html',
+  ]) {
+    const target = resolve(runtimeRoot, path);
+    await mkdir(resolve(target, '..'), { recursive: true });
+    await cp(resolve(gameRoot, path), target, { recursive: true });
   }
-  await assets(gameRoot);
+  try {
+    await cp(resolve(gameRoot, 'world-cache'), resolve(runtimeRoot, 'world-cache'), {
+      recursive: true,
+    });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+  }
   await cp(resolve(gameRoot, 'server/node_modules'), resolve(runtimeRoot, 'server/node_modules'), {
     recursive: true,
   });

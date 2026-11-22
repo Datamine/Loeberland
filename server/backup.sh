@@ -16,11 +16,12 @@ backup_dir=$("${compose[@]}" config --format json | python3 -c 'import json,sys;
 mkdir -p -- "$backup_dir"
 exec 9>"$backup_dir/.backup.lock"
 flock -n 9 || { echo 'A backup is already running; skipping.'; exit 0; }
+retention_status=0
+python3 "$script_dir/prune-backups.py" "$backup_dir" "${S3_BACKUP_URI:-}" || retention_status=$?
 filename="world-$(date -u +%Y%m%dT%H%M%SZ).sqlite"
 "${compose[@]}" run --rm --no-deps -T --user 0:0 --entrypoint node game backup.mjs --output "/backups/$filename"
 if [[ -n ${S3_BACKUP_URI:-} ]]; then
     aws s3 cp "$backup_dir/$filename" "${S3_BACKUP_URI%/}/$filename" --only-show-errors
 fi
-# Only prune after the dump and optional off-host upload have succeeded.
-find "$backup_dir" -maxdepth 1 -type f -name 'world-????????T??????Z.sqlite' -mmin +10080 -delete
 echo "Backup complete: $backup_dir/$filename"
+exit "$retention_status"

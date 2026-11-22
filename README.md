@@ -2,6 +2,15 @@
 
 A multiplayer San Francisco game with a WebGL client, a Node.js server, a game content editor, and a game state editor.
 
+## Deploy or run locally
+
+```sh
+./deploy/aws.sh     # EC2, HTTPS, SSH and admin
+./deploy/local.sh   # Game and admin on Docker Compose
+```
+
+See the [deployment guide](deploy/README.md) for prerequisites, SSH, credentials and updates.
+
 ## Run locally
 
 ### Game server
@@ -50,7 +59,7 @@ Open **http://127.0.0.1:8788/** and sign in with the admin credentials. To edit 
 | `tests/`                   | Client, shared-rule, build, and editor regression tests                     |
 | `textures/`, `billboards/` | Artwork and asset catalogs                                                  |
 | `docs/`                    | Gameplay documentation, TypeScript guide, reference, and audit reports      |
-| `world-cache/`             | Generated map chunks                                                        |
+| `world-cache/`             | Generated map chunks, ignored by Git                                        |
 | `.build/`                  | Generated JavaScript server runtime and its assets                          |
 
 `game.template.html` and `game.css` define the game interface. `index.html`, `editor.html`, `explore.js.map`, and `bundle-meta.json` are generated outputs. `favicon.ico` is the game favicon.

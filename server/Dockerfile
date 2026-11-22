@@ -5,7 +5,9 @@ RUN npm ci --ignore-scripts
 COPY server/package.json server/package-lock.json ./server/
 RUN npm ci --prefix server --omit=dev --ignore-scripts
 COPY . .
-RUN npm run build:runtime
+ARG PREBUILT_CLIENT=0
+RUN if [ "$PREBUILT_CLIENT" = 1 ]; then test -f world-cache/manifest.json; else npm run build:client; fi \
+    && npm run build:runtime
 
 FROM node:24-bookworm-slim AS runtime
 WORKDIR /app

@@ -1,17 +1,21 @@
 output "elastic_ip" {
-  value = aws_eip.game.public_ip
+  value = local.elastic_ip
 }
 
 output "game_url" {
-  value = "https://${var.game_domain}/explore.html"
+  value = "https://${local.game_host}/"
 }
 
 output "websocket_url" {
-  value = "wss://${var.game_domain}/ws"
+  value = "wss://${local.game_host}/ws"
 }
 
 output "backup_bucket" {
   value = aws_s3_bucket.game.id
+}
+
+output "release_sha256" {
+  value = trimsuffix(trimprefix(aws_s3_object.release.key, "releases/"), ".tar.gz")
 }
 
 output "instance_id" {
@@ -22,6 +26,7 @@ output "connect" {
   value = "aws ssm start-session --region ${var.aws_region} --target ${aws_instance.game.id}"
 }
 
-output "deploy_update" {
-  value = "aws ssm send-command --region ${var.aws_region} --instance-ids ${aws_instance.game.id} --document-name AWS-RunShellScript --parameters 'commands=[\"/usr/local/sbin/loeberland-deploy\"]'"
+output "compose_environment" {
+  description = "Non-secret configuration sent to the host by the deploy script."
+  value       = local.compose_environment
 }
