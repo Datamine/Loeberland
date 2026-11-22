@@ -409,7 +409,15 @@ export async function startServer({
     })();
     return closing;
   }
-  return { http, sockets, game, checkpoints, port: address.port, close };
+  return {
+    http,
+    sockets,
+    game,
+    checkpoints,
+    port: address.port,
+    close,
+    hasAdminEdit: store.hasAdminEdit,
+  };
 }
 
 export function installShutdownHooks(
@@ -454,4 +462,22 @@ export function installShutdownHooks(
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const server = await startServer();
   installShutdownHooks(server);
+  if (server.hasAdminEdit) {
+    const hasAdminEdit = server.hasAdminEdit;
+    let checking = false;
+    const timer = setInterval(async () => {
+      if (checking || server.checkpoints.stopping) return;
+      checking = true;
+      try {
+        if ((await hasAdminEdit()) && !server.checkpoints.stopping)
+          process.kill(process.pid, 'SIGTERM');
+      } catch (error) {
+        console.error('Unable to check for an admin edit:', error);
+      } finally {
+        checking = false;
+      }
+    }, 1000);
+    timer.unref();
+    server.http.once('close', () => clearInterval(timer));
+  }
 }

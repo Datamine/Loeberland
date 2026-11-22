@@ -1,4 +1,4 @@
-import { createHash, randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
+import { createHash, randomBytes, randomUUID, scrypt, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 import { isRecord } from '../src/types/json.ts';
 import type { GameplayStore } from '../src/types/storage.ts';
@@ -9,6 +9,7 @@ const validPassword = (value: unknown): value is string =>
   typeof value === 'string' && value.length >= 8 && Buffer.byteLength(value) <= 256;
 export function createCharacterAccounts(store: GameplayStore, now: () => number) {
   const attempts = new Map<string, { count: number; expires: number }>();
+  const deviceOwners = new Map<string, Promise<string>>();
   let working = 0;
   async function credential(owner: string) {
     const value = await store.get('character-password:' + owner);
@@ -26,10 +27,25 @@ export function createCharacterAccounts(store: GameplayStore, now: () => number)
     )) as Buffer;
     return !!record && expected.length === actual.length && timingSafeEqual(expected, actual);
   }
-  async function ownerFor(token: string) {
-    const id = hashToken(token);
+  async function resolveOwner(id: string, checkNewOwner: () => void) {
     const session = await store.get('character-session:' + id);
-    if (!isRecord(session) && !(await credential(id))) return id;
+    if (!isRecord(session)) {
+      const deviceKey = 'character-device:' + id;
+      const saved = await store.get(deviceKey);
+      const owner = typeof saved === 'string' ? saved : id;
+      if (!(await credential(owner))) {
+        if (typeof saved === 'string') return saved;
+        if (
+          (await store.get('player:' + id)) ||
+          (await store.names()).some((row) => row.owner === id)
+        )
+          return id;
+        checkNewOwner();
+        const assigned = randomUUID();
+        await store.batch([[deviceKey, assigned]]);
+        return assigned;
+      }
+    }
     if (
       !isRecord(session) ||
       typeof session.owner !== 'string' ||
@@ -39,6 +55,18 @@ export function createCharacterAccounts(store: GameplayStore, now: () => number)
     )
       throw new Error('Your character login has expired. Log in again.');
     return session.owner;
+  }
+  async function ownerFor(token: string, checkNewOwner: () => void) {
+    const id = hashToken(token);
+    const pending = deviceOwners.get(id);
+    if (pending) return pending;
+    const resolving = resolveOwner(id, checkNewOwner);
+    deviceOwners.set(id, resolving);
+    try {
+      return await resolving;
+    } finally {
+      deviceOwners.delete(id);
+    }
   }
   function permitted(keys: string[]) {
     const time = now();

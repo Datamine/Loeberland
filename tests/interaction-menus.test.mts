@@ -213,7 +213,7 @@ test('salt mail and fuel-can messages describe the settled result and never pred
 test('the PvP checkbox keeps its draft when multiplayer status updates', () => {
   const previous = globalThis.document;
   const checkbox = { checked: true };
-  const grapple = { disabled: false };
+  const grapple = { disabled: false, hidden: false };
   const status = { textContent: '' };
   const nodes = {
     'sf-pvp-enabled': checkbox,
@@ -224,13 +224,23 @@ test('the PvP checkbox keeps its draft when multiplayer status updates', () => {
     getElementById: (id: keyof typeof nodes) => nodes[id],
   } as unknown as Document;
   try {
-    const settings = setupMultiplayerSettings({
-      state: { connected: true, grapplingHook: false, pvp: { enabled: false, disableAt: 0 } },
-    });
-    settings.update();
+    const state = { connected: true, grapplingHook: false, pvp: { enabled: false, disableAt: 0 } };
+    const settings = setupMultiplayerSettings({ state });
     assert.equal(checkbox.checked, true);
     assert.equal(grapple.disabled, true);
+    assert.equal(grapple.hidden, true);
     assert.match(status.textContent, /apply when you save/);
+    state.grapplingHook = true;
+    settings.update();
+    assert.equal(grapple.hidden, false);
+    assert.equal(grapple.disabled, false);
+    state.connected = false;
+    settings.update();
+    assert.equal(grapple.hidden, false);
+    assert.equal(grapple.disabled, true);
+    state.grapplingHook = false;
+    settings.update();
+    assert.equal(grapple.hidden, true);
   } finally {
     globalThis.document = previous;
   }

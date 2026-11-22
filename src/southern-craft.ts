@@ -14,11 +14,18 @@ import { SOUTHERN_CRAFT, craftPoint, craftFootprint } from './southern-craft-lay
 import type { SignAtlas } from './types/world.ts';
 import type { Diner } from './restaurants.ts';
 
-const MENOTTIS = {
+export const MENOTTIS_SITE_ID = 'menottis-cafe';
+export const MENOTTIS = {
   label: contentText('southern-craft.module.label-3', {}),
   sign: "MENOTTI'S",
   kind: 'arcade',
   line: 'A seaside café with a little pavement terrace and an espresso machine that rarely gets a rest.',
+};
+const GARDEN_MARKET = {
+  label: contentText('southern-craft.module.label-4', {}),
+  sign: 'GARDEN MARKET',
+  kind: 'market',
+  line: 'The citrus is local. The optimistic handwritten prices are a form of public art.',
 };
 
 export const CRAFT_SHOPS = Object.freeze([
@@ -35,12 +42,7 @@ export const CRAFT_SHOPS = Object.freeze([
     line: 'Every mug is a little different. The one with the wobble is about the nature of certainty.',
   },
   MENOTTIS,
-  {
-    label: contentText('southern-craft.module.label-4', {}),
-    sign: 'GARDEN MARKET',
-    kind: 'market',
-    line: 'The citrus is local. The optimistic handwritten prices are a form of public art.',
-  },
+  GARDEN_MARKET,
   {
     label: contentText('southern-craft.module.label-5', {}),
     sign: 'OCEAN WORKSHOP',
@@ -61,6 +63,10 @@ export const CRAFT_SHOPS = Object.freeze([
   },
 ]);
 export const SOUTHERN_CRAFT_SIGNS = Object.freeze(CRAFT_SHOPS.map((s) => s.sign));
+export function defaultCraftShop(index: number) {
+  const shop = CRAFT_SHOPS[index % CRAFT_SHOPS.length];
+  return shop === MENOTTIS ? GARDEN_MARKET : shop;
+}
 export function drawCraftGround(
   m: Mesh,
   terrain: HeightTerrain,
@@ -390,7 +396,7 @@ export function drawSouthernCraftSite(
   p: Readonly<CraftPlot>,
   terrain: HeightTerrain,
   signs: SignAtlas,
-  shop = CRAFT_SHOPS[p.index % CRAFT_SHOPS.length],
+  shop = defaultCraftShop(p.index),
 ) {
   const start = m.data.length,
     garden = p.kind === 'garden',

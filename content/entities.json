@@ -6945,17 +6945,17 @@
       "dialogues": ["actor:square-busker.dialogue-1"],
       "capabilities": ["npc.walk", "npc.talk", "npc.examine", "service.square-busker.tip:[]"]
     },
-    "sight:southern-corner-57": {
-      "id": "sight:southern-corner-57",
+    "sight:menottis-cafe": {
+      "id": "sight:menottis-cafe",
       "name": "Menotti’s",
       "category": "object",
       "kind": "neighborhood-shop",
       "description": "A seaside café on Ocean Esplanade. The espresso machine is always busy, and regulars linger at the little pavement terrace.",
       "menus": [
         {
-          "id": "sight:southern-corner-57.menu-1",
+          "id": "sight:menottis-cafe.menu-1",
           "states": ["New visitor", "Inside this building"],
-          "placements": ["sight:southern-corner-57"],
+          "placements": ["sight:menottis-cafe"],
           "actions": [
             {
               "id": "walk",
@@ -6970,9 +6970,9 @@
           ]
         },
         {
-          "id": "sight:southern-corner-57.menu-2",
+          "id": "sight:menottis-cafe.menu-2",
           "states": ["Equipment and rentals available"],
-          "placements": ["sight:southern-corner-57"],
+          "placements": ["sight:menottis-cafe"],
           "actions": [
             {
               "id": "walk",
@@ -6999,15 +6999,15 @@
       "dialogues": [],
       "capabilities": ["walk", "examine", "interaction.38"]
     },
-    "actor:southern-corner-57-neighbor": {
-      "id": "actor:southern-corner-57-neighbor",
+    "actor:menottis-cafe-neighbor": {
+      "id": "actor:menottis-cafe-neighbor",
       "name": "Menotti’s barista",
       "category": "npc",
       "kind": "person",
       "description": "The barista keeps the espresso going and pays a coin for help clearing the tables.",
       "menus": [
         {
-          "id": "actor:southern-corner-57-neighbor.menu-1",
+          "id": "actor:menottis-cafe-neighbor.menu-1",
           "states": [
             "New visitor",
             "Monkey quest: accepted",
@@ -7045,7 +7045,7 @@
             "In custody",
             "Equipment and rentals available"
           ],
-          "placements": ["actor:southern-corner-57-neighbor"],
+          "placements": ["actor:menottis-cafe-neighbor"],
           "actions": [
             {
               "id": "npc.walk",
@@ -7065,7 +7065,7 @@
           ]
         }
       ],
-      "dialogues": ["actor:southern-corner-57-neighbor.dialogue-1"],
+      "dialogues": ["actor:menottis-cafe-neighbor.dialogue-1"],
       "capabilities": [
         "npc.walk",
         "npc.talk",
@@ -17641,24 +17641,24 @@
         "chef": false
       }
     },
-    "sight:southern-corner-57": {
-      "id": "sight:southern-corner-57",
-      "definition": "sight:southern-corner-57",
+    "sight:menottis-cafe": {
+      "id": "sight:menottis-cafe",
+      "definition": "sight:menottis-cafe",
       "actor": false,
       "source": "sights",
       "position": {
-        "x": 16.6669801980198,
-        "z": 108.15356435643565
+        "x": 16.67490099009901,
+        "z": 146.1539603960396
       }
     },
-    "actor:southern-corner-57-neighbor": {
-      "id": "actor:southern-corner-57-neighbor",
-      "definition": "actor:southern-corner-57-neighbor",
+    "actor:menottis-cafe-neighbor": {
+      "id": "actor:menottis-cafe-neighbor",
+      "definition": "actor:menottis-cafe-neighbor",
       "actor": true,
       "source": "merchants",
       "position": {
-        "x": 14.909999999999998,
-        "z": 108.27856435643565
+        "x": 14.91,
+        "z": 146.2789603960396
       },
       "appearance": {
         "skin": "#825c48",

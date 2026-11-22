@@ -947,6 +947,12 @@ body.sf-mode .sf-toggle {
   text-shadow: 1px 1px #262016;
   font-size: 12px;
 }
+#sf-world .sf-bike-button:has(> .sf-action-target) {
+  display: block;
+}
+#sf-world .sf-bike-button .sf-action-verb {
+  color: inherit;
+}
 #sf-world .sf-bike-button:hover {
   background: #7b6542;
 }
@@ -2680,6 +2686,9 @@ body.sf-mode .sf-toggle {
 #sf-world #sf-light-decorative-rocket:disabled {
   background: #53514b;
   color: #c5c0b5;
+}
+#sf-world #sf-light-decorative-rocket:disabled .sf-action-target {
+  color: inherit;
 }
 .sf-high-scores ol {
   padding-inline-start: 1.55rem;

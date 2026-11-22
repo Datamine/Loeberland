@@ -57,7 +57,7 @@ export const GOBLIN_SPAWNS = Object.freeze([
   { id: 'tam-yard-goblin', combatKind: 'goblin', x: 27.5, z: FURNITURE_FACTORY.z - 2.6 },
   { id: 'tam-yard-guard', combatKind: 'goblin-guard', x: 31.5, z: FURNITURE_FACTORY.z - 2.8 },
   { id: 'tam-yard-veteran', combatKind: 'goblin-veteran', x: 30, z: -36.2 },
-  { id: 'south-lost-goblin', combatKind: 'lost-goblin', x: 74.5, z: 187.5 },
+  { id: 'south-lost-goblin', combatKind: 'lost-goblin', x: 78, z: 185 },
   { id: 'tam-goblin-4', combatKind: 'goblin', x: 23.3, z: -18.6 },
   { id: 'tam-goblin-5', combatKind: 'goblin', x: 23, z: -28.1 },
   { id: 'tam-goblin-6', combatKind: 'goblin', x: 36.5, z: -24.4 },

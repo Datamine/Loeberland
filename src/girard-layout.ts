@@ -1,16 +1,16 @@
 export const GIRARD_HOME = Object.freeze({
   id: 'girard-house',
   name: 'René Girard’s House',
-  west: 53.65,
-  east: 57.75,
-  north: 171.82,
-  south: 174.82,
-  house: { x: 55.34, z: 173.6, w: 2.58, d: 1.33 },
-  resident: { id: 'rene-girard', x: 55.8, z: 174.68 },
+  west: 53.25,
+  east: 58.4,
+  north: 169.75,
+  south: 174.97,
+  house: { x: 55.66, z: 173.35, w: 3.6, d: 1.9 },
+  resident: { id: 'rene-girard', x: 56.28, z: 174.82 },
 });
 export const SCAPEGOAT = Object.freeze({
   id: 'girard-scapegoat',
   combatKind: 'scapegoat',
-  x: 56.52,
-  z: 172.39,
+  x: 56.28,
+  z: 171.13,
 });

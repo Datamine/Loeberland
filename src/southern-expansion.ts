@@ -154,11 +154,22 @@ export const PACIFICA_PARK = Object.freeze({
   south: 134.6,
   entry: Object.freeze({ x: 24.5, y: 134.9 }),
 });
+const pacificaFountain = { x: 25, z: 131.4, w: 1.2, d: 1.2, kind: 'fountain' };
+const pacificaBenches = [
+  [23.9, 130.9],
+  [26, 132.8],
+].map(([x, z]) => ({
+  x,
+  z,
+  w: 0.9,
+  d: 0.5,
+  kind: 'bench',
+  rotation: Math.atan2(pacificaFountain.z - z, pacificaFountain.x - x) - Math.PI / 2,
+}));
 export const PACIFICA_PARK_OBSTACLES = Object.freeze(
   [
-    { x: 25, z: 131.4, w: 1.2, d: 1.2, kind: 'fountain' },
-    { x: 23.9, z: 130.9, w: 0.9, d: 0.5, kind: 'bench' },
-    { x: 26, z: 132.8, w: 0.9, d: 0.5, kind: 'bench' },
+    pacificaFountain,
+    ...pacificaBenches,
     { x: 25, z: 128.55, w: 1.84, d: 0.16, kind: 'sign' },
     ...[
       [22.6, 129] satisfies [number, number],
@@ -166,7 +177,7 @@ export const PACIFICA_PARK_OBSTACLES = Object.freeze(
       [27.4, 130] satisfies [number, number],
       [27.4, 133.5] satisfies [number, number],
     ].map(([x, z]) => ({ x, z, w: 0.28, d: 0.28, kind: 'tree' })),
-  ].map((value) => Object.freeze(value)),
+  ].map((value) => Object.freeze({ rotation: 0, ...value })),
 );
 export function inPacificaPark(x: number, z: number) {
   const p = PACIFICA_PARK;
@@ -175,9 +186,15 @@ export function inPacificaPark(x: number, z: number) {
 export function pacificaParkWalkable(x: number, z: number) {
   return (
     inPacificaPark(x, z) &&
-    !PACIFICA_PARK_OBSTACLES.some(
-      (o) => Math.abs(x - o.x) < o.w / 2 + 0.17 && Math.abs(z - o.z) < o.d / 2 + 0.17,
-    )
+    !PACIFICA_PARK_OBSTACLES.some((o) => {
+      const dx = x - o.x,
+        dz = z - o.z,
+        c = Math.cos(o.rotation),
+        s = Math.sin(o.rotation);
+      return (
+        Math.abs(dx * c + dz * s) < o.w / 2 + 0.17 && Math.abs(dz * c - dx * s) < o.d / 2 + 0.17
+      );
+    })
   );
 }
 export const PACIFICA_PARK_PATHS = Object.freeze(
@@ -221,8 +238,6 @@ export const PACIFICA_PARK_RESIDENTS = Object.freeze(
     {
       id: 'commons-reader',
       label: contentText('southern-expansion.module.label-17', {}),
-      x: 23.9,
-      z: 130.9,
       skin: '#9c7259',
       shirt: '#ab8baf',
       hair: '#3e3537',
@@ -232,20 +247,21 @@ export const PACIFICA_PARK_RESIDENTS = Object.freeze(
     {
       id: 'commons-regular',
       label: contentText('southern-expansion.module.label-18', {}),
-      x: 26,
-      z: 132.8,
       skin: '#c4a17d',
       shirt: '#7e9ca1',
       hair: '#696158',
     },
-  ].map((p) =>
-    Object.freeze({
+  ].map((p, index) => {
+    const { x, z, rotation } = pacificaBenches[index];
+    return Object.freeze({
       ...p,
+      x,
+      z,
       regional: true,
       seated: true,
-      angle: Math.PI / 2,
+      angle: rotation + Math.PI / 2,
       height: 1.85,
-      approach: Object.freeze({ x: p.x - 0.5, y: p.z + 0.8 - 0.5 }),
-    }),
-  ),
+      approach: Object.freeze({ x: x - 0.5, y: z + 0.8 - 0.5 }),
+    });
+  }),
 );

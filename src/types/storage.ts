@@ -32,6 +32,8 @@ export interface GameCheckpoint {
 export interface CheckpointStore extends GameplayStore {
   destroy?: () => void;
   leaseHealthy?: boolean;
+  hasAdminEdit?: () => Promise<boolean>;
+  applyAdminEdit?: () => Promise<void>;
   loadGames(): Promise<GameCheckpoint[]>;
   saveGame(id: string, snapshot: GameCheckpoint): Promise<unknown>;
   loadLegacy?: () => Promise<{ records: StorageEntry[]; names: NameReservation[] }>;

@@ -1,10 +1,268 @@
-import type { Mesh } from './geometry.ts';
+import { pose, rand, type Mesh } from './geometry.ts';
 // CONTENT-BINDINGS-MIGRATED
 import { contentText } from './content-runtime.ts';
 import { PACIFICA_PARK, PACIFICA_PARK_OBSTACLES } from './southern-expansion.ts';
 import { drawPlaque } from './southern-district.ts';
 import { TILE_TYPES } from './tiles.ts';
-import type { SignAtlas } from './types/world.ts';
+import type { RenderedSite, SignAtlas } from './types/world.ts';
+import type { PlantTree } from './types/scenery.ts';
+import { makeNeighborhoodBench } from './neighborhood-interactions.ts';
+
+type Ground = (x: number, z: number) => number;
+type PathPoint = readonly [number, number];
+
+function drawGardenWalk(m: Mesh, ground: Ground, points: readonly PathPoint[], width: number) {
+  const edge = points.map(([x, z], i) => {
+    const before = points[Math.max(0, i - 1)],
+      after = points[Math.min(points.length - 1, i + 1)],
+      dx = after[0] - before[0],
+      dz = after[1] - before[1],
+      scale = width / (2 * Math.hypot(dx, dz));
+    return [x, z, -dz * scale, dx * scale];
+  });
+  for (let i = 1; i < edge.length; i++) {
+    const a = edge[i - 1],
+      b = edge[i],
+      steps = Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) * 7);
+    const point = (step: number, side: number) => {
+      const t = step / steps,
+        x = a[0] * (1 - t) + b[0] * t + side * (a[2] * (1 - t) + b[2] * t),
+        z = a[1] * (1 - t) + b[1] * t + side * (a[3] * (1 - t) + b[3] * t);
+      return [x, ground(x, z) + 0.028, z] satisfies [number, number, number];
+    };
+    for (let step = 0; step < steps; step++)
+      m.quad(
+        point(step, -1),
+        point(step, 1),
+        point(step + 1, 1),
+        point(step + 1, -1),
+        '#c7b99b',
+        'dirt',
+      );
+  }
+}
+
+function drawShrub(m: Mesh, ground: Ground, x: number, z: number, size: number, seed: number) {
+  for (let i = 0; i < 6; i++) {
+    const angle = i * 2.4 + seed,
+      spread = size * (i ? 0.66 : 0.12),
+      xx = x + Math.cos(angle) * spread,
+      zz = z + Math.sin(angle) * spread,
+      radius = size * (0.38 + 0.35 * rand(seed, i, 5));
+    m.sphere(
+      xx,
+      ground(xx, zz) + radius * (i ? 0.73 : 1.1),
+      zz,
+      radius,
+      radius * 0.85,
+      radius,
+      ['#567347', '#6d8a4e', '#829952'][i % 3],
+      9,
+      6,
+    );
+  }
+}
+
+function drawGardenFlowers(
+  m: Mesh,
+  ground: Ground,
+  cx: number,
+  cz: number,
+  rx: number,
+  rz: number,
+  colors: readonly string[],
+) {
+  for (let i = 0; i < 24; i++) {
+    const angle = i * 2.4,
+      r = Math.sqrt(i / 24),
+      x = cx + Math.cos(angle) * r * rx,
+      z = cz + Math.sin(angle) * r * rz,
+      h = ground(x, z),
+      stem = 0.115 + rand(i, cx, 3) * 0.16;
+    m.rod([x, h, z], [x + 0.018, h + stem, z], 0.012, '#648449', 5);
+    m.sphere(x + 0.018, h + stem, z, 0.062, 0.042, 0.057, colors[i % colors.length], 7, 5);
+  }
+}
+
+function drawSouthCoastPlanting(m: Mesh, ground: Ground) {
+  const beds = [
+    { x: 58.45, z: 211.14, rx: 0.56, rz: 0.36, colors: ['#edb63e', '#f1e9d2', '#da8e49'] },
+    { x: 59.52, z: 212.03, rx: 0.79, rz: 0.33, colors: ['#c685a1', '#f1e9d2', '#a68ece'] },
+    { x: 60.34, z: 210.99, rx: 0.63, rz: 0.43, colors: ['#987cbe', '#e7c96d', '#e49bba'] },
+  ];
+  for (const { x, z, rx, rz, colors } of beds) {
+    const edge = (i: number) => {
+      const a = (i * Math.PI) / 10,
+        xx = x + Math.cos(a) * (rx + 0.08),
+        zz = z + Math.sin(a) * (rz + 0.07);
+      return [xx, ground(xx, zz) + 0.015, zz];
+    };
+    const center = [x, ground(x, z) + 0.019, z];
+    for (let i = 0; i < 20; i++) m.tri(center, edge(i + 1), edge(i), '#9b8063', 'dirt');
+    drawGardenFlowers(m, ground, x, z, rx, rz, colors);
+  }
+  for (const [x, z, size] of [
+    [58.15, 210.43, 0.37],
+    [58.92, 210.6, 0.48],
+    [59.58, 210.3, 0.38],
+    [60.23, 210.26, 0.33],
+    [61.0, 211.22, 0.45],
+    [60.62, 211.86, 0.3],
+    [58.32, 211.94, 0.32],
+  ])
+    drawShrub(m, ground, x, z, size, x + z);
+}
+
+export function drawNeighborhoodGreens(m: Mesh, ground: Ground, tree: PlantTree): RenderedSite[] {
+  const parks = [
+    {
+      x: 39,
+      z: 96,
+      id: 'fountain-green',
+      name: 'Fountain Green',
+      benchX: 40.75,
+      benchZ: 96.2,
+      description: 'A stone fountain with gravel paths and a bench in the shade.',
+    },
+    {
+      x: 32,
+      z: 97,
+      id: 'wildflower-green',
+      name: 'Wildflower Green',
+      benchX: 33.05,
+      benchZ: 97.5,
+      description: 'A winding path between beds of lupines, poppies and white daisies.',
+    },
+  ];
+  const sites = parks.map((park, index) => {
+    const { x, z, id, name, benchX, benchZ, description } = park;
+    const start = m.data.length,
+      base = ground(x, z),
+      navigationPolygons: number[][][] = [];
+    if (index === 0) {
+      for (const side of [-1, 1]) {
+        drawGardenWalk(
+          m,
+          ground,
+          [
+            [38.85, 95.2],
+            [39 + side * 0.55, 95.32],
+            [39 + side * 0.85, 95.78],
+            [39 + side * 0.87, 96.27],
+            [39 + side * 0.54, 96.68],
+            [39.04, 96.89],
+          ],
+          0.44,
+        );
+      }
+      drawGardenWalk(
+        m,
+        ground,
+        [
+          [39.04, 96.89],
+          [38.84, 97.45],
+          [38.85, 98.45],
+        ],
+        0.52,
+      );
+      m.cylinder(x, base - 0.13, z, 0.58, 0.39, '#a7aaa2', 24, 0.58, 'stone');
+      m.cylinder(x, base + 0.26, z, 0.51, 0.018, '#6fa5a9', 24, 0.51, { water: 0.5 });
+      m.cylinder(x, base + 0.27, z, 0.095, 0.48, '#c3bda4', 14, 0.055, 'stone');
+      m.sphere(x, base + 0.73, z, 0.16, 0.055, 0.16, '#b3b49f', 14, 7, 'stone');
+      const rim = Array.from({ length: 12 }, (_, i) => {
+        const a = (i * Math.PI) / 6;
+        return [x + Math.cos(a) * 0.58, z + Math.sin(a) * 0.58];
+      });
+      navigationPolygons.push(rim);
+      for (const [dx, dz] of [
+        [-1.55, 0.9],
+        [1.46, -0.7],
+        [1.37, 1.4],
+        [-1.42, 1.8],
+      ])
+        drawShrub(m, ground, x + dx, z + dz, 0.34, dx + dz);
+    } else {
+      drawGardenWalk(
+        m,
+        ground,
+        [
+          [31.65, 95.53],
+          [31.56, 96.18],
+          [31.95, 96.74],
+          [32.04, 97.32],
+          [31.64, 97.94],
+          [31.52, 98.46],
+        ],
+        0.57,
+      );
+      for (const [cx, cz] of [
+        [30.75, 97.48],
+        [32.84, 96.35],
+        [33.24, 97.96],
+      ])
+        drawGardenFlowers(m, ground, cx, cz, 0.54, 0.32, ['#e5a142', '#aa8dc7', '#eee5cd']);
+    }
+    const count = m.data.length - start;
+    const seatStart = m.data.length,
+      seatBase = ground(benchX, benchZ),
+      angle = Math.PI / 2;
+    pose(m, benchX, seatBase, benchZ, angle, () => {
+      for (const at of [-0.39, 0.34]) {
+        m.box(at, -0.18, -0.16, 0.055, 0.55, 0.26, '#56685a', 'metal');
+        m.box(at, 0.36, -0.22, 0.055, 0.34, 0.065, '#56685a', 'metal');
+      }
+      for (let slat = 0; slat < 4; slat++)
+        m.box(-0.48, 0.35, -0.17 + slat * 0.092, 0.96, 0.05, 0.075, '#a98054', 'wood');
+      for (const h of [0.49, 0.61]) m.box(-0.48, h, -0.2, 0.96, 0.085, 0.045, '#b08c61', 'wood');
+    });
+    const seat = makeNeighborhoodBench({
+      id: id + '-bench',
+      x: benchX,
+      z: benchZ,
+      angle,
+      base: seatBase,
+      start: seatStart,
+      count: m.data.length - seatStart,
+    });
+    for (const [xx, zz] of index === 0
+      ? [
+          [37.38, 96.18],
+          [40.63, 97.66],
+        ]
+      : [
+          [30.31, 96.3],
+          [33.77, 97.89],
+        ])
+      tree(xx - 0.5, zz - 0.5, index === 0 ? false : 3, true);
+    return {
+      id,
+      kind: 'neighborhood-garden',
+      label: name,
+      description,
+      solid: false,
+      entry: { x: x - 0.5, y: 97.55 },
+      mapPoint: { x, y: z },
+      seats: [seat],
+      navigationPolygons,
+      start,
+      count,
+      lo: [x - 2, base - 0.35, 95.1],
+      hi: [x + 2, base + 1.45, 98.55],
+    };
+  });
+  for (const [x, z, size] of [
+    [22.65, 96.74, 0.43],
+    [23.34, 96.37, 0.41],
+    [24.48, 96.45, 0.36],
+    [25.19, 96.82, 0.52],
+    [25.68, 97.48, 0.46],
+    [22.75, 97.77, 0.36],
+    [23.57, 98.11, 0.47],
+    [24.78, 98.05, 0.36],
+  ])
+    drawShrub(m, ground, x, z, size, x);
+  return sites;
+}
 
 export const PENINSULA_SIGNS = Object.freeze(['PACIFICA COMMONS', 'BUS'] satisfies [
   string,
@@ -25,11 +283,13 @@ export function drawPeninsulaDetails(
       continue;
     }
     if (o.kind === 'bench') {
-      for (const x of [-0.3, 0.3] satisfies [number, number])
-        m.box(o.x + x, h - 0.1, o.z - 0.12, 0.045, 0.56, 0.26, '#60736e', { metal: 0.2 });
-      for (let i = 0; i < 4; i++)
-        m.box(o.x - 0.43, h + 0.44, o.z - 0.22 + i * 0.105, 0.86, 0.05, 0.08, '#b59a72', 'wood');
-      m.box(o.x - 0.43, h + 0.49, o.z - 0.24, 0.86, 0.42, 0.045, '#b59a72', 'wood');
+      pose(m, o.x, h, o.z, o.rotation, () => {
+        for (const x of [-0.3, 0.3])
+          m.box(x, -0.1, -0.12, 0.045, 0.56, 0.26, '#60736e', { metal: 0.2 });
+        for (let i = 0; i < 4; i++)
+          m.box(-0.43, 0.44, -0.22 + i * 0.105, 0.86, 0.05, 0.08, '#b59a72', 'wood');
+        m.box(-0.43, 0.49, -0.24, 0.86, 0.42, 0.045, '#b59a72', 'wood');
+      });
     } else if (o.kind === 'fountain') {
       m.cylinder(o.x, h - 0.18, o.z, 0.59, 0.38, '#a5b1a6', 32, 0.59, 'stone');
       m.cylinder(o.x, h + 0.2, o.z, 0.5, 0.025, '#83b6ba', 32, 0.5, { water: 0.5 });
@@ -126,5 +386,6 @@ export function drawPeninsulaDetails(
         m.quad(at(a, zz), at(a, end), at(a + w, end), at(a + w, zz), '#d5d6bc');
       }
     }
+  drawSouthCoastPlanting(m, terrain.height);
   return site;
 }

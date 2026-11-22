@@ -17,7 +17,12 @@ import {
 import { MARIN_OUTLINE, marinElevation } from '../src/geography.ts';
 import { createMarinLand } from '../src/marin-land.ts';
 import { createDetentionSite } from '../src/encounters.ts';
-import { minimapActors, minimapShops, minimapTasks } from '../src/minimap-layers.ts';
+import {
+  minimapActors,
+  minimapShopMarkers,
+  minimapShops,
+  minimapTasks,
+} from '../src/minimap-layers.ts';
 import { characterAppearance, normalizeCharacter } from '../src/character-config.ts';
 import { drawCharacter } from '../src/characters.ts';
 import { CULTIST_HOME } from '../src/search-houses.ts';
@@ -83,6 +88,37 @@ test('minimap layers mark sellers and task givers independently', () => {
   assert.deepEqual(minimapTasks(actors), [armorer, barista, chore, buyer, chef, scientist]);
 });
 
+test('shop markers combine sellers at a venue and include paid travel and teleport vendors', () => {
+  const armorer = { id: 'industrial-armorer', questRole: 'armorer', x: 82.6, z: 77.4 },
+    industrialist = {
+      id: 'enterprising-industrialist',
+      kind: 'enterprising-industrialist',
+      x: 87,
+      z: 79,
+    },
+    scientist = { id: 'goblin-scientist', kind: 'goblin-scientist', x: 39, z: -21 },
+    crew = { kind: 'crew', siteId: 'sf-spaceport', x: 105, z: 119 },
+    coffee = { kind: 'coffee-stall-vendor', x: 38.8, z: 79.9 },
+    buyer = { kind: 'rich-table-chef', x: 60, z: 51 };
+  const sites = [
+    {
+      id: 'american-industrial-center',
+      entry: { x: 82.1, y: 76.9 },
+      object: { x: 83, y: 75, w: 4, d: 4 },
+    },
+    { id: 'sf-spaceport', mapPoint: { x: 102, y: 119 }, entry: { x: 105, y: 119 } },
+  ];
+  const shops = minimapShops([armorer, scientist, crew, industrialist, buyer, coffee]);
+  assert.deepEqual(shops, [armorer, scientist, crew, industrialist, coffee]);
+  assert.deepEqual(minimapShopMarkers(shops, sites), [
+    { x: 85, z: 77 },
+    scientist,
+    { x: 102, z: 119 },
+    coffee,
+  ]);
+  assert.deepEqual(minimapShopMarkers(minimapShops([industrialist]), sites), [{ x: 85, z: 77 }]);
+});
+
 test('task markers include jobs, buyers, and active quest handoffs', () => {
   const matilda = { x: 1, z: 1, kind: 'burning-man-matilda' },
     clerk = { x: 2, z: 1, kind: 'burger-clerk', id: 'in-n-out-clerk' },
@@ -126,7 +162,8 @@ test('the Goblin Startup Incubator is a pickable depression with a reachable fou
     gate,
   });
   const { x, z, founder, entry } = GOBLIN_INCUBATOR;
-  assert.deepEqual([x, z], [43, -38]);
+  assert.deepEqual([x, z], [45, -40]);
+  assert.equal(land.height(43, -38), detention.terrain(43, -38));
   assert.equal(land.height(34.15, -28), detention.terrain(34.15, -28));
   const natural = detention.terrain(x, z);
   assert.ok(land.height(x, z) < natural - 0.8);

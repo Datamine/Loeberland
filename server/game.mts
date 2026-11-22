@@ -491,10 +491,14 @@ export async function createGame({
       !/^[a-f0-9]{64}$/.test(hello.token)
     )
       throw Error('Invalid session credentials or protocol.');
-    const owner = await accounts.ownerFor(hello.token);
+    const owner = await accounts.ownerFor(hello.token, () => {
+      if (closing) throw Error('Server restarting');
+      if (players.size >= maxPlayers) throw Error('The world is full. Please try again soon.');
+    });
     if (players.size >= maxPlayers && !identities.has(owner))
       throw Error('The world is full. Please try again soon.');
     while (authenticating.has(owner)) await authenticating.get(owner);
+    if (closing) throw Error('Server restarting');
     let complete!: () => void;
     authenticating.set(owner, new Promise<void>((resolve) => (complete = resolve)));
     try {

@@ -37,7 +37,10 @@ export async function createCheckpointManager({
   logger = console,
   now = Date.now,
 }: {
-  store: Pick<CheckpointStore, 'loadGames' | 'saveGame' | 'loadLegacy' | 'close' | 'destroy'>;
+  store: Pick<
+    CheckpointStore,
+    'loadGames' | 'saveGame' | 'loadLegacy' | 'close' | 'destroy' | 'applyAdminEdit'
+  >;
   intervalMs?: number;
   shutdownTimeoutMs?: number;
   logger?: Pick<Console, 'error'>;
@@ -259,6 +262,7 @@ export async function createCheckpointManager({
               .filter((result) => result.status === 'rejected')
               .map((result) => result.reason);
             if (errors.length) throw new AggregateError(errors, 'Final game checkpoints failed.');
+            await store.applyAdminEdit?.();
           })(),
           'Final checkpoint',
         );

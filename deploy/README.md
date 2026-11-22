@@ -52,13 +52,13 @@ After you approve the first plan, the script asks EC2 to create a key pair and s
 ./deploy/aws.sh admin
 ```
 
-On a custom domain, open `/admin/` over HTTPS and sign in with the credentials in **`.deploy/aws-admin.env`**. An AWS deploy saves the current credentials there on first use. You can also use the SSH tunnel to open **http://127.0.0.1:8788/**. The panel reads live checkpoints while the game runs.
+On a custom domain, open `/admin/` over HTTPS and sign in with the credentials in **`.deploy/aws-admin.env`**. An AWS deploy saves the current credentials there on first use. You can also use the SSH tunnel to open **http://127.0.0.1:8788/**. Saving an edit flushes the active world to Redis, applies the edit if that record is still unchanged, and restarts the game. Players briefly disconnect.
 
 To change the login, edit `ADMIN_USERNAME` and `ADMIN_PASSWORD` in `.deploy/aws-admin.env` and run `./deploy/aws.sh admin-configure`. If the file is missing, that command first downloads the current credentials. The file is ignored by Git and stored with mode 600. Applying a change restarts the admin panel.
 
 Use single quotes around a password containing `$` so Compose reads it literally. [Compose environment file syntax](https://docs.docker.com/reference/compose-file/services/#env_file)
 
-Close the admin tunnel before running `./deploy/aws.sh edit`. That command opens a tunnel, stops the game to release its write lease, and starts an editing session. Press Ctrl+C after saving. The game and read-only admin panel restart automatically.
+For several edits during one maintenance window, close the admin tunnel and run `./deploy/aws.sh edit`. That command opens a tunnel, stops the game to release its write lease, and starts an editing session. Press Ctrl+C after saving to restart the game and admin panel.
 
 Updates build the new release before replacing containers. Player connections reconnect after the restart. A failed startup attempts to restore the previous release. The Redis volume survives normal updates. The deploy script refuses plans that would destroy or replace the instance. Follow the [backup and restore instructions](../server/README.md#sqlite-backups) before moving an existing world or changing to this VPC from the old Terraform setup.
 

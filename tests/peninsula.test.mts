@@ -7,6 +7,8 @@ import {
   PENINSULA_HOUSING,
   PACIFICA_PARK,
   PACIFICA_PARK_PATHS,
+  PACIFICA_PARK_OBSTACLES,
+  PACIFICA_PARK_RESIDENTS,
   pacificaParkWalkable,
 } from '../src/southern-expansion.ts';
 import { SOUTHERN_ROADS, createAirship, drawAirportRoad } from '../src/airship.ts';
@@ -45,6 +47,17 @@ test('new peninsula streets form connected blocks and every house stays clear of
         );
       }
   assert.equal(pacificaParkWalkable(25, 131.4), false, 'the fountain is solid');
+  const fountain = PACIFICA_PARK_OBSTACLES.find((o) => o.kind === 'fountain');
+  assert.ok(fountain);
+  for (const resident of PACIFICA_PARK_RESIDENTS) {
+    const bench = PACIFICA_PARK_OBSTACLES.find(
+      (o) => o.kind === 'bench' && o.x === resident.x && o.z === resident.z,
+    );
+    assert.ok(bench);
+    assert.equal(resident.angle, bench.rotation + Math.PI / 2);
+    assert.equal(resident.angle, Math.atan2(fountain.z - resident.z, fountain.x - resident.x));
+    assert.ok(pacificaParkWalkable(resident.approach.x + 0.5, resident.approach.y + 0.5));
+  }
   for (const r of PACIFICA_PARK_PATHS)
     for (let i = 1; i < r.points.length; i++) {
       const from = { x: r.points[i - 1][0] - 0.5, y: r.points[i - 1][1] - 0.5 },

@@ -88,18 +88,15 @@ test('context labels use separate text-only verb and typed target spans', () => 
     createElement: () => ({ dataset: {}, textContent: '', className: '' }),
   } as unknown as Document;
   try {
-    for (const kind of ['npc', 'item', 'object'] satisfies [string, string, string]) {
-      const parts: { dataset: Record<string, string>; textContent: string; className: string }[] =
-          [],
-        element = {
-          replaceChildren() {
-            parts.length = 0;
-          },
-          append: (p: (typeof parts)[number]) => parts.push(p),
-        };
-      setActionText(element as unknown as HTMLElement, 'Examine <Target>', [
-        { label: '<Target>', kind },
-      ]);
+    const parts: { dataset: Record<string, string>; textContent: string; className: string }[] = [];
+    const element = {
+      replaceChildren() {
+        parts.length = 0;
+      },
+      append: (p: (typeof parts)[number]) => parts.push(p),
+    } as unknown as HTMLElement;
+    for (const kind of ['npc', 'item', 'object']) {
+      setActionText(element, 'Examine <Target>', [{ label: '<Target>', kind }]);
       assert.equal(parts[0].className, 'sf-action-verb');
       assert.equal(parts[0].textContent, 'Examine ');
       assert.equal(parts[1].className, 'sf-action-target');
@@ -107,6 +104,21 @@ test('context labels use separate text-only verb and typed target spans', () => 
       assert.equal(parts[1].textContent, '<Target>');
       assert.equal(Reflect.get(parts[1], 'innerHTML'), undefined);
     }
+    setActionText(element, 'Pet bunny', [{ label: 'Bunny', kind: 'npc' }]);
+    assert.equal(parts[1].textContent, 'bunny');
+    assert.equal(parts[1].dataset.kind, 'npc');
+
+    const park = { label: 'Pacifica Commons', kind: 'object' };
+    setActionText(element, 'Walk here', [park], park);
+    assert.deepEqual(
+      parts.map((part) => part.textContent),
+      ['Walk here · ', 'Pacifica Commons'],
+    );
+    assert.equal(parts[1].dataset.kind, 'object');
+
+    setActionText(element, 'Examine Woman', [{ label: 'Man', kind: 'npc' }]);
+    assert.equal(parts.length, 1);
+    assert.equal(parts[0].className, 'sf-action-verb');
   } finally {
     globalThis.document = previous;
   }

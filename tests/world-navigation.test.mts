@@ -141,6 +141,8 @@ test('Mount Tam goblins, the lost goblin and all waterfront and Presidio seagull
   ]);
   const creatures = world.wilderness.actors.filter((a) => kinds.has(a.combatKind));
   assert.equal(creatures.length, 25);
+  const lost = creatures.find((actor) => actor.id === 'south-lost-goblin');
+  assert.deepEqual(lost?.home, { x: 78, z: 185 });
   assert.equal(creatures.filter((actor) => actor.id.startsWith('presidio-seagull-')).length, 3);
   for (const actor of creatures) {
     assert.ok(world.landClearAt(actor.x - 0.5, actor.z - 0.5), actor.id);

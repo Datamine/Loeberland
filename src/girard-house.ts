@@ -13,8 +13,8 @@ export function drawGirardHouse(
   const base = ground(x, z);
   const start = m.data.length;
   const foundation = 0.13;
-  const eaves = 1.51;
-  const ridge = 2.03;
+  const eaves = 1.83;
+  const ridge = 2.53;
 
   pose(m, x, base, z, 0, () => {
     m.box(
@@ -50,15 +50,16 @@ export function drawGirardHouse(
     );
     m.tri([-w / 2, eaves, d / 2], [-w / 2, ridge, 0], [-w / 2, eaves, -d / 2], '#c4b791', 'cedar');
     m.tri([w / 2, eaves, -d / 2], [w / 2, ridge, 0], [w / 2, eaves, d / 2], '#c4b791', 'cedar');
-    m.box(-0.91, 1.67, -0.29, 0.24, 0.57, 0.23, '#986e58', 'brick');
+    m.box(-1.18, 1.92, -0.38, 0.36, 0.73, 0.32, '#986e58', 'brick');
+    m.box(-1.22, 2.64, -0.42, 0.44, 0.08, 0.4, '#716057', 'stone');
 
     const front = d / 2;
-    m.box(-0.23, foundation, front, 0.46, 1.05, 0.055, '#586957', 'wood');
-    m.sphere(0.13, 0.69, front + 0.068, 0.022, 0.022, 0.018, '#d6ac69', 7, 5);
-    m.box(-0.59, 0.01, front - 0.01, 1.18, 0.11, 0.35, '#afa48d', 'stone');
-    m.box(-0.6, 1.21, front, 1.2, 0.2, 0.048, '#6a5541', 'wood');
-    drawPlaque(m, signs, name, 0, 1.24, front + 0.049, 1.13, 0.13);
-    for (const chairX of [-0.85, 0.85]) {
+    m.box(-0.3, foundation, front, 0.6, 1.26, 0.055, '#586957', 'wood');
+    m.sphere(0.2, 0.77, front + 0.068, 0.025, 0.025, 0.021, '#d6ac69', 7, 5);
+    m.box(-0.79, -0.03, front - 0.01, 1.58, 0.13, 0.37, '#afa48d', 'stone');
+    m.box(-0.77, 1.45, front, 1.54, 0.25, 0.048, '#6a5541', 'wood');
+    drawPlaque(m, signs, name, 0, 1.49, front + 0.049, 1.45, 0.16);
+    for (const chairX of [-1.28, 1.28]) {
       const chairY = ground(x + chairX, z + front + 0.26) - base;
       for (const leg of [-0.13, 0.1])
         for (const depth of [0.14, 0.36])
@@ -69,12 +70,12 @@ export function drawGirardHouse(
       for (const back of [-0.13, 0.1])
         m.box(chairX + back, chairY + 0.32, front + 0.14, 0.043, 0.36, 0.043, '#82725a', 'wood');
     }
-    for (const windowX of [-0.79, 0.79]) {
-      m.box(windowX - 0.22, 0.78, front, 0.44, 0.48, 0.035, '#ede3bf', 'wood');
-      m.box(windowX - 0.18, 0.815, front + 0.036, 0.36, 0.405, 0.008, '#648282');
-      m.box(windowX - 0.013, 0.815, front + 0.045, 0.026, 0.405, 0.013, '#eae1c1', 'wood');
-      m.box(windowX - 0.18, 1.02, front + 0.045, 0.36, 0.023, 0.013, '#eae1c1', 'wood');
-      m.box(windowX - 0.24, 0.74, front + 0.005, 0.48, 0.046, 0.12, '#ad8660', 'wood');
+    for (const windowX of [-1.14, 1.14]) {
+      m.box(windowX - 0.29, 0.89, front, 0.58, 0.59, 0.035, '#ede3bf', 'wood');
+      m.box(windowX - 0.25, 0.925, front + 0.036, 0.5, 0.52, 0.008, '#648282');
+      m.box(windowX - 0.013, 0.925, front + 0.045, 0.026, 0.52, 0.013, '#eae1c1', 'wood');
+      m.box(windowX - 0.25, 1.175, front + 0.045, 0.5, 0.023, 0.013, '#eae1c1', 'wood');
+      m.box(windowX - 0.31, 0.85, front + 0.005, 0.62, 0.046, 0.12, '#ad8660', 'wood');
     }
   });
 
@@ -97,11 +98,22 @@ export function drawGirardHouse(
       m.box(xx - 0.047, ground(xx, zz) - 0.04, zz - 0.047, 0.094, 0.65, 0.094, fenceColor, 'wood');
     }
   };
-  const gateZ = 172.98;
+  const gateZ = 171.35,
+    gateHalf = 0.77,
+    westFenceEnd = 172.05,
+    eastFenceEnd = 172.75;
   fence(west, north, east, north);
-  fence(west, north, west, z);
-  fence(east, north, east, gateZ - 0.54);
-  fence(east, gateZ + 0.54, east, z + 0.12);
+  fence(west, north, west, westFenceEnd);
+  fence(east, north, east, gateZ - gateHalf);
+  fence(east, gateZ + gateHalf, east, eastFenceEnd);
+
+  const trough = { x: 54.22, z: 170.32, w: 1, d: 0.46 };
+  const troughBase = ground(trough.x, trough.z);
+  pose(m, trough.x, troughBase, trough.z, 0, () => {
+    for (const leg of [-0.39, 0.33]) m.box(leg, -0.1, -0.17, 0.075, 0.31, 0.34, '#796348', 'wood');
+    m.box(-0.5, 0.17, -0.23, 1, 0.14, 0.46, '#977551', 'wood');
+    m.box(-0.41, 0.312, -0.15, 0.82, 0.008, 0.3, '#789c8e', { water: 0.5 });
+  });
 
   // The adjoining side and the open gate both lead to the backyard.
   const rect = (x1: number, z1: number, x2: number, z2: number) => [
@@ -110,28 +122,35 @@ export function drawGirardHouse(
     [x2, z2],
     [x1, z2],
   ];
-  const corners = [
-    ground(west, north),
-    ground(east, north),
-    ground(west, south),
-    ground(east, south),
-  ];
+  let bottom = Infinity,
+    top = -Infinity;
+  for (let i = start + 1; i < m.data.length; i += 11) {
+    bottom = Math.min(bottom, m.data[i]);
+    top = Math.max(top, m.data[i]);
+  }
   return {
     id,
     kind: id,
     label: name,
     start,
     count: m.data.length - start,
-    description: 'Two identical chairs sit out front. A goat wanders around the backyard.',
+    description:
+      'Two identical chairs sit out front. A goat wanders around the fenced backyard, past a wooden water trough.',
     entry: { x: x - 0.5, y: south - 0.5 },
-    lo: [west - 0.06, Math.min(base - 0.19, ...corners), north - 0.06],
-    hi: [east + 0.06, Math.max(base + 2.25, ...corners), south],
+    lo: [west - 0.06, bottom, north - 0.06],
+    hi: [east + 0.06, top, south],
     navigationPolygons: [
       rect(x - w / 2, z - d / 2, x + w / 2, z + d / 2 + 0.1),
       rect(west - 0.056, north - 0.056, east + 0.056, north + 0.056),
-      rect(west - 0.056, north, west + 0.056, z),
-      rect(east - 0.056, north, east + 0.056, gateZ - 0.54),
-      rect(east - 0.056, gateZ + 0.54, east + 0.056, z + 0.12),
+      rect(west - 0.056, north, west + 0.056, westFenceEnd),
+      rect(east - 0.056, north, east + 0.056, gateZ - gateHalf),
+      rect(east - 0.056, gateZ + gateHalf, east + 0.056, eastFenceEnd),
+      rect(
+        trough.x - trough.w / 2,
+        trough.z - trough.d / 2,
+        trough.x + trough.w / 2,
+        trough.z + trough.d / 2,
+      ),
     ],
   };
 }

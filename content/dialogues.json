@@ -7128,8 +7128,8 @@
         }
       }
     },
-    "actor:southern-corner-57-neighbor.dialogue-1": {
-      "id": "actor:southern-corner-57-neighbor.dialogue-1",
+    "actor:menottis-cafe-neighbor.dialogue-1": {
+      "id": "actor:menottis-cafe-neighbor.dialogue-1",
       "states": [
         "New visitor",
         "Monkey quest: accepted",
@@ -7167,7 +7167,7 @@
         "In custody",
         "Equipment and rentals available"
       ],
-      "placements": ["actor:southern-corner-57-neighbor"],
+      "placements": ["actor:menottis-cafe-neighbor"],
       "root": "service.neighborhood-menottis.root",
       "nodes": {
         "service.neighborhood-menottis.root": {

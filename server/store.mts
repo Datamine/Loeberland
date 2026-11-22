@@ -10,6 +10,12 @@ import type {
 } from '../src/types/storage.ts';
 import type { SQLiteOperations, SQLiteResponse } from '../src/types/sqlite.ts';
 import '../src/types/json.ts';
+import {
+  adminEditResult,
+  editCheckpoint,
+  pendingAdminEdit,
+  type AdminEdit,
+} from './admin-edit.mts';
 
 const gameIndex = 'checkpoint:games',
   gameKey = (id: string) => 'checkpoint:game:' + id;
@@ -69,6 +75,7 @@ function gamePersistence(adapter: PersistenceAdapter): CheckpointStore & Persist
  * SQLite remains a local-development fallback, with I/O in a worker. */
 export async function createStore({
   redisURL = process.env.REDIS_URL,
+  queueAdminEdits = process.env.ADMIN_QUEUE_EDITS === '1',
   filename = process.env.STATE_FILE ||
     fileURLToPath(new URL('./data/world.sqlite', import.meta.url)),
 } = {}): Promise<CheckpointStore> {
@@ -212,6 +219,49 @@ export async function createStore({
       if (result === -1) throw new Error('Refusing an older game checkpoint.');
       if (result === -2) throw new Error('A completed game cannot be resumed.');
     };
+    if (queueAdminEdits) {
+      const world = prefix + gameKey('world');
+      const finishEdit = async (pending: string, raw: string | null, edit: AdminEdit) => {
+        const checkpoint = raw ? (JSON.parse(raw) as GameCheckpoint) : null;
+        const conflict =
+          edit.owner !== owner
+            ? 'The game restarted before confirming this edit. Reload the record before saving.'
+            : checkpoint?.status === 'active'
+              ? editCheckpoint(checkpoint, edit)
+              : 'An active world checkpoint is required.';
+        const result = await client.eval(
+          `
+          if redis.call('GET', KEYS[1]) ~= ARGV[1] then return 0 end
+          if redis.call('GET', KEYS[2]) ~= ARGV[2] then return 1 end
+          if ARGV[5] == 'ok' then
+            if (redis.call('GET', KEYS[3]) or '') ~= ARGV[3] then return 0 end
+            redis.call('SET', KEYS[3], ARGV[4])
+          end
+          redis.call('SET', KEYS[4], ARGV[5], 'EX', 300)
+          redis.call('DEL', KEYS[2])
+          return 1
+          `,
+          {
+            keys: [lease, pendingAdminEdit, world, adminEditResult(edit.id)],
+            arguments: [owner, pending, raw ?? '', JSON.stringify(checkpoint), conflict ?? 'ok'],
+          },
+        );
+        if (result !== 1)
+          throw new Error('World checkpoint or ownership changed during admin edit.');
+      };
+      adapter.hasAdminEdit = async () => {
+        const pending = await client.get(pendingAdminEdit);
+        if (!pending) return false;
+        const edit = JSON.parse(pending) as AdminEdit;
+        if (edit.owner === owner) return true;
+        await finishEdit(pending, null, edit);
+        return false;
+      };
+      adapter.applyAdminEdit = async () => {
+        const [pending, raw] = await client.mGet([pendingAdminEdit, world]);
+        if (pending) await finishEdit(pending, raw, JSON.parse(pending) as AdminEdit);
+      };
+    }
     return adapter;
   }
   const sourceWorker = import.meta.url.endsWith('.mts');

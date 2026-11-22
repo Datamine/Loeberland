@@ -215,9 +215,9 @@ test('HTTP editor lists, reads and saves records, and rejects unauthorized or in
   assert.equal(page.status, 200);
   assert.match(await page.text(), /Loeberland database editor/);
   const records = await (await fetch(admin.origin + '/api/records', { headers })).json();
-  assert.equal(
-    records.records.find((row: { key: string }) => row.key === 'player:alice').label,
-    'BayPilot',
+  assert.deepEqual(
+    records.records.filter((row: { label: string }) => row.label === 'BayPilot'),
+    [{ kind: 'player', key: 'alice', label: 'BayPilot' }],
   );
   assert.equal(
     (await fetch(admin.origin + '/api/records', { headers: { Authorization: authorization } }))
@@ -255,6 +255,36 @@ test('HTTP editor lists, reads and saves records, and rejects unauthorized or in
     403,
   );
   const url = admin.origin + '/api/record';
+  const player = await store.get('player', 'alice');
+  const playerValue = JSON.parse(player);
+  assert.equal(playerValue.state.inventory.coins, 5);
+  assert.equal(playerValue.username.name, 'BayPilot');
+  assert.equal(JSON.parse(await store.get('player', 'bob')).state, null);
+  const updatePlayer = (name: string, canonical: string) => ({
+    ...playerValue,
+    state: { inventory: { coins: 10 } },
+    username: { ...playerValue.username, name, canonical },
+  });
+  await assert.rejects(
+    store.save('player', 'alice', player, updatePlayer('CoastWalker', 'coastwalker')),
+    /already taken/,
+  );
+  assert.equal(await store.get('player', 'alice'), player);
+  const combined = await fetch(url, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify({
+      kind: 'player',
+      key: 'alice',
+      original: player,
+      value: updatePlayer('RiverPilot', 'riverpilot'),
+    }),
+  });
+  assert.equal(combined.status, 200);
+  assert.deepEqual(
+    JSON.parse(await store.get('player', 'alice')),
+    updatePlayer('RiverPilot', 'riverpilot'),
+  );
   const { raw } = await (await fetch(url + '?kind=state&key=world', { headers })).json();
   const body = JSON.stringify({
     kind: 'state',
@@ -342,6 +372,13 @@ test('read-only admin permits inspection but rejects authenticated writes', asyn
   ).text();
   assert.match(html, /\breadOnly\s*=\s*true\b/);
   assert.match(html, /Read-only inspection/);
+  const badLogin = { Authorization: 'Basic ' + Buffer.from('wrong:wrong').toString('base64') };
+  for (let attempt = 0; attempt < 5; attempt++)
+    assert.equal((await fetch(admin.origin, { headers: badLogin })).status, 401);
+  const cooldown = await fetch(admin.origin, { headers: { Authorization: authorization } });
+  assert.equal(cooldown.status, 429);
+  assert.ok(Number(cooldown.headers.get('retry-after')) > 0);
+  assert.equal((await fetch(admin.origin)).status, 401);
 });
 
 test('the configured public host requires authentication and exposes only read-only admin', async (t) => {
@@ -468,7 +505,9 @@ test(
     );
     let rawClient: RedisClientType<{}, {}, {}, 3, {}>,
       store: Awaited<ReturnType<typeof openAdminStore>>;
+    const queuedAdmins: Awaited<ReturnType<typeof openAdminStore>>[] = [];
     t.after(async () => {
+      for (const admin of queuedAdmins) await admin.close();
       await store?.close();
       await rawClient?.close();
       child.kill('SIGTERM');
@@ -540,5 +579,73 @@ test(
       'HarborPilot',
     );
     assert.equal(JSON.parse(requiredFixture(await rawClient.get(prefix + 'world'))).serial, 2);
+    await rawClient.set(prefix + 'player:alice', '{"coins":5}');
+    const combinedRaw = await store.get('player', 'alice');
+    const combinedPlayer = JSON.parse(combinedRaw);
+    await assert.rejects(
+      store.save('player', 'alice', combinedRaw, {
+        state: { coins: 9 },
+        username: { ...combinedPlayer.username, name: 'CoastWalker', canonical: 'coastwalker' },
+      }),
+      /already taken/,
+    );
+    assert.equal(await store.get('player', 'alice'), combinedRaw);
+    await store.save('player', 'alice', combinedRaw, { ...combinedPlayer, state: { coins: 7 } });
+    const { createStore } = await import('../store.mts');
+    const { createCheckpointManager } = await import('../checkpoints.mts');
+    for (const stale of [false, true]) {
+      const game = await createStore({ redisURL, queueAdminEdits: true });
+      t.after(() => game.close());
+      const manager = await createCheckpointManager({ store: game });
+      const ram = manager.openGame();
+      await manager.cycle();
+      const admin = await openAdminStore({ redisURL, queueEdits: true });
+      queuedAdmins.push(admin);
+      const base = await admin.get('state', 'world');
+      const saving = admin.save('state', 'world', base, { serial: 10 });
+      const result = stale ? assert.rejects(saving, /changed or was deleted/) : saving;
+      for (let i = 0; i < 100 && !(await game.hasAdminEdit?.()); i++)
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      assert.equal(await game.hasAdminEdit?.(), true);
+      await ram.batch(stale ? [['world', { serial: 20 }]] : [['other', { saved: true }]]);
+      assert.equal((await manager.shutdown()).flushed, true);
+      await result;
+      assert.deepEqual(JSON.parse(await admin.get('state', 'world')), { serial: stale ? 20 : 10 });
+      assert.deepEqual(JSON.parse(await admin.get('state', 'other')), { saved: true });
+    }
+    const interrupted = await createStore({ redisURL, queueAdminEdits: true });
+    t.after(() => interrupted.close());
+    const editor = requiredFixture(queuedAdmins[0]);
+    const pending = editor.save('state', 'world', await editor.get('state', 'world'), {
+      serial: 30,
+    });
+    const rejected = assert.rejects(pending, /restarted before confirming/);
+    for (let i = 0; i < 100 && !(await interrupted.hasAdminEdit?.()); i++)
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    assert.equal(await interrupted.hasAdminEdit?.(), true);
+    await interrupted.close();
+    const replacement = await createStore({ redisURL, queueAdminEdits: true });
+    t.after(() => replacement.close());
+    assert.equal(await replacement.hasAdminEdit?.(), false);
+    await rejected;
+    assert.deepEqual(JSON.parse(await editor.get('state', 'world')), { serial: 20 });
+    const manager = await createCheckpointManager({ store: replacement });
+    manager.openGame();
+    const playerBefore = await editor.get('player', 'alice');
+    const playerAfter = {
+      state: { coins: 55 },
+      username: {
+        ...JSON.parse(playerBefore).username,
+        name: 'RiverPilot',
+        canonical: 'riverpilot',
+      },
+    };
+    const update = editor.save('player', 'alice', playerBefore, playerAfter);
+    for (let i = 0; i < 100 && !(await replacement.hasAdminEdit?.()); i++)
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    assert.equal(await replacement.hasAdminEdit?.(), true);
+    assert.equal((await manager.shutdown()).flushed, true);
+    await update;
+    assert.deepEqual(JSON.parse(await editor.get('player', 'alice')), playerAfter);
   },
 );

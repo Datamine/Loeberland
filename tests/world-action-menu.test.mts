@@ -65,6 +65,11 @@ test('the primary action is shared by NPCs, vehicles, objects, and walkable surf
 
   assert.equal(action('ferrari'), 'interaction.28');
   assert.equal(actionTargetKind({ id: 'ferrari-car', kind: 'ferrari' }), 'personal-item');
+  assert.equal(actionTargetKind({ kind: 'fishing', editorCategory: 'object' }), 'object');
+  assert.equal(actionTargetKind({ kind: 'sand', editorCategory: 'object' }), 'item');
+  assert.equal(actionTargetKind({ kind: 'sunglasses' }), 'item');
+  assert.equal(actionTargetKind({ id: 'nia', kind: 'guest', editorCategory: 'object' }), 'npc');
+  assert.equal(actionTargetKind({ kind: 'wild-tiger' }), 'npc');
   assert.equal(actionTargetKind({ id: 'personal-b2', kind: 'stealth-bomber' }), 'object');
   assert.equal(actionTargetKind({ kind: 'stealth-bomber' }), 'object');
   assert.equal(action('robotaxi'), 'taxi.kick');
@@ -74,6 +79,10 @@ test('the primary action is shared by NPCs, vehicles, objects, and walkable surf
   context.motorcycle.state.rented = true;
   assert.equal(action('motorcycle'), 'interaction.20');
   assert.equal(action('fishing'), 'interaction.18');
+  assert.deepEqual(primaryWorldAction({ ...target, sight: site('fishing') }).target, {
+    label: 'live fish',
+    kind: 'item',
+  });
   assert.equal(action('loot'), 'interaction.10');
   assert.equal(action('house-storage'), 'interaction.8');
   assert.equal(action('nightlife'), 'nightlife.enter');
@@ -142,13 +151,18 @@ test('clicking the rope from the airship opens rope options and sends the climb-
     entry: { x: 20, y: 20 },
   };
   const commands: [string, object?][] = [];
-  const buttons: {
+  type MenuElement = {
     textContent: string;
+    dataset: Record<string, string>;
+    children: MenuElement[];
+    replaceChildren(): void;
+    append(child: MenuElement): void;
     click?: () => void;
     focus(): void;
     setAttribute(): void;
     addEventListener(event: string, fn: () => void): void;
-  }[] = [];
+  };
+  const buttons: MenuElement[] = [];
   const menu = {
     hidden: true,
     style: {},
@@ -164,6 +178,16 @@ test('clicking the rope from the airship opens rope options and sends the climb-
     value: {
       createElement: () => ({
         textContent: '',
+        dataset: {},
+        children: [],
+        replaceChildren(this: MenuElement) {
+          this.children.length = 0;
+          this.textContent = '';
+        },
+        append(this: MenuElement, child: MenuElement) {
+          this.children.push(child);
+          this.textContent += child.textContent;
+        },
         focus() {},
         setAttribute() {},
         addEventListener(this: (typeof buttons)[number], _event: string, fn: () => void) {
@@ -207,6 +231,7 @@ test('clicking the rope from the airship opens rope options and sends the climb-
   const action = primaryWorldAction(worldTarget(400, 300));
   assert.equal(action.label, 'Rope options');
   action.run();
+  assert.equal(buttons[0].children[0].dataset.kind, 'object');
   assert.deepEqual(
     buttons.slice(1).map((button) => button.textContent),
     ['Climb down'],
@@ -220,6 +245,7 @@ test('clicking the rope from the airship opens rope options and sends the climb-
     buttons.slice(1).map((button) => button.textContent),
     ['Climb down', 'Offer a ride · 5 coins', 'Retract rope'],
   );
+  assert.equal(buttons[3].children[1].dataset.kind, 'object');
   buttons[3].click?.();
   assert.deepEqual(commands.pop(), ['airshipRope', { retract: true }]);
 

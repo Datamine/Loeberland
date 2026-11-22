@@ -5,7 +5,10 @@ import { CONTENT, subscribeContent } from './content-runtime.ts';
 import { GOBLIN_PHONE_BUYER } from './goblin-industrialist.ts';
 import { proofPrice, type ParrotQuestStage } from './stochastic-parrot.ts';
 import type { ServiceNode } from './types/content.ts';
+import type { Site } from './types/world.ts';
 import { NEIGHBORHOOD_SERVICES } from './config/neighborhood-services.ts';
+import { itemById } from './item-stats.ts';
+import { hasPhysicalBounds } from './picking.ts';
 import { isFiniteNumber } from './types/json.ts';
 
 interface MinimapActor {
@@ -22,6 +25,7 @@ interface MinimapActor {
   trade?: string | null;
   neighborhoodService?: string | null;
   id?: string;
+  siteId?: string;
 }
 interface MinimapContext {
   merchants?: readonly MinimapActor[];
@@ -44,11 +48,7 @@ interface MinimapLife {
 }
 const shopKinds = new Set([
   'airship-agent',
-  'chef',
-  HARDWARE_CLERK,
-  COFFEE_STALL_VENDOR,
-  'grain',
-  'founder',
+  'crew',
   'capital',
   'fuel-attendant',
   'hiking-supplier',
@@ -58,18 +58,26 @@ const shopKinds = new Set([
   'burger-clerk',
   'in-n-out-clerk',
   'bartender',
-  'software-vendor',
   'tim-apple',
   'robotaxi-sales',
   'motorcycle-clerk',
   'lift',
   'battery-seller',
   'goblin-industrialist',
+  'goblin-scientist',
   'decorative-robe-seller',
   'enterprising-industrialist',
 ]);
 const shopRoles = new Set(['armorer', 'square-coffee']);
 const shopIds = new Set(['fighter-yard-tyler', 'industrious-goblin']);
+const shopVenues: Record<string, string | undefined> = {
+  'industrial-armorer': 'american-industrial-center',
+  'enterprising-industrialist': 'american-industrial-center',
+  [HARDWARE_CLERK]: 'hardware-store',
+  [COFFEE_STALL_VENDOR]: 'coffee-stall',
+  'goblin-scientist': 'goblin-ai-lab',
+};
+const pursePurchaseTrades = new Set(['equity', 'grain', 'coffee', 'sales-software-buy']);
 // Gameplay tasks and trades settled outside the purse trade catalog.
 const taskKinds = new Set([
   'capital',
@@ -96,24 +104,30 @@ function isRewardTrade(trade?: string | null) {
   return !!trade && Object.hasOwn(COIN_REWARD_TRADES, trade);
 }
 
-function offersReward(node: ServiceNode): boolean {
+function isPurchaseTrade(trade?: string | null) {
+  return !!trade && (pursePurchaseTrades.has(trade) || (itemById(trade)?.price ?? 0) > 0);
+}
+
+function hasTrade(node: ServiceNode, matches: (trade?: string | null) => boolean): boolean {
   return (
-    isRewardTrade(node.trade) ||
-    !!node.choices?.some(offersReward) ||
-    (!!node.next && offersReward(node.next))
+    matches(node.trade) ||
+    !!node.choices?.some((choice) => hasTrade(choice, matches)) ||
+    (!!node.next && hasTrade(node.next, matches))
   );
 }
 
-function rewardServices(services: Record<string, ServiceNode>) {
-  return new Set(
-    Object.entries(services)
-      .filter(([, node]) => offersReward(node))
-      .map(([kind]) => kind),
-  );
+function catalogServices(services: Record<string, ServiceNode>) {
+  const shops = new Set<string>(),
+    tasks = new Set<string>();
+  for (const [kind, node] of Object.entries(services)) {
+    if (hasTrade(node, isPurchaseTrade)) shops.add(kind);
+    if (hasTrade(node, isRewardTrade)) tasks.add(kind);
+  }
+  return { shops, tasks };
 }
-let payingServices = rewardServices(CONTENT.dialogues.services);
+let servicesByLayer = catalogServices(CONTENT.dialogues.services);
 subscribeContent(({ dialogues }) => {
-  payingServices = rewardServices(dialogues.services);
+  servicesByLayer = catalogServices(dialogues.services);
 });
 
 function neighborhoodOffers(npc: MinimapActor) {
@@ -160,9 +174,34 @@ export function minimapShops<T extends MinimapActor>(actors: readonly T[]) {
       shopKinds.has(n.kind ?? '') ||
       shopRoles.has(n.questRole ?? '') ||
       shopIds.has(n.id ?? '') ||
+      servicesByLayer.shops.has(n.kind ?? '') ||
+      isPurchaseTrade(n.trade) ||
       n.combatKind === 'goblin-maker' ||
       neighborhoodOffers(n)?.some((offer) => (offer.price ?? 0) > 0),
   );
+}
+
+/** One marker per staffed venue, with live positions for independent vendors. */
+export function minimapShopMarkers(
+  shops: readonly MinimapActor[],
+  sites: readonly Pick<Site, 'id' | 'mapPoint' | 'entry' | 'object'>[],
+) {
+  const byId = new Map(sites.map((site) => [site.id, site]));
+  const markedSites = new Set<string>();
+  return shops.flatMap((shop) => {
+    const venue = shopVenues[shop.id ?? ''] ?? shop.siteId;
+    const site = venue ? byId.get(venue) : undefined;
+    if (!site) return [shop];
+    if (markedSites.has(site.id)) return [];
+    markedSites.add(site.id);
+    const object = site.object;
+    const { x, y } =
+      site.mapPoint ??
+      (object && hasPhysicalBounds(object)
+        ? { x: object.x + object.w / 2, y: object.y + object.d / 2 }
+        : { x: site.entry.x + 0.5, y: site.entry.y + 0.5 });
+    return [{ x, z: y }];
+  });
 }
 
 export function minimapTasks<T extends MinimapActor>(
@@ -174,7 +213,7 @@ export function minimapTasks<T extends MinimapActor>(
       taskKinds.has(n.kind ?? '') ||
       taskRoles.has(n.questRole ?? '') ||
       taskIds.has(n.id ?? '') ||
-      payingServices.has(n.kind ?? '') ||
+      servicesByLayer.tasks.has(n.kind ?? '') ||
       isRewardTrade(n.trade) ||
       (n.stroller && n.id?.startsWith('noe-parent-')) ||
       (n.id === BURNING_MAN.waterClerk && progress.burningMan === 'fetch-water') ||

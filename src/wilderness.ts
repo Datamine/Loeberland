@@ -126,6 +126,7 @@ export function wildernessSpawns({ marin, tahoe }: { marin: Point; tahoe: WorldP
     ...BOLINAS_URCHINS,
     ...SOMA_ZOMBIE_SPAWNS.map((spawn) => ({ ...spawn })),
     { id: 'presidio-coyote', combatKind: 'coyote', x: 27.5, z: 23.5 },
+    { id: 'neighborhood-raccoon', combatKind: 'raccoon', x: 24, z: 97 },
     { ...EMF_WARRIOR },
     ...EMF_DISCIPLES,
     BOLINAS_CULTIST,

@@ -229,6 +229,57 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0, reduced =
     MONSTER_STATS[actor.combatKind],
     'Unknown monster model: ' + actor.combatKind,
   );
+  if (stats.model === 'raccoon') {
+    pose(m, actor.x, actor.base, actor.z, actor.angle, () => {
+      const gray = '#777670',
+        mask = '#312f30',
+        cream = '#d4cdbc',
+        phase = actor.phase || 0,
+        reach = strike * 0.18,
+        headX = 0.3 + reach,
+        headY = 0.37 - strike * 0.055 + load * 0.03;
+      m.sphere(-0.06, 0.285, 0, 0.31, 0.18, 0.17, gray, 14, 8);
+      m.sphere(headX, headY, 0, 0.162, 0.132, 0.13, cream, 14, 8);
+      m.sphere(headX + 0.113, headY - 0.042, 0, 0.093, 0.061, 0.075, cream, 12, 7);
+      m.sphere(headX + 0.197, headY - 0.025, 0, 0.026, 0.02, 0.035, mask, 10, 6);
+      for (const side of [-1, 1]) {
+        const z = side * 0.102;
+        m.sphere(headX - 0.085, headY + 0.11, z, 0.058, 0.073, 0.045, gray, 10, 7);
+        m.sphere(headX - 0.062, headY + 0.126, z, 0.037, 0.05, 0.028, cream, 9, 6);
+        m.sphere(headX + 0.053, headY + 0.028, z, 0.095, 0.052, 0.042, mask, 12, 7);
+        m.sphere(
+          headX + 0.097,
+          headY + 0.041,
+          z + side * 0.024,
+          0.014,
+          0.013,
+          0.012,
+          '#bbb288',
+          8,
+          5,
+        );
+        for (const end of [-1, 1]) {
+          const swing = Math.sin(phase + (side === end ? 0 : Math.PI)),
+            stride = (actor.motion || 0) * 0.087,
+            root = end > 0 ? 0.14 : -0.23,
+            toe = root + swing * stride + (end > 0 ? reach : 0),
+            lift = Math.max(0, swing) * stride * 0.58;
+          m.rod([root, 0.258, z], [toe, 0.05 + lift, z], 0.046, gray, 8);
+          m.sphere(toe + 0.024, 0.047 + lift, z, 0.057, 0.036, 0.043, mask, 9, 6);
+        }
+      }
+      const swish = Math.sin(time * 0.003 + phase);
+      const tail = (i: number) => [-0.28 - i * 0.083, 0.285 + i * 0.015, swish * i * 0.012];
+      for (let i = 0; i < 7; i++) {
+        const color = i % 2 ? mask : gray,
+          radius = 0.095 - i * 0.009;
+        m.rod(tail(i), tail(i + 1), radius, color, 10);
+      }
+      const [x, y, z] = tail(7);
+      m.sphere(x, y, z, 0.039, 0.038, 0.038, mask, 10, 6);
+    });
+    return;
+  }
   if (stats.model === 'frog') {
     const stride = ((actor.phase || 0) / (Math.PI * 2)) % 1;
     const hop = (actor.motion || 0) * Math.sin(stride * Math.PI);

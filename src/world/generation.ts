@@ -62,6 +62,7 @@ import { createFerrariCityRoads } from '../ferrari-roads.ts';
 import { drawFighterYard } from '../fighter-yard.ts';
 import { drawGirardHouse } from '../girard-house.ts';
 import { GIRARD_HOME } from '../girard-layout.ts';
+import { COMMUNAL_POOL, drawCommunalPool } from '../communal-pool.ts';
 import { CONSTRUCTION_SITE } from '../construction-layout.ts';
 import { drawConstructionSite } from '../construction-site.ts';
 import { FIGHTER_YARD } from '../fighter-yard-layout.ts';
@@ -206,7 +207,7 @@ import { RAIL_WORKER, drawRailWorks } from '../rail-works.ts';
 
 import { populateSouthernNeighborhood } from '../southern-neighborhood.ts';
 import { PACIFICA_PARK_RESIDENTS } from '../southern-expansion.ts';
-import { PENINSULA_SIGNS } from '../peninsula-details.ts';
+import { drawNeighborhoodGreens, PENINSULA_SIGNS } from '../peninsula-details.ts';
 import { rocketCruiseSpeed } from '../rocket.ts';
 import { createRegionalRoad, createGoldenGateCrossing } from '../regional-road.ts';
 import {
@@ -691,7 +692,7 @@ export function createGeneration(context: WorldContext) {
   }
 
   function setupWilderness() {
-    const entrepreneur = { x: 56.5, z: 172.5 };
+    const entrepreneur = { x: 48, z: 178 };
     if (!context.merchants.some((npc) => npc.id === 'biomed-entrepreneur'))
       context.merchants.push({
         ...entrepreneur,
@@ -708,7 +709,7 @@ export function createGeneration(context: WorldContext) {
         skin: '#d6a786',
         regional: true,
         angle: Math.PI / 2,
-        approach: { x: 56.75, y: 172.1 },
+        approach: { x: entrepreneur.x + 0.25, y: entrepreneur.z - 0.4 },
         description: 'She carries a glossy pitch deck with no product photographs.',
       });
     const { tyler, entry } = FIGHTER_YARD;
@@ -1839,7 +1840,8 @@ export function createGeneration(context: WorldContext) {
         w: site.hi[0] - site.lo[0],
         d: site.hi[2] - site.lo[2],
         base: site.lo[1],
-        ...(site.id !== DYNAMITE_DEPOT.id &&
+        ...(site.solid !== false &&
+          site.id !== DYNAMITE_DEPOT.id &&
           site.id !== ATV_RENTAL.siteId &&
           site.id !== GOBLIN_INCUBATOR.id &&
           site.id !== FROG_FARM.id &&
@@ -2047,6 +2049,11 @@ export function createGeneration(context: WorldContext) {
       context.sceneMesh,
     );
     for (const site of context.southernNeighborhood.sights) register(site, context.sceneMesh);
+    for (const site of drawNeighborhoodGreens(context.sceneMesh, characterGround, context.tree))
+      register(site, context.sceneMesh);
+    const pool = drawCommunalPool(context.sceneMesh, context.southernTerrain, context.signs);
+    register(pool.site, context.sceneMesh);
+    context.merchants.push(...pool.people);
     const girard = GIRARD_HOME;
     const girardLot = context.rectangle(
       (girard.west + girard.east) / 2,
@@ -4325,6 +4332,7 @@ export function createGeneration(context: WorldContext) {
       HARDWARE_STORE.name,
       FIGHTER_YARD.name,
       GIRARD_HOME.name,
+      COMMUNAL_POOL.name,
       CONSTRUCTION_SITE.name,
       COFFEE_STALL.name,
       MUD_BATH.name,

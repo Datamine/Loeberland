@@ -29,12 +29,15 @@ import { contentText } from '../content-runtime.ts';
 import {
   setActionText,
   actionTargetKind,
+  cableCarExitTarget,
+  type ActionLabelTarget,
   orderPrimaryActions,
   placeEntryVerb,
 } from '../context-menu.ts';
 import { applyEntityEdits } from '../world-edits.ts';
 import { menuFromContent, compileEntityDialogue } from '../content-game.ts';
 import { dialogueChoices } from '../dialogue-choices.ts';
+import { POOL_SWIMMER } from '../communal-pool.ts';
 import { createAmbientDialogue, childConversation } from '../dialogues/ambient.ts';
 import { FIGHTER_YARD } from '../fighter-yard-layout.ts';
 import { CONSTRUCTION_SITE } from '../construction-layout.ts';
@@ -652,9 +655,12 @@ export function createInteractions(context: WorldContext) {
     menu.replaceChildren();
     const title = document.createElement('div');
     title.className = 'sf-context-title';
-    title.textContent = context.airship.state.active
-      ? 'Airship · Choose an option'
-      : 'Private Jet Terminal · Airship rental';
+    const titleLabel = context.airship.state.active ? 'Airship' : 'Private Jet Terminal';
+    const airshipTarget = {
+      label: contentText('world.interactions.showAirshipMenu.label-10', {}),
+      kind: 'object',
+    };
+    setActionText(title, titleLabel, [{ label: titleLabel, kind: 'object' }]);
     menu.append(title);
     const floor = context.flying()
       ? context.basket.pick(
@@ -725,11 +731,19 @@ export function createInteractions(context: WorldContext) {
       const button = document.createElement('button');
       button.type = 'button';
       button.setAttribute('role', 'menuitem');
-      setActionText(button, label, [
-        { label: contentText('world.interactions.showAirshipMenu.label-10', {}), kind: 'npc' },
-        { label: contentText('world.interactions.showAirshipMenu.label-11', {}), kind: 'object' },
-        { label: contentText('world.interactions.showAirshipMenu.label-12', {}), kind: 'object' },
-      ]);
+      setActionText(
+        button,
+        label,
+        [
+          { label: 'Airship attendant', kind: 'npc' },
+          { label: 'grappling hook', kind: 'item' },
+          { label: 'Tahoe', kind: 'object' },
+          { label: contentText('world.interactions.showAirshipMenu.label-11', {}), kind: 'object' },
+          { label: contentText('world.interactions.showAirshipMenu.label-12', {}), kind: 'object' },
+          airshipTarget,
+        ],
+        label === 'Board as passenger' ? airshipTarget : undefined,
+      );
       button.addEventListener('click', (e) =>
         clicked(e.clientX, e.clientY, () => {
           closeMenu();
@@ -1957,7 +1971,7 @@ export function createInteractions(context: WorldContext) {
     menu.replaceChildren();
     const heading = document.createElement('div');
     heading.className = 'sf-context-title';
-    heading.textContent = 'Airship rope';
+    setActionText(heading, 'Airship rope', [{ label: 'Airship rope', kind: 'object' }]);
     menu.append(heading);
     const playerId = context.multiplayer.state.id,
       pilot = playerId !== null && context.multiplayerWorld.sharedAirship?.captain === playerId;
@@ -1973,7 +1987,7 @@ export function createInteractions(context: WorldContext) {
       const b = document.createElement('button');
       b.type = 'button';
       b.setAttribute('role', 'menuitem');
-      b.textContent = text;
+      setActionText(b, text, [{ label: 'rope', kind: 'object' }]);
       b.addEventListener('click', () => {
         closeMenu();
         fn();
@@ -3396,6 +3410,10 @@ export function createInteractions(context: WorldContext) {
           ],
         }),
       );
+    if (npc.kind === POOL_SWIMMER && verb === 'talk')
+      return approachNPC(npc, () =>
+        openNPCDialogue({ ...npc, contentResolved: true, intro: npc.neighborLine }),
+      );
     if (npc.kind === 'biomed-entrepreneur' && verb === 'talk')
       return approachNPC(npc, () =>
         openNPCDialogue({
@@ -4198,7 +4216,7 @@ export function createInteractions(context: WorldContext) {
     };
   }
 
-  type WorldAction = { id: string; label: string; run: () => unknown };
+  type WorldAction = { id: string; label: string; run: () => unknown; target?: ActionLabelTarget };
 
   function examineNPC(npc: InteractiveActor) {
     announce(
@@ -4238,16 +4256,18 @@ export function createInteractions(context: WorldContext) {
 
   function primarySightAction(sight: InteractionSight): WorldAction {
     const { id, kind, label } = sight;
-    const action = (id: string, label: string, run = () => goToSight(sight)): WorldAction => ({
-      id,
-      label,
-      run,
-    });
+    const action = (
+      id: string,
+      label: string,
+      run = () => goToSight(sight),
+      target?: ActionLabelTarget,
+    ): WorldAction => ({ id, label, run, target });
     if (sight.enterableInstitute && context.activeInstituteRoom()?.id !== id)
       return action('interaction.13', 'Enter ' + label);
     if (buildingNPCService(sight)) return action('examine', 'Examine ' + label);
     if (id === 'sutro') return action('interaction.25', 'Climb ' + label);
-    if (id === 'zoo-monkeys') return action('interaction.19', 'Steal monkey');
+    if (id === 'zoo-monkeys')
+      return action('interaction.19', 'Steal monkey', undefined, { label: 'monkey', kind: 'npc' });
     switch (kind) {
       case MARKET_STREETCAR.kind:
         return action('streetcar.board', 'Ride ' + label, () =>
@@ -4263,10 +4283,10 @@ export function createInteractions(context: WorldContext) {
       case CONSTRUCTION_SITE.id: {
         const work = context.multiplayerWorld;
         if (work.selfMode === 'construction')
-          return action('construction.stop', 'Stop construction', () => {
+          return action('construction.stop', 'Stop work at ' + label, () => {
             work.command('playerAction', { verb: 'constructionStop' });
           });
-        return action('construction.start', 'Contribute to construction', startConstruction);
+        return action('construction.start', 'Contribute to ' + label, startConstruction);
       }
       case MUD_BATH.id: {
         const world = context.multiplayerWorld;
@@ -4318,7 +4338,7 @@ export function createInteractions(context: WorldContext) {
       }
       case 'trampoline': {
         const { x, z } = TRAMPOLINE;
-        return action('yard.jump', 'Jump on trampoline', () =>
+        return action('yard.jump', 'Jump on ' + label, () =>
           walkTo(x - 0.5, z - 0.5, () =>
             context.multiplayerWorld.command('playerAction', { verb: 'trampoline' }),
           ),
@@ -4361,7 +4381,10 @@ export function createInteractions(context: WorldContext) {
       case 'house-storage':
         return action('interaction.8', 'Search ' + label);
       case 'unusual-church':
-        return action('church.search', 'Read the church noticeboard', () => searchChurch(sight));
+        return action('church.search', 'Read the church noticeboard', () => searchChurch(sight), {
+          label: 'church noticeboard',
+          kind: 'object',
+        });
       case 'lore-book':
         return action('interaction.9', 'Read ' + label);
       case 'loot':
@@ -4369,7 +4392,11 @@ export function createInteractions(context: WorldContext) {
       case 'bench':
         return action('interaction.11', 'Sit on ' + label);
       case 'neighborhood-garden':
-        if (sight.seats?.length) return action('interaction.12', 'Sit in garden');
+        if (sight.seats?.length)
+          return action('interaction.12', 'Sit in garden', undefined, {
+            label: 'garden',
+            kind: 'object',
+          });
         break;
       case 'secret-stairs':
       case 'cave-exit':
@@ -4381,19 +4408,28 @@ export function createInteractions(context: WorldContext) {
       case 'sand':
         return action('interaction.17', 'Collect Ocean Beach sand');
       case 'fishing':
-        return action('interaction.18', 'Catch live fish');
+        return action('interaction.18', 'Catch live fish', undefined, {
+          label: 'live fish',
+          kind: 'item',
+        });
       case 'motorcycle':
         if (context.motorcycle.state.rented) return action('interaction.20', 'Ride motorcycle');
         break;
       case 'bunny':
         return action('interaction.22', 'Pet bunny');
       case 'zoo':
-        if (context.zoo.state.phase === 'caged') return action('interaction.23', 'Release tiger');
+        if (context.zoo.state.phase === 'caged')
+          return action('interaction.23', 'Release tiger', undefined, {
+            label: 'tiger',
+            kind: 'npc',
+          });
         break;
       case 'gondola':
         return action(
           'interaction.24',
           id === 'gondola-base' ? 'Ride gondola up' : 'Ride gondola down',
+          undefined,
+          { label: 'gondola', kind: 'object' },
         );
       case 'gym':
         if (context.training) return action('interaction.27', 'Stop training');
@@ -4402,7 +4438,10 @@ export function createInteractions(context: WorldContext) {
           'Perform ' + gymExercise(context.gymSelection).label,
         );
       case 'airship':
-        return action('interaction.30', 'Rent an airship');
+        return action('interaction.30', 'Rent an airship', undefined, {
+          label: 'airship',
+          kind: 'object',
+        });
       case 'bike':
         return action('interaction.31', 'Ride bicycle');
       case 'windsurf':
@@ -4412,9 +4451,9 @@ export function createInteractions(context: WorldContext) {
       case 'whale':
         return action('interaction.34', 'Jump over ' + label);
       case 'guest':
-        return action('interaction.35', 'Talk to Bani');
+        return action('interaction.35', 'Talk to Bani', undefined, { label: 'Bani', kind: 'npc' });
       case 'ducks':
-        return action('interaction.36', 'Feed ducks');
+        return action('interaction.36', 'Feed ducks', undefined, { label: 'ducks', kind: 'npc' });
       case 'nightlife':
         if (!inNightlife(context.player.x + 0.5, context.player.y + 0.5))
           return action('nightlife.enter', 'Enter ' + label);
@@ -4468,6 +4507,7 @@ export function createInteractions(context: WorldContext) {
         ? {
             id: 'streetcar.exit',
             label: 'Get off cable car',
+            target: cableCarExitTarget,
             run: () => context.multiplayerWorld.command('travel', { kind: 'streetcarExit' }),
           }
         : { id: 'streetcar.ride', label: 'Riding the cable car', run: () => false };
@@ -4490,6 +4530,7 @@ export function createInteractions(context: WorldContext) {
         return {
           id: 'interaction.7',
           label: 'Rope options',
+          target: { label: 'Rope', kind: 'object' },
           run: () => showRopeMenu(target.sx, target.sy),
         };
       const floor = context.basket.pick(
@@ -4555,7 +4596,11 @@ export function createInteractions(context: WorldContext) {
       menu.replaceChildren();
       const heading = document.createElement('div');
       heading.className = 'sf-context-title';
-      heading.textContent = 'Sutro Tower · Choose an option';
+      const towerTarget = {
+        label: contentText('world.interactions.showMenu.label-41', {}),
+        kind: 'object',
+      };
+      setActionText(heading, towerTarget.label, [towerTarget]);
       menu.append(heading);
       for (const [label, fn] of [
         ['Climb down Sutro Tower', descendSutro] satisfies [string, () => unknown],
@@ -4577,9 +4622,7 @@ export function createInteractions(context: WorldContext) {
         button.dataset.actionId =
           fn === dance ? 'tower.dance' : fn === descendSutro ? 'tower.descend' : 'examine';
         button.setAttribute('role', 'menuitem');
-        setActionText(button, label, [
-          { label: contentText('world.interactions.showMenu.label-41', {}), kind: 'object' },
-        ]);
+        setActionText(button, label, [towerTarget]);
         button.addEventListener('click', (e) =>
           clicked(e.clientX, e.clientY, () => {
             closeMenu();
@@ -4652,23 +4695,31 @@ export function createInteractions(context: WorldContext) {
         ? [{ label: s.label, kind: actionTargetKind(s) }]
         : p
           ? [{ label: p.label, kind: p.editorCategory || 'object' }]
-          : owner.editorKey
-            ? [{ label: owner.label || 'Ground', kind: owner.editorCategory || 'object' }]
+          : caveFloor
+            ? [{ label: caveFloor.label, kind: 'object' }]
             : [];
     const heading = document.createElement('div');
     heading.className = 'sf-context-title';
-    setActionText(
-      heading,
-      npc ? context.npcLabel(npc) + ' · Choose an option' : 'Choose an option',
-      actionTargets,
-    );
+    setActionText(heading, actionTargets[0]?.label || 'Choose an option', actionTargets);
     menu.append(heading);
-    const add = (text: string, fn: () => unknown, actionId: string | undefined) => {
+    const namedActions = new Map<string | undefined, ActionLabelTarget>();
+    const add = (
+      text: string,
+      fn: () => unknown,
+      actionId: string | undefined,
+      namedTarget?: ActionLabelTarget,
+    ) => {
       const b = document.createElement('button');
       b.type = 'button';
       b.dataset.actionId = actionId;
       b.setAttribute('role', 'menuitem');
-      setActionText(b, text, actionTargets);
+      if (namedTarget) namedActions.set(actionId, namedTarget);
+      setActionText(
+        b,
+        text,
+        namedTarget ? [namedTarget, ...actionTargets] : actionTargets,
+        namedTarget,
+      );
       b.addEventListener('click', (e) =>
         clicked(e.clientX, e.clientY, () => {
           closeMenu();
@@ -4683,6 +4734,7 @@ export function createInteractions(context: WorldContext) {
         'Get off cable car',
         () => context.multiplayerWorld.command('travel', { kind: 'streetcarExit' }),
         'streetcar.exit',
+        cableCarExitTarget,
       );
       revealContextMenu(menu, sx, sy);
       return true;
@@ -4714,7 +4766,10 @@ export function createInteractions(context: WorldContext) {
           'interaction.4',
         );
       }
-      add('Examine B-2', () => examine(context.bomberSite), 'examine');
+      add('Examine B-2', () => examine(context.bomberSite), 'examine', {
+        label: 'B-2',
+        kind: 'object',
+      });
       promoteWalkAction(menu);
       menu.hidden = false;
       menu.style.left = Math.min(context.width - menu.offsetWidth - 12, Math.max(12, sx)) + 'px';
@@ -4726,8 +4781,11 @@ export function createInteractions(context: WorldContext) {
       if (context.waveSurf.state.ride)
         for (const trick of SURF_TRICKS)
           add(trick.label, () => performSurfTrick(trick.id), 'trick.' + trick.id);
-      else add('Catch wave', catchPacificaWave, 'interaction.5');
-      add('Return to Pacifica beach', useSurf, 'interaction.6');
+      else add('Catch wave', catchPacificaWave, 'interaction.5', { label: 'wave', kind: 'object' });
+      add('Return to Pacifica beach', useSurf, 'interaction.6', {
+        label: 'Pacifica beach',
+        kind: 'object',
+      });
     }
     if (npc)
       for (const verb of npcContextActions(npc, {
@@ -4754,6 +4812,7 @@ export function createInteractions(context: WorldContext) {
               if (npc.networkPlayer) requiredValue(context.duelMenu, 'Duel menu').open(npc);
             },
             'npc.duel',
+            actionTargets[1],
           );
         else if (verb === 'follow')
           add(
@@ -4764,7 +4823,12 @@ export function createInteractions(context: WorldContext) {
             'npc.follow',
           );
         else if (verb === 'unfollow')
-          add('Stop following', () => context.multiplayerWorld.stopFollowing(true), 'npc.unfollow');
+          add(
+            'Stop following',
+            () => context.multiplayerWorld.stopFollowing(true),
+            'npc.unfollow',
+            actionTargets[1],
+          );
         else if (verb === 'examine')
           add('Examine ' + context.npcLabel(npc, false), () => examineNPC(npc), 'npc.examine');
         else if (verb === 'walk') {
@@ -4784,7 +4848,12 @@ export function createInteractions(context: WorldContext) {
       }
     const sightAction = s && primarySightAction(s);
     if (sightAction && sightAction.id !== 'examine')
-      add(sightAction.label, sightAction.run, sightAction.id);
+      add(
+        sightAction.label,
+        sightAction.run,
+        sightAction.id,
+        sightAction.target ?? actionTargets[0],
+      );
     if (p && entryVerb)
       add(
         entryVerb + ' ' + p.label,
@@ -4793,7 +4862,7 @@ export function createInteractions(context: WorldContext) {
       );
     if (p && houseClimb(p.id))
       add(
-        'Climb house',
+        'Climb ' + p.label,
         () =>
           walkTo(p.entry.x, p.entry.y, () =>
             context.multiplayerWorld.command('travel', { kind: 'houseRoof', id: p.id }),
@@ -4801,7 +4870,7 @@ export function createInteractions(context: WorldContext) {
         'house.climb',
       );
     if (s?.kind === 'motorcycle' && !context.motorcycle.state.rented)
-      add('Steal motorcycle', () => useMotorcycle('steal'), 'interaction.21');
+      add('Steal ' + s.label, () => useMotorcycle('steal'), 'interaction.21');
     if (s?.id === 'sutro' && s.entry) {
       const entry = s.entry;
       add('Walk to Sutro Tower', () => walkTo(entry.x, entry.y), 'interaction.26');
@@ -4809,9 +4878,14 @@ export function createInteractions(context: WorldContext) {
     if (s?.kind === 'gym')
       for (const exercise of GYM_EXERCISES)
         if (sightAction?.id !== 'gym.' + exercise.id)
-          add('Perform ' + exercise.label, () => useGym(exercise.id), 'gym.' + exercise.id);
+          add(
+            'Perform ' + exercise.label,
+            () => useGym(exercise.id),
+            'gym.' + exercise.id,
+            actionTargets[0],
+          );
     if (s?.kind === 'ferrari' && context.economy.state.fuelCans)
-      add('Use fuel can', useFuelCan, 'interaction.29');
+      add('Use fuel can', useFuelCan, 'interaction.29', { label: 'fuel can', kind: 'item' });
     const roadTarget = inCave
       ? null
       : context.goldenGate?.targetAt(t.x + 0.5, t.y + 0.5) ||
@@ -4846,7 +4920,10 @@ export function createInteractions(context: WorldContext) {
       const examineTarget =
         s || p || caveFloor || (!inCave && context.inPark(t.x, t.y) ? sightById('park') : null);
       if (examineTarget)
-        add('Examine ' + examineTarget.label, () => examine(examineTarget), 'examine');
+        add('Examine ' + examineTarget.label, () => examine(examineTarget), 'examine', {
+          label: examineTarget.label,
+          kind: actionTargetKind(examineTarget),
+        });
     }
     if (!npc && !s && !p && context.skateboard.riding)
       for (const trick of SKATE_TRICKS)
@@ -4856,8 +4933,8 @@ export function createInteractions(context: WorldContext) {
       buttons.find((button) => button.dataset.actionId === primary.id) ||
       (caveFloor && !context.clearAt(t.x, t.y)
         ? undefined
-        : add(primary.label, primary.run, primary.id));
-    editMenuLabels(menu, owner, actionTargets);
+        : add(primary.label, primary.run, primary.id, primary.target));
+    editMenuLabels(menu, owner, actionTargets, namedActions);
     if (npc && !npc.networkPlayer && npc.rider && !npc.bicycleTaken)
       add(
         'Seize-Bicycle-from ' + context.npcLabel(npc, false),
@@ -4878,7 +4955,8 @@ export function createInteractions(context: WorldContext) {
   function editMenuLabels(
     menu: HTMLDivElement,
     owner: string | EditableEntity | null | undefined,
-    targets: readonly { label: string; kind: string }[],
+    targets: readonly ActionLabelTarget[],
+    namedActions?: ReadonlyMap<string | undefined, ActionLabelTarget>,
   ) {
     const buttons = [...menu.querySelectorAll<HTMLElementTagNameMap['button']>('button')];
     const bindings = new Map(buttons.map((b) => [b.dataset.actionId, b]));
@@ -4888,7 +4966,8 @@ export function createInteractions(context: WorldContext) {
     menu.replaceChildren(requiredValue(heading, 'Context menu heading'));
     for (const action of authored) {
       const b = action.binding;
-      setActionText(b, action.label, targets);
+      const target = namedActions?.get(b.dataset.actionId);
+      setActionText(b, action.label, target ? [target, ...targets] : targets, target);
       b.disabled = !!action.disabled;
       menu.append(b);
     }

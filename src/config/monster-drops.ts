@@ -1,31 +1,37 @@
 import { LEGACY_BUGS } from '../legacy-software-layout.ts';
 import type { DropRule } from '../types/monsters.ts';
 import { FIGHTER_LEVELS } from '../fighter-yard-layout.ts';
+import { IRON_ARMOR_PIECES } from '../item-stats.ts';
 import { defineMonsterStats } from '../types/monsters.ts';
 // CONTENT-BINDINGS-MIGRATED
 import { contentText } from '../content-runtime.ts';
 /** Independent drop rolls; choose splits one successful roll equally. */
 export const COMMON_RESPAWN_SECONDS = 10;
+const ironGearDrop: DropRule = { choose: [...IRON_ARMOR_PIECES, 'crowbar'], oneIn: 20 };
 export const MONSTER_DROPS: Readonly<Record<string, readonly DropRule[]>> = Object.freeze({
   'emf-warrior': [{ item: 'railgun-upgrade', oneIn: 1 }],
   cow: [{ item: 'sandwich', oneIn: 1 }],
   goblin: [
     { item: 'coins', amount: 3, oneIn: 1 },
     { item: 'combat-boots', oneIn: 8 },
+    ironGearDrop,
   ],
   'lost-goblin': [
     { item: 'coins', amount: 3, oneIn: 1 },
     { item: 'combat-boots', oneIn: 8 },
+    ironGearDrop,
   ],
   'goblin-maker': [
     { item: 'coins', amount: 8, oneIn: 1 },
     { item: 'ball-chair', oneIn: 12 },
     { item: 'combat-boots', oneIn: 8 },
+    ironGearDrop,
   ],
-  'goblin-guard': [{ item: 'coins', amount: 6, oneIn: 1 }],
+  'goblin-guard': [{ item: 'coins', amount: 6, oneIn: 1 }, ironGearDrop],
   'goblin-veteran': [
     { item: 'coins', amount: 10, oneIn: 1 },
     { item: 'combat-boots', oneIn: 8 },
+    ironGearDrop,
   ],
   ...Object.fromEntries(
     FIGHTER_LEVELS.map((level) => [
@@ -68,7 +74,8 @@ export const MONSTER_DROPS: Readonly<Record<string, readonly DropRule[]>> = Obje
   ),
 
   seagull: [],
-  robocop: [{ item: 'peptides', oneIn: 10 }],
+  'soma-zombie': [ironGearDrop],
+  robocop: [{ item: 'peptides', oneIn: 10 }, ironGearDrop],
   raptor: [{ item: 'raptor', oneIn: 1 }],
   kraken: [{ item: 'kraken', oneIn: 1 }],
   bear: [{ item: 'peptides', oneIn: 20 }],
@@ -139,7 +146,7 @@ export const MONSTER_STATS = defineMonsterStats({
     respawn: COMMON_RESPAWN_SECONDS,
     speed: 1.2,
     leash: 2,
-    roamRadius: 0.44,
+    roamRadius: 0.84,
     roamSpeed: 0.48,
     height: 1.17,
     model: 'goat',
@@ -463,6 +470,19 @@ export const MONSTER_STATS = defineMonsterStats({
     roamRadius: 1.45,
     roamSpeed: 0.62,
     description: 'A red fox with black stockings and a white-tipped brush.',
+  },
+  raccoon: {
+    name: 'Raccoon',
+    ...monsterCombat(2, 1.6),
+    model: 'raccoon',
+    height: 0.62,
+    respawn: 20,
+    speed: 1.8,
+    leash: 4,
+    roamRadius: 1.3,
+    roamSpeed: 0.55,
+    walkStride: 0.58,
+    description: 'A gray raccoon with a dark face mask and a striped tail.',
   },
   bison: {
     name: contentText('config.monster-drops.module.name-15', {}),

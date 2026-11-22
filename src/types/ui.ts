@@ -30,6 +30,7 @@ export interface GameElements {
   'sf-character-tabs': HTMLElementTagNameMap['div'];
   'sf-strength-progress': HTMLElementTagNameMap['progress'];
   'sf-rocket-countdown': HTMLElementTagNameMap['small'];
+  'sf-rocket-ignition': HTMLElementTagNameMap['div'];
   'sf-tablets': HTMLElementTagNameMap['div'];
   'sf-character': HTMLElementTagNameMap['section'];
   'sf-character-button': HTMLElementTagNameMap['button'];

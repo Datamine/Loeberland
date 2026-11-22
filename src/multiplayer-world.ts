@@ -103,6 +103,7 @@ export function setupMultiplayerSettings(client: {
   const pvpHint = document.getElementById('sf-pvp-status')!;
   function update() {
     const state = client.state;
+    grapple.hidden = !state.grapplingHook;
     grapple.disabled = !state.connected || !state.grapplingHook;
     const pvp = state.pvp || { enabled: false, disableAt: 0 };
     const seconds = Math.max(

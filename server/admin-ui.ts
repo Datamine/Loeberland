@@ -1,4 +1,3 @@
-import { setupCombatSimulator } from '../editor/combat-simulator.ts';
 import { requiredElement } from '../src/types/ui.ts';
 import { errorMessage, isRecord } from '../src/types/json.ts';
 import { fillEquipmentSelect } from '../src/equipment-options.ts';
@@ -41,8 +40,10 @@ interface AdminElements {
   'equipment-hint': HTMLParagraphElement;
 }
 declare const __ADMIN_READ_ONLY__: boolean;
+declare const __ADMIN_RESTARTS_GAME__: boolean;
 const token = '__ADMIN_TOKEN__';
 const readOnly = __ADMIN_READ_ONLY__;
+const restartsGame = __ADMIN_RESTARTS_GAME__;
 const $ = <K extends keyof AdminElements>(id: K) => requiredElement<AdminElements[K]>(id);
 let records: AdminRow[] = [],
   selected: AdminRow | null = null,
@@ -69,17 +70,18 @@ for (const [key, caption] of Object.entries(slots) as [AdminEquipmentSlot, strin
 }
 function playerDraft() {
   try {
-    const record: unknown = JSON.parse($('editor').value);
+    const root: unknown = JSON.parse($('editor').value);
+    const record = isRecord(root) ? root.state : null;
     if (!isRecord(record)) return null;
     const player = isRecord(record.playerState) ? record.playerState : record;
     if (!isRecord(player.inventory) || !isRecord(player.quests)) return null;
-    return { record, player, inventory: player.inventory, quests: player.quests };
+    return { root, record, player, inventory: player.inventory, quests: player.quests };
   } catch {
     return null;
   }
 }
 function renderEquipment() {
-  $('equipment').hidden = selected?.kind !== 'state' || !selected.key.startsWith('player:');
+  $('equipment').hidden = selected?.kind !== 'player';
   if ($('equipment').hidden) return;
   const draft = playerDraft();
   $('equipment-hint').textContent = draft
@@ -121,7 +123,7 @@ function renderEquipment() {
       const current = playerDraft();
       if (!current || !grantAndEquip(current, key, select.value)) return;
       const editor = $('editor');
-      editor.value = JSON.stringify(current.record, null, 2);
+      editor.value = JSON.stringify(current.root, null, 2);
       controls();
     };
   }
@@ -201,9 +203,9 @@ async function load(row: AdminRow) {
     status(
       readOnly
         ? 'Read-only inspection. Refresh or reload to see the latest saved checkpoint.'
-        : row.kind === 'usernames'
-          ? 'For a rename, update name and canonical (lowercase). Keep owner unchanged. changed is a timestamp in milliseconds.'
-          : 'Edit the JSON, then save. Changes are written directly to the database.',
+        : row.kind === 'player'
+          ? 'Edit state or username. For a rename, update name and canonical (lowercase). Keep owner unchanged.'
+          : 'Edit the JSON, then save.',
     );
   } catch (error) {
     status(errorMessage(error), 'error');
@@ -214,6 +216,7 @@ async function load(row: AdminRow) {
   }
 }
 $('save').onclick = async () => {
+  if (restartsGame && !confirm('Save this edit and briefly restart the game?')) return;
   busy = true;
   controls();
   draw();
@@ -226,7 +229,12 @@ $('save').onclick = async () => {
     original = data.raw;
     baseline = JSON.stringify(value, null, 2);
     $('editor').value = baseline;
-    status('Saved. Restart the game server to load this change.', 'success');
+    status(
+      restartsGame
+        ? 'Saved. The game is restarting.'
+        : 'Saved. Restart the game server to load this change.',
+      'success',
+    );
     try {
       await refresh();
     } catch (error) {
@@ -265,5 +273,3 @@ controls();
 refresh().catch((error) => status(errorMessage(error), 'error'));
 
 export {};
-
-setupCombatSimulator();

@@ -284,8 +284,13 @@ STATE_FILE=/path/to/world.sqlite npm --prefix server run admin
 
 Use `ADMIN_PORT` to change port 8788. The Node panel binds to loopback by
 default. The Docker launcher binds inside the container and publishes to host
-loopback. On AWS with a custom domain, Caddy serves the read-only panel at
-`/admin/` over HTTPS. Use an SSH or SSM tunnel for remote editing sessions.
+loopback. On AWS with a custom domain, Caddy serves the panel at `/admin/`
+over HTTPS. Saving an edit there briefly restarts the game. Use the SSH
+editing session to make multiple changes during one maintenance window.
+
+The panel shows one player record per owner, with `state` and `username`
+fields. Saving checks and updates both fields together. A missing field is
+shown as `null`. The global world record has its own entry.
 
 For custom credential/settings files:
 

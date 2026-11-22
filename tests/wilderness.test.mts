@@ -136,6 +136,36 @@ test('drop catalogs have exact 1/20 and 1/50 boundaries; giant success chooses o
     }
   assert.equal(rollMonsterDrops('cow')[0].lootKind, 'sandwich');
 });
+
+test('goblins, zombies, and Robocop roll once for iron gear or a crowbar', () => {
+  const kinds = [
+    'goblin',
+    'lost-goblin',
+    'goblin-maker',
+    'goblin-guard',
+    'goblin-veteran',
+    'soma-zombie',
+    'robocop',
+  ];
+  const gear = ['iron-armor', 'iron-armor-legs', 'crowbar'];
+  for (const kind of kinds) {
+    const otherRolls = MONSTER_DROPS[kind].slice(0, -1).filter((rule) => rule.oneIn > 1);
+    const roll = (chance: number, choice: number) =>
+      rollMonsterDrops(kind, sequence([...otherRolls.map(() => 0.999), chance, choice])).filter(
+        (drop) => drop.lootKind === 'equipment',
+      );
+    assert.deepEqual(roll(0.05, 0), [], kind);
+    for (const [index, itemId] of gear.entries()) {
+      const equipment = roll(0.05 - Number.EPSILON, (index + 0.5) / gear.length);
+      assert.deepEqual(
+        equipment.map((drop) => [drop.itemId, drop.amount]),
+        [[itemId, 1]],
+        kind,
+      );
+    }
+  }
+});
+
 test('weapon/food stats live in the item catalog and the axe fills the damage gap', () => {
   const average = (id?: string | undefined) => {
     const r = weaponDamageRange(1, id);

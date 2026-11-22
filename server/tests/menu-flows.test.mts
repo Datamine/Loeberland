@@ -10,6 +10,8 @@ import { player, latestResult, requiredResult } from './fixtures.mts';
 import { dialogueFixture } from '../../tests/helpers/dialogue-fixture.mts';
 import { npcContextActions, npcOffersAttack } from '../../src/npc-interactions.ts';
 import { neighborhoodShopDialogue } from '../../src/neighborhood-interactions.ts';
+import { compileEntityDialogue } from '../../src/content-game.ts';
+import { MENOTTIS_SITE_ID } from '../../src/southern-craft.ts';
 import { NEIGHBORHOOD_SERVICES } from '../../src/config/neighborhood-services.ts';
 import { HAT_CATALOG } from '../../src/hat-catalog.ts';
 import { haberdasherDialogue } from '../../src/haberdashery.ts';
@@ -1213,6 +1215,46 @@ test('every authored actor has usable context actions, protected actors have no 
     string,
   ]);
   t.diagnostic(`${actors.length} placed actors; player/PvP/follow/duel variants`);
+});
+
+test('Menotti’s is the Ocean Esplanade café, with coffee, a paid chore, and protected patio patrons', async () => {
+  const a = await visitor();
+  try {
+    const cafes = geometry.southernNeighborhood.craftSites.filter(
+      (site) => site.neighborhoodService === 'menottis',
+    );
+    assert.deepEqual(
+      cafes.map((site) => site.id),
+      [MENOTTIS_SITE_ID],
+    );
+    const cafe = cafes[0];
+    assert.ok(Math.hypot(cafe.entry.x + 0.5 - 15, cafe.entry.y + 0.5 - 146) < 0.5);
+    assert.equal(cafe.label, 'Menotti’s');
+    const patrons = geometry.restaurantDiners.filter((d) => d.id.startsWith(cafe.id + '-'));
+    assert.equal(patrons.length, 2);
+    assert.ok(patrons.every((patron) => !npcOffersAttack(patron)));
+    const barista = npc((n) => n.siteId === cafe.id);
+    assert.equal(barista.neighborhoodService, 'menottis');
+    const person = compileEntityDialogue(
+      neighborhoodShopDialogue(barista, (id, offer) =>
+        act(a, 'playerAction', { verb: 'neighborhoodService', id, offer }),
+      ),
+      'actor:' + barista.id,
+    );
+    atNPC(a, barista);
+    const coins = a.p.inventory.economy.state.coins;
+    a.p.hp = a.p.max - 1;
+    await choose(a, person, ['Buy a coffee · 1 coin']);
+    assert.equal(a.p.inventory.economy.state.coins, coins - 1);
+    assert.equal(a.p.hp, a.p.max);
+    const chore = requiredFixture(
+      person.choices?.find((choice) => choice.label.includes('tables')),
+    );
+    await choose(a, person, [chore.label]);
+    assert.equal(a.p.inventory.economy.state.coins, coins);
+  } finally {
+    stop(a);
+  }
 });
 
 test('every offer at every neighborhood shop executes through its real menu and commits the configured effect', async (t) => {

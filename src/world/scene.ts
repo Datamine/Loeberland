@@ -4250,20 +4250,19 @@ export function createSFWorld({
     tip.hidden = !hovered || !$('sf-context').hidden;
     tip.toggleAttribute('data-ground-take', sight?.kind === 'loot' || sight?.kind === 'sunglasses');
     if (hovered) {
+      const action = primaryWorldAction(target);
       const tipText =
         sutroClimb.state.active && sight?.id === 'sutro'
           ? 'Climb down ' + sight.label
-          : primaryWorldAction(target).label;
-      setActionText(
-        tip,
-        tipText,
-        citizen
-          ? [
-              { label: npcLabel(citizen), kind: citizen.editorCategory || 'npc' },
-              { label: npcLabel(citizen, false), kind: citizen.editorCategory || 'npc' },
-            ]
-          : [{ label: hovered.label, kind: actionTargetKind(hovered) }],
-      );
+          : action.label;
+      const targets = citizen
+        ? [
+            { label: npcLabel(citizen), kind: citizen.editorCategory || 'npc' },
+            { label: npcLabel(citizen, false), kind: citizen.editorCategory || 'npc' },
+          ]
+        : [{ label: hovered.label, kind: actionTargetKind(hovered) }];
+      if (action.target) targets.unshift(action.target);
+      setActionText(tip, tipText, targets, targets[0]);
       tip.style.left = Math.max(8, Math.min(width - 300, e.clientX + 17)) + 'px';
       tip.style.top = Math.min(height - 38, e.clientY + 22) + 'px';
     }

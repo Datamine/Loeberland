@@ -4,6 +4,35 @@ import { MP_PROTOCOL } from '../../src/multiplayer-protocol.ts';
 import { characterAppearance, normalizeCharacter } from '../../src/character-config.ts';
 import { equipmentOptions } from '../../src/equipment-options.ts';
 import { command, fixture, player, requiredResult } from './fixtures.mts';
+import { createCharacterAccounts } from '../character-accounts.mts';
+import { createCheckpointManager } from '../checkpoints.mts';
+import { createMemoryStore } from '../store.mts';
+
+test('new device tokens get a stable UUIDv4 owner across concurrent joins and checkpoint restore', async () => {
+  const store = createMemoryStore();
+  const manager = await createCheckpointManager({ store });
+  const accounts = createCharacterAccounts(manager.openGame(), Date.now);
+  const token = 'a'.repeat(64);
+  const accept = () => {};
+  const [owner, concurrent] = await Promise.all([
+    accounts.ownerFor(token, accept),
+    accounts.ownerFor(token, accept),
+  ]);
+  assert.match(owner, /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/);
+  assert.equal(concurrent, owner);
+  await manager.cycle();
+  const restored = await createCheckpointManager({ store });
+  const reopened = createCharacterAccounts(restored.openGame(), Date.now);
+  assert.equal(
+    await reopened.ownerFor(token, () => assert.fail('owner must already exist')),
+    owner,
+  );
+  const edit = await reopened.preparePassword(owner, 'a-strong-test-password', undefined);
+  assert.ok('save' in edit && edit.save);
+  const session = await edit.save();
+  await assert.rejects(reopened.ownerFor(token, accept), /expired/);
+  assert.equal(await reopened.ownerFor(session, accept), owner);
+});
 
 test('Character Save persists the wardrobe and password and restores the same character on login', async () => {
   const { game } = await fixture();

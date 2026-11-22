@@ -126,6 +126,7 @@ import { RESTAURANTS, drawRestaurantDiners } from '../restaurants.ts';
 import { drawEstateResidents } from '../estate-life.ts';
 import { drawStreetcar } from '../life.ts';
 import { MARKET_STREETCAR } from '../market-streetcar.ts';
+import { setActionText } from '../context-menu.ts';
 import { drawTrafficSignalLights, drawSlowBus } from '../transit-models.ts';
 import { drawBeachSand } from '../gpu-factory.ts';
 import { CHARACTER_CLIPS } from '../characters.ts';
@@ -2676,7 +2677,7 @@ export function createRendering(context: WorldContext) {
       if (!label) {
         label = document.createElement('button');
         label.type = 'button';
-        label.textContent = 'Take ' + sight.label;
+        setActionText(label, 'Take ' + sight.label, [{ label: sight.label, kind: 'item' }]);
         label.addEventListener('click', (event) =>
           context.clicked(event.clientX, event.clientY, () => context.goToSight(sight)),
         );

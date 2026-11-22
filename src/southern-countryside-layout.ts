@@ -195,8 +195,8 @@ export const SOUTHERN_COUNTRY_PATHS = Object.freeze(
 
 const countrysidePlots = [
   // Garden homes take the place of the old, tightly packed institute plots.
-  [53.3, 170, 3.3, 2.8, 0, 'craftsman'] satisfies [number, number, number, number, number, string],
-  [57.5, 170, 3.5, 2.8, 0, 'eichler'] satisfies [number, number, number, number, number, string],
+  [53.3, 168, 3.3, 2.8, 0, 'craftsman'] satisfies [number, number, number, number, number, string],
+  [57.5, 168, 3.5, 2.8, 0, 'eichler'] satisfies [number, number, number, number, number, string],
   [62.8, 228, 3.4, 2.8, Math.PI, 'bungalow'] satisfies [
     number,
     number,

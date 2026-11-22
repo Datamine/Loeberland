@@ -16,7 +16,7 @@ Usage: ./deploy/aws.sh [deploy|ssh|admin|admin-configure|edit|credentials|status
 
 deploy       Build the current checkout and create or update the AWS server.
 ssh         Log in to the host with the generated PEM.
-admin       Forward the read-only admin panel to http://127.0.0.1:8788/.
+admin       Forward the admin panel to http://127.0.0.1:8788/.
 admin-configure  Apply the admin username and password from .deploy/aws-admin.env.
 edit        Stop the game for an editing session, then restart it on exit.
 credentials Display the active admin panel credentials.

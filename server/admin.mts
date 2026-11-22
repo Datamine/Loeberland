@@ -22,7 +22,15 @@ interface AdminOptions {
   publicHost?: string;
 }
 import { createServer } from 'node:http';
-import { randomBytes, createHash, timingSafeEqual } from 'node:crypto';
+import { randomBytes, randomUUID, createHash, timingSafeEqual } from 'node:crypto';
+import { setTimeout as delay } from 'node:timers/promises';
+import {
+  adminEditResult,
+  checkpointRecord,
+  editCheckpoint,
+  pendingAdminEdit,
+  type OwnerRecord,
+} from './admin-edit.mts';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { normalizeUsername } from './usernames.mts';
@@ -56,20 +64,23 @@ function adminAuthorization(username: string | undefined, password: string | und
     timingSafeEqual(expected, digest(Buffer.from(header.slice(6), 'base64')));
 }
 
-const isAccountKey = (key: string) => /^(character-password:|character-session:)/.test(key);
+const isAccountKey = (key: string) => /^character-(password|session|device):/.test(key);
+type PlayerParts = [state: string | null, username: string | null];
 
 function validate(
   kind: string,
   key: string,
   value: unknown,
 ): asserts value is Record<string, unknown> {
-  if (
-    !(['state', 'usernames'] satisfies [string, string]).includes(kind) ||
-    typeof key !== 'string' ||
-    !key
-  )
+  if (!['state', 'usernames', 'player'].includes(kind) || typeof key !== 'string' || !key)
     throw fail(400, 'Choose an existing record.');
   if (!isRecord(value)) throw fail(400, 'The value must be a JSON object.');
+  if (kind === 'player') {
+    if (Object.keys(value).sort().join(',') !== 'state,username')
+      throw fail(400, 'Player fields must be state and username.');
+    if (value.state !== null) validate('state', key, value.state);
+    if (value.username !== null) validate('usernames', key, value.username);
+  }
   if (kind === 'usernames') {
     const name = normalizeUsername(value.name);
     if (!name.ok) throw fail(400, name.message);
@@ -89,8 +100,12 @@ function validate(
 export async function openAdminStore({
   filename = process.env.STATE_FILE || defaultFile,
   redisURL = process.env.REDIS_URL,
+  queueEdits = false,
 } = {}) {
   let adapter: AdminBackend;
+  let saveLegacyPlayer: (owner: string, previous: PlayerParts, next: OwnerRecord) => Promise<void>;
+  let enqueue:
+    ((kind: string, key: string, original: string, value: object) => Promise<void>) | undefined;
   if (redisURL) {
     const { createClient } = await import('redis');
     const client = createClient({
@@ -101,6 +116,72 @@ export async function openAdminStore({
     await client.connect();
     const namesKey = prefix + 'names',
       leaseKey = prefix + 'simulation-owner';
+    saveLegacyPlayer = async (owner, [state, username], next) => {
+      const result = await client.eval(
+        `
+        if redis.call('EXISTS', KEYS[1]) == 1 then return -2 end
+        if (redis.call('GET', KEYS[2]) or '') ~= ARGV[2] or
+           (redis.call('HGET', KEYS[3], ARGV[1]) or '') ~= ARGV[3] then return 0 end
+        if ARGV[5] ~= '' then
+          local names = redis.call('HGETALL', KEYS[3])
+          for i = 1, #names, 2 do
+            if names[i] ~= ARGV[1] and cjson.decode(names[i+1]).canonical == ARGV[6] then return -3 end
+          end
+        end
+        if ARGV[4] ~= '' then redis.call('SET', KEYS[2], ARGV[4]) end
+        if ARGV[5] ~= '' then redis.call('HSET', KEYS[3], ARGV[1], ARGV[5]) end
+        return 1
+        `,
+        {
+          keys: [leaseKey, prefix + 'player:' + owner, namesKey],
+          arguments: [
+            owner,
+            state ?? '',
+            username ?? '',
+            next.state === null ? '' : JSON.stringify(next.state),
+            next.username ? JSON.stringify(next.username) : '',
+            next.username?.canonical ?? '',
+          ],
+        },
+      );
+      if (result === -2)
+        throw fail(409, 'Stop the game server first; its Redis ownership lease is still active.');
+      if (result === -3) throw fail(409, 'That username is already taken.');
+      if (result !== 1)
+        throw fail(409, 'This record changed or was deleted. Reload it before saving.');
+    };
+    if (queueEdits) {
+      enqueue = async (kind, key, original, value) => {
+        const id = randomUUID();
+        const owner = await client.get(leaseKey);
+        if (!owner) throw fail(409, 'The game is restarting. Reload the record and try again.');
+        const queued = await client.eval(
+          `
+          if redis.call('GET', KEYS[1]) ~= ARGV[1] then return -1 end
+          if redis.call('SET', KEYS[2], ARGV[2], 'NX', 'EX', 120) then return 1 end
+          return 0
+          `,
+          {
+            keys: [leaseKey, pendingAdminEdit],
+            arguments: [owner, JSON.stringify({ id, owner, kind, key, original, value })],
+          },
+        );
+        if (queued === -1)
+          throw fail(409, 'The game is restarting. Reload the record and try again.');
+        if (queued !== 1) throw fail(409, 'Another admin edit is pending. Wait for it to finish.');
+        const deadline = Date.now() + 120_000;
+        do {
+          const result = await client.get(adminEditResult(id));
+          if (result === 'ok') return;
+          if (result) throw fail(409, result);
+          await delay(500);
+        } while (Date.now() < deadline);
+        throw fail(
+          504,
+          'The edit was not confirmed. Reload the record to check its current value.',
+        );
+      };
+    }
     adapter = {
       kind: 'redis',
       location: 'Redis · ' + prefix,
@@ -176,6 +257,40 @@ export async function openAdminStore({
       db.close();
       throw error;
     }
+    saveLegacyPlayer = async (owner, [state, username], next) => {
+      db.exec('BEGIN IMMEDIATE');
+      try {
+        const stateKey = 'player:' + owner;
+        const currentState =
+          db.prepare('SELECT value FROM state WHERE key=?').get(stateKey)?.value ?? null;
+        const currentName = db
+          .prepare('SELECT owner, canonical, name, changed FROM usernames WHERE owner=?')
+          .get(owner);
+        if (
+          currentState !== state ||
+          (currentName ? JSON.stringify(currentName) : null) !== username
+        )
+          throw fail(409, 'This record changed or was deleted. Reload it before saving.');
+        if (next.state !== null)
+          db.prepare('UPDATE state SET value=? WHERE key=?').run(
+            JSON.stringify(next.state),
+            stateKey,
+          );
+        if (next.username)
+          db.prepare('UPDATE usernames SET canonical=?, name=?, changed=? WHERE owner=?').run(
+            next.username.canonical,
+            next.username.name,
+            next.username.changed,
+            owner,
+          );
+        db.exec('COMMIT');
+      } catch (error) {
+        db.exec('ROLLBACK');
+        if (errorMessage(error).includes('UNIQUE constraint failed'))
+          throw fail(409, 'That username is already taken.');
+        throw error;
+      }
+    };
     adapter = {
       kind: 'sqlite',
       location: filename,
@@ -231,7 +346,8 @@ export async function openAdminStore({
   // Keep the editor's player/world view after migration. Legacy keys are
   // deliberately ignored: saving one would not change the restored game.
   const registry = JSON.parse((await adapter.get('state', 'checkpoint:games')) || 'null');
-  if (registry?.world) {
+  const checkpointed = !!registry?.world || !!enqueue;
+  if (checkpointed) {
     const backend = adapter,
       key = 'checkpoint:game:world';
     const read = async () => {
@@ -239,10 +355,6 @@ export async function openAdminStore({
       if (!raw) throw fail(409, 'World checkpoint is missing.');
       return { raw, document: JSON.parse(raw) as GameCheckpoint };
     };
-    const record = (document: GameCheckpoint, kind: string, id: string) =>
-      kind === 'state'
-        ? document.records.find(([key]) => key === id)?.[1]
-        : document.names.find((row) => row.owner === id);
     adapter = {
       ...backend,
       async list() {
@@ -251,41 +363,37 @@ export async function openAdminStore({
       },
       async get(kind: string, id: string) {
         const { document } = await read(),
-          value = record(document, kind, id);
+          value = checkpointRecord(document, kind, id);
         return value === undefined ? null : JSON.stringify(value);
       },
       async save(kind: string, id: string, original: string, value: object) {
         const { raw, document } = await read();
-        if (JSON.stringify(record(document, kind, id)) !== original)
-          throw fail(409, 'This record changed or was deleted. Reload it before saving.');
-        if (kind === 'usernames') {
-          const rowValue = value as NameReservation;
-          if (
-            document.names.some((row) => row.owner !== id && row.canonical === rowValue.canonical)
-          )
-            throw fail(409, 'That username is already taken.');
-          document.names = document.names.map((row) => (row.owner === id ? rowValue : row));
-        } else
-          document.records = document.records.map(([key, entry]) => [
-            key,
-            key === id ? value : entry,
-          ]);
-        if (document.version >= Number.MAX_SAFE_INTEGER)
-          throw fail(409, 'Game state version exhausted.');
-        document.version++;
-        document.savedAt = Date.now();
+        const conflict = editCheckpoint(document, { kind, key: id, original, value });
+        if (conflict) throw fail(409, conflict);
+        if (enqueue) return enqueue(kind, id, original, value);
         await backend.save('state', key, raw, document);
       },
     };
   }
+  const readLegacyPlayer = async (owner: string) => {
+    const [state, username] = await Promise.all([
+      adapter.get('state', 'player:' + owner),
+      adapter.get('usernames', owner),
+    ]);
+    const previous: PlayerParts = [state ?? null, username ?? null];
+    const raw =
+      state == null && username == null
+        ? null
+        : JSON.stringify({
+            state: JSON.parse(state ?? 'null'),
+            username: JSON.parse(username ?? 'null'),
+          });
+    return { previous, raw };
+  };
   return {
     ...adapter,
     async get(kind: string, key: string) {
-      if (
-        !(['state', 'usernames'] satisfies [string, string]).includes(kind) ||
-        typeof key !== 'string' ||
-        !key
-      )
+      if (!['state', 'usernames', 'player'].includes(kind) || typeof key !== 'string' || !key)
         throw fail(400, 'Choose an existing record.');
       if (
         adapter.kind === 'redis' &&
@@ -293,13 +401,36 @@ export async function openAdminStore({
         (['names', 'simulation-owner'] satisfies [string, string]).includes(key)
       )
         throw fail(400, 'This is an internal Redis key.');
-      const raw = await adapter.get(kind, key);
+      const raw =
+        kind === 'player' && !checkpointed
+          ? (await readLegacyPlayer(key)).raw
+          : await adapter.get(kind, key);
       if (raw == null) throw fail(404, 'Record not found.');
       return raw;
     },
     async save(kind: string, key: string, original: unknown, value: unknown) {
       validate(kind, key, value);
       if (typeof original !== 'string') throw fail(400, 'Reload the record before saving.');
+      if (kind === 'player') {
+        let base: unknown;
+        try {
+          base = JSON.parse(original);
+        } catch {
+          throw fail(400, 'Reload the record before saving.');
+        }
+        if (
+          !isRecord(base) ||
+          (base.state === null) !== (value.state === null) ||
+          (base.username === null) !== (value.username === null)
+        )
+          throw fail(400, 'Keep missing player state or username fields null.');
+        if (!checkpointed) {
+          const { previous, raw } = await readLegacyPlayer(key);
+          if (raw !== original)
+            throw fail(409, 'This record changed or was deleted. Reload it before saving.');
+          return saveLegacyPlayer(key, previous, value as unknown as OwnerRecord);
+        }
+      }
       if (
         adapter.kind === 'redis' &&
         kind === 'state' &&
@@ -322,16 +453,23 @@ export async function startAdmin({
 }: AdminOptions = {}) {
   const authorized = adminAuthorization(username, password);
   const publicOrigin = readOnly && publicHost ? new URL(`https://${publicHost}`) : null;
-  const store = providedStore || (await openAdminStore());
+  const failures = new Map<string, { count: number; until: number }>();
+  const queueEdits =
+    !providedStore && readOnly && process.env.ADMIN_QUEUE_EDITS === '1' && !!process.env.REDIS_URL;
+  const inspectionOnly = readOnly && !queueEdits;
+  const store = providedStore || (await openAdminStore({ queueEdits }));
   const token = randomBytes(32).toString('hex');
   const html = (await readFile(new URL('./admin.html', import.meta.url), 'utf8'))
     .replace('__ADMIN_TOKEN__', token)
-    .replace('__ADMIN_READ_ONLY__', JSON.stringify(readOnly))
+    .replace('__ADMIN_READ_ONLY__', JSON.stringify(inspectionOnly))
+    .replace('__ADMIN_RESTARTS_GAME__', JSON.stringify(queueEdits))
     .replace(
       '__ADMIN_NOTICE__',
-      readOnly
-        ? 'Read-only inspection. The game can keep running. Stop it before opening an editing session.'
-        : 'Stop the game server before editing. After saving, restart the game server to load your changes.',
+      queueEdits
+        ? 'Saving checkpoints and restarts the game. Players will briefly disconnect.'
+        : inspectionOnly
+          ? 'Read-only inspection. The game can keep running. Stop it before opening an editing session.'
+          : 'Stop the game server before editing. After saving, restart the game server to load your changes.',
     );
   let origin = '';
   const server = createServer(async (req, res) => {
@@ -346,11 +484,36 @@ export async function startAdmin({
       res.end(type === 'application/json' ? JSON.stringify(value) : String(value));
     };
     try {
+      const forwarded = req.headers['x-admin-client-ip'];
+      const client =
+        publicOrigin && req.headers.host === publicOrigin.host && typeof forwarded === 'string'
+          ? forwarded
+          : req.socket.remoteAddress || 'unknown';
+      const now = Date.now();
+      const failure = failures.get(client);
+      if (req.headers.authorization && failure && failure.until > now && failure.count >= 5) {
+        res.setHeader('Retry-After', Math.ceil((failure.until - now) / 1000));
+        send(429, { error: 'Too many failed sign-ins. Try again later.' });
+        return;
+      }
       if (!authorized(req.headers.authorization)) {
+        if (req.headers.authorization) {
+          if (!failure || failure.until <= now) {
+            if (failures.size >= 4096) {
+              for (const [address, entry] of failures)
+                if (entry.until <= now) failures.delete(address);
+              if (failures.size >= 4096) failures.delete(failures.keys().next().value!);
+            }
+            failures.set(client, { count: 1, until: now + 60_000 });
+          } else if (++failure.count === 5) {
+            failure.until = now + 60_000;
+          }
+        }
         res.setHeader('WWW-Authenticate', 'Basic realm="Explore SF admin", charset="UTF-8"');
         send(401, { error: 'Admin authentication required.' });
         return;
       }
+      failures.delete(client);
       const requestOrigin =
         req.headers.host === new URL(origin).host
           ? origin
@@ -372,17 +535,23 @@ export async function startAdmin({
       if (req.method === 'GET' && url.pathname === '/api/records') {
         const { keys, names } = await store.list(),
           owners = new Map(names.map((row) => [row.owner, row.name]));
+        for (const key of keys)
+          if (key.startsWith('player:') && !owners.has(key.slice(7)))
+            owners.set(key.slice(7), 'Unnamed player');
         const records = keys
-          .filter((key) => !isAccountKey(key))
+          .filter((key) => !isAccountKey(key) && !key.startsWith('player:'))
           .map((key) => ({
             kind: 'state',
             key,
-            label: key.startsWith('player:') ? owners.get(key.slice(7)) || 'Unnamed player' : key,
+            label: key,
           }));
-        records.push(
-          ...names.map((row) => ({ kind: 'usernames', key: row.owner, label: row.name })),
-        );
-        send(200, { backend: store.kind, location: store.location, readOnly, records });
+        records.push(...Array.from(owners, ([key, label]) => ({ kind: 'player', key, label })));
+        send(200, {
+          backend: store.kind,
+          location: store.location,
+          readOnly: inspectionOnly,
+          records,
+        });
         return;
       }
       if (req.method === 'GET' && url.pathname === '/api/record') {
@@ -392,7 +561,7 @@ export async function startAdmin({
         return;
       }
       if (req.method === 'PUT' && url.pathname === '/api/record') {
-        if (readOnly)
+        if (inspectionOnly)
           throw fail(
             403,
             'This panel is read-only. Stop the game and open an editing session to save changes.',

@@ -4,7 +4,12 @@ import { isPickTarget, hasPhysicalBounds } from '../picking.ts';
 import { requiredValue } from '../types/assert.ts';
 import type { WorldContext } from './scene.ts';
 import { BOLINAS_PATH, BOLINAS_COTTAGES } from '../bolinas.ts';
-import { minimapActors, minimapShops, minimapTasks } from '../minimap-layers.ts';
+import {
+  minimapActors,
+  minimapShopMarkers,
+  minimapShops,
+  minimapTasks,
+} from '../minimap-layers.ts';
 import { createUIJob } from '../ui/scheduler.ts';
 import { drawCompiledMinimapRoads } from '../world-minimap.ts';
 import { APPLE_CAMPUS, ROBOTAXI_DEALER } from '../tech-layout.ts';
@@ -884,6 +889,9 @@ export function createMinimap(context: WorldContext) {
     if (!showNPCs && !showShops && !showTasks) return;
     const actors = minimapActors(context);
     const shops = new Set(showShops ? minimapShops(actors) : []);
+    const shopPoints = shops.size
+      ? minimapShopMarkers([...shops], context.sights).map((shop) => point(shop.x, shop.z))
+      : [];
     const tasks = new Set(
       showTasks
         ? minimapTasks(actors, {
@@ -906,15 +914,14 @@ export function createMinimap(context: WorldContext) {
         c.stroke();
       }
     c.fillStyle = '#91e0d2';
-    for (const npc of shops) {
-      const p = point(npc.x, npc.z);
-      const x = p.x - (tasks.has(npc) ? 4 : 0);
-      c.fillRect(x - 3, p.y - 3, 6, 6);
-      c.strokeRect(x - 3, p.y - 3, 6, 6);
+    for (const { x, y } of shopPoints) {
+      c.fillRect(x - 3, y - 3, 6, 6);
+      c.strokeRect(x - 3, y - 3, 6, 6);
     }
     for (const npc of tasks) {
       const p = point(npc.x, npc.z);
-      const x = p.x + (shops.has(npc) ? 4 : 0);
+      const shop = shopPoints.find((q) => Math.abs(p.x - q.x) < 8 && Math.abs(p.y - q.y) < 8);
+      const x = shop ? shop.x + (p.x < shop.x || shop.x + 12 > context.map.width ? -8 : 8) : p.x;
       poly(
         c,
         [

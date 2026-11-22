@@ -32,6 +32,11 @@ import { TAHOE_PELTS } from '../config/tahoe-pelts.ts';
 
 import { SURF_TRICKS } from '../surfing.ts';
 import { WAYMO_RENTAL } from '../waymo-rental.ts';
+import { setActionText } from '../context-menu.ts';
+
+function updateActionLabel(button: HTMLElement, text: string, label: string, kind: string) {
+  if (button.textContent !== text) setActionText(button, text, [{ label, kind }]);
+}
 
 /** Hud services for the browser scene.
  * Dependencies are explicit live scene bindings, preserving initialization
@@ -67,7 +72,12 @@ export function createHud(context: WorldContext) {
     }
     $('sf-coins').textContent = String(state.coins);
     $('sf-fuel-can-button').hidden = !state.fuelCans;
-    $('sf-fuel-can-button').textContent = 'Use fuel can · ' + state.fuelCans;
+    updateActionLabel(
+      $('sf-fuel-can-button'),
+      'Use fuel can · ' + state.fuelCans,
+      'fuel can',
+      'item',
+    );
     try {
       localStorage.setItem('sf-purse-v1', JSON.stringify(state));
     } catch {}
@@ -87,13 +97,14 @@ export function createHud(context: WorldContext) {
       !!context.chase?.state.jailed ||
       context.rope.climbing ||
       (!context.rope.state.deployed && context.airship.state.phase !== 'flying');
-    $('sf-rope-button').textContent = context.rope.climbing
+    const ropeLabel = context.rope.climbing
       ? 'Climbing…'
       : context.rope.onGround
         ? 'Climb up'
         : context.rope.state.deployed
           ? 'Rope options'
           : 'Drop rope';
+    updateActionLabel($('sf-rope-button'), ropeLabel, 'rope', 'object');
   }
 
   function updateRocketControls() {
@@ -110,7 +121,7 @@ export function createHud(context: WorldContext) {
       context.rocket.state.active ||
       mode === 'gondola' ||
       (mode === 'ski' && context.tahoe.state.airTime <= 0);
-    button.textContent =
+    const label =
       mode === 'gondola'
         ? 'Riding gondola…'
         : mode === 'ski'
@@ -125,6 +136,7 @@ export function createHud(context: WorldContext) {
               ? 'Ski down'
               : 'Rent skis · 1 coin'
             : 'Ride gondola';
+    updateActionLabel(button, label, 'gondola', 'object');
     if (near) {
       $('sf-bike-button').hidden = true;
       $('sf-rope-button').hidden = !context.airship.state.active || mode !== 'ground';
@@ -155,11 +167,9 @@ export function createHud(context: WorldContext) {
       mode = context.bike.riding ? 'riding' : near ? 'near' : 'far';
     if (button.dataset.mode === mode) return;
     button.dataset.mode = mode;
-    button.replaceChildren(
-      document.createTextNode(
-        context.bike.riding ? 'Park bike ' : near ? 'Ride bike ' : 'Find bike ',
-      ),
-    );
+    setActionText(button, context.bike.riding ? 'Park bike ' : near ? 'Ride bike ' : 'Find bike ', [
+      { label: 'bike', kind: 'npc' },
+    ]);
     const key = document.createElement('span');
     key.className = 'sf-key';
     key.textContent = 'B';
@@ -398,7 +408,7 @@ export function createHud(context: WorldContext) {
     );
     skate.setAttribute('aria-pressed', String(context.skateboard.riding));
     const skateText = context.skateboard.riding ? 'Put away board · K' : 'Skateboard · K';
-    if (skate.textContent !== skateText) skate.textContent = skateText;
+    updateActionLabel(skate, skateText, context.skateboard.riding ? 'board' : 'Skateboard', 'item');
     $('sf-skate-tricks').hidden = !context.skateboard.riding;
     for (const button of context.world.querySelectorAll<HTMLButtonElement>('[data-skate-trick]'))
       button.disabled =
@@ -413,7 +423,12 @@ export function createHud(context: WorldContext) {
       const count = (trim ? supplies.armorTrimmingKits : supplies.bindTablets) || 0;
       button.hidden = !count;
       button.disabled = trim && !equipmentOwned(context.economy.state, 'iron-armor');
-      button.textContent = (trim ? 'Trim iron armor' : 'Break Bind Tablet') + ' · ' + count;
+      updateActionLabel(
+        button,
+        (trim ? 'Trim iron armor' : 'Break Bind Tablet') + ' · ' + count,
+        trim ? 'iron armor' : 'Bind Tablet',
+        'item',
+      );
     }
     const supplyStatus = $('sf-combat-supplies');
     const weapon = context.playerWeapon();
@@ -454,11 +469,12 @@ export function createHud(context: WorldContext) {
         ' HP';
     const food = $('sf-eat-sandwich');
     food.hidden = !context.deli?.state.sandwiches;
-    food.textContent =
+    const foodLabel =
       'Eat sandwich · ' +
       (context.deli?.state.sandwiches || 0) +
       '/' +
       (equipmentOwned(context.economy.state, 'backpack') ? 20 : 5);
+    updateActionLabel(food, foodLabel, 'sandwich', 'item');
     food.disabled =
       context.health.state.hp === context.health.state.max || context.capture.state.active;
     $('sf-stop-construction').hidden = context.multiplayerWorld?.selfMode !== 'construction';
@@ -467,9 +483,10 @@ export function createHud(context: WorldContext) {
     const order = $('sf-order-doordash');
     order.disabled =
       !!context.deli?.state.pending || context.capture.state.active || context.chase?.state.jailed;
-    order.textContent = context.deli?.state.pending
+    const orderLabel = context.deli?.state.pending
       ? 'DoorDash en route…'
       : 'DoorDash · ' + ITEM_STATS.sandwich.deliveryPrice + ' coins';
+    updateActionLabel(order, orderLabel, 'DoorDash', 'object');
     const rental = context.multiplayer?.state.personal?.travel?.waymo;
     const waymo = $('sf-call-waymo');
     const seconds = rental?.expiresAt
@@ -490,7 +507,7 @@ export function createHud(context: WorldContext) {
           : rental?.phase === 'dispatch'
             ? 'Waymo en route…'
             : 'Waymo · ' + WAYMO_RENTAL.price + ' coins';
-    if (waymo.textContent !== waymoLabel) waymo.textContent = waymoLabel;
+    updateActionLabel(waymo, waymoLabel, 'Waymo', 'object');
     const s = context.strength.status;
     updateSkillProgress($('sf-strength-progress'), $('sf-strength-level-text'), 'Strength', s);
     const characterLevel = 'Level ' + playerLevel(s.level, hps.level);
@@ -658,9 +675,9 @@ export function createHud(context: WorldContext) {
     const now = Date.now() + (context.multiplayer?.state.serverOffset || 0);
     const seconds = Math.max(0, Math.ceil(((status?.readyAt || 0) - now) / 1000));
     const burning = Math.max(0, Math.ceil(((status?.burningUntil || 0) - now) / 1000));
-    const equipped =
-      context.playerLook.back === 'new-year-rocket' &&
-      equipmentOwned(context.economy.state, 'new-year-rocket');
+    const owned = equipmentOwned(context.economy.state, 'new-year-rocket');
+    $('sf-rocket-ignition').hidden = !owned;
+    const equipped = owned && context.playerLook.back === 'new-year-rocket';
     button.disabled =
       !equipped ||
       !context.multiplayer?.state.connected ||

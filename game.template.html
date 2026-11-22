@@ -125,22 +125,23 @@
               </div>
               <div class="sf-food-controls">
                 <button id="sf-order-doordash" class="sf-bike-button" type="button">
-                  DoorDash · 15 coins</button
+                  <span class="sf-action-target" data-kind="object">DoorDash</span> · 15 coins</button
                 ><button id="sf-eat-sandwich" class="sf-bike-button" type="button" hidden>
                   Eat sandwich
                 </button>
                 <button id="sf-call-waymo" class="sf-bike-button" type="button">
-                  Waymo · 12 coins
+                  <span class="sf-action-target" data-kind="object">Waymo</span> · 12 coins
                 </button>
               </div>
               <button id="sf-stop-construction" class="sf-bike-button" type="button" hidden>
-                Stop construction
+                Stop work at
+                <span class="sf-action-target" data-kind="object">Construction Site</span>
               </button>
               <button id="sf-exit-streetcar" class="sf-bike-button" type="button" hidden>
-                Get off cable car
+                Get off <span class="sf-action-target" data-kind="personal-item">cable car</span>
               </button>
               <button id="sf-exit-swing" class="sf-bike-button" type="button" hidden>
-                Get off swing
+                Get off <span class="sf-action-target" data-kind="object">swing</span>
               </button>
               <button class="sf-bike-button" type="button" data-inventory-action="trimArmor" hidden>
                 Trim iron armor
@@ -150,10 +151,10 @@
               </button>
               <small id="sf-combat-supplies" hidden></small
               ><button id="sf-charge-railgun" class="sf-bike-button" type="button" hidden>
-                Fit battery
+                Fit <span class="sf-action-target" data-kind="item">battery</span>
               </button>
               <button id="sf-drink-coffee" class="sf-bike-button" type="button" hidden>
-                Drink complimentary coffee
+                Drink <span class="sf-action-target" data-kind="item">complimentary coffee</span>
               </button>
               <div class="sf-strength">
                 <label id="sf-hp-level-text" for="sf-hp-level"
@@ -206,8 +207,8 @@
                 <button id="sf-climb-button" class="sf-bike-button" type="button" hidden>
                   Climb down <span class="sf-key">E</span>
                 </button>
-                <button id="sf-grapple-button" class="sf-bike-button" type="button" disabled>
-                  Grapple airship
+                <button id="sf-grapple-button" class="sf-bike-button" type="button" disabled hidden>
+                  Grapple <span class="sf-action-target" data-kind="object">airship</span>
                 </button>
                 <div
                   id="sf-wave-controls"
@@ -298,7 +299,8 @@
                   type="button"
                   aria-pressed="false"
                 >
-                  Find bike <span class="sf-key">B</span>
+                  Find <span class="sf-action-target" data-kind="npc">bike</span>
+                  <span class="sf-key">B</span>
                 </button>
                 <div
                   id="sf-motorcycle-tricks"
@@ -339,7 +341,7 @@
                   Ride gondola
                 </button>
                 <button id="sf-atv-rent" class="sf-bike-button" type="button" hidden>
-                  Rent ATV
+                  Rent <span class="sf-action-target" data-kind="object">ATV</span>
                 </button>
                 <div
                   id="sf-atv-controls"
@@ -404,14 +406,14 @@
                 >
                   Forward roll <span class="sf-key">V</span>
                 </button>
-                <div class="sf-rocket-ignition">
+                <div id="sf-rocket-ignition" class="sf-rocket-ignition" hidden>
                   <button
                     id="sf-light-decorative-rocket"
                     class="sf-bike-button"
                     type="button"
                     disabled
                   >
-                    Light Rocket
+                    Light <span class="sf-action-target" data-kind="item">Rocket</span>
                   </button>
                   <small id="sf-rocket-countdown" hidden></small>
                 </div>
@@ -423,7 +425,8 @@
                   title="Jump with your burning back rocket (Space)"
                   hidden
                 >
-                  Rocket hop <span class="sf-key">Space</span>
+                  <span class="sf-action-target" data-kind="item">Rocket</span> hop
+                  <span class="sf-key">Space</span>
                 </button>
                 <button
                   id="sf-dance-button"
