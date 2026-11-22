@@ -1,5 +1,6 @@
 import { contentText } from './content-runtime.ts';
 import type { Point } from './types/geometry.ts';
+import type { BuildInfo } from './types/network.ts';
 import type { ActionReceipt, LocalPlayer } from './types/world.ts';
 import { requiredValue } from './types/assert.ts';
 interface DebugConsoleOptions {
@@ -9,6 +10,9 @@ interface DebugConsoleOptions {
   status: HTMLElement;
   xOutput: HTMLElement;
   yOutput: HTMLElement;
+  serverCommitOutput: HTMLElement;
+  serverVersionOutput: HTMLElement;
+  getServerBuild: () => BuildInfo | undefined;
   fpsOutput?: HTMLElement | null;
   getFPS?: () => number;
   performanceOutputs?: Record<string, HTMLElement | null>;
@@ -84,6 +88,9 @@ export function createDebugConsole({
   status,
   xOutput,
   yOutput,
+  serverCommitOutput,
+  serverVersionOutput,
+  getServerBuild,
   fpsOutput = null,
   getFPS = () => 0,
   performanceOutputs = {},
@@ -105,6 +112,17 @@ export function createDebugConsole({
       ));
   function update() {
     if (panel.hidden) return;
+    const build = getServerBuild();
+    const commit = build?.commit ?? '';
+    const shortCommit = commit.slice(0, 12) || '—';
+    const reportedVersion = build?.version ?? '';
+    const version = /^\d+\.\d+\.\d+$/.test(reportedVersion) ? reportedVersion : '—';
+    const fingerprint = build?.fingerprint ?? (version === '—' ? reportedVersion : '');
+    if (serverCommitOutput.title !== commit) serverCommitOutput.title = commit;
+    if (serverCommitOutput.textContent !== shortCommit)
+      serverCommitOutput.textContent = shortCommit;
+    if (serverVersionOutput.textContent !== version) serverVersionOutput.textContent = version;
+    if (serverVersionOutput.title !== fingerprint) serverVersionOutput.title = fingerprint;
     const p = getPosition();
     for (const [out, value] of [
       [xOutput, p.x],

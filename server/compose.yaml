@@ -6,6 +6,7 @@ services:
       dockerfile: server/Dockerfile
       args:
         PREBUILT_CLIENT: ${PREBUILT_CLIENT:-0}
+        SF_BUILD_COMMIT: ${SF_BUILD_COMMIT:-}
     restart: unless-stopped
     init: true
     ports: ['127.0.0.1:8787:8787']
@@ -14,6 +15,7 @@ services:
       MAX_PLAYERS: ${MAX_PLAYERS:-2000}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://johnloeber.com,https://www.johnloeber.com,https://datamine.github.io}
       ALLOW_DEBUG: '0'
+      DEPLOY_NOTICE_SOCKET: /tmp/loeberland-update.sock
       ADMIN_QUEUE_EDITS: ${ADMIN_QUEUE_EDITS:-0}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
       CHECKPOINT_INTERVAL_MS: ${CHECKPOINT_INTERVAL_MS:-1000}

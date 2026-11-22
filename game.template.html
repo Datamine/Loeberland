@@ -23,18 +23,13 @@
       <canvas
         id="sf-canvas"
         tabindex="0"
-        aria-label="3D San Francisco. Click to walk, right-click to examine. Left and right arrows rotate the camera; up and down arrows tilt it. E interacts. Use the slider, scroll, or pinch to zoom."
+        aria-label="3D San Francisco. Click to walk, right-click for actions. Left and right arrows rotate the camera; up and down arrows tilt it. Use the slider, scroll, or pinch to zoom."
       ></canvas>
       <div id="sf-actor-labels" class="sf-actor-labels" aria-hidden="true"></div>
       <div id="sf-ground-items" class="sf-ground-items" aria-label="Nearby ground items"></div>
       <div id="sf-combat-overlay" class="sf-combat-overlay" aria-hidden="true"></div>
-      <div
-        id="sf-player-speech"
-        class="sf-player-speech"
-        role="status"
-        aria-live="polite"
-        hidden
-      ></div>
+      <div id="sf-player-pvp" class="sf-player-pvp" aria-hidden="true" hidden></div>
+      <div id="sf-player-speech" class="sf-player-speech" aria-hidden="true" hidden></div>
       <div id="sf-place-markers" class="sf-place-markers" aria-label="John's destinations"></div>
       <div id="sf-click-marker" class="sf-click-marker" aria-hidden="true" hidden></div>
       <div id="sf-custody" class="sf-custody" role="status" hidden>
@@ -97,7 +92,18 @@
 
       <div class="sf-bottom-bar">
         <div class="sf-journal">
-          <div id="sf-log" role="log" aria-label="Adventure log"></div>
+          <div id="sf-server-update" role="status" hidden></div>
+          <div id="sf-log" role="log" aria-label="Chat and adventure log"></div>
+          <form id="sf-chat-form" class="sf-chat-form" autocomplete="off">
+            <input
+              id="sf-chat-draft"
+              type="text"
+              maxlength="140"
+              enterkeyhint="send"
+              aria-label="Nearby chat message"
+              placeholder="Type a message and press Enter"
+            />
+          </form>
           <div
             id="sf-dialogue"
             class="sf-dialogue"
@@ -122,6 +128,14 @@
               <div class="sf-hitpoints">
                 <span id="sf-hitpoints-text">Hitpoints 30/30</span
                 ><span id="sf-enemy-health" hidden></span>
+              </div>
+              <div class="sf-strength">
+                <label id="sf-hp-level-text" for="sf-hp-level">Hitpoints · Level 1</label>
+                <progress id="sf-hp-level" max="100" value="0"></progress>
+                <label id="sf-strength-level-text" for="sf-strength-progress"
+                  >Strength · Level 1</label
+                >
+                <progress id="sf-strength-progress" max="100" value="0"></progress>
               </div>
               <div class="sf-food-controls">
                 <button id="sf-order-doordash" class="sf-bike-button" type="button">
@@ -156,16 +170,6 @@
               <button id="sf-drink-coffee" class="sf-bike-button" type="button" hidden>
                 Drink <span class="sf-action-target" data-kind="item">complimentary coffee</span>
               </button>
-              <div class="sf-strength">
-                <label id="sf-hp-level-text" for="sf-hp-level"
-                  >Hitpoints Level 1 · 0.00% to Level 2</label
-                >
-                <progress id="sf-hp-level" max="100" value="0"></progress>
-                <label id="sf-strength-level-text" for="sf-strength-progress"
-                  >Strength Level 1 · 0.00% to Level 2</label
-                >
-                <progress id="sf-strength-progress" max="100" value="0"></progress>
-              </div>
               <div id="sf-fuel-card" class="sf-fuel-card" hidden>
                 <label
                   >Ferrari <span id="sf-fuel-text">100% gas</span
@@ -205,7 +209,7 @@
                   </button>
                 </div>
                 <button id="sf-climb-button" class="sf-bike-button" type="button" hidden>
-                  Climb down <span class="sf-key">E</span>
+                  Climb down
                 </button>
                 <button id="sf-grapple-button" class="sf-bike-button" type="button" disabled hidden>
                   Grapple <span class="sf-action-target" data-kind="object">airship</span>
@@ -257,9 +261,8 @@
                   type="button"
                   hidden
                   aria-pressed="false"
-                  aria-keyshortcuts="K"
                 >
-                  Skateboard <span class="sf-key">K</span>
+                  Skateboard
                 </button>
                 <div
                   id="sf-skate-tricks"
@@ -300,7 +303,6 @@
                   aria-pressed="false"
                 >
                   Find <span class="sf-action-target" data-kind="npc">bike</span>
-                  <span class="sf-key">B</span>
                 </button>
                 <div
                   id="sf-motorcycle-tricks"
@@ -378,33 +380,13 @@
                     Dismount ATV
                   </button>
                 </div>
-                <div class="sf-speech-controls" role="group" aria-label="Quick dialogue">
-                  <button
-                    id="sf-say-button"
-                    class="sf-bike-button"
-                    type="button"
-                    data-say="yo"
-                    aria-label="Say yo (S)"
-                    aria-keyshortcuts="S"
-                    title="Say yo (S)"
-                  >
-                    yo <span class="sf-key">S</span>
-                  </button>
-                  <button class="sf-bike-button" type="button" data-say="ok" aria-label="Say ok">
-                    ok
-                  </button>
-                  <button class="sf-bike-button" type="button" data-say="no" aria-label="Say no">
-                    no
-                  </button>
-                </div>
                 <button
                   id="sf-roll-button"
                   class="sf-bike-button"
                   type="button"
-                  aria-keyshortcuts="V"
-                  title="Forward roll (V)"
+                  title="Forward roll (Esc, then V)"
                 >
-                  Forward roll <span class="sf-key">V</span>
+                  Forward roll
                 </button>
                 <div id="sf-rocket-ignition" class="sf-rocket-ignition" hidden>
                   <button
@@ -433,9 +415,8 @@
                   class="sf-bike-button"
                   type="button"
                   aria-pressed="false"
-                  aria-keyshortcuts="D"
                 >
-                  Dance <span class="sf-key">D</span>
+                  Dance
                 </button>
                 <div id="sf-quick-actions" class="sf-quick-actions">
                   <button
@@ -444,10 +425,9 @@
                     type="button"
                     aria-controls="sf-chairs"
                     aria-expanded="false"
-                    aria-keyshortcuts="X"
-                    title="Choose how to sit (X)"
+                    title="Choose how to sit (Esc, then X)"
                   >
-                    Sit <span class="sf-key">X</span>
+                    Sit
                   </button>
                   <button
                     id="sf-teleport-button"
@@ -455,6 +435,7 @@
                     type="button"
                     aria-controls="sf-tablets"
                     aria-expanded="false"
+                    disabled
                   >
                     Teleport
                   </button>
@@ -478,25 +459,44 @@
                   </div>
                   <div
                     id="sf-tablets"
-                    class="sf-action-choices sf-tablets"
+                    class="sf-action-choices"
                     role="group"
                     aria-label="Teleport destinations"
                     popover="manual"
                   >
-                    <button id="sf-tablet-cupertino" type="button" data-tablet="cupertino" disabled>
+                    <button
+                      id="sf-tablet-cupertino"
+                      class="sf-bike-button"
+                      type="button"
+                      data-tablet="cupertino"
+                      hidden
+                    >
                       Cupertino <span>· 0</span>
                     </button>
-                    <button id="sf-tablet-downtown" type="button" data-tablet="downtown" disabled>
+                    <button
+                      id="sf-tablet-downtown"
+                      class="sf-bike-button"
+                      type="button"
+                      data-tablet="downtown"
+                      hidden
+                    >
                       Downtown <span>· 0</span>
                     </button>
-                    <button id="sf-tablet-tahoe" type="button" data-tablet="tahoe" disabled>
+                    <button
+                      id="sf-tablet-tahoe"
+                      class="sf-bike-button"
+                      type="button"
+                      data-tablet="tahoe"
+                      hidden
+                    >
                       Tahoe <span>· 0</span>
                     </button>
                     <button
                       id="sf-tablet-goblin-village"
+                      class="sf-bike-button"
                       type="button"
                       data-tablet="goblin-village"
-                      disabled
+                      hidden
                     >
                       Goblin Village <span>· 0</span>
                     </button>
@@ -517,9 +517,8 @@
                   type="button"
                   aria-haspopup="dialog"
                   aria-controls="sf-quests"
-                  aria-keyshortcuts="Q"
                 >
-                  Quests <span class="sf-key">Q</span>
+                  Quests
                 </button>
                 <button
                   id="sf-character-button"
@@ -528,7 +527,7 @@
                   aria-haspopup="dialog"
                   aria-controls="sf-character"
                 >
-                  Character <span class="sf-key">C</span>
+                  Character
                 </button>
                 <div id="sf-growth-ticker" class="sf-growth-ticker" aria-live="polite" hidden></div>
               </div>
@@ -828,128 +827,145 @@
             Username &amp; Password
           </button>
         </div>
-        <div id="sf-character-panel" role="tabpanel" aria-labelledby="sf-character-tab">
-          <p id="sf-character-level" class="sf-guild-status">Level 1</p>
-          <p id="sf-character-resources" class="sf-character-resources" hidden></p>
-          <div class="sf-pvp-option">
-            <label
-              ><input id="sf-pvp-enabled" type="checkbox" aria-describedby="sf-pvp-status" /> Enable
-              PvP</label
-            ><small id="sf-pvp-status" role="status"
-              >Both players must opt in. Wait 30 seconds before disabling PvP.</small
-            >
-            <p>On death, you drop only your coins, iPhone, and sandwiches.</p>
-          </div>
-          <div class="sf-character-body">
-            <div class="sf-character-fields">
-              <label
-                >Gender
-                <select data-character="gender">
-                  <option value="man">Man</option>
-                  <option value="woman">Woman</option>
-                </select></label
-              >
-              <label>Skin <input data-character="skin" type="color" value="#bd9369" /></label>
-              <label>Hair <input data-character="hair" type="color" value="#453a30" /></label>
-              <label
-                >Hairstyle
-                <select data-character="hairstyle">
-                  <option value="short">Short</option>
-                  <option value="crop">Close crop</option>
-                  <option value="side-part">Side part</option>
-                  <option value="short-curls">Curls</option>
-                  <option value="broccoli">Broccoli cut</option>
-                </select></label
-              >
-              <label>Shirt <input data-character="shirt" type="color" value="#707b4b" /></label>
-              <label>Trousers <input data-character="pants" type="color" value="#626955" /></label>
-              <label>Shoes <input data-character="shoes" type="color" value="#3c3d36" /></label>
-              <label class="sf-hat-option"
-                >Hat
-                <select data-character="hat" aria-describedby="sf-hat-hint">
-                  <option value="none">No hat</option>
-                </select></label
-              >
-              <label class="sf-hat-option"
-                >Footwear
-                <select data-character="boots">
-                  <option value="false">Regular shoes</option>
-                </select></label
-              >
-              <label class="sf-hat-option"
-                >Weapon
-                <select data-character="weapon">
-                  <option value="unarmed">Fist</option>
-                </select></label
-              >
-              <label class="sf-hat-option"
-                >Back
-                <select data-character="back">
-                  <option value="none">Nothing on back</option>
-                </select></label
-              >
-              <label class="sf-hat-option"
-                >Necklace
-                <select data-character="neck">
-                  <option value="none">No necklace</option>
-                </select></label
-              >
-              <label class="sf-hat-option"
-                >Torso
-                <select data-character="torso">
-                  <option value="shirt">Regular shirt</option>
-                </select></label
-              >
-              <label class="sf-hat-option"
-                >Legs
-                <select data-character="legs">
-                  <option value="trousers">Regular trousers</option>
-                </select></label
-              >
-              <small id="sf-equipment-hint" class="sf-sunglasses-hint"></small>
-              <small id="sf-hat-hint" class="sf-sunglasses-hint"></small>
-              <label class="sf-sunglasses-option"
-                ><input
-                  id="sf-iphone-equipped"
-                  type="checkbox"
-                  aria-describedby="sf-iphone-hint"
-                  disabled
-                />
-                Equip iPhone</label
-              >
-              <small id="sf-iphone-hint" class="sf-sunglasses-hint"></small>
-              <label class="sf-sunglasses-option"
-                ><input data-character="sunglasses" type="checkbox" disabled /> Wear
-                sunglasses</label
-              >
-              <small id="sf-cape-hint" class="sf-sunglasses-hint"></small>
+        <div class="sf-character-panels">
+          <div
+            id="sf-character-panel"
+            class="sf-character-body"
+            role="tabpanel"
+            aria-labelledby="sf-character-tab"
+          >
+            <div class="sf-character-summary">
+              <p id="sf-character-level" class="sf-guild-status">Level 1</p>
+              <p id="sf-character-resources" class="sf-character-resources" hidden></p>
+            </div>
+            <div class="sf-character-appearance">
+              <h3>Appearance</h3>
+              <div class="sf-character-fields">
+                <label
+                  >Gender
+                  <select data-character="gender">
+                    <option value="man">Man</option>
+                    <option value="woman">Woman</option>
+                  </select></label
+                >
+                <label>Skin <input data-character="skin" type="color" value="#bd9369" /></label>
+                <label>Hair <input data-character="hair" type="color" value="#453a30" /></label>
+                <label
+                  >Hairstyle
+                  <select data-character="hairstyle">
+                    <option value="short">Short</option>
+                    <option value="crop">Close crop</option>
+                    <option value="side-part">Side part</option>
+                    <option value="short-curls">Curls</option>
+                    <option value="broccoli">Broccoli cut</option>
+                  </select></label
+                >
+                <label>Shirt <input data-character="shirt" type="color" value="#707b4b" /></label>
+                <label
+                  >Trousers <input data-character="pants" type="color" value="#626955"
+                /></label>
+                <label>Shoes <input data-character="shoes" type="color" value="#3c3d36" /></label>
+              </div>
+              <div class="sf-pvp-option">
+                <label
+                  ><input id="sf-pvp-enabled" type="checkbox" aria-describedby="sf-pvp-status" />
+                  Enable PvP</label
+                ><small id="sf-pvp-status" role="status"
+                  >Both players must opt in. Wait 30 seconds before disabling PvP.</small
+                >
+                <p>On death, you drop only your coins, iPhone, and sandwiches.</p>
+              </div>
+            </div>
+            <div class="sf-character-gear">
+              <h3>Gear</h3>
+              <div class="sf-character-fields">
+                <label class="sf-hat-option"
+                  >Hat
+                  <select data-character="hat" aria-describedby="sf-hat-hint">
+                    <option value="none">No hat</option>
+                  </select></label
+                >
+                <label class="sf-hat-option"
+                  >Footwear
+                  <select data-character="boots">
+                    <option value="false">Regular shoes</option>
+                  </select></label
+                >
+                <label class="sf-hat-option"
+                  >Weapon
+                  <select data-character="weapon">
+                    <option value="unarmed">Fist</option>
+                  </select></label
+                >
+                <label class="sf-hat-option"
+                  >Back
+                  <select data-character="back">
+                    <option value="none">Nothing on back</option>
+                  </select></label
+                >
+                <label class="sf-hat-option"
+                  >Necklace
+                  <select data-character="neck">
+                    <option value="none">No necklace</option>
+                  </select></label
+                >
+                <label class="sf-hat-option"
+                  >Torso
+                  <select data-character="torso">
+                    <option value="shirt">Regular shirt</option>
+                  </select></label
+                >
+                <label class="sf-hat-option"
+                  >Legs
+                  <select data-character="legs">
+                    <option value="trousers">Regular trousers</option>
+                  </select></label
+                >
+                <small id="sf-equipment-hint" class="sf-sunglasses-hint"></small>
+                <small id="sf-hat-hint" class="sf-sunglasses-hint"></small>
+                <label class="sf-sunglasses-option"
+                  ><input
+                    id="sf-iphone-equipped"
+                    type="checkbox"
+                    aria-describedby="sf-iphone-hint"
+                    disabled
+                  />
+                  Equip iPhone</label
+                >
+                <small id="sf-iphone-hint" class="sf-sunglasses-hint"></small>
+                <label class="sf-sunglasses-option"
+                  ><input data-character="sunglasses" type="checkbox" disabled /> Wear
+                  sunglasses</label
+                >
+                <small id="sf-cape-hint" class="sf-sunglasses-hint"></small>
+              </div>
             </div>
           </div>
-        </div>
-        <div
-          id="sf-account-panel"
-          class="sf-username-form"
-          role="tabpanel"
-          aria-labelledby="sf-account-tab"
-          hidden
-        >
-          <label
-            >Username <input id="sf-username" type="text" maxlength="12" autocomplete="username"
-          /></label>
-          <label id="sf-current-password-row" hidden
-            >Current password
-            <input id="sf-current-password" type="password" autocomplete="current-password"
-          /></label>
-          <label
-            ><span id="sf-character-password-label">Set a password</span>
-            <input
-              id="sf-character-password"
-              type="password"
-              autocomplete="new-password"
-              minlength="8"
-              maxlength="256"
-            />
-          </label>
+          <div
+            id="sf-account-panel"
+            class="sf-username-form"
+            role="tabpanel"
+            aria-labelledby="sf-account-tab"
+            hidden
+          >
+            <label
+              >Username <input id="sf-username" type="text" maxlength="12" autocomplete="username"
+            /></label>
+            <label id="sf-current-password-row" hidden
+              >Current password
+              <input id="sf-current-password" type="password" autocomplete="current-password"
+            /></label>
+            <label
+              ><span id="sf-character-password-label">Set a password</span>
+              <input
+                id="sf-character-password"
+                type="password"
+                autocomplete="new-password"
+                minlength="8"
+                maxlength="256"
+              />
+            </label>
+          </div>
         </div>
         <small id="sf-character-save-status" role="status"></small>
         <button id="sf-character-done" class="sf-primary" type="button">Save</button>
@@ -987,20 +1003,11 @@
             Use the arrow keys to select a response and Enter to confirm. Choose Leave or press
             Escape to close.
           </dd>
-          <dt>E · Interact</dt>
-          <dd>Use a nearby interaction.</dd>
-          <dt>V · Forward roll</dt>
-          <dd>Roll in your movement direction.</dd>
-          <dt>X · Sit</dt>
-          <dd>Choose how to sit, or stand up if you’re seated.</dd>
-          <dt>D · Dance</dt>
-          <dd>Start or stop dancing.</dd>
-          <dt>S · Speak</dt>
-          <dd>Say “yo,” or choose a phrase using the speech buttons.</dd>
-          <dt>C · Character</dt>
-          <dd>Change your appearance, choose available equipment, and view your combat stats.</dd>
-          <dt>Q · Quests</dt>
-          <dd>Open your quest journal.</dd>
+          <dt>Chat</dt>
+          <dd>
+            Click the message field or press Enter to draft. Press Enter to send up to 140
+            characters to nearby players.
+          </dd>
           <dt>Inventory</dt>
           <dd>Use the inventory buttons to use carried items.</dd>
           <dt>Activity controls</dt>
@@ -1009,6 +1016,22 @@
           <dd>Move keyboard focus between controls.</dd>
           <dt>Escape</dt>
           <dd>Close a panel or menu, end a conversation, or stop moving.</dd>
+        </dl>
+        <h3>Shortcuts</h3>
+        <p>Press Esc, then the letter to use a shortcut.</p>
+        <dl>
+          <dt>Esc, C / Q / L / H</dt>
+          <dd>Open Character, Quests, Collection log, or Help.</dd>
+          <dt>Esc, X / D / V</dt>
+          <dd>Sit or stand, dance, or roll forward.</dd>
+          <dt>Esc, T</dt>
+          <dd>Choose a teleport destination.</dd>
+          <dt>Esc, B / K / M</dt>
+          <dd>Use the bicycle, skateboard, or rented motorcycle.</dd>
+          <dt>Esc, E / F / R</dt>
+          <dd>
+            Use the Tahoe activity button, return from surfing, or park the Ferrari when available.
+          </dd>
         </dl>
         <p>A yellow X confirms a click. A red X means the action is unavailable.</p>
         <h3>Map symbols</h3>
@@ -1026,6 +1049,22 @@
         ><button type="button" data-debug-close aria-label="Close debug menu">×</button>
       </header>
       <dl>
+        <dt>Client SHA</dt>
+        <dd>
+          <output id="sf-debug-commit" title="__SF_BUILD_COMMIT__"
+            >__SF_BUILD_SHORT_COMMIT__</output
+          >
+        </dd>
+        <dt>Client version</dt>
+        <dd>
+          <output id="sf-debug-version" title="__SF_BUILD_FINGERPRINT__"
+            >__SF_BUILD_VERSION__</output
+          >
+        </dd>
+        <dt>Server SHA</dt>
+        <dd><output id="sf-debug-server-commit">—</output></dd>
+        <dt>Server version</dt>
+        <dd><output id="sf-debug-server-version">—</output></dd>
         <dt>X</dt>
         <dd><output id="sf-debug-x">0.000</output></dd>
         <dt>Y</dt>
@@ -1127,11 +1166,7 @@
           <li>right click for options</li>
           <li>rotate the camera with your arrow keys</li>
         </ul>
-        <button class="sf-loading-play" data-loading-play type="button" hidden>Play</button>
-        <button type="button" data-character-login-link hidden>
-          Already have an account? Log In
-        </button>
-        <form class="sf-username-form" data-character-login hidden>
+        <form id="sf-loading-login" class="sf-username-form" data-character-login hidden>
           <label
             >Username <input name="username" maxlength="12" required autocomplete="username"
           /></label>
@@ -1144,9 +1179,26 @@
               required
               autocomplete="current-password"
           /></label>
-          <button type="submit">Log In</button>
           <small data-login-status role="status"></small>
         </form>
+        <button
+          class="sf-loading-play"
+          data-loading-play
+          form="sf-loading-login"
+          type="button"
+          hidden
+        >
+          Play
+        </button>
+        <button
+          type="button"
+          data-character-login-link
+          aria-controls="sf-loading-login"
+          aria-expanded="false"
+          hidden
+        >
+          Already have an account?
+        </button>
       </div>
     </div>
     <!-- SF-ENTRY:START -->

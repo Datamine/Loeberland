@@ -23,11 +23,13 @@ function fixture(returningCharacter: boolean) {
       querySelector: (s: string) =>
         s.includes('input') ? field : s.includes('save') ? save : hint,
     };
-  const play = node(),
+  const play = { ...node(), hidden: true, type: 'button' },
+    credentials = { ...node(), hidden: true, querySelector: () => null },
     elements: Record<string, ReturnType<typeof node>> = {
       '[data-loading-username]': form,
       '[data-loading-play]': play,
-      '[data-character-login-link]': node(),
+      '[data-character-login-link]': { ...node(), hidden: true },
+      '[data-character-login]': credentials,
       '[data-loading-percent]': node(),
       '[data-loading-stage]': node(),
       progress: node(),
@@ -56,6 +58,7 @@ function fixture(returningCharacter: boolean) {
     form,
     play,
     login: elements['[data-character-login-link]'],
+    credentials,
     stage: elements['[data-loading-stage]'],
     percent: elements['[data-loading-percent]'],
     get renames() {
@@ -63,20 +66,17 @@ function fixture(returningCharacter: boolean) {
     },
   };
 }
-test('returning characters can play or log in without going through the name picker', async () => {
+test('returning characters enter automatically after loading', async () => {
   const previous = globalThis.requestAnimationFrame;
   globalThis.requestAnimationFrame = (callback) => setTimeout(callback, 0);
   const f = fixture(true);
   try {
-    const entering = f.loading.done();
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await f.loading.done();
     assert.equal(f.form.hidden, true);
-    assert.equal(f.play.hidden, false);
-    assert.equal(f.login.hidden, false);
+    assert.equal(f.play.hidden, true);
+    assert.equal(f.login.hidden, true);
     assert.equal(f.percent.textContent, '100% loaded');
     assert.equal(f.stage.hidden, true);
-    await f.play.click();
-    await entering;
     assert.equal(f.element.hidden, true);
     assert.equal(f.renames, 0);
   } finally {
@@ -96,6 +96,14 @@ test('new characters retain the optional username step and Play button', async (
     assert.equal(f.form.hidden, false);
     assert.equal(f.play.hidden, false);
     assert.equal(f.play.disabled, false);
+    await f.login.click();
+    assert.equal(f.credentials.hidden, false);
+    assert.equal(f.form.hidden, true);
+    assert.equal(f.play.type, 'submit');
+    await f.login.click();
+    assert.equal(f.credentials.hidden, true);
+    assert.equal(f.form.hidden, false);
+    assert.equal(f.play.type, 'button');
     await f.play.click();
     await entering;
     assert.equal(entered, true);

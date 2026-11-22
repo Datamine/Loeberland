@@ -1,6 +1,7 @@
 import type { CheckpointStore } from '../src/types/storage.ts';
 import type { ServerGeometry, ServerPlayer, PlayerTransport } from '../src/types/server.ts';
 import type { Socket } from 'node:net';
+import { createServer as createControlSocket } from 'node:net';
 import { requiredValue } from '../src/types/assert.ts';
 import { errorMessage, isRecord } from '../src/types/json.ts';
 interface ServerOptions {
@@ -18,7 +19,7 @@ interface ServerOptions {
 import { watchContent } from '../content/server.mts';
 import { applyWorldEdits } from '../src/world-edits.ts';
 import { createServer } from 'node:http';
-import { readFile } from 'node:fs/promises';
+import { readFile, rm } from 'node:fs/promises';
 import { resolve, relative, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { monitorEventLoopDelay } from 'node:perf_hooks';
@@ -27,6 +28,7 @@ import { createWorldModel } from '../src/world.ts';
 import { createGame } from './game.mts';
 import { createStore } from './store.mts';
 import { createCheckpointManager } from './checkpoints.mts';
+import { readServerBuild } from './build-info.mts';
 import { MP_PROTOCOL, MP_TICK_HZ, MP_BROADCAST_HZ } from '../src/multiplayer-protocol.ts';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -57,6 +59,7 @@ export async function startServer({
   shutdownTimeoutMs = Number(process.env.SHUTDOWN_TIMEOUT_MS ?? 10000),
   logger = console,
 }: ServerOptions = {}) {
+  const serverBuild = readServerBuild();
   const geometry: ServerGeometry = providedGeometry || createWorldModel();
   if (!providedGeometry) {
     console.log('Preparing the authoritative map and its tile adjacency…');
@@ -88,7 +91,7 @@ export async function startServer({
       logger,
     });
     const ram = checkpoints.openGame('world');
-    game = await createGame({ geometry, store: ram, maxPlayers, allowDebug });
+    game = await createGame({ geometry, store: ram, maxPlayers, allowDebug, serverBuild });
     checkpoints.attach('world', { prepare: game.prepareCheckpoint, drain: game.close });
   } catch (error) {
     await store.close();
@@ -150,6 +153,7 @@ export async function startServer({
       res.end(
         JSON.stringify({
           ok,
+          build: serverBuild,
           players: game.players.size,
           capacity: maxPlayers,
           store: store.kind,
@@ -381,6 +385,16 @@ export async function startServer({
     onError: (error) => logger.error('Content reload:', error),
   });
   let closing: ReturnType<typeof checkpoints.shutdown> | null = null;
+  let updateUntil = 0;
+  function announceUpdate() {
+    updateUntil = Date.now() + 30_000;
+    const notice = JSON.stringify({
+      type: 'notice',
+      id: 'server-update',
+      message: 'Server update incoming',
+    });
+    for (const player of game.players.values()) player.transport.send(notice);
+  }
   function close() {
     if (closing) return closing;
     draining = true;
@@ -393,7 +407,9 @@ export async function startServer({
       const saving = checkpoints.shutdown();
       const httpClosed = new Promise((resolve) => http.close(resolve));
       http.closeIdleConnections();
-      for (const ws of sockets.clients) ws.close(1001, 'Server restarting');
+      const updating = Date.now() < updateUntil;
+      for (const ws of sockets.clients)
+        ws.close(updating ? 1012 : 1001, updating ? 'Server Updating...' : 'Server restarting');
       const force = setTimeout(() => {
         for (const ws of sockets.clients) ws.terminate();
       }, 250);
@@ -416,6 +432,7 @@ export async function startServer({
     checkpoints,
     port: address.port,
     close,
+    announceUpdate,
     hasAdminEdit: store.hasAdminEdit,
   };
 }
@@ -462,6 +479,19 @@ export function installShutdownHooks(
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const server = await startServer();
   installShutdownHooks(server);
+  const noticePath = process.env.DEPLOY_NOTICE_SOCKET;
+  if (noticePath) {
+    // The deployment script reaches this socket from inside the game container.
+    await rm(noticePath, { force: true });
+    const control = createControlSocket((connection) => {
+      connection.on('error', () => {});
+      server.announceUpdate();
+      connection.end('ok');
+    });
+    control.on('error', (error) => console.error('Deployment notice socket:', error));
+    control.listen(noticePath);
+    server.http.once('close', () => control.close());
+  }
   if (server.hasAdminEdit) {
     const hasAdminEdit = server.hasAdminEdit;
     let checking = false;

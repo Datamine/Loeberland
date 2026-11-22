@@ -11,10 +11,11 @@ interface MonsterPose {
   motion?: number;
   affection?: number;
   attackAnimation?: number;
+  enemy?: string | number | null;
 }
 import { drawHumanNPC } from './human-npc.ts';
 import type { Mesh } from './geometry.ts';
-import { pose } from './geometry.ts';
+import { pose, rand } from './geometry.ts';
 import { MONSTER_STATS } from './monster-drops.ts';
 import { drawBison } from './bison-model.ts';
 import { attackPulse } from './creature-attack-pose.ts';
@@ -116,14 +117,17 @@ export function drawGoblinHead(m: Mesh, actor: MonsterPose) {
 
 /** A four-beat walk: each planted paw travels backward by exactly the
  * distance covered by the body, then lifts and swings forward to its next step. */
-export function sampleBearWalk(phase: number, motion = 1) {
+export function sampleBearWalk(phase: number, motion = 1, running = false) {
   const stride = MONSTER_STATS.bear.walkStride,
-    stance = 0.68,
-    reach = stride * stance * 0.5;
+    stance = running ? 0.46 : 0.68,
+    reach = stride * stance * (running ? 0.83 : 0.5),
+    footLift = running ? 0.34 : 0.18;
   const paws = [];
   for (const side of [-1, 1] satisfies [number, number])
     for (const end of [-1, 1] satisfies [number, number]) {
-      const offset = (side === -1 ? 0 : 0.5) + (end === -1 ? 0.25 : 0),
+      const offset = running
+          ? (side === -1 ? 0 : 0.12) + (end === -1 ? 0.47 : 0)
+          : (side === -1 ? 0 : 0.5) + (end === -1 ? 0.25 : 0),
         cycle = (((phase / (Math.PI * 2) + offset) % 1) + 1) % 1;
       const contact = cycle < stance,
         u = contact ? cycle / stance : (cycle - stance) / (1 - stance);
@@ -133,14 +137,14 @@ export function sampleBearWalk(phase: number, motion = 1) {
         side,
         end,
         x: side * 0.3,
-        y: 0.1 + (contact ? 0 : Math.sin(Math.PI * u) * 0.18) * motion,
+        y: 0.1 + (contact ? 0 : Math.sin(Math.PI * u) * footLift) * motion,
         z: end * 0.39 + z,
         contact,
       });
     }
   return {
     paws,
-    bob: (1 - Math.cos(phase * 2)) * 0.012 * motion,
+    bob: (1 - Math.cos(phase * 2)) * (running ? 0.07 : 0.012) * motion,
     sway: Math.sin(phase) * 0.026 * motion,
     headBob: Math.sin(phase * 2 - 0.45) * 0.018 * motion,
   };
@@ -222,6 +226,7 @@ function drawRobocop(m: Mesh, actor: MonsterPose, time: number, firing: number) 
 
 export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0, reduced = false) {
   const attack = reduced ? 0 : (actor.attackAnimation ?? 0);
+  const chasing = !reduced && actor.enemy != null;
   const progress = 1 - attack;
   const load = attackPulse(progress, 0, 0.16, 0.36);
   const strike = attackPulse(progress, 0.12, 0.39, 1);
@@ -282,8 +287,11 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0, reduced =
   }
   if (stats.model === 'frog') {
     const stride = ((actor.phase || 0) / (Math.PI * 2)) % 1;
-    const hop = (actor.motion || 0) * Math.sin(stride * Math.PI);
-    pose(m, actor.x, actor.base + 0.21 * hop, actor.z, actor.angle, () => {
+    const hop = (actor.motion || 0) * Math.sin(stride * Math.PI) + 0.85 * strike;
+    const lunge = 0.24 * strike;
+    const x = actor.x + Math.cos(actor.angle) * lunge;
+    const z = actor.z + Math.sin(actor.angle) * lunge;
+    pose(m, x, actor.base + 0.21 * hop, z, actor.angle, () => {
       const green = '#6b953c',
         dark = '#4d7330',
         belly = '#b3b96a';
@@ -440,40 +448,51 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0, reduced =
   }
   if (stats.model === 'sea-urchin') {
     const pulse = 1 + Math.sin((actor.phase || 0) * 2) * (actor.motion || 0) * 0.065;
-    const spineReach = pulse + 0.8 * strike - 0.3 * load;
+    const spineReach = pulse + 0.65 * strike - 0.3 * load;
     pose(m, actor.x, actor.base, actor.z, actor.angle, () => {
-      m.sphere(0, 0.178, 0, 0.28 * pulse, 0.164, 0.27 * pulse, '#4a2d57', 16, 9);
-      for (const [elevation, count] of [
-        [-0.14, 14],
-        [0.44, 13],
-        [0.92, 8],
-        [1.39, 5],
-      ]) {
-        const horizontal = Math.cos(elevation);
-        const vertical = Math.sin(elevation);
+      m.sphere(0, 0.111, 0, 0.29 * pulse, 0.093, 0.28 * pulse, '#2d192c', 18, 7);
+      m.sphere(0, 0.172, 0, 0.305 * pulse, 0.161, 0.291 * pulse, '#51283f', 20, 10);
+      const rings = [
+        [-0.23, 19],
+        [0.16, 20],
+        [0.55, 16],
+        [0.94, 11],
+        [1.32, 6],
+      ];
+      for (const [ring, [elevation, count]] of rings.entries()) {
         for (let i = 0; i < count; i++) {
-          const angle = (i * Math.PI * 2) / count + elevation;
+          const angle = ((i + rand(i, ring, 17) * 0.48) * Math.PI * 2) / count + ring * 0.39;
+          const tilt = elevation + (rand(i, ring, 18) - 0.5) * 0.18;
           const c = Math.cos(angle);
           const s = Math.sin(angle);
-          const root = [0.24 * horizontal * c, 0.178 + 0.143 * vertical, 0.24 * horizontal * s];
-          const length = (0.17 + ((i * 7 + count) % 5) * 0.028) * spineReach;
+          const horizontal = Math.cos(tilt);
+          const vertical = Math.sin(tilt);
+          const root = [
+            0.298 * pulse * horizontal * c,
+            0.172 + 0.157 * vertical,
+            0.283 * pulse * horizontal * s,
+          ];
+          const length = (0.135 + rand(i, ring, 19) * 0.17) * spineReach;
+          const width = 0.012 + rand(i, ring, 20) * 0.006;
           const tip = [
             root[0] + length * horizontal * c,
             root[1] + length * vertical,
             root[2] + length * horizontal * s,
           ];
           const sides = [
-            [root[0] - s * 0.019, root[1], root[2] + c * 0.019],
-            [root[0] + s * 0.019, root[1], root[2] - c * 0.019],
+            [root[0] - s * width, root[1], root[2] + c * width],
+            [root[0] + s * width, root[1], root[2] - c * width],
             [
-              root[0] - c * vertical * 0.014,
-              root[1] + horizontal * 0.014,
-              root[2] - s * vertical * 0.014,
+              root[0] - c * vertical * width,
+              root[1] + horizontal * width,
+              root[2] - s * vertical * width,
             ],
           ];
-          m.tri(sides[0], sides[1], tip, '#523362');
-          m.tri(sides[1], sides[2], tip, '#8a599f');
-          m.tri(sides[2], sides[0], tip, '#69417b');
+          m.tri(sides[0], sides[1], tip, '#462133');
+          m.tri(sides[1], sides[2], tip, i % 4 ? '#a56588' : '#c48f97');
+          m.tri(sides[2], sides[0], tip, '#733951');
+          if (i % 3 === 0)
+            m.sphere(root[0], root[1], root[2], 0.022, 0.016, 0.022, '#986276', 6, 4);
         }
       }
     });
@@ -481,17 +500,19 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0, reduced =
   }
   if (stats.model === 'coyote' || stats.model === 'fox') {
     const fox = stats.model === 'fox';
+    const phase = actor.phase || 0;
+    const run = fox && chasing ? (actor.motion || 0) * (1 - strike) : 0;
     pose(m, actor.x, actor.base, actor.z, actor.angle, () => {
       const fur = fox ? '#c16a39' : '#9a805f',
         back = fox ? '#9b4a30' : '#756956',
         cream = fox ? '#eadbc5' : '#d6c3a1',
         feet = fox ? '#3d3030' : cream,
-        stride = (actor.motion || 0) * 0.13 * (1 - strike),
-        reach = (fox ? 0.36 : 0.48) * strike,
-        chest = 0.14 * strike - 0.19 * load,
+        stride = (actor.motion || 0) * (0.13 + 0.21 * run) * (1 - strike),
+        reach = (fox ? 0.49 : 0.48) * strike,
+        chest = (fox ? 0.23 : 0.14) * strike - 0.19 * load + (0.07 - 0.09 * Math.cos(phase)) * run,
         headX = 0.39 + reach - 0.14 * load,
-        headY = 0.75 + chest - 0.09 * strike,
-        gape = 0.115 * attackPulse(progress, 0, 0.28, 0.58);
+        headY = 0.75 + chest - 0.09 * strike - 0.11 * run,
+        gape = (fox ? 0.16 : 0.115) * attackPulse(progress, 0, 0.28, 0.58);
       m.sphere(
         -0.06 + reach * 0.34,
         0.57 + chest * 0.5,
@@ -554,11 +575,15 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0, reduced =
         m.tri(earTip, earFront, earBack, '#b49476');
         m.sphere(headX + 0.052, headY + 0.022, side * 0.095, 0.021, 0.015, 0.014, '#332a20', 8, 5);
         for (const front of [-1, 1]) {
-          const swing = Math.sin((actor.phase || 0) + (side === front ? 0 : Math.PI)) * stride,
+          const footPhase =
+              phase +
+              (run > 0 ? (front > 0 ? 0 : Math.PI) + side * 0.25 : side === front ? 0 : Math.PI),
+            swing = Math.sin(footPhase) * stride,
             leg = front > 0 ? 0.225 : -0.32,
             shoulderX = leg + (front > 0 ? reach * 0.65 : reach * 0.25),
             toe = leg + swing + (front > 0 ? reach * (side > 0 ? 1.2 : 0.83) : -0.1 * strike),
-            lift = front > 0 ? (side > 0 ? 0.23 : 0.13) * strike + 0.04 * load : 0,
+            stepLift = Math.max(0, Math.cos(footPhase)) * 0.24 * run,
+            lift = stepLift + (front > 0 ? (side > 0 ? 0.23 : 0.13) * strike + 0.04 * load : 0),
             knee = (shoulderX + toe) / 2 + (front > 0 ? -0.024 : 0.07);
           m.rod(
             [shoulderX, 0.57 + chest * (front > 0 ? 1 : 0.45), side * 0.106],
@@ -887,23 +912,62 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0, reduced =
     phase = actor.phase || 0;
   pose(m, actor.x, actor.base, actor.z, actor.angle - Math.PI / 2, () => {
     if (bear) {
-      const fur = stats.model === 'bear' ? '#433e3b' : '#80604a',
-        light = stats.model === 'bear' ? '#897a68' : '#af8a63',
-        walk = sampleBearWalk(phase, motion),
+      const blackBear = stats.model === 'bear',
+        fur = blackBear ? '#433e3b' : '#80604a',
+        light = blackBear ? '#897a68' : '#af8a63',
+        walk = sampleBearWalk(
+          phase,
+          blackBear ? motion * (1 - strike) : motion,
+          blackBear && chasing,
+        ),
+        rearUp = blackBear ? 0.26 * load : 0,
+        forward = blackBear ? 0.25 * strike - 0.12 * load : 0,
         bob = walk.bob + 0.21 * load + 0.09 * strike,
         sway = walk.sway + 0.12 * load - 0.09 * strike;
       const affection = actor.affection ? Math.sin(time * 0.006) * 0.035 : 0,
-        head = walk.headBob + affection + 0.11 * load - 0.17 * strike;
-      m.sphere(sway, 0.79 + bob, 0, 0.47, 0.49, 0.67, fur, 16, 10, 'stucco');
-      m.sphere(sway * 0.7, 1.03 + bob + head, 0.43, 0.38, 0.4, 0.38, fur, 16, 10, 'stucco');
-      m.sphere(sway * 0.7, 0.96 + bob + head, 0.72, 0.23, 0.17, 0.18, light, 14, 8);
-      m.sphere(sway * 0.7, 1.02 + bob + head, 0.86, 0.1, 0.07, 0.06, '#303634', 12, 7);
+        head = walk.headBob + affection + 0.11 * load - 0.17 * strike + rearUp;
+      m.sphere(
+        sway,
+        0.79 + bob + rearUp * 0.4,
+        forward * 0.6,
+        0.47,
+        0.49,
+        0.67,
+        fur,
+        16,
+        10,
+        'stucco',
+      );
+      m.sphere(
+        sway * 0.7,
+        1.03 + bob + head,
+        0.43 + forward,
+        0.38,
+        0.4,
+        0.38,
+        fur,
+        16,
+        10,
+        'stucco',
+      );
+      m.sphere(sway * 0.7, 0.96 + bob + head, 0.72 + forward, 0.23, 0.17, 0.18, light, 14, 8);
+      m.sphere(sway * 0.7, 1.02 + bob + head, 0.86 + forward, 0.1, 0.07, 0.06, '#303634', 12, 7);
       for (const side of [-1, 1] satisfies [number, number]) {
-        m.sphere(side * 0.25 + sway * 0.7, 1.37 + bob + head, 0.41, 0.13, 0.15, 0.1, fur, 12, 7);
+        m.sphere(
+          side * 0.25 + sway * 0.7,
+          1.37 + bob + head,
+          0.41 + forward,
+          0.13,
+          0.15,
+          0.1,
+          fur,
+          12,
+          7,
+        );
         m.sphere(
           side * 0.25 + sway * 0.7,
           1.38 + bob + head,
-          0.49,
+          0.49 + forward,
           0.075,
           0.085,
           0.016,
@@ -914,7 +978,7 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0, reduced =
         m.sphere(
           side * 0.16 + sway * 0.7,
           1.15 + bob + head,
-          0.73,
+          0.73 + forward,
           0.035,
           0.036,
           0.022,
@@ -925,7 +989,7 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0, reduced =
         m.sphere(
           side * 0.17 + sway * 0.7,
           1.16 + bob + head,
-          0.747,
+          0.747 + forward,
           0.009,
           0.009,
           0.008,
@@ -938,12 +1002,12 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0, reduced =
         const swipe = paw.side > 0 && paw.end > 0;
         const x = paw.x + (swipe ? 0.22 * load - 0.6 * strike : 0);
         const y = paw.y + (swipe ? 0.81 * load + 0.48 * strike : 0);
-        const z = paw.z + (swipe ? -0.24 * load + 0.82 * strike : 0);
-        const shoulder = [paw.side * 0.3 + sway, 0.67 + bob, paw.end * 0.39] satisfies [
-            number,
-            number,
-            number,
-          ],
+        const z = paw.z + (swipe ? -0.24 * load + 0.82 * strike + forward : 0);
+        const shoulder = [
+            paw.side * 0.3 + sway,
+            0.67 + bob + (paw.end > 0 ? rearUp : 0),
+            paw.end * 0.39 + forward,
+          ] satisfies [number, number, number],
           knee = [(paw.x + x) / 2, 0.33 + (y - 0.1) * 0.55, (paw.z + z) / 2 - 0.055] satisfies [
             number,
             number,

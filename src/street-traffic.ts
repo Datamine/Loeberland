@@ -1,4 +1,5 @@
 import { createActorMotionGroup } from './snapshot-motion.ts';
+import { drawCharacter, type CharacterAppearance } from './characters.ts';
 import type { NetworkTraffic } from './types/network.ts';
 import { isFiniteNumber } from './types/json.ts';
 import type { WorldPoint } from './types/geometry.ts';
@@ -343,12 +344,29 @@ export function createStreetTraffic({
   };
 }
 
-export function drawWaymo(m: Mesh, car: WorldPoint & { y: number; angle: number }) {
+export function drawWaymo(
+  m: Mesh,
+  car: WorldPoint & { y: number; angle: number },
+  rider?: CharacterAppearance,
+) {
   pose(m, car.x, car.y, car.z, car.angle, () => {
     m.box(-0.58, 0.14, -0.245, 1.16, 0.25, 0.49, '#e8eeed', { metal: 0.12 });
     m.box(-0.47, 0.39, -0.235, 0.87, 0.12, 0.47, '#f7f6f0');
-    m.box(-0.34, 0.48, -0.205, 0.63, 0.28, 0.41, '#476b78', 'glass');
-    m.box(-0.3, 0.75, -0.215, 0.54, 0.055, 0.43, '#f4f4ec');
+    const windowColor = '#476b78';
+    const roofColor = '#f4f4ec';
+    if (rider) {
+      m.box(-0.34, 0.48, -0.205, 0.63, 0.28, 0.02, windowColor, 'glass');
+      m.box(-0.34, 0.48, 0.185, 0.63, 0.28, 0.02, windowColor, 'glass');
+      m.box(-0.34, 0.48, -0.185, 0.02, 0.28, 0.37, windowColor, 'glass');
+      m.box(0.27, 0.48, -0.185, 0.02, 0.28, 0.37, windowColor, 'glass');
+      m.box(-0.3, 0.75, -0.215, 0.14, 0.055, 0.43, roofColor);
+      m.box(0.18, 0.75, -0.215, 0.06, 0.055, 0.43, roofColor);
+      m.box(-0.16, 0.75, -0.215, 0.34, 0.055, 0.04, roofColor);
+      m.box(-0.16, 0.75, 0.175, 0.34, 0.055, 0.04, roofColor);
+    } else {
+      m.box(-0.34, 0.48, -0.205, 0.63, 0.28, 0.41, windowColor, 'glass');
+      m.box(-0.3, 0.75, -0.215, 0.54, 0.055, 0.43, roofColor);
+    }
     for (const side of [-1, 1] satisfies [number, number]) {
       m.box(-0.36, 0.46, side * 0.213, 0.045, 0.3, 0.024, '#e4ece9');
       m.box(0.04, 0.46, side * 0.213, 0.035, 0.3, 0.024, '#e4ece9');
@@ -374,12 +392,24 @@ export function drawWaymo(m: Mesh, car: WorldPoint & { y: number; angle: number 
       m.box(0.583, 0.33, side * 0.15 - 0.055, 0.012, 0.065, 0.11, '#e8f7ee', { emissive: 0.5 });
       m.box(-0.591, 0.32, side * 0.17 - 0.04, 0.012, 0.055, 0.08, '#ca6053');
     }
-    m.box(-0.17, 0.8, -0.13, 0.25, 0.035, 0.26, '#dce7e5');
-    m.cylinder(-0.05, 0.835, 0, 0.09, 0.11, '#d9e5e4', 16, 0.075);
-    m.cylinder(-0.05, 0.885, 0, 0.093, 0.025, '#416c7a', 16);
+    const sensorX = rider ? -0.23 : -0.05;
+    const sensorRadius = rider ? 0.06 : 0.09;
+    m.box(rider ? -0.3 : -0.17, 0.8, -0.13, rider ? 0.14 : 0.25, 0.035, 0.26, '#dce7e5');
+    m.cylinder(sensorX, 0.835, 0, sensorRadius, 0.11, '#d9e5e4', 16, sensorRadius - 0.015);
+    m.cylinder(sensorX, 0.885, 0, sensorRadius + 0.003, 0.025, '#416c7a', 16);
     for (const side of [-1, 1] satisfies [number, number])
       m.sphere(0.43, 0.48, side * 0.25, 0.055, 0.065, 0.045, '#527c86', 12, 6);
     m.box(0.594, 0.17, -0.18, 0.016, 0.05, 0.36, '#69818c');
+    if (rider)
+      drawCharacter(m, 0.01, 0, -0.68, 0, 0, false, rider.skin, rider.shirt, {
+        ...rider,
+        mode: 'idle',
+        headOnly: true,
+        pose: undefined,
+        action: undefined,
+        ground: null,
+        height: 1,
+      });
   });
 }
 

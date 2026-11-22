@@ -37,7 +37,6 @@ export interface CharacterAppearance extends Appearance {
   pushingStroller?: boolean;
   railgun?: boolean;
   akibo?: boolean;
-  topHat?: boolean;
   chef?: boolean;
   backpack?: boolean;
   uniform?: boolean;
@@ -50,7 +49,7 @@ export interface CharacterAppearance extends Appearance {
   bag?: string;
   gilded?: boolean;
   height?: number;
-  headOnly?: boolean;
+  headOnly?: boolean | 'portrait';
   serverTime?: number;
   cpuSkinning?: boolean;
   pose?: CharacterPose;
@@ -62,6 +61,7 @@ export interface CharacterAppearance extends Appearance {
 export interface CharacterMesh extends SkinnedMesh {
   deformed: Float32Array;
   headIndices?: number[];
+  portraitIndices?: number[];
 }
 
 type Rig = number | ((p: number[]) => number[]);
@@ -1939,12 +1939,13 @@ function charBuildMesh({
     if (uniform) m.box(-0.022, 1.728, 0.103, 0.044, 0.03, 0.014, S.metal, 3);
   }
   if (topHat && !hat) {
+    const felt = topHat === 'shirt' ? S.shirt : S.hair;
     m.loft(
       [
         [0, 1.755, -0.02, 0.21, 0.17] satisfies [number, number, number, number, number],
         [0, 1.79, -0.02, 0.21, 0.17] satisfies [number, number, number, number, number],
       ],
-      S.hair,
+      felt,
       3,
       16,
     );
@@ -1953,7 +1954,7 @@ function charBuildMesh({
         [0, 1.79, -0.02, 0.13, 0.11] satisfies [number, number, number, number, number],
         [0, 2.1, -0.02, 0.145, 0.12] satisfies [number, number, number, number, number],
       ],
-      S.hair,
+      felt,
       3,
       16,
     );
@@ -2299,7 +2300,7 @@ export function getCharacterMesh(appearance: CharacterAppearance = {}) {
     longHair: !!appearance.longHair,
     curly: appearance.hairstyle === 'curly',
     cap: !!appearance.cap,
-    topHat: !!appearance.topHat,
+    topHat: appearance.topHat || false,
     chef: !!appearance.chef,
     backpack: appearance.backpack !== false,
     coat: !!appearance.coat,
@@ -2432,17 +2433,27 @@ export function characterPalette(appearance: CharacterAppearance, skin: string, 
   characterPalettes.set(key, palette);
   return palette;
 }
-export function characterIndices(mesh: CharacterMesh, headOnly = false) {
+export function characterIndices(
+  mesh: CharacterMesh,
+  headOnly: CharacterAppearance['headOnly'] = false,
+) {
   if (!headOnly) return mesh.indices;
-  if (!mesh.headIndices) {
-    mesh.headIndices = [];
+  const { chest, head } = CHARACTER_BONES;
+  const cache = headOnly === 'portrait' ? 'portraitIndices' : 'headIndices';
+  if (!mesh[cache]) {
+    const indices = [];
     for (let i = 0; i < mesh.indices.length; i += 3) {
       const triangle = mesh.indices.subarray(i, i + 3);
-      if (triangle.every((id) => mesh.bonesA[id] === 3 && mesh.bonesB[id] === 3))
-        mesh.headIndices.push(...triangle);
+      if (
+        triangle.every((id) => mesh.bonesA[id] === head && mesh.bonesB[id] === head) ||
+        (headOnly === 'portrait' &&
+          triangle.every((id) => mesh.bonesA[id] === chest && mesh.bonesB[id] === head))
+      )
+        indices.push(...triangle);
     }
+    mesh[cache] = indices;
   }
-  return mesh.headIndices;
+  return mesh[cache];
 }
 
 /** Submit the cached bind mesh and a small pose to the GPU batch. Ordinary
@@ -2542,7 +2553,13 @@ export function drawCharacter(
     v = mesh.vertices,
     work = mesh.deformed;
   const palette = characterPalette(appearance, skin, shirt),
-    indices = characterIndices(mesh, appearance.headOnly);
+    // Keep the neck in loose-haired portraits so the back layer sits behind it.
+    indices = characterIndices(
+      mesh,
+      appearance.headOnly === 'portrait' && !appearance.longHair && appearance.hairstyle !== 'curly'
+        ? true
+        : appearance.headOnly,
+    );
   if (
     appearance.boots === 'party-boots' &&
     !appearance.headOnly &&

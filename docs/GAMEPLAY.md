@@ -242,14 +242,15 @@ the pilot. Other passengers can walk in the basket but cannot steer. If the
 pilot leaves, control passes to the next passenger. An unattended ship returns
 to its mooring; after a server restart, a saved in-flight ship returns safely.
 
-The **Airship attendant** reports the current price and the next hourly reset.
+The **Airship attendant** reports the current price and the next reset.
+The airship resets every **20 minutes**.
 Rentals start at **5 coins**, and each new rental or forced takeover costs
 **5 more coins** than the last: **5 → 10 → 15 → 20…**. A takeover returns
 everyone aboard or grappling safely to the mooring. The payer has **60 seconds**
 to board without paying again, but another player can immediately outbid that
 reservation. Boarding as a passenger is free. Returning the ship, disconnecting,
 or letting a reservation expire does not reduce the next price. Prices and the
-hourly timetable survive restarts; only the hourly reset returns the price to
+reset timetable survive restarts. The scheduled reset returns the price to
 5 coins. The server rejects stale quotes without charging the player. Timing,
 prices and reservation duration live in `src/config/airship.ts`.
 
@@ -439,7 +440,7 @@ named footprint. Coordinates here match `player.x` / `player.y`.
 - `src/encounters.ts`: constant-speed police pursuit, capture, and the barred Carceral Urbanist Facility in the Marin Headlands. Talking is peaceful; attacking or stealing starts pursuit. Officers continue through menus and follow the player onto the bay. Detention permits walking inside the cell, with routes around the bunk and no passage through the bars. Camera, zoom and help remain available; travel and interactions outside the cell remain disabled. The Classic page switch remains available.
 - `src/models.ts`: building, landmark, furniture, character and bicycle mesh factories. The world supplies placement and GPU services through `createModels`. Trees and park benches retain their underlying surface textures and terrain; their collision footprints do not paint building foundations or flatten a square into the ground.
 - `src/housing.ts`: curb-height entrances, fitted hillside plots, four roof profiles, façades, garden stairs, balconies and animated private funiculars. Townhomes keep their street orientation and a maximum of two main storeys; downhill sides can expose a walk-out basement.
-- `src/sutro.ts`: shared ridge-site coordinates, ladder radii and the original 3D Sutro Tower mesh, including its three legs, grated upper platform, antenna masts and guy wires. Click or right-click the tower to choose Climb Sutro Tower, or press E nearby. The reversible traversal follows the visible ladder, keeps the character centered as the camera rises, and returns to the same navigable trail point. Climb down or E descends; it also works partway up. The climbing rig follows vertical distance, keeping planted hands and feet on their rungs. Travel and vehicle actions are unavailable until back on the ground; camera and zoom controls remain available.
+- `src/sutro.ts`: shared ridge-site coordinates, ladder radii and the original 3D Sutro Tower mesh, including its three legs, grated upper platform, antenna masts and guy wires. Click or right-click the tower to choose Climb Sutro Tower. The reversible traversal follows the visible ladder, keeps the character centered as the camera rises, and returns to the same navigable trail point. Choose Climb down or press Escape to descend, including partway up. The climbing rig follows vertical distance, keeping planted hands and feet on their rungs. Travel and vehicle actions are unavailable until back on the ground; camera and zoom controls remain available.
 - `src/lighting.ts`: detailed curbside lamps and one depth-tested additive pass for warm halos and terrain-following light pools. Salesforce Tower’s crown uses a small procedural metaball shader for subtle, slowly merging pale-blue light behind the top-floor glazing; it shares the main time uniform and freezes with reduced motion. Emissive glass and metal use reserved GPU style values; the glow buffers rebuild after WebGL context restoration.
 - `src/geometry.ts`: mesh primitives, transforms, picking math and the shared camera-facing cutaway mask.
 - `src/tiles.ts`: configurable surface types, polygon partitioning, connectivity checks and tile regressions. Water-edge intervals and heights are checked alongside road and curb connections; an aligned land/water transition requires a shoreline authored on both neighbors.

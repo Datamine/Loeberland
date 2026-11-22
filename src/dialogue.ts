@@ -36,6 +36,7 @@ export function createDialogue({
     drawNPC: ((canvas: HTMLCanvasElement) => void) | undefined,
     stage = 'intro',
     committed = false,
+    amount: { choice: RuntimeChoice; value: string } | null = null,
     after: (() => void) | null = null,
     receiptRepeat: boolean | undefined = false,
     session = 0;
@@ -47,6 +48,7 @@ export function createDialogue({
     log.hidden = false;
     current = null;
     drawNPC = undefined;
+    amount = null;
     onClose();
   };
   const cancel = close;
@@ -91,6 +93,13 @@ export function createDialogue({
   }
   function receive(choice: RuntimeChoice, result: ActionReceipt | void = { ok: true }) {
     result ??= { ok: true };
+    if (amount?.choice === choice && !result.ok) {
+      stage = 'amount';
+      committed = false;
+      render(result.message || 'Unable to complete the payment. Please try again.');
+      return;
+    }
+    if (!result.pending) amount = null;
     if (result.ok && result.after) after = result.after;
     receiptRepeat = choice.repeat ?? current?.repeat;
     stage = result.pending ? 'pending' : 'receipt';
@@ -111,14 +120,21 @@ export function createDialogue({
       branch(choice.next);
       return;
     }
+    if (choice.amount) {
+      amount = { choice, value: '' };
+      stage = 'amount';
+      render();
+      return;
+    }
+    commit(choice, () =>
+      choice.accept ? choice.accept() : choice.trade ? trade(choice.trade) : { ok: true },
+    );
+  }
+  function commit(choice: RuntimeChoice, run: () => ActionReceipt | Promise<ActionReceipt> | void) {
     if (committed) return;
     committed = true;
     try {
-      const result = choice.accept
-        ? choice.accept()
-        : choice.trade
-          ? trade(choice.trade)
-          : { ok: true };
+      const result = run();
       if (result instanceof Promise || result?.promise) {
         stage = 'pending';
         render('Waiting for the server…');
@@ -157,6 +173,67 @@ export function createDialogue({
       });
     }
   }
+  function renderAmount(draft: NonNullable<typeof amount>, message?: string) {
+    const entry = draft.choice.amount!;
+    const busy = stage === 'pending';
+    const form = document.createElement('form');
+    form.className = 'sf-chat-amount';
+    form.noValidate = true;
+    const label = document.createElement('label');
+    label.textContent = entry.prompt;
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.inputMode = 'numeric';
+    input.value = draft.value;
+    input.disabled = busy;
+    input.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' || event.isComposing) return;
+      event.preventDefault();
+      if (!event.repeat) form.requestSubmit();
+    });
+    label.append(input);
+    form.append(label);
+    if (message) {
+      const status = document.createElement('small');
+      status.setAttribute('role', 'status');
+      status.textContent = message;
+      form.append(status);
+    }
+    const actions = document.createElement('div');
+    actions.className = 'sf-chat-options';
+    const submit = document.createElement('button');
+    submit.type = 'submit';
+    submit.textContent = draft.choice.label;
+    submit.disabled = busy;
+    actions.append(
+      submit,
+      busy
+        ? button('Keep exploring', cancel)
+        : button('Back', () => {
+            amount = null;
+            stage = 'choices';
+            render();
+          }),
+    );
+    form.append(actions);
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      if (amount !== draft || stage !== 'amount' || committed) return;
+      if (!canInteract()) {
+        cancel();
+        return;
+      }
+      draft.value = input.value;
+      const text = input.value.trim();
+      const coins = Number(text);
+      if (!/^\d+$/.test(text) || !Number.isSafeInteger(coins) || coins < 1) {
+        render(contentText('world-message.biomed.amount'));
+        return;
+      }
+      commit(draft.choice, () => entry.submit(coins));
+    });
+    return form;
+  }
   function render(message?: string) {
     if (!current) return;
     element.replaceChildren();
@@ -181,7 +258,7 @@ export function createDialogue({
     portrait.append(name, face);
     const copy = document.createElement('div');
     copy.className = 'sf-chat-copy';
-    if (!player) {
+    if (!player && !amount) {
       const text = document.createElement('p'),
         body = message ?? current.intro ?? '';
       text.textContent = typeof body === 'function' ? body() : body;
@@ -189,7 +266,9 @@ export function createDialogue({
     }
     const controls = document.createElement('div');
     controls.className = 'sf-chat-options';
-    if (stage === 'choices') {
+    if (amount) {
+      copy.append(renderAmount(amount, message));
+    } else if (stage === 'choices') {
       for (const choice of choicesFor(current)) {
         if (/^(?:i should get going[.!]?|leave[.!]?|goodbye[.!]?)$/i.test(choice.label.trim()))
           continue;
@@ -219,12 +298,13 @@ export function createDialogue({
       )
         controls.append(button('Leave', cancel));
     }
-    copy.append(controls);
+    if (!amount) copy.append(controls);
     element.dataset.speaker = player ? 'player' : 'npc';
     element.append(portrait, copy);
-    element
-      .querySelector<HTMLButtonElement>('button:not([disabled])')
-      ?.focus({ preventScroll: true });
+    const input = amount && !committed ? element.querySelector('input') : null;
+    (input || element.querySelector<HTMLButtonElement>('button:not([disabled])'))?.focus({
+      preventScroll: true,
+    });
   }
   function open(person: RuntimeDialogue, portrait?: (canvas: HTMLCanvasElement) => void) {
     if (!canInteract()) return false;
@@ -233,6 +313,7 @@ export function createDialogue({
     drawNPC = portrait;
     stage = 'intro';
     committed = false;
+    amount = null;
     after = null;
     receiptRepeat = false;
     log.hidden = true;
@@ -249,6 +330,8 @@ export function createDialogue({
     const key = event.key.toLowerCase(),
       buttons = [...element.querySelectorAll<HTMLButtonElement>('button:not([disabled])')],
       index = buttons.indexOf(document.activeElement as HTMLButtonElement);
+    const input = amount && stage === 'amount' ? element.querySelector('input') : null;
+    if (input && document.activeElement === input && key !== 'tab') return true;
     if (
       (
         ['arrowup', 'arrowdown', 'arrowleft', 'arrowright'] satisfies [
@@ -272,9 +355,14 @@ export function createDialogue({
       return true;
     }
     if (key === 'tab') {
-      if ((event.shiftKey && index <= 0) || (!event.shiftKey && index === buttons.length - 1)) {
+      const first = input || buttons[0];
+      if (
+        (event.shiftKey && document.activeElement === first) ||
+        (event.shiftKey && index < 0 && !input) ||
+        (!event.shiftKey && index === buttons.length - 1)
+      ) {
         event.preventDefault();
-        buttons[event.shiftKey ? buttons.length - 1 : 0]?.focus({ preventScroll: true });
+        (event.shiftKey ? buttons.at(-1) : first)?.focus({ preventScroll: true });
       }
       return true;
     }
@@ -283,6 +371,7 @@ export function createDialogue({
   function resolvePending(id: string, message: string | undefined) {
     if (!canInteract() || current?.id !== id || stage !== 'pending') return false;
     stage = 'receipt';
+    amount = null;
     receiptRepeat = current.repeat;
     render(message);
     return true;

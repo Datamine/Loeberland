@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { actionTargetKind, orderPrimaryActions } from '../src/context-menu.ts';
+import { ATV_RAMP_KIND } from '../src/atv.ts';
+import { AIRSHIP_TRAVELER } from '../src/airship-rope.ts';
 import { menuFromContent } from '../src/content-game.ts';
 import { npcContextActions, npcDisplayLabel, npcPrimaryVerb } from '../src/npc-interactions.ts';
 import { createInteractions } from '../src/world/interactions.ts';
@@ -11,6 +13,25 @@ test('Bani has no combat level or hostile menu actions', () => {
   assert.equal(npcDisplayLabel(bani), 'Bani');
   assert.equal(npcPrimaryVerb(bani), 'talk');
   assert.deepEqual(npcContextActions(bani), ['talk', 'walk', 'examine']);
+});
+
+test('the airship traveler can be clicked to talk from the basket and has only peaceful actions', () => {
+  for (const label of ['Man', 'Woman']) {
+    const npc = { id: AIRSHIP_TRAVELER, kind: AIRSHIP_TRAVELER, label, x: 0, z: 0 };
+    const context = {
+      pick: () => ({ npc }),
+      flying: () => true,
+      npcPrimary: npcPrimaryVerb,
+      npcLabel: npcDisplayLabel,
+      tileAt: () => assert.fail('a traveler click must not become a flight destination'),
+    };
+    const { worldTarget, primaryWorldAction } = createInteractions(
+      context as unknown as WorldContext,
+    );
+    assert.equal(primaryWorldAction(worldTarget(20, 20)).label, 'Talk-To ' + label);
+    assert.deepEqual(npcContextActions(npc), ['talk', 'examine']);
+    assert.equal(npcDisplayLabel(npc), label);
+  }
 });
 
 test('Cotogna and Rich Table diners offer conversation without a level or hostile actions', () => {
@@ -124,6 +145,26 @@ test('Ferrari keeps Drive / park, Walk here, and Examine above optional actions'
     buttons.map((button) => button.dataset.actionId),
     ['interaction.28', 'walk', 'examine', 'interaction.29'],
   );
+});
+
+test('clicking a picked ramp while mounted sends that ramp’s ID', () => {
+  const ramp = { id: 'goblin-ramp-east', kind: ATV_RAMP_KIND, label: 'ATV Ramp' };
+  const commands: [string, object][] = [];
+  const context = {
+    pick: () => ({ sight: ramp }),
+    tileAt: () => assert.fail('a ramp click should not become a ground destination'),
+    multiplayerWorld: {
+      selfMode: 'atv',
+      command: (action: string, args: object) => commands.push([action, args]),
+    },
+  };
+  const { worldTarget, primaryWorldAction } = createInteractions(
+    context as unknown as WorldContext,
+  );
+  const action = primaryWorldAction(worldTarget(40, 60));
+  assert.equal(action.label, 'Jump ATV Ramp');
+  action.run();
+  assert.deepEqual(commands, [['travel', { kind: 'atvJump', id: ramp.id }]]);
 });
 
 test('a directly picked vehicle wins over nearby actors and stays selected through release', () => {

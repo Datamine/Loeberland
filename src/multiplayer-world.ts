@@ -46,6 +46,7 @@ interface WorldMultiplayerOptions {
   characterGround: (x: number, z: number) => number;
   playerGround: () => number;
   announce: (message: string, speaker?: string) => void;
+  onChat?: (text: string, name: string, own: boolean) => void;
   onPosition: (position: Position & { reason?: string }) => void;
   onCaught: (source: string) => void;
   onPrivateAward: (award: PendingAward) => void;
@@ -326,7 +327,11 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
               ? 'ground'
               : 'hanging',
         });
-      } else rope.reset();
+      } else {
+        rope.reset();
+        rope.state.passenger = ship.rope?.passenger || null;
+        rope.state.passengerPaid = ship.rope?.passengerPaid === true;
+      }
     }
     api.refreshUI();
   }
@@ -479,6 +484,12 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
       api.refreshUI();
     } else if (message.type === 'say') {
       const peer = client.peers.get(message.id);
+      const own = message.id === client.state.id;
+      api.onChat?.(
+        message.text,
+        message.name || (own ? client.state.name : peer?.name) || 'Player',
+        own,
+      );
       if (peer) {
         peer.speech = message.text;
         peer.speechUntil = performance.now() + 3000;
@@ -729,10 +740,6 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
     },
     get captain() {
       return snapshot?.airship?.captain === client.state.id;
-    },
-    buyGrapple: () => {
-      client.checkpoint(true);
-      return command('buyGrapple');
     },
     grapple: () => client.state.grapplingHook && command('grapple'),
     releaseTiger: () => command('releaseTiger'),

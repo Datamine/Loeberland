@@ -100,7 +100,7 @@ export function drawRemotePlayer(
       time,
       outfit,
     );
-  else if (p.mode === 'waymo') drawWaymo(m, p);
+  else if (p.mode === 'waymo') drawWaymo(m, p, outfit);
   else if (p.mode === 'atv') drawATVRider(m, p.x, p.y, p.z, p.angle, p.phase, outfit, a.atvTravel);
   else if (p.mode === 'swing' && !dead) drawSwingRider(m, p, outfit);
   else if (p.mode === 'surf') {
@@ -202,7 +202,7 @@ export function drawRemotePlayer(
   if (p.mode === 'teleport')
     drawTabletTeleport(m, { position, base: ground(p.x, p.z), progress: a.actionT * 0.2 }, time);
   if (p.mode === 'parachute') drawParachute(m, position, p.angle, time);
-  if (look.cape && !['bomber', 'roll', 'train', 'ferrari', 'swing'].includes(p.mode))
+  if (look.cape && !['bomber', 'roll', 'train', 'ferrari', 'swing', 'waymo'].includes(p.mode))
     drawKrakenCape(m, p.x, p.z, p.y + 0.07, p.angle, time, signs);
   if (a.action === 'drink' && p.mode !== 'bomber')
     drawDrinkingCoffee(

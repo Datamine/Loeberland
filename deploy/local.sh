@@ -28,6 +28,8 @@ if [[ -n ${COMPOSE_ENV_FILE:-} ]]; then compose+=(--env-file "$COMPOSE_ENV_FILE"
 
 case "$action" in
     up)
+        SF_BUILD_COMMIT=$(git -C "$root" rev-parse --verify HEAD 2>/dev/null || true)
+        export SF_BUILD_COMMIT
         if [[ ! -s $ADMIN_ENV_FILE ]]; then
             mkdir -p -m 700 "$(dirname -- "$ADMIN_ENV_FILE")"
             password=$(openssl rand -hex 24)

@@ -35,7 +35,7 @@ import { guildDialogue } from '../../src/guild.ts';
 import { guildStatusFor } from '../guild.mts';
 import { ILLUMINATI_CAVE } from '../../src/map-instances.ts';
 import { SF_SPACEPORT } from '../../src/southern-district.ts';
-import { ATV_RENTAL, ATV_SPEED } from '../../src/atv.ts';
+import { ATV_RAMP_KIND, ATV_RENTAL, ATV_SPEED } from '../../src/atv.ts';
 import { MOTORCYCLE_TRICKS } from '../../src/motorcycle.ts';
 import { WAYMO_RENTAL } from '../../src/waymo-rental.ts';
 import { marketStreetcarPose, marketStreetcarRider } from '../../src/market-streetcar.ts';
@@ -58,7 +58,7 @@ import {
   GOBLIN_PHONE_BUYER,
   ROBE_SELLER,
 } from '../../src/goblin-industrialist.ts';
-import { GOBLIN_INCUBATOR } from '../../src/goblin-town.ts';
+import { goblinRampLane, GOBLIN_HUTS, GOBLIN_INCUBATOR } from '../../src/goblin-town.ts';
 import { FROG_FARM, FROG_SPAWNS, inFrogFarm } from '../../src/frog-farm.ts';
 import { houseClimb, SEARCH_HOMES } from '../../src/search-houses.ts';
 import { ITEM_STATS, ownedEquipmentDefense } from '../../src/item-stats.ts';
@@ -661,6 +661,26 @@ test('the Industrious Goblin rents an ATV at both rates and the village roof sup
     assert.ok(a.p.phase > 0.5, 'an air roll changes the replicated ATV pose');
     tick(1.2);
     assert.equal(game.movement.state(a.p).atv?.air, null);
+    assert.equal((await act(a, 'travel', { kind: 'atvJump', id: 'missing-ramp' })).ok, false);
+    for (const hut of GOBLIN_HUTS.slice(1)) {
+      const ramp = requiredFixture(geometry.sights.find(({ id }) => id === hut.id));
+      assert.equal(ramp.kind, ATV_RAMP_KIND);
+      assert.ok(ramp.object?.count, 'the roof has a pickable mesh');
+      assert.equal((await act(a, 'travel', { kind: 'atvJump', id: ramp.id })).ok, true);
+      for (let i = 0; i < 160 && a.p.gesture !== 'atv-air'; i++) tick(0.05);
+      assert.equal(a.p.gesture, 'atv-air');
+      assert.ok(Math.hypot(a.p.x - hut.x, a.p.z - hut.z) <= ATV_SPEED * 0.05);
+      const heading = a.p.angle;
+      assert.equal((await act(a, 'travel', { kind: 'atvTrick', trick: 'spin' })).ok, true);
+      tick(0.15);
+      assert.equal(a.p.gesture, 'atv-trick');
+      assert.ok(a.p.angle > heading + 0.5, 'the spin rotates the replicated heading');
+      for (let i = 0; i < 50 && a.p.moving; i++) tick(0.05);
+      const lane = goblinRampLane(hut);
+      assert.ok((a.p.z - lane.end) * hut.direction >= -0.01, 'the ATV lands beyond the roof');
+      assert.equal(game.movement.state(a.p).atv?.air, null);
+      assert.equal(a.p.gesture, '');
+    }
     time += 60_000;
     tick(0.05);
     assert.equal(a.p.mode, 'walk');
@@ -823,7 +843,7 @@ test('the Goblin Founder hands out a fish for 10 coins which conveys no startup 
   }
 });
 
-test('a 12-coin Waymo drives from dispatch, then runs at triple walk speed for one minute', async () => {
+test('a 12-coin Waymo drives from dispatch, then runs at triple walk speed for 20 seconds', async () => {
   const a = await visitor({ x: 86.5, y: 76.5 });
   const travel = (kind: string) => act(a, 'travel', { kind });
   const movement = game.movement.state(a.p);
@@ -841,7 +861,7 @@ test('a 12-coin Waymo drives from dispatch, then runs at triple walk speed for o
     for (let i = 0; i < 80 && cab.phase === 'dispatch'; i++) tick(0.05);
     assert.equal(cab.phase, 'parked');
     assert.ok(Math.hypot(cab.x - a.p.x, cab.z - a.p.z) < 0.1);
-    assert.equal(cab.expiresAt, time + 60_000);
+    assert.equal(cab.expiresAt, time + 20_000);
     assert.equal((await travel('waymoBoard')).ok, true);
     const start = { x: a.p.x, z: a.p.z };
     assert.equal(a.p.mode, 'waymo');
@@ -1951,7 +1971,7 @@ test('Bolinas grocer calls officers from connected Marin ground for attacks and 
   }
 });
 
-test('the frog farm offers reachable level-10 practice targets that grant XP and respawn', async () => {
+test('the frog farm offers reachable level-10 practice targets that fight back, grant XP and respawn', async () => {
   const farmer = npc((n) => n.id === FROG_FARM.farmer.id);
   const frogs = FROG_SPAWNS.map(({ id }) =>
     requiredFixture(game.shared.wilderness.actors.find((actor) => actor.id === id)),
@@ -1967,11 +1987,14 @@ test('the frog farm offers reachable level-10 practice targets that grant XP and
   try {
     const skills = a.p.profile.playerState.skills;
     const before = skills.strength.xp;
+    tick(1);
+    assert.equal(a.p.hp, a.p.max);
+    assert.equal(frog.enemy, null);
     assert.equal((await act(a, 'attack', { id: frog.id, weapon: 'unarmed' })).ok, true);
     tick(1.1);
     assert.ok(skills.strength.xp > before);
-    assert.equal(a.p.hp, a.p.max);
-    assert.equal(frog.enemy, null);
+    assert.ok(a.p.hp < a.p.max);
+    assert.equal(frog.enemy, a.p.id);
     await act(a, 'stopAttack');
     game.shared.wilderness.damage(frog.id, frog.max, a.p, true);
     assert.equal(frog.hp, 0);
@@ -2122,10 +2145,12 @@ test('the entrepreneur keeps exactly the coins handed over with no investment po
   const purse = a.p.inventory.economy.state;
   try {
     assert.equal((await fund(123)).ok, false);
-    atNPC(
-      a,
-      npc((n) => n.id === 'biomed-entrepreneur'),
-    );
+    const entrepreneur = npc((n) => n.id === 'biomed-entrepreneur');
+    const roam = requiredFixture(entrepreneur.roam);
+    const { x, z } = entrepreneur;
+    tick(roam.pause + 0.5);
+    assert.ok(Math.hypot(entrepreneur.x - x, entrepreneur.z - z) > 0.1);
+    atNPC(a, entrepreneur);
     const before = purse.coins;
     assert.equal((await fund(-1)).ok, false);
     assert.equal((await fund(1.25)).ok, false);

@@ -43,6 +43,31 @@ test('ordinary monsters keep retaliating under repeated hits, then return after 
   assert.equal(actor.returning, true);
 });
 
+test('the coyote pursues an unprovoked target around an obstacle, then attacks in reach', () => {
+  const player = { id: 'walker', x: 1.1, z: 0 };
+  const hits: number[] = [];
+  const fenceX = 0.55;
+  const coyote = createWilderness({
+    spawns: [{ id: 'presidio-coyote', combatKind: 'coyote', x: 0, z: 0 }],
+    canTravel: (a, b) => {
+      const startsWest = a.x < fenceX;
+      const endsWest = b.x < fenceX;
+      if (startsWest === endsWest) return true;
+      const crossing = a.z + ((fenceX - a.x) / (b.x - a.x)) * (b.z - a.z);
+      return Math.abs(crossing) > 0.8;
+    },
+    route: (a, b) => (a.x < fenceX ? [{ x: a.x, z: 1 }, { x: b.x, z: 1 }, b] : [b]),
+    onDamage: (_player, damage) => hits.push(damage),
+  });
+  const actor = coyote.actors[0];
+  coyote.update(0.05, [player]);
+  assert.equal(actor.enemy, player.id);
+  assert.deepEqual(hits, []);
+  for (let i = 0; i < 32; i++) coyote.update(0.05, [player]);
+  assert.ok(actor.z > 0.8, 'the coyote goes around the obstacle');
+  assert.deepEqual(hits, [MONSTER_STATS.coyote.damage]);
+});
+
 test('the Terminator returns fire through a clear lane even when hit repeatedly', () => {
   let shots = 0;
   let clear = false;
@@ -87,6 +112,7 @@ test('creature attack poses animate their meshes and settle back to idle', () =>
     'tahoe-bear',
     'bison',
     'scapegoat',
+    'frog',
     'sea-urchin',
     'goblin-guard',
     'snow-giant',
@@ -109,6 +135,27 @@ test('creature attack poses animate their meshes and settle back to idle', () =>
     assert.notDeepEqual(mid, idle, combatKind);
     assert.deepEqual(render(1), idle, combatKind + ' starts in its resting pose');
     assert.deepEqual(render(0.61, true), idle, combatKind + ' respects reduced motion');
+  }
+});
+
+test('black bears and red foxes use a distinct gait while pursuing a target', () => {
+  for (const combatKind of ['tahoe-bear', 'tahoe-fox']) {
+    const render = (enemy: number | null, phase: number, motion = 1, reduced = false) => {
+      const mesh = new Mesh();
+      drawWildMonster(
+        mesh,
+        { combatKind, x: 0, z: 0, base: 0, angle: 0, phase, motion, enemy },
+        0,
+        reduced,
+      );
+      assert.ok(mesh.data.length && mesh.data.every(Number.isFinite), combatKind);
+      return mesh.data;
+    };
+    const walking = render(null, 0.8);
+    assert.notDeepEqual(render(7, 0.8), walking, combatKind);
+    assert.notDeepEqual(render(7, 0.8), render(7, 2.8), combatKind);
+    assert.deepEqual(render(7, 0.8, 1, true), walking, combatKind);
+    assert.deepEqual(render(7, 0.8, 0), render(null, 0.8, 0), combatKind);
   }
 });
 

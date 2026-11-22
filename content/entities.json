@@ -360,7 +360,8 @@
         "npc.examine",
         "service.airship.board:[]",
         "service.airship.reset:[]",
-        "service.airship.recall:[]"
+        "service.airship.recall:[]",
+        "service.airship.buyGrapple:[]"
       ]
     },
     "sight:shared-airship-rope": {
@@ -10109,7 +10110,7 @@
             {
               "id": "interaction.30",
               "action": "interaction.30",
-              "label": "Rent an airship"
+              "label": "Rent airship"
             },
             {
               "id": "examine",
@@ -10131,7 +10132,7 @@
             {
               "id": "interaction.30",
               "action": "interaction.30",
-              "label": "Rent an airship"
+              "label": "Rent airship"
             },
             {
               "id": "examine",

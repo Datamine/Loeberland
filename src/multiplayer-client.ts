@@ -26,6 +26,38 @@ export interface ConnectionSocket {
 }
 export type ConnectionSocketConstructor = new (url: string) => ConnectionSocket;
 type EventInput<T> = T extends unknown ? Omit<T, 'sampleTime'> & { sampleTime?: number } : never;
+const characterIdentityKey = 'sf-mp-identity';
+const isCharacterToken = (value: string | null | undefined): value is string =>
+  !!value && /^[a-f0-9]{64}$/.test(value);
+
+export function characterIdentityCookie(document: Pick<Document, 'cookie'>, secure: boolean) {
+  function write(token: string, maxAge: number) {
+    document.cookie =
+      characterIdentityKey +
+      '=' +
+      token +
+      '; Path=/; SameSite=Strict; Max-Age=' +
+      maxAge +
+      (secure ? '; Secure' : '');
+  }
+  return {
+    read() {
+      const prefix = characterIdentityKey + '=';
+      const token = document.cookie
+        .split(';')
+        .map((value) => value.trim())
+        .find((value) => value.startsWith(prefix))
+        ?.slice(prefix.length);
+      return isCharacterToken(token) ? token : null;
+    },
+    remember(token: string) {
+      if (isCharacterToken(token)) write(token, 180 * 24 * 60 * 60);
+    },
+    clear() {
+      write('', 0);
+    },
+  };
+}
 // CONTENT-BINDINGS-MIGRATED
 import { contentText } from './content-runtime.ts';
 import {
@@ -100,12 +132,14 @@ export function interpolateNetworkPose(
 export function createMultiplayerClient({
   endpoint,
   storage = localStorage,
+  identityCookie,
   WebSocketClass = WebSocket,
   now = () => performance.now(),
   onStatus = () => {},
 }: {
   endpoint: string | null;
   storage?: Pick<Storage, 'getItem' | 'setItem'> & Partial<Pick<Storage, 'removeItem'>>;
+  identityCookie?: ReturnType<typeof characterIdentityCookie>;
   WebSocketClass?: ConnectionSocketConstructor;
   now?: () => number;
   onStatus?: (state: MultiplayerState) => void;
@@ -114,11 +148,15 @@ export function createMultiplayerClient({
     const identity = [...crypto.getRandomValues(new Uint8Array(32))]
       .map((v) => v.toString(16).padStart(2, '0'))
       .join('');
-    storage.setItem('sf-mp-identity', identity);
+    storage.setItem(characterIdentityKey, identity);
     return identity;
   }
-  const existing = storage.getItem('sf-mp-identity');
-  let token = existing && /^[a-f0-9]{64}$/.test(existing) ? existing : newIdentity();
+  const existing = identityCookie?.read() ?? storage.getItem(characterIdentityKey);
+  let token = isCharacterToken(existing) ? existing : newIdentity();
+  function rememberIdentity(credential: string) {
+    storage.setItem(characterIdentityKey, credential);
+    identityCookie?.remember(credential);
+  }
   let worldMaps: WorldMaps = {},
     lastControls = '',
     lastPreferences: string | null = '',
@@ -135,9 +173,10 @@ export function createMultiplayerClient({
   let socket: ConnectionSocket | null = null,
     reconnect: ReturnType<typeof setTimeout> | undefined = undefined,
     stopped = false,
-    expiredLogin = false,
     serial = 0,
     failures = 0,
+    updating = false,
+    updateExpectedUntil = 0,
     lastCheckpoint = 0,
     firstResolve!: (message: object | null) => void,
     lastReceivedAt = now();
@@ -214,7 +253,7 @@ export function createMultiplayerClient({
   }
   function connect() {
     if (stopped) return;
-    status(failures ? 'Reconnecting…' : 'Connecting…');
+    status(updating ? 'Server Updating...' : failures ? 'Reconnecting…' : 'Connecting…');
     try {
       socket = new WebSocketClass(endpoint!);
       socket.binaryType = 'arraybuffer';
@@ -335,12 +374,16 @@ export function createMultiplayerClient({
         if (peer) peer.hp = message.hp;
       }
       if (message.type === 'welcome') {
+        updating = false;
+        updateExpectedUntil = 0;
         state.following = null;
         selfSamples.length = 0;
         state.connected = true;
         state.id = message.id;
         state.name = message.name;
         state.returningCharacter = message.returningCharacter === true;
+        state.serverBuild = message.serverBuild;
+        if (state.returningCharacter) rememberIdentity(token);
         state.hasCharacterPassword = message.hasCharacterPassword === true;
         state.autoName = message.autoName === true;
         state.renameAt = message.renameAt;
@@ -373,7 +416,6 @@ export function createMultiplayerClient({
         firstResolve(message);
         status('Online · ' + message.name);
         if (state.reloadOnWelcome) {
-          if (!expiredLogin) globalThis.sessionStorage?.setItem('sf-resume-character', '1');
           location.reload();
           return;
         }
@@ -414,9 +456,14 @@ export function createMultiplayerClient({
         }
         if (typeof message.hasCharacterPassword === 'boolean')
           state.hasCharacterPassword = message.hasCharacterPassword;
-        if (message.ok && message.action === 'saveCharacter' && message.loginToken) {
-          token = message.loginToken;
-          storage.setItem('sf-mp-identity', token);
+        if (message.ok && message.action === 'beginPlay') rememberIdentity(token);
+        if (
+          message.ok &&
+          (message.action === 'saveCharacter' || message.action === 'characterLogin') &&
+          isCharacterToken(message.loginToken)
+        ) {
+          rememberIdentity(message.loginToken);
+          if (message.action === 'saveCharacter') token = message.loginToken;
         }
         if (
           message.ok &&
@@ -437,18 +484,27 @@ export function createMultiplayerClient({
         emit(message);
       } else if (message.type === 'pong') {
         state.latency = Math.max(0, now() - message.clientTime);
-      } else emit(message);
+      } else {
+        if (message.type === 'notice' && message.id === 'server-update')
+          updateExpectedUntil = now() + 30_000;
+        emit(message);
+      }
     });
     attempt.addEventListener('error', () => {});
     attempt.addEventListener('close', (event) => {
       if (socket !== attempt) return;
       socket = null;
       if (
+        (event.code === 1012 && event.reason === 'Server Updating...') ||
+        now() < updateExpectedUntil
+      )
+        updating = true;
+      if (
         event.code === 4003 &&
         event.reason === 'Your character login has expired. Log in again.'
       ) {
         token = newIdentity();
-        expiredLogin = true;
+        identityCookie?.clear();
       }
       disconnected(event.code);
     });
@@ -457,6 +513,7 @@ export function createMultiplayerClient({
     state.following = null;
     selfSamples.length = 0;
     state.connected = false;
+    state.serverBuild = undefined;
     state.population = 0;
     peers.clear();
     state.self = null;
@@ -480,7 +537,7 @@ export function createMultiplayerClient({
   function schedule() {
     if (stopped) return;
     state.connected = false;
-    status('Reconnecting…');
+    status(updating ? 'Server Updating...' : 'Reconnecting…');
     const delay = Math.min(15000, 750 * 2 ** Math.min(failures++, 5)) + Math.random() * 250;
     clearTimeout(reconnect ?? undefined);
     reconnect = setTimeout(connect, delay);
@@ -661,8 +718,13 @@ export async function bootMultiplayer() {
     }
   } catch {}
   endpoint = multiplayerEndpoint(endpoint);
+  const sameOrigin =
+    endpoint && new URL(endpoint).origin === location.origin.replace(/^http/, 'ws');
   const client = createMultiplayerClient({
     endpoint,
+    identityCookie: sameOrigin
+      ? characterIdentityCookie(document, location.protocol === 'https:')
+      : undefined,
     onStatus: (state) => {
       const label = document.getElementById('sf-multiplayer-status');
       if (label) label.textContent = state.status;

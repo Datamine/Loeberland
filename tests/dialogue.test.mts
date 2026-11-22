@@ -10,6 +10,7 @@ import { createEconomy } from '../src/economy.ts';
 import { drawCharacter } from '../src/characters.ts';
 import { Mesh } from '../src/geometry.ts';
 import { drawHumanNPC, drawHumanNPCHead } from '../src/human-npc.ts';
+import { drawNPCChatHead, drawPlayerChatHead } from '../src/chat-head.ts';
 
 import { dialogueFixture as fixture } from './helpers/dialogue-fixture.mts';
 
@@ -60,6 +61,31 @@ test('an NPC chathead uses the head and outfit of the rendered actor', () => {
   assert.ok(portrait.data.every((value, i) => i % 11 !== 1 || value > 1.4));
 });
 
+test('loose long hair frames the visible neck in NPC and player portraits', () => {
+  const look = { hair: '#3d2013', skin: '#c9a688' };
+  for (const draw of [
+    (canvas: HTMLCanvasElement) =>
+      drawPlayerChatHead(canvas, { ...look, gender: 'woman', hairstyle: 'long' }),
+    (canvas: HTMLCanvasElement) =>
+      drawNPCChatHead(canvas, { ...look, female: true, longHair: true }, false),
+  ]) {
+    const size = 160;
+    const data = new Uint8ClampedArray(size * size * 4);
+    const canvas = {
+      width: size,
+      height: size,
+      getContext: () => ({ createImageData: () => ({ data }), putImageData() {} }),
+    } as unknown as HTMLCanvasElement;
+    draw(canvas);
+    const neck = (136 * size + 80) * 4;
+    const sideLock = (136 * size + 50) * 4;
+    assert.equal(data[neck + 3], 255);
+    assert.equal(data[sideLock + 3], 255);
+    assert.ok(data[neck] > 125, 'skin remains visible through the center below the chin');
+    assert.ok(data[sideLock] < 80, 'hair still hangs beside the neck');
+  }
+});
+
 test('dialogue branches retain the NPC portrait and player choices use a separate portrait', () => {
   const f = fixture();
   let portraits = 0;
@@ -80,6 +106,55 @@ test('dialogue branches retain the NPC portrait and player choices use a separat
     f.dialogue.close();
     f.dialogue.open({ name: 'Someone else', intro: 'Hi.' });
     assert.equal(portraits, 2);
+  } finally {
+    f.restore();
+  }
+});
+
+test('the coin form stays in the dialogue during validation, payment and a retry', async () => {
+  const f = fixture();
+  const payments: number[] = [];
+  const field = () => requiredFixture(f.element.querySelector('input'));
+  const submit = () => requiredFixture(f.element.querySelector('form')).submit();
+  try {
+    f.dialogue.open({
+      name: 'Entrepreneur',
+      intro: 'Invest today.',
+      choices: [
+        {
+          label: 'Invest coins',
+          amount: {
+            prompt: 'How many coins?',
+            submit: async (coins) => {
+              payments.push(coins);
+              return coins > 9
+                ? { ok: false, message: 'You don’t have that many coins.' }
+                : { ok: true, message: 'I’ll take those coins.' };
+            },
+          },
+        },
+      ],
+    });
+    f.advance();
+    f.click('Invest coins');
+    assert.equal(field(), f.doc.activeElement);
+    field().value = '1.5';
+    submit();
+    assert.match(f.element.textContent, /positive whole number/);
+    assert.deepEqual(payments, []);
+    field().value = '10';
+    submit();
+    assert.equal(field().disabled, true);
+    submit();
+    await Promise.resolve();
+    assert.match(f.element.textContent, /don’t have that many/);
+    assert.equal(field().value, '10');
+    field().value = '4';
+    submit();
+    await Promise.resolve();
+    assert.deepEqual(payments, [10, 4]);
+    assert.equal(f.element.querySelector('form'), undefined);
+    assert.match(f.element.textContent, /I’ll take those coins/);
   } finally {
     f.restore();
   }

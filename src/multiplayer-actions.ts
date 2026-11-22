@@ -201,7 +201,8 @@ export function createMultiplayerActions({
     if (message.type === 'instance' || message.type === 'welcome') pursuits.clear();
     if (message.type === 'playerState')
       apply(message.privateState, message.state, message.sampleTime);
-    if (message.type === 'notice') announce(message.message, 'World');
+    if (message.type === 'notice' && message.id !== 'server-update')
+      announce(message.message, 'World');
     if (message.type === 'salesDecision') {
       announce(message.message, 'Software salesman');
       controllers.resolvePitch?.(message);

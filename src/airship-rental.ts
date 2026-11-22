@@ -24,12 +24,14 @@ export function airshipAttendantDialogue(
     refresh,
     recall,
     rent,
+    buyGrapple,
   }: {
     status: () => Partial<AirshipRentalStatus> & { resetAt: number };
     now: () => number;
     refresh: () => CommandResult | Promise<CommandResult>;
     recall: (price: number) => CommandResult | Promise<CommandResult>;
     rent: (price: number) => unknown;
+    buyGrapple?: () => CommandResult | Promise<CommandResult>;
   },
 ) {
   const ship = status(),
@@ -63,6 +65,7 @@ export function airshipAttendantDialogue(
     };
   };
   const actions = {
+    buyGrapple: () => buyGrapple?.(),
     board: () => ({
       ok: true,
       message: text(ship.reservedForYou ? 'airship-board-prepaid' : 'airship-board', { price }),
@@ -92,6 +95,7 @@ export function airshipAttendantDialogue(
   person.choices = person.choices!.filter(
     (choice) =>
       choice.id === 'reset' ||
+      (choice.id === 'buy-grapple' && !!buyGrapple) ||
       (choice.id === 'recall' && ship.canRecall) ||
       (choice.id === 'board' && !ship.active && (!ship.reservedName || ship.reservedForYou)),
   );

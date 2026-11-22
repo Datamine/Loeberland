@@ -5,8 +5,7 @@ import { bindTradeDialog } from '../trade-dialog.ts';
 import { LAKE_MERCED_SHORE, distanceToLakeMerced } from '../lake-merced.ts';
 import { ATV_RENTAL } from '../atv.ts';
 import { marketStreetcarPose, marketStreetcarRoute } from '../market-streetcar.ts';
-import { requirePlacedBuilding } from '../building-placement.ts';
-import { hasPhysicalBounds } from '../picking.ts';
+import { playerChatLine, PLAYER_CHAT_COOLDOWN_MS, PLAYER_CHAT_LIMIT } from '../player-chat.ts';
 import type {
   SceneObject,
   PickTarget,
@@ -48,7 +47,7 @@ import type { createLoadingScreen } from '../loading-screen.ts';
 import type { Point } from '../types/geometry.ts';
 import type { Mesh } from '../geometry.ts';
 
-import { gameElement } from '../types/ui.ts';
+import { gameElement, type GameElements } from '../types/ui.ts';
 import { attachSceneBindings } from '../types/scene-bindings.ts';
 // CONTENT-BINDINGS-MIGRATED
 import { contentText } from '../content-runtime.ts';
@@ -203,7 +202,7 @@ import '../southern-expansion.ts';
 import '../peninsula-details.ts';
 import { createRocketTravel } from '../rocket.ts';
 import '../regional-road.ts';
-import { TAHOE, createTahoe, nearTahoe, tahoeHeight } from '../tahoe.ts';
+import { TAHOE, createTahoe, tahoeHeight } from '../tahoe.ts';
 import { createAirshipRope } from '../airship-rope.ts';
 import { createAirshipBasket } from '../airship-basket.ts';
 import '../airship-rental.ts';
@@ -1890,7 +1889,6 @@ export function createSFWorld({
     nearestExpeditionPoint,
     beginCapture,
     respawnAtHospital,
-    airshipUnavailable,
     useTahoeActivity,
     cancelMovingInteraction,
     updateMovingInteraction,
@@ -1906,7 +1904,6 @@ export function createSFWorld({
     showRopeMenu,
     climbUnavailable,
     descendSutro,
-    climbSutro,
     worldTarget,
     primaryWorldAction,
     orderDoorDash,
@@ -1966,7 +1963,6 @@ export function createSFWorld({
     saveCharacter,
     showCharacter,
     closeCharacter,
-    sayPhrase,
     showHelp,
     closeHelp,
   } = createHud(context);
@@ -2597,6 +2593,9 @@ export function createSFWorld({
         status: $('sf-command-status'),
         xOutput: $('sf-debug-x'),
         yOutput: $('sf-debug-y'),
+        serverCommitOutput: $('sf-debug-server-commit'),
+        serverVersionOutput: $('sf-debug-server-version'),
+        getServerBuild: () => multiplayer?.state.serverBuild,
         fpsOutput: $('sf-debug-fps'),
         getFPS: () => frameMeter.fps,
         performanceOutputs: {
@@ -2645,6 +2644,7 @@ export function createSFWorld({
         client: multiplayer,
         element: $('sf-server-required'),
         world,
+        notice: $('sf-server-update'),
         onDisconnect: () => {
           loading?.hide();
           keys.clear();
@@ -4117,8 +4117,19 @@ export function createSFWorld({
     closeCharacter();
     questMenu?.close();
   });
-  for (const button of world.querySelectorAll<HTMLButtonElement>('[data-say]'))
-    button.addEventListener('click', () => sayPhrase(button.dataset.say || ''));
+  const chatDraft = $('sf-chat-draft');
+  chatDraft.maxLength = PLAYER_CHAT_LIMIT;
+  let lastChatSent = -Infinity;
+  chatDraft.addEventListener('focus', () => keys.clear());
+  $('sf-chat-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const text = playerChatLine(chatDraft.value);
+    const time = performance.now();
+    if (!text || time - lastChatSent < PLAYER_CHAT_COOLDOWN_MS || !multiplayerWorld?.say(text))
+      return;
+    lastChatSent = time;
+    chatDraft.value = '';
+  });
   $('sf-roll-button').addEventListener('click', rollForward);
   $('sf-drink-coffee').addEventListener('click', drinkBankCoffee);
   $('sf-dance-button').addEventListener('click', dance);
@@ -4248,7 +4259,6 @@ export function createSFWorld({
     hovered = citizen || sight || place;
     const tip = $('sf-hover');
     tip.hidden = !hovered || !$('sf-context').hidden;
-    tip.toggleAttribute('data-ground-take', sight?.kind === 'loot' || sight?.kind === 'sunglasses');
     if (hovered) {
       const action = primaryWorldAction(target);
       const tipText =
@@ -4315,6 +4325,27 @@ export function createSFWorld({
       'data-show-ground-items',
       useCommandForGroundItems ? e.metaKey : e.altKey,
     );
+  let shortcutDeadline = 0;
+  const clickAction = (id: keyof GameElements) => {
+    const button = $(id);
+    if (button instanceof HTMLButtonElement && !button.hidden && !button.disabled) button.click();
+  };
+  const shortcuts: Record<string, () => unknown> = {
+    b: () => clickAction('sf-bike-button'),
+    c: () => clickAction('sf-character-button'),
+    d: () => clickAction('sf-dance-button'),
+    e: () => clickAction('sf-ski-button'),
+    f: () => surf.state.riding && useSurf(),
+    h: showHelp,
+    k: () => clickAction('sf-skateboard-button'),
+    l: () => clickAction('sf-collection-button'),
+    m: () => motorcycle?.state.rented && useMotorcycle(),
+    q: () => clickAction('sf-quests-button'),
+    r: () => ferrari?.state.riding && useFerrari(),
+    t: () => clickAction('sf-teleport-button'),
+    v: () => clickAction('sf-roll-button'),
+    x: () => clickAction('sf-sit-button'),
+  };
   document.addEventListener('keydown', (e) => {
     if (active && built && !loading?.visible) {
       updateGroundItemModifier(e);
@@ -4329,6 +4360,15 @@ export function createSFWorld({
       tabletService?.state.active
     )
       return;
+    const key = e.key.toLowerCase();
+    if (e.target === chatDraft) {
+      shortcutDeadline = 0;
+      if (key === 'escape' && !e.isComposing) {
+        e.preventDefault();
+        canvas.focus({ preventScroll: true });
+      }
+      return;
+    }
     if (e.key === 'Shift' && secretWorld?.bomber.state.phase === 'flying') {
       e.preventDefault();
       keys.add('shift');
@@ -4337,14 +4377,8 @@ export function createSFWorld({
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     if (requiredValue(debugConsole, 'Debug console').handleKey(e)) return;
     if (capture.state.active || rehabilitation.state.active) return;
-    const key = e.key.toLowerCase();
-    if (
-      chase?.state.jailed &&
-      (['b', 'f', 'e', 'a'] satisfies [string, string, string, string]).includes(key)
-    ) {
-      e.preventDefault();
-      return;
-    }
+    const shortcut = !e.repeat && key !== 'escape' && performance.now() < shortcutDeadline;
+    if (!e.repeat) shortcutDeadline = 0;
     if (context.aiInterview.visible) {
       keys.clear();
       context.aiInterview.handleKey(e);
@@ -4363,6 +4397,7 @@ export function createSFWorld({
               : null;
     if (key === 'escape') {
       e.preventDefault();
+      if (e.repeat) return;
       if (collectionMenu?.active) {
         collectionMenu.close();
         return;
@@ -4393,6 +4428,7 @@ export function createSFWorld({
         return;
       }
       if (ferrari?.state.riding) {
+        shortcutDeadline = performance.now() + 2000;
         ferrari.state.target = null;
         ferrari.state.speed = 0;
         destination = null;
@@ -4408,10 +4444,12 @@ export function createSFWorld({
         announce(contentText('world-message.src.world.scene.you-reel-in-your-line'), 'Fishing');
       } else if (sutroClimb.state.active) descendSutro();
       else if (airship.state.active) {
+        shortcutDeadline = performance.now() + 2000;
         airship.stop();
         destination = null;
         updateAirshipButton();
       } else {
+        shortcutDeadline = performance.now() + 2000;
         cancelMovingInteraction();
         player.path = [];
         player.speed = 0;
@@ -4424,13 +4462,6 @@ export function createSFWorld({
     if (context.dialogue.active) {
       keys.clear();
       context.dialogue.handleKey(e);
-      return;
-    }
-    if (
-      rocket.state.active &&
-      (['a', 'b', 'f', 'e'] satisfies [string, string, string, string]).includes(key)
-    ) {
-      e.preventDefault();
       return;
     }
     if (modal) {
@@ -4469,6 +4500,15 @@ export function createSFWorld({
       const opts = [...$('sf-context').querySelectorAll<HTMLElementTagNameMap['button']>('button')],
         i = opts.findIndex((option) => option === document.activeElement);
       opts[(i + (key === 'arrowdown' ? 1 : -1) + opts.length) % opts.length].focus();
+      return;
+    }
+    if (
+      key === 'enter' &&
+      $('sf-context').hidden &&
+      (e.target === canvas || e.target === document.body)
+    ) {
+      e.preventDefault();
+      chatDraft.focus({ preventScroll: true });
       return;
     }
     if (
@@ -4512,6 +4552,12 @@ export function createSFWorld({
       }
       return;
     }
+    if (shortcut && shortcuts[key]) {
+      e.preventDefault();
+      if (!((chase?.state.jailed || rocket.state.active) && ['b', 'e', 'f'].includes(key)))
+        shortcuts[key]();
+      return;
+    }
     if (
       !e.repeat &&
       surf.state.riding &&
@@ -4553,99 +4599,10 @@ export function createSFWorld({
       return;
     }
     if (e.repeat) return;
-    if (key === 'q') {
-      e.preventDefault();
-      context.questMenu.open();
-      return;
-    }
     if (key === ' ' && tahoe.state.mode === 'ski') {
       e.preventDefault();
       tahoe.flip();
       return;
-    }
-    if (key === 'e' && nearTahoe(player.x + 0.5, player.y + 0.5)) {
-      e.preventDefault();
-      useTahoeActivity();
-      return;
-    }
-    if (key === 'm' && motorcycle?.state.rented) {
-      e.preventDefault();
-      useMotorcycle();
-      return;
-    }
-    if (key === 'k' && !$('sf-skateboard-button').hidden && !$('sf-skateboard-button').disabled) {
-      e.preventDefault();
-      useSkateboard();
-      return;
-    }
-    if (key === 'r' && ferrari?.state.riding) {
-      e.preventDefault();
-      useFerrari();
-      return;
-    }
-    if (key === 'x') {
-      e.preventDefault();
-      if (!e.repeat) $('sf-sit-button').click();
-      return;
-    }
-    if (key === 'd') {
-      e.preventDefault();
-      dance();
-      return;
-    }
-    if (key === 'v') {
-      e.preventDefault();
-      rollForward();
-      return;
-    }
-    if (key === 'c') {
-      e.preventDefault();
-      showCharacter();
-      return;
-    }
-    if (key === 's') {
-      e.preventDefault();
-      sayPhrase('yo');
-      return;
-    }
-    if (key === 'b' && !$('sf-bike-button').hidden) {
-      e.preventDefault();
-      useBike();
-    }
-    if (key === 'f' && surf.state.riding) {
-      e.preventDefault();
-      useSurf();
-    }
-    if (key === 'e') {
-      e.preventDefault();
-      if (airship.state.active) {
-        airshipUnavailable();
-        return;
-      }
-      if (sutroClimb.state.active) {
-        descendSutro();
-        return;
-      }
-      const tower = requiredValue(sightById('sutro'), 'Missing authored entity: sutro').object;
-      if (
-        tower &&
-        hasPhysicalBounds(tower) &&
-        Math.hypot(player.x + 0.5 - tower.x - tower.w / 2, player.y + 0.5 - tower.y - tower.d / 2) <
-          4
-      ) {
-        climbSutro();
-        return;
-      }
-      const p =
-        currentInterior ||
-        places.find((p) => p.entry && Math.hypot(player.x - p.entry.x, player.y - p.entry.y) < 2.5);
-      if (p) enter(requirePlacedBuilding(p));
-      else
-        announce(
-          contentText(
-            'world-message.src.world.scene.walk-closer-to-a-storefront-to-enter-click-a-content-icon-on-t',
-          ),
-        );
     }
     if (key === '+' || key === '=') {
       e.preventDefault();
@@ -4662,6 +4619,7 @@ export function createSFWorld({
     keys.delete(e.key.toLowerCase());
   });
   window.addEventListener('blur', () => {
+    shortcutDeadline = 0;
     world.removeAttribute('data-show-ground-items');
     keys.clear();
     clearTimeout(pressTimer);

@@ -2,11 +2,13 @@ import type { ActorMetadata } from './types/world.ts';
 import { MERCHANTS } from './config/npcs.ts';
 import { applyEntityEdits } from './world-edits.ts';
 import { POOL_SWIMMER } from './communal-pool.ts';
+import { AIRSHIP_TRAVELER } from './airship-rope.ts';
 /** Menu capability, shared by combat labels and action construction. */
 export function npcOffersAttack(npc: ActorMetadata = {}) {
   if (
     npc.networkPlayer ||
     npc.id === 'nia' ||
+    npc.kind === AIRSHIP_TRAVELER ||
     npc.kind === POOL_SWIMMER ||
     npc.kind === 'cafe-patron' ||
     (typeof npc.id === 'string' &&
@@ -114,6 +116,7 @@ export function npcContextActions(
   npc: ActorMetadata = {},
   { primary = 'talk', duel = false, following = false, pvp = false } = {},
 ) {
+  if (npc.kind === AIRSHIP_TRAVELER) return ['talk', 'examine'];
   if (npc.networkPlayer)
     return [
       'trade',

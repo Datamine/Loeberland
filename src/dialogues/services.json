@@ -472,6 +472,11 @@
           "action": "recall"
         },
         {
+          "id": "buy-grapple",
+          "label": "Buy grappling hook · 5 coins",
+          "action": "buyGrapple"
+        },
+        {
           "id": "reset",
           "label": "How long until the next reset?",
           "action": "reset"

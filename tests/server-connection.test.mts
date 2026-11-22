@@ -160,6 +160,34 @@ test('socket loss rejects pending actions, clears peers and emits the connection
   }
 });
 
+test('the client keeps the planned-update reconnect status until welcome', async () => {
+  const client = createMultiplayerClient({
+    endpoint: 'ws://localhost/ws',
+    storage: memory(),
+    WebSocketClass: Socket,
+  });
+  const original = requiredFixture(Socket.instances.at(-1));
+  try {
+    original.message(welcome);
+    await client.first;
+    original.message({ type: 'notice', id: 'server-update', message: 'Server update incoming' });
+    assert.equal(client.state.connected, true);
+    original.handlers.close?.({ code: 1006 });
+    assert.equal(client.state.status, 'Server Updating...');
+    const deadline = Date.now() + 2_000;
+    while (Socket.instances.at(-1) === original && Date.now() < deadline)
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    const next = requiredFixture(Socket.instances.at(-1));
+    assert.notEqual(next, original);
+    assert.equal(client.state.status, 'Server Updating...');
+    next.message(welcome);
+    assert.equal(client.state.connected, true);
+    assert.match(client.state.status, /^Online/);
+  } finally {
+    client.stop();
+  }
+});
+
 test('legacy offline URLs cannot bypass the server requirement', async () => {
   const saved = {
     location: globalThis.location,
@@ -362,7 +390,8 @@ test('the connection screen only shows Reconnecting and blocks gameplay until th
     input = new Element('input'),
     status = new Element(),
     title = new Element('h2'),
-    home = new Element('a');
+    home = new Element('a'),
+    notice = new Element();
   form.querySelector = () => input;
   element.querySelector = (s) => ({ form, h2: title, a: home })[s as 'form' | 'h2' | 'a'] ?? status;
   let subscriber!: (message: ServerEvent) => void,
@@ -376,6 +405,7 @@ test('the connection screen only shows Reconnecting and blocks gameplay until th
     gate = createServerConnectionGate({
       client,
       world: world as unknown as HTMLElement,
+      notice: notice as unknown as HTMLElement,
       element: element as unknown as HTMLElement,
       storage,
       locationObject,
@@ -383,6 +413,14 @@ test('the connection screen only shows Reconnecting and blocks gameplay until th
     });
   gate.setActive(true);
   assert.equal(gate.blocked, false);
+  subscriber({
+    type: 'notice',
+    id: 'server-update',
+    message: 'Server update incoming',
+    sampleTime: 0,
+  });
+  assert.equal(notice.hidden, false);
+  assert.equal(notice.textContent, 'Server update incoming');
   client.state.connected = false;
   subscriber({ type: 'connection', connected: false, status: 'Offline', sampleTime: 0 });
   assert.equal(world.inert, true);
@@ -390,6 +428,9 @@ test('the connection screen only shows Reconnecting and blocks gameplay until th
   assert.equal(disconnects, 1);
   assert.equal(client.state.reloadOnWelcome, true);
   assert.equal(title.textContent, 'Reconnecting...');
+  client.state.status = 'Server Updating...';
+  subscriber({ type: 'connection', connected: false, status: client.state.status, sampleTime: 0 });
+  assert.equal(title.textContent, 'Server Updating...');
   assert.equal(status.hidden, true);
   assert.equal(form.hidden, true);
   assert.equal(home.hidden, true);
@@ -411,6 +452,7 @@ test('the connection screen only shows Reconnecting and blocks gameplay until th
   client.state.connected = true;
   subscriber({ type: 'connection', connected: true, status: 'Online', sampleTime: 1 });
   assert.equal(element.hidden, true);
+  assert.equal(notice.hidden, true);
   assert.equal(world.inert, false);
 });
 

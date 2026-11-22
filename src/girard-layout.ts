@@ -12,5 +12,5 @@ export const SCAPEGOAT = Object.freeze({
   id: 'girard-scapegoat',
   combatKind: 'scapegoat',
   x: 56.28,
-  z: 171.13,
+  z: 171.63,
 });

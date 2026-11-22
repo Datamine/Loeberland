@@ -6,19 +6,23 @@ interface MarinPickGroup {
 }
 import {
   drawBolinas,
+  drawBolinasBeach,
   bolinasBeachBlend,
   bolinasBeachHeight,
   bolinasBlocks,
+  bolinasWetSand,
   BOLINAS_PATH,
 } from './bolinas.ts';
 import {
   drawGoblinTown,
   FURNITURE_FACTORY,
   GOBLIN_INCUBATOR,
+  GOBLIN_HUTS,
   goblinHutBlocks,
+  goblinRampLane,
   incubatorPitRadius,
 } from './goblin-town.ts';
-import { ATV_JUMP_LANE, ATV_RENTAL } from './atv.ts';
+import { ATV_RENTAL } from './atv.ts';
 import { FROG_FARM, frogFarmBlocks, frogFarmGrade, inFrogFarm } from './frog-farm.ts';
 import { createNavigationGrid } from './navigation.ts';
 import { Mesh, unit, rayTriangle, rayBox, rand } from './geometry.ts';
@@ -159,6 +163,8 @@ function drawMarinSurface(
               0.31 + dry * 0.11 + coastal * 0.028,
             ] satisfies [number, number, number];
           const sand = bolinasBeachBlend(x, z);
+          const wet = sand > 0 ? bolinasWetSand(x, z) : 0;
+          const sandColor = [0.82 - wet * 0.24, 0.73 - wet * 0.21, 0.54 - wet * 0.15];
           const mudWeight = muddy
             ? Math.max(0, Math.min(1, (1 - incubatorPitRadius(x, z)) / 0.27 + 0.15))
             : 0;
@@ -166,7 +172,7 @@ function drawMarinSurface(
             m.data[v + 3 + k] = n[k];
             const landColor =
               (grass[k] * (1 - rock) + ([0.67, 0.62, 0.53] as const)[k] * rock) * (1 - sand) +
-              ([0.82, 0.73, 0.54] as const)[k] * sand;
+              sandColor[k] * sand;
             m.data[v + 6 + k] = worn
               ? ([0.6, 0.51, 0.36] as const)[k] * (0.88 + dry * 0.21)
               : landColor + (mudColor[k] - landColor) * mudWeight;
@@ -292,6 +298,8 @@ export function createMarinLand({
       // Shrubs and canopies are visual scenery. Walking clicks project to
       // the terrain underneath them.
       pickLength = surface.data.length;
+      drawBolinasBeach(surface, ground);
+      const jumpLanes = GOBLIN_HUTS.map(goblinRampLane);
       for (const patch of [
         { x: 30, z: -24, width: 31, depth: 29, count: 400, coastal: false },
         { x: -7, z: -47, width: 28, depth: 29, count: 390, coastal: true },
@@ -308,9 +316,12 @@ export function createMarinLand({
             !freeWorld(x, z) ||
             !freeWorld(x + 0.36, z - 0.35) ||
             !freeWorld(x - 0.36, z + 0.35) ||
-            (Math.abs(x - ATV_JUMP_LANE.x) < 1.84 &&
-              z > ATV_JUMP_LANE.start - 1 &&
-              z < ATV_JUMP_LANE.end + 2.3) ||
+            jumpLanes.some(
+              (lane) =>
+                Math.abs(x - lane.x) < 1.84 &&
+                z > Math.min(lane.start, lane.end) - 2.3 &&
+                z < Math.max(lane.start, lane.end) + 2.3,
+            ) ||
             Math.hypot(x - ATV_RENTAL.parking.x, z - ATV_RENTAL.parking.z) < 2.4 ||
             BOLINAS_PATH.slice(1).some(([bx, bz], j) => {
               const [ax, az] = BOLINAS_PATH[j],

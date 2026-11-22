@@ -33,6 +33,10 @@ export interface RuntimeChoice extends DialogueTextBindings {
   trade?: string | null;
   serverReceipt?: boolean;
   next?: RuntimeDialogue;
+  amount?: {
+    prompt: string;
+    submit: (amount: number) => ActionReceipt | Promise<ActionReceipt>;
+  };
   accept?: (() => ActionReceipt | Promise<ActionReceipt> | void) | null;
   labelTextId?: string;
   labelTextValues?: TextValues | (() => TextValues);
@@ -192,7 +196,7 @@ export interface Actor extends RuntimeDialogue {
   editorDescription?: boolean;
   approach?: Point | null;
   showStartedAt?: number;
-  topHat?: boolean;
+  topHat?: Appearance['topHat'];
   club?: boolean;
   neighborhood?: boolean;
   neighborLine?: string;

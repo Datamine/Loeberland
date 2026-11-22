@@ -178,6 +178,7 @@ export interface Appearance {
   rocketBurnUntil?: number;
   rocketHopAt?: number;
   hat?: string;
+  topHat?: boolean | 'shirt';
   weapon?: string;
   boots?: boolean | 'party-boots';
   iceTop?: boolean;

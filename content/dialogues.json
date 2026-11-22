@@ -976,6 +976,11 @@
           "action": "recall"
         },
         {
+          "id": "buy-grapple",
+          "label": { "text": "service.airship.buy-grapple.label" },
+          "action": "buyGrapple"
+        },
+        {
           "id": "reset",
           "label": {
             "text": "reset.label"
@@ -1998,6 +2003,11 @@
               "action": "service.airship.board:[]"
             },
             {
+              "id": "buy-grapple",
+              "label": { "text": "service.airship.buy-grapple.label" },
+              "action": "service.airship.buyGrapple:[]"
+            },
+            {
               "id": "reset",
               "label": {
                 "text": "reset.label"
@@ -2110,6 +2120,11 @@
                 "text": "recall.label"
               },
               "action": "service.airship.recall:[]"
+            },
+            {
+              "id": "buy-grapple",
+              "label": { "text": "service.airship.buy-grapple.label" },
+              "action": "service.airship.buyGrapple:[]"
             },
             {
               "id": "reset",

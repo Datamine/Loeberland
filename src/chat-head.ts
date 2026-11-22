@@ -32,7 +32,7 @@ export function drawPlayerChatHead(canvas: HTMLCanvasElement, player: ContentEnt
   drawCharacter(mesh, 0, 0, 0, facingCamera, 0, false, settings.skin, settings.shirt, {
     ...characterAppearance(settings),
     mode: 'idle',
-    headOnly: true,
+    headOnly: 'portrait',
   });
   paintHead(canvas, mesh);
 }

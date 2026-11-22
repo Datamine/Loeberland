@@ -286,6 +286,10 @@ export function cutBuildingPlot(
 }
 
 /** Layered headland ridges, with lower Rodeo/Gerbode valleys and the bridge landing. */
+export const MARIN_BOLINAS_SHORE = {
+  north: [-8, -25] satisfies [number, number],
+  south: [-2, -12] satisfies [number, number],
+};
 export const MARIN_OUTLINE = [
   [-20, -65] satisfies [number, number],
   [65, -65] satisfies [number, number],
@@ -317,8 +321,8 @@ export const MARIN_OUTLINE = [
   [5.2, -7.5] satisfies [number, number],
   [3.9, -8] satisfies [number, number],
   [2, -10] satisfies [number, number],
-  [-2, -12] satisfies [number, number],
-  [-8, -25] satisfies [number, number],
+  MARIN_BOLINAS_SHORE.south,
+  MARIN_BOLINAS_SHORE.north,
 ];
 export function marinElevation(x: number, z: number) {
   const ridges =

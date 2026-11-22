@@ -3,11 +3,13 @@ import { requiredFixture } from './helpers/required.mts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { airshipAttendantDialogue, airshipResetCountdown } from '../src/airship-rental.ts';
+import { compileEntityDialogue } from '../src/content-game.ts';
 import { createMultiplayerClient } from '../src/multiplayer-client.ts';
 import { encodePlayerFrame } from '../src/multiplayer-protocol.ts';
 
 test('attendant explains the server reset, price and reservation; boarding follows a successful receipt', async () => {
   let rents = 0,
+    purchases = 0,
     success = true,
     quote;
   const now = 1000,
@@ -41,6 +43,10 @@ test('attendant explains the server reset, price and reservation; boarding follo
         return { ok: success, message: 'Receipt' };
       },
       rent: () => rents++,
+      buyGrapple: async () => {
+        purchases++;
+        return { ok: true, grapplingHook: true };
+      },
     },
   );
   assert.match(requiredFixture(dialogue.intro)(), /1m 0s/);
@@ -52,6 +58,12 @@ test('attendant explains the server reset, price and reservation; boarding follo
   assert.match(requiredFixture(dialogue.intro)(), /quoted price is 15 coins/);
   assert.equal(dialogue.repeat, false, 'OK closes receipt before boarding');
   assert.ok(dialogue?.choices != null, 'Missing test fixture: dialogue.choices');
+  const attendant = 'actor:airship-rental-attendant';
+  const compiled = compileEntityDialogue(dialogue, attendant, { contentAirshipStatus: status });
+  const hook = requiredFixture(compiled.choices?.find((c) => c.id === 'buy-grapple'));
+  assert.equal(hook.label, 'Buy grappling hook · 5 coins');
+  assert.equal((await requiredFixture(hook.accept)())?.ok, true);
+  assert.equal(purchases, 1);
   const recall = dialogue.choices.find((c) => c.label === 'Outbid and recall · 15 coins');
   assert.ok(recall?.accept != null, 'Missing test fixture: recall.accept');
   const receipt = requiredFixture(await recall.accept());
@@ -93,6 +105,11 @@ test('attendant explains the server reset, price and reservation; boarding follo
   assert.ok(docked.choices.some((c) => c.label === 'Board prepaid airship'));
 
   assert.ok(!docked.choices.some((c) => c.label.startsWith('Outbid')));
+  assert.ok(!docked.choices.some((c) => c.id === 'buy-grapple'));
+  const owned = compileEntityDialogue(docked, attendant, {
+    contentAirshipStatus: { ...status, active: false, reservedForYou: true },
+  });
+  assert.ok(!owned.choices?.some((c) => c.id === 'buy-grapple'));
 });
 
 test('unboarded reservations can be outbid, and normal rentals retain the displayed quote while walking', async () => {

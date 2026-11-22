@@ -11,6 +11,8 @@ if [[ ! -d node_modules/tsx ]]; then npm ci --ignore-scripts; fi
 if [[ ! -d server/node_modules/redis || ! -d server/node_modules/ws ]]; then
     npm ci --prefix server --ignore-scripts
 fi
+SF_BUILD_COMMIT=$(git rev-parse --verify HEAD)
+export SF_BUILD_COMMIT
 npm run build:client
 version=$(node -p "require('./world-cache/manifest.json').version")
 [[ $version =~ ^[a-f0-9]{20}$ ]]
@@ -36,6 +38,7 @@ git ls-files -z --cached --others --exclude-standard -- \
     done > "$stage/files"
 tar -cf - --null -T "$stage/files" | tar -xf - -C "$stage/sf"
 cp index.html editor.html "$stage/sf/"
+printf '%s\n' "$SF_BUILD_COMMIT" > "$stage/sf/server/build-commit.txt"
 cp content/{validate.js,runtime.json,manifest.json} "$stage/sf/content/"
 cp world-cache/manifest.{js,json} "$stage/sf/world-cache/"
 cp -R "world-cache/$version" "$stage/sf/world-cache/"

@@ -100,7 +100,7 @@ test('moderation failures leave the automatic name and free first choice intact'
   }
 });
 
-test('welcome distinguishes a first visit from returning saved characters regardless of name choice', async () => {
+test('welcome distinguishes waiting at Play from returning after playing, regardless of name choice', async () => {
   const store = createMemoryStore();
   let game = await createGame({ geometry: fixtureGeometry(), store });
   const token = 'f'.repeat(64),
@@ -120,8 +120,15 @@ test('welcome distinguishes a first visit from returning saved characters regard
     await game.close();
     game = await createGame({ geometry: fixtureGeometry(), store });
     messages.length = 0;
-    const returning = await game.connect({ protocol: MP_PROTOCOL, token }, transport);
+    const waiting = await game.connect({ protocol: MP_PROTOCOL, token }, transport);
     let welcome = requiredFixture(messages.find((m) => m.type === 'welcome'));
+    assert.equal(welcome.returningCharacter, false);
+    await command(game, waiting, 'beginPlay');
+    await game.close();
+    game = await createGame({ geometry: fixtureGeometry(), store });
+    messages.length = 0;
+    const returning = await game.connect({ protocol: MP_PROTOCOL, token }, transport);
+    welcome = requiredFixture(messages.find((m) => m.type === 'welcome'));
     assert.equal(welcome.returningCharacter, true);
     assert.equal(welcome.autoName, true);
     assert.equal(welcome.name, name);

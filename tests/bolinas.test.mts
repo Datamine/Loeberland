@@ -5,14 +5,19 @@ import { GOBLIN_INCUBATOR } from '../src/goblin-town.ts';
 import { goblinModelVariant } from '../src/wilderness-models.ts';
 import {
   BOLINAS,
+  BOLINAS_BEACH,
   BOLINAS_COTTAGES,
   BOLINAS_PATH,
+  BOLINAS_URCHINS,
   CULTIST_COTTAGE,
   BOLINAS_CULTIST,
   EMF_DISCIPLES,
   EMF_WARRIOR,
   bolinasBlocks,
+  bolinasBeachBlend,
+  bolinasWetSand,
   drawBolinas,
+  drawBolinasBeach,
 } from '../src/bolinas.ts';
 import { MARIN_OUTLINE, marinElevation } from '../src/geography.ts';
 import { createMarinLand } from '../src/marin-land.ts';
@@ -53,6 +58,17 @@ test('Bolinas and its warrior are connected to Marin, with cottages blocking the
   drawBolinas(mesh, (x, z) => marinElevation(x / 1.5, z / 1.5));
   assert.ok(mesh.data.length > 1000);
   assert.ok(mesh.data.every(Number.isFinite));
+  assert.ok(land.path(gate, BOLINAS_BEACH.entry, () => null));
+  assert.deepEqual([BOLINAS_URCHINS[0].x, BOLINAS_URCHINS[0].z], [-6, -31]);
+  for (const { x, z } of BOLINAS_URCHINS) {
+    assert.ok(land.contains(x, z));
+    assert.ok(bolinasBeachBlend(x, z) > 0.8);
+    assert.ok(land.path(BOLINAS_BEACH.entry, { x: x - 0.5, y: z - 0.5 }, () => null));
+  }
+  assert.ok(bolinasWetSand(-8.5, -31) > bolinasWetSand(-6, -31));
+  const beach = new Mesh();
+  drawBolinasBeach(beach, land.height);
+  assert.ok(beach.data.length > 0 && beach.data.every(Number.isFinite));
 });
 
 test('minimap layers mark sellers and task givers independently', () => {

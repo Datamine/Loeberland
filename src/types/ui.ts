@@ -64,6 +64,8 @@ export interface GameElements {
   'sf-debug-cache': HTMLElementTagNameMap['output'];
   'sf-debug-cpu': HTMLElementTagNameMap['output'];
   'sf-debug-fps': HTMLElementTagNameMap['output'];
+  'sf-debug-server-commit': HTMLElementTagNameMap['output'];
+  'sf-debug-server-version': HTMLElementTagNameMap['output'];
   'sf-debug-tiles': HTMLElementTagNameMap['output'];
   'sf-debug-x': HTMLElementTagNameMap['output'];
   'sf-debug-y': HTMLElementTagNameMap['output'];
@@ -115,6 +117,7 @@ export interface GameElements {
   'sf-loading-name-status': HTMLElementTagNameMap['small'];
   'sf-loading-title': HTMLElementTagNameMap['strong'];
   'sf-log': HTMLElementTagNameMap['div'];
+  'sf-server-update': HTMLDivElement;
   'sf-map-button': HTMLElementTagNameMap['button'];
   'sf-map-npcs': HTMLElementTagNameMap['button'];
   'sf-map-shops': HTMLElementTagNameMap['button'];
@@ -124,6 +127,7 @@ export interface GameElements {
   'sf-order-doordash': HTMLElementTagNameMap['button'];
   'sf-phone-status': HTMLElementTagNameMap['span'];
   'sf-place-markers': HTMLElementTagNameMap['div'];
+  'sf-player-pvp': HTMLElementTagNameMap['div'];
   'sf-player-speech': HTMLElementTagNameMap['div'];
   'sf-pvp-enabled': HTMLElementTagNameMap['input'];
   'sf-pvp-status': HTMLElementTagNameMap['small'];
@@ -146,7 +150,8 @@ export interface GameElements {
   'sf-roll-button': HTMLElementTagNameMap['button'];
   'sf-rope-button': HTMLElementTagNameMap['button'];
   'sf-sales-status': HTMLElementTagNameMap['span'];
-  'sf-say-button': HTMLElementTagNameMap['button'];
+  'sf-chat-draft': HTMLElementTagNameMap['input'];
+  'sf-chat-form': HTMLElementTagNameMap['form'];
   'sf-server-required': HTMLElementTagNameMap['section'];
   'sf-server-required-title': HTMLElementTagNameMap['h2'];
   'sf-sit-button': HTMLElementTagNameMap['button'];

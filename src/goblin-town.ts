@@ -1,6 +1,7 @@
 import type { Mesh } from './geometry.ts';
 import { pose } from './geometry.ts';
-import { ATV_JUMP_LANE, ATV_ROOF, rampRise } from './atv.ts';
+import { ATV_RAMP_KIND, ATV_ROOF, rampRise } from './atv.ts';
+import type { RenderedSite } from './types/world.ts';
 import { GOBLIN_INDUSTRIALIST } from './goblin-industrialist.ts';
 import { GOBLIN_AI_LAB, goblinAILabScrapBlocks } from './goblin-ai-lab.ts';
 import { GOBLIN_SPACE_PROGRAM, VILLAGE_GOOSE } from './goblin-space-layout.ts';
@@ -40,10 +41,17 @@ export const FACTORY_CHAIR_SELL = 220;
 
 export const GOBLIN_TOWN = Object.freeze({ x: 30, z: -23, entry: { x: 29.5, y: -17.5 } });
 export const GOBLIN_HUTS = Object.freeze([
-  { x: 26.5, z: -21, color: '#9c6657' },
-  { x: 33.5, z: -23, color: '#7d8757' },
-  { x: 26.5, z: -26, color: '#8b7198' },
+  { id: 'goblin-ramp-south', x: 26.5, z: -21, color: '#9c6657', direction: 1 },
+  { id: 'goblin-ramp-east', x: 33.5, z: -23, color: '#7d8757', direction: -1 },
+  { id: 'goblin-ramp-north', x: 26.5, z: -26, color: '#8b7198', direction: -1 },
 ]);
+export function goblinRampLane(hut: (typeof GOBLIN_HUTS)[number]) {
+  return {
+    x: hut.x,
+    start: hut.z - hut.direction * (ATV_ROOF.run + 0.4),
+    end: hut.z + hut.direction * 4.2,
+  };
+}
 export const GOBLIN_SPAWNS = Object.freeze([
   { id: 'tam-goblin-1', combatKind: 'goblin', x: 30, z: -19 },
   { id: 'tam-goblin-2', combatKind: 'goblin', x: 29, z: -23 },
@@ -176,22 +184,15 @@ export function drawGoblinTown(m: Mesh, ground: (arg0: number, arg1: number) => 
           );
         }
     }
-  for (const hut of GOBLIN_HUTS) drawRampHouse(m, hut, ground);
-  for (const side of [-1, 1]) {
-    const x = ATV_JUMP_LANE.x + side * 1.06,
-      z = ATV_JUMP_LANE.start;
-    const y = ground(x, z);
-    m.rod([x, y, z], [x, y + 1, z], 0.029, '#827043', 8);
-    m.tri([x, y + 1.05, z], [x, y + 0.78, z], [x + 0.38, y + 0.9, z], '#e6aa48');
-  }
   drawFactory(m, ground);
 }
 
-function drawRampHouse(
+export function drawGoblinRamp(
   m: Mesh,
   hut: (typeof GOBLIN_HUTS)[number],
   ground: (x: number, z: number) => number,
-) {
+): RenderedSite {
+  const start = m.data.length;
   const { x, z } = hut;
   const at = (u: number, v: number, roof: boolean) => {
     const xx = x + ATV_ROOF.halfWidth * u,
@@ -241,6 +242,34 @@ function drawRampHouse(
       emissive: 0.14,
     });
   }
+  const lane = goblinRampLane(hut);
+  for (const side of [-1, 1]) {
+    const x = lane.x + side * 1.06,
+      z = hut.z - hut.direction * (ATV_ROOF.run - 0.25),
+      y = ground(x, z) + rampRise(z, hut.z) + 0.018;
+    m.rod([x, y, z], [x, y + 1, z], 0.029, '#827043', 8);
+    m.tri([x, y + 1.05, z], [x, y + 0.78, z], [x + 0.38, y + 0.9, z], '#e6aa48');
+  }
+  const lo = [Infinity, Infinity, Infinity];
+  const hi = [-Infinity, -Infinity, -Infinity];
+  for (let i = start; i < m.data.length; i += 11)
+    for (let axis = 0; axis < 3; axis++) {
+      lo[axis] = Math.min(lo[axis], m.data[i + axis]);
+      hi[axis] = Math.max(hi[axis], m.data[i + axis]);
+    }
+  return {
+    id: hut.id,
+    kind: ATV_RAMP_KIND,
+    label: 'ATV Ramp',
+    description:
+      'Click the roof or its flags while riding an ATV to line up and jump. Press R to roll or T to spin in the air.',
+    entry: { x: lane.x - 0.5, y: lane.start - 0.5 },
+    solid: false,
+    start,
+    count: m.data.length - start,
+    lo,
+    hi,
+  };
 }
 
 function drawEamesChair(m: Mesh, x: number, y: number, z: number, angle: number) {

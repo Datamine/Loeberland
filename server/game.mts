@@ -4,7 +4,9 @@ import { contentText } from '../src/content-runtime.ts';
 import { isFiniteNumber, isRecord } from '../src/types/json.ts';
 import { readClientMessage } from './client-messages.mts';
 import type { CommandMessage, ClientHello } from './client-messages.mts';
+import { playerChatLine, PLAYER_CHAT_COOLDOWN_MS } from '../src/player-chat.ts';
 import type { PlayerProfile } from '../src/types/profile.ts';
+import type { BuildInfo } from '../src/types/network.ts';
 import type { Appearance } from '../src/types/content.ts';
 import type { ServerGeometry, PlayerTransport, ServerPlayer } from '../src/types/server.ts';
 import type { GameplayStore, NameReservation, StorageEntry } from '../src/types/storage.ts';
@@ -16,6 +18,7 @@ interface GameOptions {
   random?: () => number;
   maxPlayers?: number;
   allowDebug?: boolean;
+  serverBuild?: BuildInfo;
   tuning?: Partial<{ [K in keyof typeof SERVER_TUNING]: number }>;
 }
 import { DEATH_DURATION } from '../src/capture-animation.ts';
@@ -115,6 +118,7 @@ export async function createGame({
   random = Math.random,
   maxPlayers = 2000,
   allowDebug = false,
+  serverBuild,
   tuning: tuningOverrides = {},
 }: GameOptions) {
   const tuning = { ...SERVER_TUNING, ...tuningOverrides };
@@ -506,9 +510,11 @@ export async function createGame({
       let profile: PlayerProfile | undefined = isRecord(stored)
         ? hydratePlayerProfile(stored)
         : undefined;
-      const returningCharacter = !!profile;
+      // Profiles saved before the Play flag was introduced are already established.
+      const returningCharacter = !!profile && profile.hasPlayed !== false;
       if (!profile) {
         profile = hydratePlayerProfile({
+          hasPlayed: false,
           privateState: {
             ...(sanitizePrivateState(hello.privateState)['sf-character-v1']
               ? { 'sf-character-v1': sanitizePrivateState(hello.privateState)['sf-character-v1'] }
@@ -652,6 +658,7 @@ export async function createGame({
       send(p, {
         type: 'welcome',
         protocol: MP_PROTOCOL,
+        serverBuild,
         id,
         name: p.name,
         returningCharacter,
@@ -1043,6 +1050,10 @@ export async function createGame({
       result = movement.move(p, args);
     } else if (action === 'beginPlay') {
       p.characterPlaying = true;
+      if (p.profile.hasPlayed !== true) {
+        p.profile.hasPlayed = true;
+        dirty(p);
+      }
       result = { ok: true };
     } else if (action === 'pausePlay') {
       movement.leaveConstruction(p);
@@ -1332,11 +1343,11 @@ export async function createGame({
           ok: false,
           message: contentText('world-message.server.game.you-already-own-a-grappling-hook'),
         };
-      else if (Math.hypot(p.x - AIRSHIP_SHOP.x, p.z - AIRSHIP_SHOP.z) > 7)
+      else if (!shared.canBuyGrapple(p))
         result = {
           ok: false,
           message: contentText(
-            'world-message.server.game.visit-the-airship-outfitter-at-the-private-jet-terminal',
+            'world-message.server.airship-rental.speak-to-the-airship-attendant-at-the-private-jet-terminal',
           ),
         };
       else {
@@ -1541,11 +1552,13 @@ export async function createGame({
     }
     if (message.type === 'say') {
       const say = () => {
-        if (players.get(p.id) !== p || now() - (p.spokeAt || 0) < 700) return;
-        p.spokeAt = now();
-        if (!(['yo', 'ok', 'no'] satisfies [string, string, string]).includes(String(message.text)))
+        const time = now();
+        if (players.get(p.id) !== p || time - (p.spokeAt ?? -Infinity) < PLAYER_CHAT_COOLDOWN_MS)
           return;
-        const speech = JSON.stringify({ type: 'say', id: p.id, text: message.text });
+        const text = playerChatLine(message.text);
+        if (!text) return;
+        p.spokeAt = time;
+        const speech = JSON.stringify({ type: 'say', id: p.id, name: p.name, text });
         for (const other of replication.observersOf(p, 25)) send(other, speech);
       };
       if (store.inMemory) p.queue = enqueueMutation(say);
@@ -1783,5 +1796,3 @@ export async function createGame({
     },
   };
 }
-
-const AIRSHIP_SHOP = { x: 92.2, z: 123.4 };

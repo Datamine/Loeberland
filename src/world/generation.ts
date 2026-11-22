@@ -78,7 +78,13 @@ import { SALT_FLATS_SIGNS, drawSaltFlats } from '../salt-flats.ts';
 import { planBlockStreetLights, houseDoorPositions } from '../street-light-layout.ts';
 
 import { drawDogHouse } from '../search-house-models.ts';
-import { FURNITURE_FACTORY, GOBLIN_INCUBATOR, GOBLIN_TOWN } from '../goblin-town.ts';
+import {
+  drawGoblinRamp,
+  FURNITURE_FACTORY,
+  GOBLIN_HUTS,
+  GOBLIN_INCUBATOR,
+  GOBLIN_TOWN,
+} from '../goblin-town.ts';
 import { drawFrogFarm, FROG_FARM } from '../frog-farm.ts';
 import { drawGoblinAILab, GOBLIN_AI_LAB, GOBLIN_PLUMBERS } from '../goblin-ai-lab.ts';
 import {
@@ -222,7 +228,7 @@ import {
 import { AIRSHIP_BASKET } from '../airship-basket.ts';
 import { MERCHANTS } from '../economy.ts';
 import { COFFEE_STALL_VENDOR, HARDWARE_CLERK, RICH_TABLE_CHEF } from '../config/npcs.ts';
-import { peptideSpawnPoints } from '../guild.ts';
+import { GUILD_EAST_TOWNHOME_FRONTAGE, peptideSpawnPoints } from '../guild.ts';
 import { ILLUMINATI_CAVE } from '../map-instances.ts';
 import { createSecretAdventures } from '../secret-adventures.ts';
 import { createBankService, createBankMenu } from '../bank-ui.ts';
@@ -734,7 +740,8 @@ export function createGeneration(context: WorldContext) {
         ...BOLINAS_BEACH,
         kind: 'beach',
         label: 'Bolinas Beach',
-        description: 'Sea urchins creep along the sandy beach south of the Bolinas cottages.',
+        description:
+          'Sea urchins creep between tide pools and driftwood on the beach south of Bolinas.',
       });
     if (!context.sights.some((s) => s.id === POINT_REYES.id)) context.sights.push(POINT_REYES);
     if (!context.sights.some((s) => s.id === 'bolinas'))
@@ -1399,6 +1406,7 @@ export function createGeneration(context: WorldContext) {
           n.questRole ||
           n.dogSurfJudge ||
           n.kind === 'berkeley-mathematician' ||
+          n.kind === 'biomed-entrepreneur' ||
           n.kind === 'enterprising-industrialist' ||
           n.kind === 'bolinas-local' ||
           n.kind === 'churchgoer' ||
@@ -2425,6 +2433,8 @@ export function createGeneration(context: WorldContext) {
       description: 'A goblin with wood shavings in his pockets and a sketch of a very long ladder.',
     });
     register(drawRentalATV(context.sceneMesh, context.marinLand.height), context.sceneMesh);
+    for (const hut of GOBLIN_HUTS)
+      register(drawGoblinRamp(context.sceneMesh, hut, context.marinLand.height), context.sceneMesh);
     register(context.marinLand.drawIncubator(context.sceneMesh), context.sceneMesh);
     register(
       drawGoblinPhoneHut(context.sceneMesh, context.signs, context.marinLand.height),
@@ -3106,6 +3116,7 @@ export function createGeneration(context: WorldContext) {
       shirt: '#b7393f',
       pants: '#8e2932',
       coat: true,
+      topHat: 'shirt',
       height: 1.95,
       angle: lodge.rotation || 0,
     });
@@ -5123,7 +5134,9 @@ export function createGeneration(context: WorldContext) {
 
   function planContentBuildings() {
     for (const p of planningPlaces()) {
-      const target = [p.x + p.w / 2, p.y + p.d / 2] satisfies [number, number];
+      const townhomeWidth = p.id === 'freemasons-guild' ? GUILD_EAST_TOWNHOME_FRONTAGE : 0;
+      const plotWidth = p.w + townhomeWidth;
+      const target = [p.x + plotWidth / 2, p.y + p.d / 2] satisfies [number, number];
       let best = null,
         score = Infinity;
       for (const r of context.worldTiles.routes)
@@ -5137,15 +5150,15 @@ export function createGeneration(context: WorldContext) {
             at = Math.max(0, Math.min(length, (target[0] - a[0]) * ux + (target[1] - a[1]) * uz));
           for (const side of [-1, 1] satisfies [number, number])
             for (let step = -24; step <= 24; step++) {
-              const t = Math.max(p.w / 2, Math.min(length - p.w / 2, at + step * 0.25));
-              if (length < p.w + 0.5) continue;
+              const t = Math.max(plotWidth / 2, Math.min(length - plotWidth / 2, at + step * 0.25));
+              if (length < plotWidth + 0.5) continue;
               const nx = -uz * side,
                 nz = ux * side,
                 offset = r.halfWidth + TILE_CONFIG.curbWidth + 0.18 + p.d / 2,
                 cx = a[0] + ux * t + nx * offset,
                 cz = a[1] + uz * t + nz * offset,
                 angle = Math.atan2(nx, -nz),
-                poly = context.rectangle(cx, cz, p.w, p.d, angle),
+                poly = context.rectangle(cx, cz, plotWidth, p.d, angle),
                 distance = (cx - target[0]) ** 2 + (cz - target[1]) ** 2;
               if (
                 p.id === 'ai-lab' &&
@@ -5156,20 +5169,25 @@ export function createGeneration(context: WorldContext) {
                 continue;
               if (distance >= score || !parcelFits(poly)) continue;
               score = distance;
-              best = { cx, cz, angle, poly };
+              best = { cx, cz, angle, poly, street: r.name };
             }
         }
       if (!best) throw new Error('No curb-facing site for ' + p.name);
-      p.x = best.cx - p.w / 2;
-      p.y = best.cz - p.d / 2;
+      const east = Math.cos(best.angle) >= 0 ? 1 : -1;
+      const ux = east * Math.cos(best.angle),
+        uz = east * Math.sin(best.angle);
+      const cx = best.cx - (ux * townhomeWidth) / 2,
+        cz = best.cz - (uz * townhomeWidth) / 2;
+      p.x = cx - p.w / 2;
+      p.y = cz - p.d / 2;
       p.rotation = best.angle;
-      p.footprint = best.poly;
+      p.footprint = townhomeWidth ? context.rectangle(cx, cz, p.w, p.d, best.angle) : best.poly;
       p.localDoor = p.x + (p.w - 1) / 2;
       const inside = buildingPoint(p, p.x + p.w / 2, p.y + p.d - 0.7),
         entry = buildingPoint(p, p.x + p.w / 2, p.y + p.d + 0.65);
       p.inside = { x: inside[0] - 0.5, y: inside[1] - 0.5 };
       p.entry = { x: entry[0] - 0.5, y: entry[1] - 0.5 };
-      claimParcel({ polygon: best.poly, kind: 'destination', place: p });
+      claimParcel({ polygon: p.footprint, kind: 'destination', place: p });
       // Doorways have short, deliberate public approaches, never vacant lots.
       const forecourt = context.rectangle(
         ...buildingPoint(p, p.x + p.w / 2, p.y + p.d + 0.3),
@@ -5179,8 +5197,28 @@ export function createGeneration(context: WorldContext) {
       );
       context.publicSpaces.push(forecourt);
       claimParcel({ polygon: forecourt, kind: 'entrance' });
-      levelTerrainPad(best.cx, best.cz, p.w, p.d, p.rotation);
+      levelTerrainPad(cx, cz, p.w, p.d, p.rotation);
       context.makeBuilding(p as Place, true);
+      if (townhomeWidth) {
+        const x = best.cx + (ux * p.w) / 2,
+          z = best.cz + (uz * p.w) / 2;
+        const home = context.makeTownhomeRow(
+          x - townhomeWidth / 2,
+          z - p.d / 2,
+          townhomeWidth,
+          p.d,
+          2,
+          rand(x, z, 8),
+          p.rotation,
+        );
+        claimParcel({
+          polygon: home.footprint,
+          kind: 'housing',
+          street: best.street,
+          rotation: p.rotation,
+          object: home,
+        });
+      }
     }
   }
 

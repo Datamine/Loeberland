@@ -3157,6 +3157,9 @@
     "recall.label": {
       "template": "Outbid and recall · {price} coins"
     },
+    "service.airship.buy-grapple.label": {
+      "template": "Buy grappling hook · 5 coins"
+    },
     "reset.label": {
       "template": "How long until the next reset?"
     },

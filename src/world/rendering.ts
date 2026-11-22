@@ -108,7 +108,7 @@ import {
   drawRegionalBackdrop,
   SNOW_SURFACE_GLSL,
 } from '../tahoe.ts';
-import { drawAirshipRope } from '../airship-rope.ts';
+import { AIRSHIP_TRAVELER, drawAirshipRope } from '../airship-rope.ts';
 import { AIRSHIP_BASKET } from '../airship-basket.ts';
 import { MERCHANTS } from '../economy.ts';
 import { HANGAR_GOOSE, ILLUMINATI_CAVE } from '../map-instances.ts';
@@ -998,12 +998,16 @@ export function createRendering(context: WorldContext) {
       context.tahoe.state.mode === 'ground'
     );
     if (context.multiplayerWorld?.selfMode === 'waymo')
-      drawWaymo(m, {
-        x: context.player.x + 0.5,
-        z: context.player.y + 0.5,
-        y: context.playerGround(),
-        angle: context.player.angle,
-      });
+      drawWaymo(
+        m,
+        {
+          x: context.player.x + 0.5,
+          z: context.player.y + 0.5,
+          y: context.playerGround(),
+          angle: context.player.angle,
+        },
+        characterAppearance(context.playerLook),
+      );
     else if (context.multiplayerWorld?.selfMode === 'atv')
       drawATVRider(
         m,
@@ -1960,18 +1964,29 @@ export function createRendering(context: WorldContext) {
     if (context.rope.state.passenger) {
       const p = context.rope.state.passenger,
         aboard = p.phase === 'aboard',
-        ship = context.airship.state.position || context.airship.home,
-        a = context.airship.state.heading;
-      drawHumanNPC(m, p, t, {
-        x: aboard ? ship.x - Math.cos(a) * 0.8 : p.x,
-        z: aboard ? ship.z - Math.sin(a) * 0.8 : p.z,
-        base: aboard ? ship.y + 0.1 : p.y,
-        angle: a,
-        phase: aboard ? 0 : (p.y * Math.PI * 2) / 0.56,
-        seated: false,
+        heading = context.multiplayerWorld?.sharedAirship?.heading ?? context.airship.state.heading,
+        female = p.gender === 'woman',
+        label = female ? 'Woman' : 'Man',
+        start = m.data.length;
+      const traveler: Actor = {
+        id: AIRSHIP_TRAVELER,
+        kind: AIRSHIP_TRAVELER,
+        label,
+        name: label,
+        x: aboard ? shipPosition.x + Math.cos(heading) * 0.4 - Math.sin(heading) * 0.55 : p.x,
+        z: aboard ? shipPosition.z + Math.sin(heading) * 0.4 + Math.cos(heading) * 0.55 : p.z,
+        base: aboard ? shipPosition.y + AIRSHIP_BASKET.floor + 0.07 : p.y,
+        angle: aboard ? heading + Math.PI : heading,
         skin: MERCHANTS.passenger.skin,
         shirt: MERCHANTS.passenger.shirt,
+        hair: MERCHANTS.passenger.hair,
+        female,
+        longHair: female,
+      };
+      drawHumanNPC(m, traveler, t, {
+        phase: aboard ? 0 : (p.y * Math.PI * 2) / 0.56,
         appearance: {
+          ...merchantHeadAppearance(traveler),
           mode: aboard ? 'idle' : 'climb',
           motion: aboard ? 0 : 1,
           backpack: false,
@@ -1980,6 +1995,7 @@ export function createRendering(context: WorldContext) {
         reduced: context.reduced,
         draw: context.human,
       });
+      if (aboard && context.airship.state.active) addTarget(start, { npc: traveler });
     }
     context.whales.draw(
       m,
@@ -2619,6 +2635,7 @@ export function createRendering(context: WorldContext) {
       tag.name.textContent = actor.police || actor.player ? actor.label || '' : '';
       tag.name.className = actor.player ? 'sf-player-name' : '';
       tag.name.dataset.pvp = String(!!actor.pvp);
+      tag.el.toggleAttribute('data-pvp', !!actor.player && !!actor.pvp);
       tag.arrow.hidden = !marked;
       tag.speech.textContent = speechText;
       tag.speech.classList.toggle(
@@ -2628,8 +2645,10 @@ export function createRendering(context: WorldContext) {
     }
     for (let i = used; i < context.labelPool.length; i++) context.labelPool[i].el.hidden = true;
     const speech = context.$('sf-player-speech');
+    const skull = context.$('sf-player-pvp');
     speech.hidden = t >= context.playerSpeechUntil;
-    if (!speech.hidden) {
+    skull.hidden = context.multiplayer?.state.pvp?.enabled !== true || context.health.state.hp <= 0;
+    if (!speech.hidden || !skull.hidden) {
       let head = {
         x: context.player.x + 0.5,
         y: context.playerGround() + context.playerRocketHop().height + 2.15,
@@ -2642,10 +2661,15 @@ export function createRendering(context: WorldContext) {
           context.rocket.state,
         );
       const at = context.project(head.x, head.y, head.z);
-      speech.hidden = at.distance <= 0 || at.depth > 1;
-      if (!speech.hidden) {
-        speech.style.left = at.x + 'px';
-        speech.style.top = at.y + 'px';
+      if (at.distance <= 0 || at.depth > 1) {
+        speech.hidden = true;
+        skull.hidden = true;
+      } else {
+        for (const label of [speech, skull]) {
+          if (label.hidden) continue;
+          label.style.left = at.x + 'px';
+          label.style.top = at.y + 'px';
+        }
       }
     }
   }

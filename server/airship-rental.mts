@@ -6,7 +6,7 @@ import type { AirshipLease } from '../src/types/shared-world.ts';
 import { AIRSHIP_RULES } from '../src/config/airship.ts';
 import { AIRSHIP_TERMINAL } from '../src/airship.ts';
 
-/** One shared rental, a persisted hourly timetable and a short owner-bound
+/** One shared rental, a persisted reset timetable and a short owner-bound
  * priority claim. Purchases and ownership changes are synchronous; storage is
  * awaited by the command dispatcher before it issues the payment receipt. */
 export function createAirshipRental({
@@ -24,10 +24,12 @@ export function createAirshipRental({
   reset: (reason: string, requester?: ServerPlayer) => void;
   saved?: Partial<AirshipLease>;
 }) {
+  const talkedToAttendant = new WeakSet<ServerPlayer>();
+  const nextReset = now() + AIRSHIP_RULES.resetIntervalMs;
   let resetAt =
     isSafeInteger(saved.resetAt) && saved.resetAt! > 0
-      ? saved.resetAt!
-      : now() + AIRSHIP_RULES.resetIntervalMs;
+      ? Math.min(saved.resetAt!, nextReset)
+      : nextReset;
   let reservation =
     saved.reservation &&
     typeof saved.reservation.owner === 'string' &&
@@ -52,7 +54,7 @@ export function createAirshipRental({
         AIRSHIP_RULES.resetIntervalMs;
       reservation = null;
       lastPrice = 0;
-      reset('hourly');
+      reset('scheduled');
     }
     if (reservation && time >= reservation.until) reservation = null;
   }
@@ -152,7 +154,10 @@ export function createAirshipRental({
           'world-message.server.airship-rental.speak-to-the-airship-attendant-at-the-private-jet-terminal',
         ),
       };
-    if (action === 'airshipStatus') return { ok: true, airship: status(p) };
+    if (action === 'airshipStatus') {
+      talkedToAttendant.add(p);
+      return { ok: true, airship: status(p) };
+    }
     if (action !== 'airshipRecall')
       return {
         ok: false,
@@ -225,6 +230,7 @@ export function createAirshipRental({
   return {
     tick,
     command,
+    canBuyGrapple: (p: ServerPlayer) => talkedToAttendant.has(p) && nearAgent(p),
     publicStatus,
     mayBoard,
     boarded,

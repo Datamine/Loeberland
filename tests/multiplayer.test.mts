@@ -2,7 +2,12 @@ import { FixtureSocket as Socket } from './helpers/socket.mts';
 import { requiredFixture } from './helpers/required.mts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { multiplayerEndpoint, interpolateNetworkPose } from '../src/multiplayer-client.ts';
+import {
+  characterIdentityCookie,
+  createMultiplayerClient,
+  multiplayerEndpoint,
+  interpolateNetworkPose,
+} from '../src/multiplayer-client.ts';
 import {
   sanitizePrivateState,
   validNetworkPose,
@@ -100,6 +105,40 @@ test('personal checkpoints are bounded and cannot include credentials or shared 
   ])
     assert.equal(validNetworkPose(invalid), false);
   assert.equal(unpackNetworkNPC(['citizen-1', 1, 2, null, 0.3, 1, 4, 5, 0, 0.1]).elapsed, 5);
+});
+
+test('the browser character cookie restores and rotates the existing identity', () => {
+  const original = 'a'.repeat(64),
+    replacement = 'b'.repeat(64);
+  const browser = { cookie: 'unrelated=abc; sf-mp-identity=' + original };
+  const cookie = characterIdentityCookie(browser, true);
+  const values = new Map<string, string>();
+  const client = createMultiplayerClient({
+    endpoint: 'wss://loeberland.test/ws',
+    storage: {
+      getItem: (key) => values.get(key) ?? null,
+      setItem: (key, value) => values.set(key, value),
+    },
+    identityCookie: cookie,
+    WebSocketClass: Socket,
+  });
+  const socket = Socket.last;
+  try {
+    let hello = '';
+    Object.assign(socket, {
+      send(message: string) {
+        hello = message;
+      },
+    });
+    socket.handlers.open?.(new Event('open'));
+    assert.equal(JSON.parse(hello).token, original);
+    socket.message({ type: 'result', action: 'characterLogin', ok: true, loginToken: replacement });
+    assert.equal(cookie.read(), replacement);
+    assert.equal(values.get('sf-mp-identity'), replacement);
+    assert.match(browser.cookie, /Path=\/; SameSite=Strict; Max-Age=15552000; Secure$/);
+  } finally {
+    client.stop();
+  }
 });
 
 test('authoritative follower poses interpolate without a local movement loop and stay separate from peers', async () => {

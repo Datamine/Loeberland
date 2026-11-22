@@ -91,6 +91,7 @@ import { createResearchDialogue } from '../research-dialogue.ts';
 import { TAHOE } from '../tahoe.ts';
 import '../airship-basket.ts';
 import { airshipAttendantDialogue } from '../airship-rental.ts';
+import { AIRSHIP_TRAVELER } from '../airship-rope.ts';
 import { AIRSHIP_RULES } from '../config/airship.ts';
 import { MERCHANTS } from '../economy.ts';
 import {
@@ -114,7 +115,7 @@ import {
   GOBLIN_INCUBATOR,
 } from '../goblin-town.ts';
 import { houseClimb } from '../search-houses.ts';
-import { ATV_RENTAL, hasATVRental } from '../atv.ts';
+import { ATV_RAMP_KIND, ATV_RENTAL, hasATVRental } from '../atv.ts';
 import { unusualPastorDialogue } from '../berkeley-dialogue.ts';
 import churchDialogue from '../../content/dialogues/other/berkeley-church.json' with { type: 'json' };
 import girardDialogue from '../../content/dialogues/other/rene-girard.json' with { type: 'json' };
@@ -711,14 +712,6 @@ export function createInteractions(context: WorldContext) {
         ]
       : [
           [rentalLabel, () => boardAirship(price)],
-          ...(context.multiplayerWorld
-            ? [
-                [
-                  'Buy grappling hook · 5 coins',
-                  () => context.multiplayerWorld.buyGrapple(),
-                ] satisfies [string, () => unknown],
-              ]
-            : []),
           ['Examine terminal', () => examine(sightById('airship'))],
         ];
     if (!context.airship.state.active)
@@ -736,7 +729,6 @@ export function createInteractions(context: WorldContext) {
         label,
         [
           { label: 'Airship attendant', kind: 'npc' },
-          { label: 'grappling hook', kind: 'item' },
           { label: 'Tahoe', kind: 'object' },
           { label: contentText('world.interactions.showAirshipMenu.label-11', {}), kind: 'object' },
           { label: contentText('world.interactions.showAirshipMenu.label-12', {}), kind: 'object' },
@@ -1678,6 +1670,7 @@ export function createInteractions(context: WorldContext) {
           now: () => Date.now() + (context.multiplayer.state.serverOffset || 0),
           refresh: () => act('airshipStatus'),
           recall: (price: number) => act('airshipRecall', { price }),
+          buyGrapple: context.multiplayer.state.grapplingHook ? undefined : () => act('buyGrapple'),
           rent: boardAirship,
         }),
       );
@@ -1978,11 +1971,17 @@ export function createInteractions(context: WorldContext) {
     const options: [string, () => unknown][] = !context.airship.state.active
       ? [['Climb up', () => climbRope(false)]]
       : [['Climb down', () => climbRope(true)]];
-    if (context.airship.state.active && pilot)
-      options.push(
-        ['Offer a ride · 5 coins', () => context.multiplayerWorld.command('airshipInvite')],
-        ['Retract rope', () => context.multiplayerWorld.command('airshipRope', { retract: true })],
-      );
+    if (context.airship.state.active && pilot) {
+      if (!context.rope.state.passenger && !context.rope.state.passengerPaid)
+        options.push([
+          'Offer a ride · 5 coins',
+          () => context.multiplayerWorld.command('airshipInvite'),
+        ]);
+      options.push([
+        'Retract rope',
+        () => context.multiplayerWorld.command('airshipRope', { retract: true }),
+      ]);
+    }
     for (const [text, fn] of options) {
       const b = document.createElement('button');
       b.type = 'button';
@@ -3176,6 +3175,22 @@ export function createInteractions(context: WorldContext) {
   ): unknown {
     if (!npc || (npc.kind === 'cafe-patron' && (verb === 'attack' || verb === 'steal')))
       return false;
+    if (npc.kind === AIRSHIP_TRAVELER && !npc.networkPlayer) {
+      if (verb !== 'talk' || !context.airship.state.active) return false;
+      closeReader();
+      closeMenu();
+      return openNPCDialogue({
+        ...npc,
+        contentResolved: true,
+        intro: 'Thanks for the lift. The view from up here was worth the climb.',
+        choices: [
+          {
+            label: 'Where are you headed?',
+            receipt: 'I’m happy to go wherever you’re going. I was just out for a walk.',
+          },
+        ],
+      });
+    }
     if (npc.networkPlayer) {
       if (verb === 'attack') return context.multiplayerWorld.attackPlayer(npc);
       if (verb === 'follow') return context.multiplayerWorld.followPlayer(npc);
@@ -3424,13 +3439,10 @@ export function createInteractions(context: WorldContext) {
           choices: [
             {
               label: 'Invest coins',
-              accept: () => {
-                const value = window.prompt('How many coins do you want to hand her?');
-                if (value === null) return { ok: false, message: 'You keep your coins.' };
-                return serverCommand(context.multiplayer, 'inventory', {
-                  op: 'fundBiomed',
-                  amount: Number(value),
-                });
+              amount: {
+                prompt: 'How many coins do you want to hand her?',
+                submit: (amount) =>
+                  serverCommand(context.multiplayer, 'inventory', { op: 'fundBiomed', amount }),
               },
             },
             {
@@ -3533,7 +3545,7 @@ export function createInteractions(context: WorldContext) {
           ...npc,
           contentResolved: true,
           intro:
-            'Gate’s open. Give the frogs a few swings if you need the practice. They’re tougher than they look, but they won’t bite.',
+            'Gate’s open. Give the frogs a few swings if you need the practice. They’ll fight back once you hit them.',
         }),
       );
     if (npc.kind === 'rene-girard' && verb === 'talk')
@@ -3973,12 +3985,18 @@ export function createInteractions(context: WorldContext) {
     context.canvas.focus({ preventScroll: true });
   }
 
-  function announce(text: string | undefined, who = 'Guide') {
-    context.$('sf-status').textContent = text ?? '';
+  function announce(text: string | undefined, who = 'Guide', playerChat = false) {
+    if (!playerChat) context.$('sf-status').textContent = text ?? '';
     const row = document.createElement('div'),
-      time = document.createElement('time');
-    time.textContent = who;
-    row.append(time, document.createTextNode(' ' + text));
+      speaker = document.createElement(playerChat ? 'span' : 'time');
+    speaker.textContent = who;
+    if (playerChat) {
+      row.className = 'sf-player-chat-line';
+      speaker.className = 'sf-chat-username';
+      const message = document.createElement('span');
+      message.textContent = text ?? '';
+      row.append(speaker, message);
+    } else row.append(speaker, document.createTextNode(' ' + text));
     const log = context.$('sf-log');
     log.append(row);
     while (log.children.length > 12) log.firstChild!.remove();
@@ -4319,6 +4337,12 @@ export function createInteractions(context: WorldContext) {
           });
         }
         break;
+      case ATV_RAMP_KIND:
+        if (context.multiplayerWorld.selfMode === 'atv')
+          return action('atv.jump', 'Jump ' + label, () =>
+            context.multiplayerWorld.command('travel', { kind: 'atvJump', id }),
+          );
+        break;
       case 'swing': {
         const { entry } = sight;
         if (!entry) break;
@@ -4438,7 +4462,7 @@ export function createInteractions(context: WorldContext) {
           'Perform ' + gymExercise(context.gymSelection).label,
         );
       case 'airship':
-        return action('interaction.30', 'Rent an airship', undefined, {
+        return action('interaction.30', 'Rent airship', undefined, {
           label: 'airship',
           kind: 'object',
         });
@@ -4463,6 +4487,8 @@ export function createInteractions(context: WorldContext) {
   }
 
   function groundAction(tile: Point): WorldAction {
+    if (context.multiplayerWorld?.selfMode === 'atv')
+      return { id: 'atv.drive-here', label: 'Drive here', run: () => walkTo(tile.x, tile.y) };
     if (context.multiplayerWorld?.selfMode === 'waymo')
       return { id: 'waymo.drive-here', label: 'Drive here', run: () => walkTo(tile.x, tile.y) };
     if (context.ferrari?.state.riding)
@@ -4518,12 +4544,11 @@ export function createInteractions(context: WorldContext) {
         label: 'Climb down',
         run: () => walkTo(target.tile.x, target.tile.y),
       };
-    if (
-      context.multiplayerWorld?.selfMode === 'atv' ||
-      context.multiplayerWorld?.selfMode === 'waymo'
-    )
-      return groundAction(target.tile);
-    if (npc?.networkPlayer || npc?.police) return primaryNPCAction(npc);
+    if (context.multiplayerWorld?.selfMode === 'atv')
+      return sight?.kind === ATV_RAMP_KIND ? primarySightAction(sight) : groundAction(target.tile);
+    if (context.multiplayerWorld?.selfMode === 'waymo') return groundAction(target.tile);
+    if (npc?.networkPlayer || npc?.police || npc?.kind === AIRSHIP_TRAVELER)
+      return primaryNPCAction(npc);
     if (context.secretWorld?.bomber.state.active) return groundAction(target.tile);
     if (context.flying()) {
       if (sight?.kind === 'airship-rope')
@@ -4589,7 +4614,12 @@ export function createInteractions(context: WorldContext) {
     const target = worldTarget(sx, sy);
     if (target.sight?.kind === 'airship-rope' && context.airship.state.active)
       return showRopeMenu(sx, sy);
-    if (context.flying() && !target.npc?.networkPlayer && !target.npc?.police)
+    if (
+      context.flying() &&
+      !target.npc?.networkPlayer &&
+      !target.npc?.police &&
+      target.npc?.kind !== AIRSHIP_TRAVELER
+    )
       return showAirshipMenu(sx, sy);
     if (context.sutroClimb.state.active) {
       const menu = context.$('sf-context');
@@ -4935,12 +4965,6 @@ export function createInteractions(context: WorldContext) {
         ? undefined
         : add(primary.label, primary.run, primary.id, primary.target));
     editMenuLabels(menu, owner, actionTargets, namedActions);
-    if (npc && !npc.networkPlayer && npc.rider && !npc.bicycleTaken)
-      add(
-        'Seize-Bicycle-from ' + context.npcLabel(npc, false),
-        () => seizeBicycle(npc),
-        'npc.seize-bicycle',
-      );
     if (s?.kind === 'ferrari') {
       for (const id of ['walk', 'examine']) {
         const button = buttons.find((candidate) => candidate.dataset.actionId === id);
@@ -4949,6 +4973,15 @@ export function createInteractions(context: WorldContext) {
     }
     if (primaryButton)
       orderPrimaryActions(menu, primaryButton, s?.kind === 'ferrari' ? ['walk', 'examine'] : []);
+    if (npc && !npc.networkPlayer && npc.rider && !npc.bicycleTaken) {
+      const seize = add(
+        'Seize-Bicycle-from ' + context.npcLabel(npc, false),
+        () => seizeBicycle(npc),
+        'npc.seize-bicycle',
+      );
+      const examine = menu.querySelector('[data-action-id="npc.examine"]');
+      if (examine) menu.insertBefore(seize, examine);
+    }
     revealContextMenu(menu, sx, sy);
   }
 
@@ -5348,8 +5381,8 @@ export function createInteractions(context: WorldContext) {
     if (!context.headless) {
       const button = context.$('sf-sit-button');
       button.toggleAttribute('data-sitting', value);
-      button.innerHTML = (value ? 'Stand up' : 'Sit') + ' <span class="sf-key">X</span>';
-      button.title = value ? 'Stand up (X)' : 'Choose how to sit (X)';
+      button.textContent = value ? 'Stand up' : 'Sit';
+      button.title = value ? 'Stand up (Esc, then X)' : 'Choose how to sit (Esc, then X)';
     }
   }
 

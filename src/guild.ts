@@ -9,6 +9,7 @@ export const GUILD_RESET_MS = 3600000,
   GUILD_RESETS_REQUIRED = 24,
   PEPTIDE_SPAWN_MS = 5 * 60 * 1000;
 export const TECHNOLOGIST_MARKET = "Technologist's Farmers Market";
+export const GUILD_EAST_TOWNHOME_FRONTAGE = 1;
 export const GUILD_BUILDINGS = Object.freeze([
   {
     id: 'freemasons-guild',
@@ -17,7 +18,7 @@ export const GUILD_BUILDINGS = Object.freeze([
     category: 'Nob Hill · members club',
     x: 38,
     y: 24,
-    w: 4.4,
+    w: 3.4,
     d: 3.8,
     h: 100,
     worldHeight: 3.15,

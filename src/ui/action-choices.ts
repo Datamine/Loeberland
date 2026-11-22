@@ -49,6 +49,7 @@ export function bindActionChoices(root: HTMLElement, pickers: ActionChoices[]) {
   }
 
   function show(picker: ActionChoices) {
+    if (picker.trigger.disabled || !choices(picker).length) return;
     cancelDismiss();
     if (open === picker) return;
     close();
@@ -77,6 +78,7 @@ export function bindActionChoices(root: HTMLElement, pickers: ActionChoices[]) {
         return;
       }
       show(picker);
+      if (open !== picker) return;
       pinned = true;
       choices(picker)[0]?.focus({ preventScroll: true });
     });
@@ -88,6 +90,11 @@ export function bindActionChoices(root: HTMLElement, pickers: ActionChoices[]) {
       });
     }
   }
+  new viewport.MutationObserver(() => {
+    if (!open) return;
+    if (open.trigger.disabled || !choices(open).length) close();
+    else position(open);
+  }).observe(root, { subtree: true, attributeFilter: ['hidden', 'disabled'] });
   root.addEventListener('keydown', (event) => {
     if (!open) return;
     if (event.key === 'Escape') {

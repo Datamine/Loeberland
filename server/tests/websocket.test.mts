@@ -6,6 +6,7 @@ import { WebSocket } from 'ws';
 import { startServer } from '../index.mts';
 import { createMemoryStore } from '../store.mts';
 import { fixtureGeometry } from './fixtures.mts';
+import gamePackage from '../../package.json' with { type: 'json' };
 
 test('real WebSockets authenticate, exchange nearby avatars, moderate names and recover the same account', async () => {
   const server = await startServer({
@@ -78,6 +79,11 @@ test('real WebSockets authenticate, exchange nearby avatars, moderate names and 
       'BayPilot',
     );
     const health = await (await fetch('http://127.0.0.1:' + server.port + '/healthz')).json();
+    const serverBuild = requiredFixture(
+      reconnect.messages.find((m) => m.type === 'welcome')?.serverBuild,
+    );
+    assert.equal(serverBuild.version, gamePackage.version);
+    assert.deepEqual(health.build, serverBuild);
     assert.equal(health.players, 2);
     assert.equal(health.ok, true);
     assert.ok(health.timings.broadcastMs.samples > 0);
@@ -89,6 +95,22 @@ test('real WebSockets authenticate, exchange nearby avatars, moderate names and 
       (await fetch('http://127.0.0.1:' + server.port + '/server/package.json')).status,
       404,
     );
+    server.announceUpdate();
+    await until(() =>
+      [b, reconnect].every(({ messages }) =>
+        messages.some(
+          (message) =>
+            message.type === 'notice' &&
+            message.id === 'server-update' &&
+            message.message === 'Server update incoming',
+        ),
+      ),
+    );
+    const closed = new Promise<{ code: number; reason: string }>((resolve) =>
+      reconnect.ws.once('close', (code, reason) => resolve({ code, reason: reason.toString() })),
+    );
+    await server.close();
+    assert.deepEqual(await closed, { code: 1012, reason: 'Server Updating...' });
   } finally {
     for (const ws of clients) ws.terminate();
     await server.close();

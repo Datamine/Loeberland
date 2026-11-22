@@ -4,6 +4,7 @@ import { storedPlayerFixture, fixtureGeometry, player, command } from './fixture
 import { requiredFixture } from '../../tests/helpers/required.mts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { AIRSHIP_TERMINAL } from '../../src/airship.ts';
 import { SpatialIndex } from '../spatial-index.mts';
 import { createPlayerFrames } from '../player-frames.mts';
 import { createReplication } from '../replication.mts';
@@ -441,6 +442,8 @@ test('RAM purchases commit only the affected account and survive disconnect/chec
     return batch(entries);
   };
   try {
+    Object.assign(a.p, { x: AIRSHIP_TERMINAL.entry.x + 0.5, z: AIRSHIP_TERMINAL.entry.y + 0.5 });
+    await command(game, a.p, 'airshipStatus');
     await command(game, a.p, 'buyGrapple');
     assert.equal(a.p.inventory.economy.state.coins, 20);
     assert.deepEqual(batches, [['player:' + a.p.owner]]);
@@ -467,19 +470,32 @@ test('crowded speech goes only to observers that can see the speaker, including 
     for (const a of crowd) a.messages.length = 0;
     const speaker = crowd.at(-1);
     assert.ok(speaker != null, 'Missing test fixture: speaker');
-    game.receive(speaker.p, { type: 'say', text: 'yo' });
+    const text = 'x'.repeat(140);
+    game.receive(speaker.p, { type: 'say', text: text + 'x' });
+    await speaker.p.queue;
+    assert.equal(
+      speaker.messages.some((m) => m.type === 'say'),
+      false,
+    );
 
+    game.receive(speaker.p, { type: 'say', name: 'Forged', text });
     await speaker.p.queue;
 
-    assert.equal(speaker.messages.filter((m) => m.type === 'say').length, 1);
+    assert.deepEqual(
+      speaker.messages.filter((m) => m.type === 'say'),
+      [{ type: 'say', id: speaker.p.id, name: speaker.p.name, text }],
+    );
     for (const a of crowd.slice(0, -1))
       assert.equal(
         a.messages.filter((m) => m.type === 'say').length,
         Number(a.p.seen.has(speaker.p.id)),
       );
     crowd[1].p.instance = { kind: 'kraken', id: 'personal', layer: -2 };
-    game.receive(crowd[0].p, { type: 'say', text: 'ok' });
+    game.receive(crowd[0].p, { type: 'say', text: '  Nice view!\nSee you there.  ' });
     await crowd[0].p.queue;
+    const reply = crowd[0].messages.find((m) => m.type === 'say' && m.id === crowd[0].p.id);
+    assert.ok(reply?.type === 'say');
+    assert.equal(reply.text, 'Nice view! See you there.');
     assert.equal(
       crowd[1].messages.some((m) => m.type === 'say' && m.id === crowd[0].p.id),
       false,

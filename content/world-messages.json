@@ -117,7 +117,7 @@
     "template": "The Goose Corp membership card disintegrates in your hands."
   },
   "world-message.server.airship-rental.please-wait-for-the-hourly-airship-price-reset": {
-    "template": "Please wait for the hourly airship price reset."
+    "template": "Please wait for the next airship price reset."
   },
   "world-message.server.airship-rental.speak-to-the-airship-attendant-at-the-private-jet-terminal": {
     "template": "Speak to the airship attendant at the private jet terminal."
@@ -408,7 +408,7 @@
     "template": "Your rental still has time left. Click the parked ATV to mount it."
   },
   "world-message.server.movement.click-to-drive-right-click-for-the-roof-jump-donuts-and-air-tr": {
-    "template": "Click the ground to drive. Use the right-hand controls for roof jumps, donuts, and air tricks."
+    "template": "Click the ground to drive or click a flagged ramp to line up and jump. Press R to roll or T to spin in the air."
   },
   "world-message.server.movement.drive-closer-to-the-goblin-village-ramps": {
     "template": "Drive closer to the goblin village ramps."
@@ -846,7 +846,7 @@
     "template": "The gate opens. Follow the raptor south of the lab."
   },
   "world-message.server.shared-world.the-hourly-airship-reset-has-returned-the-ship-to-the-terminal": {
-    "template": "The hourly airship reset has returned the ship to the terminal."
+    "template": "The scheduled airship reset has returned the ship to the terminal."
   },
   "world-message.server.shared-world.the-hunter-has-first-claim-for-more-seconds": {
     "template": "The hunter has first claim for {value1} more seconds."
@@ -1779,7 +1779,7 @@
     "template": "You switch to {value1}."
   },
   "world-message.src.world.interactions.you-take-the-service-ladder-up-sutro-tower-press-e-or-climb-do": {
-    "template": "You take the service ladder up Sutro Tower. Press E or Climb down to turn back."
+    "template": "You take the service ladder up Sutro Tower. Choose Climb down to turn back."
   },
   "world-message.src.world.interactions.you-try-to-steal-the-conveniently-parked-motorcycle-its-alarm": {
     "template": "You try to steal the conveniently parked motorcycle. Its alarm summons the police!"
@@ -1815,7 +1815,7 @@
     "template": "You reel in your line."
   },
   "world-message.sutro.climb-down-before-walking": {
-    "template": "Climb down from Sutro Tower before walking elsewhere. Use Climb down or press E."
+    "template": "Climb down from Sutro Tower before walking elsewhere."
   },
   "world-message.welcome": {
     "template": "Welcome to San Francisco. Make yourself at home."
@@ -1836,7 +1836,7 @@
     "template": "Walk up to your parked Waymo before boarding."
   },
   "world-message.waymo.expired": {
-    "template": "Your one-minute Waymo rental has ended."
+    "template": "Your Waymo rental has ended."
   },
   "world-message.goblin-phone.purchase": {
     "template": "“It doesn’t do anything,” you say. The industrialist taps the clay. “It’s a good notepad.”"

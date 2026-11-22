@@ -277,8 +277,21 @@ test('Green Bank retains its homepage link and connects the entrance, furnished 
 
 test('Ray, the guild interior and every Technologist’s Farmers Market peptide spawn have native connected routes', () => {
   const ray = world.merchants.find((n) => n.id === 'guild-ray'),
-    lodge = world.places.find((p) => p.id === 'freemasons-guild'),
+    lodge = requiredFixture(world.places.find((p) => p.id === 'freemasons-guild')),
     store = world.places.find((p) => p.id === 'sunset-whole-foods');
+  assert.equal(lodge.w, 3.4);
+  const eastHome = requiredFixture(
+    world.objects.find(
+      (o) =>
+        o.arch === 'townhomes' &&
+        o.x !== undefined &&
+        o.y !== undefined &&
+        Math.abs(o.x - (lodge.x + lodge.w)) < 1e-6 &&
+        Math.abs(o.y - lodge.y) < 1e-6,
+    ),
+  );
+  assert.equal(eastHome.w, 1);
+  assert.equal(eastHome.homes, 1);
   assert.ok(ray != null, 'Missing test fixture: ray');
   assert.equal(ray.name, 'Ray');
 
@@ -292,8 +305,8 @@ test('Ray, the guild interior and every Technologist’s Farmers Market peptide 
     'the store is in the Sunset, south of Golden Gate Park',
   );
   for (const goal of [
-    requiredFixture(lodge).entry,
-    requiredFixture(lodge).inside,
+    lodge.entry,
+    lodge.inside,
     store.entry,
     store.inside,
     world.approaches.merchant(ray),

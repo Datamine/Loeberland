@@ -36,7 +36,7 @@ export const VILLAGE_GOOSE = {
 
 export const VILLAGE_POSTERS = {
   id: 'goblin-village-goose-posters',
-  x: 25.55,
-  z: -23.9,
-  entry: { x: 25.05, y: -23.5 },
+  x: 22.55,
+  z: -26.9,
+  entry: { x: 22.05, y: -26.5 },
 } as const;

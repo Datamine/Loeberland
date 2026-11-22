@@ -1,10 +1,12 @@
 import type { Site, ActorMetadata } from './types/world.ts';
 import { buildingNPCService } from './building-interactions.ts';
 import { applyEntityEdits } from './world-edits.ts';
+import { AIRSHIP_TRAVELER } from './airship-rope.ts';
 /** Observation text stays separate from dialogue and its trading side effects. */
 const merchantDescriptions = Object.freeze({
   'airship-agent':
     'A punctual attendant with a brass watch and a very long retrieval cable. Their flight schedule has exactly one departure: whenever you are ready.',
+  [AIRSHIP_TRAVELER]: 'A traveler taking in the view from the basket.',
   'twitter-worker':
     'A backend engineer with impeccable bottle discipline. Every cork is a deployment.',
   'twitter-poster':
@@ -62,7 +64,7 @@ export function describeCharacter(person: ActorMetadata) {
   if (person.kind === 'illuminati-elder')
     return 'An Old Man with silver hair, a very discreet lapel pin, and a philanthropic interest in exactly 250,000 of your coins.';
   if (person.kind === 'guild-master')
-    return 'Ray wears a red suit, a brass lapel compass and the serene expression of a man with a very orderly filing cabinet.';
+    return 'Ray wears a red suit with a matching top hat, a brass lapel compass and the serene expression of a man with a very orderly filing cabinet.';
   if (person.neighborhoodService)
     return (
       person.description || 'A local shopkeeper, keeping this corner of the neighborhood busy.'

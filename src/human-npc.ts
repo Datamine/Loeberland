@@ -162,7 +162,7 @@ export function drawHumanNPCHead(m: Mesh, npc: Partial<Actor>, angle: number) {
     mode: 'idle',
     time: 0,
     motion: 0,
-    headOnly: true,
+    headOnly: 'portrait',
   });
 }
 

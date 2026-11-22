@@ -30,6 +30,19 @@ compose "$release" config --quiet
 compose "$release" build game
 compose "$release" run --rm --no-deps -T proxy \
     caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+if [[ -n $old && -f $old/compose.env ]] &&
+    compose "$old" exec -T game node -e '
+        const { createConnection } = require("node:net");
+        if (!process.env.DEPLOY_NOTICE_SOCKET) process.exit(1);
+        const socket = createConnection(process.env.DEPLOY_NOTICE_SOCKET);
+        socket.setTimeout(2000, () => socket.destroy(new Error("Notice timed out")));
+        socket.on("error", () => process.exit(1));
+        socket.on("data", (data) => { if (data.toString() === "ok") process.exit(0); });
+        socket.on("end", () => process.exit(1));
+    ' >/dev/null 2>&1; then
+    echo 'Update notice sent. Waiting five seconds before restarting…'
+    sleep 5
+fi
 if ! compose "$release" up -d --wait --wait-timeout 300; then
     compose "$release" logs --tail=40 >&2 || true
     if [[ -n $old && -f $old/compose.env ]]; then

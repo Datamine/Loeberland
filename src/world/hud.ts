@@ -50,8 +50,9 @@ function updateSkillProgress(
   if (bar.value !== skill.percent) bar.value = skill.percent;
   const progress =
     skill.next === null ? 'Max level' : skill.percent.toFixed(2) + '% to Level ' + skill.next;
-  const text = skillName + ' Level ' + skill.level + ' · ' + progress;
+  const text = skillName + ' · Level ' + skill.level;
   if (label.textContent !== text) label.textContent = text;
+  if (bar.title !== progress) bar.title = progress;
   if (bar.getAttribute('aria-valuetext') !== progress) bar.setAttribute('aria-valuetext', progress);
 }
 
@@ -151,12 +152,6 @@ export function createHud(context: WorldContext) {
     updateAirshipButton();
     button.disabled = !!context.chase?.state.jailed || descending || context.sutroTravelPending;
     button.replaceChildren(document.createTextNode(descending ? 'Climbing down…' : 'Climb down'));
-    if (!descending) {
-      const key = document.createElement('span');
-      key.className = 'sf-key';
-      key.textContent = 'E';
-      button.append(key);
-    }
   }
 
   function updateBikeButton() {
@@ -170,10 +165,6 @@ export function createHud(context: WorldContext) {
     setActionText(button, context.bike.riding ? 'Park bike ' : near ? 'Ride bike ' : 'Find bike ', [
       { label: 'bike', kind: 'npc' },
     ]);
-    const key = document.createElement('span');
-    key.className = 'sf-key';
-    key.textContent = 'B';
-    button.append(key);
     button.setAttribute('aria-pressed', String(context.bike.riding));
   }
 
@@ -226,14 +217,21 @@ export function createHud(context: WorldContext) {
     const purse = context.economy.state;
     for (const button of $('sf-chairs').querySelectorAll<HTMLButtonElement>('[data-chair]')) {
       const chair = button.dataset.chair;
-      if (chair && chair !== 'normal') button.hidden = !equipmentOwned(purse, chair);
+      if (chair && chair !== 'normal') {
+        const hidden = !equipmentOwned(purse, chair);
+        if (button.hidden !== hidden) button.hidden = hidden;
+      }
     }
     const tablets = context.tabletService?.inventory() || {};
-    const canTeleport = !context.tabletService?.state.active && context.canUseTablet();
+    const teleportBlocked = !!context.tabletService?.state.active || !context.canUseTablet();
+    let hasTablets = false;
     for (const id of TABLET_PLACES) {
       const button = $('sf-tablet-' + id) as HTMLButtonElement;
       const count = tablets[id] || 0;
-      button.disabled = !count || !canTeleport;
+      const hidden = count === 0;
+      hasTablets ||= !hidden;
+      if (button.hidden !== hidden) button.hidden = hidden;
+      if (button.disabled !== teleportBlocked) button.disabled = teleportBlocked;
       const label = button.querySelector('span')!;
       const quantity = '· ' + count;
       if (label.textContent !== quantity) {
@@ -241,6 +239,9 @@ export function createHud(context: WorldContext) {
         button.title = ITEM_STATS[id + '-tablet'].name + ' · ' + count + ' available';
       }
     }
+    const teleport = $('sf-teleport-button');
+    const teleportDisabled = !hasTablets || teleportBlocked;
+    if (teleport.disabled !== teleportDisabled) teleport.disabled = teleportDisabled;
     const coffee = context.bankService?.snapshot().coffee || 0;
     $('sf-drink-coffee').hidden = !coffee;
     $('sf-drink-coffee').disabled =
@@ -829,15 +830,6 @@ export function createHud(context: WorldContext) {
     context.canvas.focus({ preventScroll: true });
   }
 
-  function sayPhrase(text: string) {
-    if (!context.active) return false;
-    context.multiplayerWorld?.say(text);
-    context.playerSpeechUntil = performance.now() + 3000;
-    $('sf-player-speech').textContent = text;
-    context.canvas.focus({ preventScroll: true });
-    return true;
-  }
-
   function showHelp() {
     context.collectionMenu?.close();
     if (context.bankMenu?.active) context.bankMenu.close();
@@ -879,7 +871,6 @@ export function createHud(context: WorldContext) {
     saveCharacter,
     showCharacter,
     closeCharacter,
-    sayPhrase,
     showHelp,
     closeHelp,
   };

@@ -128,7 +128,10 @@ const goblin = {
 export const MONSTER_STATS = defineMonsterStats({
   frog: {
     name: 'Frog',
-    ...monsterCombat(10, 2, { passive: true }),
+    level: 10,
+    hp: 100,
+    damage: 3,
+    interval: 2,
     respawn: COMMON_RESPAWN_SECONDS,
     speed: 1.2,
     leash: 2.5,

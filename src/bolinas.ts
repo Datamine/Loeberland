@@ -1,19 +1,32 @@
 import { rand, type Mesh } from './geometry.ts';
+import { MARIN_BOLINAS_SHORE, REFERENCE_SIZE, WORLD_SIZE } from './geography.ts';
 
 /** Coastal village reached on foot through the Marin headlands. */
 export const BOLINAS = Object.freeze({ x: -8, z: -48, entry: { x: -7.5, y: -43.5 } });
 export const BOLINAS_BEACH = Object.freeze({
   id: 'bolinas-beach',
-  entry: { x: -12.5, y: -44 },
+  x: -6,
+  z: -31,
+  entry: { x: -5, y: -31.5 },
 });
+const coveHalfLength = 6;
+const mapScale = WORLD_SIZE / REFERENCE_SIZE;
+
+function coveShoreX(z: number) {
+  const { north, south } = MARIN_BOLINAS_SHORE;
+  const t = (z / mapScale - north[1]) / (south[1] - north[1]);
+  return (north[0] + (south[0] - north[0]) * t) * mapScale;
+}
+
+const beachPoint = (z: number, inland: number) => ({ x: coveShoreX(z) + inland, z });
 export const BOLINAS_URCHINS = Object.freeze(
   [
-    { x: -13.85, z: -47.6 },
-    { x: -14.2, z: -46.65 },
-    { x: -14.1, z: -45.65 },
-    { x: -13.8, z: -44.6 },
-    { x: -12.9, z: -43.6 },
-    { x: -12.2, z: -42.8 },
+    { x: BOLINAS_BEACH.x, z: BOLINAS_BEACH.z },
+    beachPoint(-34.7, 1.45),
+    beachPoint(-33.05, 2.55),
+    beachPoint(-31.9, 1.15),
+    beachPoint(-29.35, 1.42),
+    beachPoint(-27.8, 2.2),
   ].map((position, i) => ({
     // Keep the existing encounter IDs so saved urchins follow the moved spawns.
     id: 'point-reyes-urchin-' + (i + 1),
@@ -55,16 +68,92 @@ export const BOLINAS_PATH = Object.freeze([
   [-7, -44] satisfies [number, number],
   [-7, -55] satisfies [number, number],
 ]);
-export function bolinasBeachBlend(x: number, z: number) {
-  const shore = -12 + 0.3 * (z + 37.5);
-  const inland = (x - shore) / 5.7;
-  const length = Math.abs(z + 49.5) / 9;
+function beachBlend(inland: number, length: number) {
   const weight = Math.max(0, Math.min(1, (1 - Math.max(inland, length)) * 3));
   return weight * weight * (3 - 2 * weight);
 }
+export function bolinasBeachBlend(x: number, z: number) {
+  const nearVillage = beachBlend((x - (-12 + 0.3 * (z + 37.5))) / 5.7, Math.abs(z + 49.5) / 9);
+  const nearCove = beachBlend(
+    (x - coveShoreX(z)) / 6.1,
+    Math.abs(z - BOLINAS_BEACH.z) / coveHalfLength,
+  );
+  return Math.max(nearVillage, nearCove);
+}
 export function bolinasBeachHeight(x: number, z: number) {
-  const shore = -12 + 0.3 * (z + 37.5);
-  return 0.035 + Math.max(0, x - shore) * 0.115;
+  const cove = Math.abs(z - BOLINAS_BEACH.z) < coveHalfLength;
+  const shore = cove ? coveShoreX(z) : -12 + 0.3 * (z + 37.5);
+  return 0.035 + Math.max(0, x - shore) * (cove ? 0.095 : 0.115);
+}
+export function bolinasWetSand(x: number, z: number) {
+  if (Math.abs(z - BOLINAS_BEACH.z) >= coveHalfLength) return 0;
+  const tideLine = 1.45 + 0.22 * Math.sin(z * 1.85);
+  return Math.max(0, Math.min(1, (tideLine - (x - coveShoreX(z))) / 1.2));
+}
+
+export function drawBolinasBeach(m: Mesh, ground: (x: number, z: number) => number) {
+  // Shallow pools and flat stones sit just above the wash, away from the urchins' route.
+  for (const z of [-35.25, -32.85, -30.15, -27.45]) {
+    const { x } = beachPoint(z, 0.55);
+    const rim = Array.from({ length: 9 }, (_, i) => {
+      const angle = (i * Math.PI * 2) / 9;
+      const px = x + Math.cos(angle) * (0.2 + 0.065 * rand(i, z, 21));
+      const pz = z + Math.sin(angle) * 0.32;
+      return [px, ground(px, pz) + 0.018, pz] as const;
+    });
+    for (const [i, point] of rim.entries()) {
+      m.tri([x, ground(x, z) + 0.018, z], rim[(i + 1) % rim.length], point, '#52716e');
+      if (i % 2 === 0)
+        m.sphere(point[0], point[1], point[2], 0.12, 0.048, 0.11, '#75776b', 7, 4, 'marinRock');
+    }
+  }
+  for (const [z, inland, length] of [
+    [-34.4, 3.9, 1.15],
+    [-28.55, 3.55, 0.95],
+  ]) {
+    const { x } = beachPoint(z, inland);
+    const y = ground(x, z);
+    const end = [x + length, ground(x + length, z + 0.32) + 0.07, z + 0.32];
+    m.rod([x, y + 0.11, z], end, 0.085, '#8d7962', 9, 'marinTimber');
+    m.rod(
+      [x + 0.32, ground(x + 0.32, z + 0.1) + 0.11, z + 0.1],
+      [x + 0.52, ground(x + 0.52, z - 0.29) + 0.1, z - 0.29],
+      0.039,
+      '#b2a085',
+      7,
+      'marinTimber',
+    );
+  }
+  for (let i = 0; i < 38; i++) {
+    const z = BOLINAS_BEACH.z + (rand(i, 61) - 0.5) * 10.2;
+    const { x } = beachPoint(z, 0.35 + rand(i, 62) * 4.1);
+    const size = 0.04 + rand(i, 63) * 0.09;
+    m.sphere(
+      x,
+      ground(x, z) + size * 0.12,
+      z,
+      size,
+      size * 0.43,
+      size * 0.76,
+      ['#948f7f', '#d7c6a4', '#686e61'][i % 3],
+      7,
+      4,
+      'marinRock',
+    );
+    if (i % 2 === 0) {
+      const tuft = beachPoint(z, 4.4 + rand(i, 64) * 0.87);
+      const y = ground(tuft.x, z);
+      for (let blade = 0; blade < 5; blade++) {
+        const dz = (blade - 2) * 0.085;
+        m.tri(
+          [tuft.x - 0.027, y, z + dz * 0.3],
+          [tuft.x + 0.11 + rand(i, blade, 65) * 0.12, y + 0.15 + rand(i, blade, 66) * 0.2, z + dz],
+          [tuft.x + 0.028, y, z + dz * 0.3],
+          ['#888757', '#ab9f63', '#70794e'][blade % 3],
+        );
+      }
+    }
+  }
 }
 export function bolinasBlocks(x: number, z: number) {
   const cottage = CULTIST_COTTAGE,

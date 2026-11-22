@@ -17,6 +17,7 @@ interface ConnectionGateOptions {
   client: ConnectionClient | null;
   element: HTMLElement;
   world: HTMLElement;
+  notice?: HTMLElement;
   onDisconnect?: () => void;
   storage?: Pick<Storage, 'getItem' | 'setItem'>;
   locationObject?: Pick<Location, 'href'>;
@@ -44,6 +45,7 @@ export function createServerConnectionGate({
   client,
   element,
   world,
+  notice,
   onDisconnect = () => {},
   storage = localStorage,
   locationObject = location,
@@ -67,7 +69,9 @@ export function createServerConnectionGate({
     const needsSetup = !otherTab && !seenConnection && !client?.state.configured;
     const reconnecting = !needsSetup && !otherTab;
     title.textContent = reconnecting
-      ? 'Reconnecting...'
+      ? client?.state.status === 'Server Updating...'
+        ? 'Server Updating...'
+        : 'Reconnecting...'
       : otherTab
         ? 'Character open in another tab'
         : 'Connect to San Francisco';
@@ -127,8 +131,22 @@ export function createServerConnectionGate({
   ] satisfies [string, string, string, string, string, string, string, string, string, string];
   for (const name of events)
     world.ownerDocument.addEventListener(name, guard, { capture: true, passive: false });
+  let noticeTimer: ReturnType<typeof setTimeout>;
   client?.subscribe((message) => {
-    if (message.type === 'connection') update();
+    if (message.type === 'notice' && message.id === 'server-update' && notice) {
+      notice.hidden = false;
+      notice.textContent = message.message;
+      clearTimeout(noticeTimer);
+      noticeTimer = setTimeout(() => {
+        notice.hidden = true;
+      }, 12_000);
+    } else if (message.type === 'connection') {
+      if (client.state.connected && notice) {
+        clearTimeout(noticeTimer);
+        notice.hidden = true;
+      }
+      update();
+    }
   });
   return {
     update,

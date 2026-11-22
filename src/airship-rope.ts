@@ -1,11 +1,13 @@
 type RopePoint = { x: number; y: number; z: number };
+export const AIRSHIP_TRAVELER = 'airship-traveler';
+export type AirshipTraveler = RopePoint & { phase: string; gender?: 'man' | 'woman' };
 interface RopeState {
   deployed: boolean;
   phase: string;
   top: RopePoint | null;
   bottom: RopePoint | null;
   position: RopePoint | null;
-  passenger: (RopePoint & { phase: string }) | null;
+  passenger: AirshipTraveler | null;
   passengerPaid: boolean;
 }
 import type { Mesh } from './geometry.ts';

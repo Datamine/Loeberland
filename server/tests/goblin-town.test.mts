@@ -120,6 +120,39 @@ test('a passenger can climb up and down the deployed rope without a grappling ho
     await command(game, a.p, 'airshipRope', { retract: true });
     assert.equal(requiredResult(a.messages).ok, true);
     assert.equal(game.shared.snapshot().airship.rope.deployed, false);
+
+    await command(game, a.p, 'airshipRope');
+    assert.equal(requiredResult(a.messages).ok, true);
+    await command(game, b.p, 'airshipClimbUp');
+    assert.equal(requiredResult(b.messages).ok, true);
+    await command(game, a.p, 'airshipClimbDown');
+    assert.equal(requiredResult(a.messages).ok, true);
+    for (let i = 0; i < 200; i++) game.tick(0.05);
+    const ship = () => game.shared.snapshot().airship;
+    assert.deepEqual(ship().passengers, [b.p.id]);
+    assert.equal(ship().captain, b.p.id);
+    assert.ok(b.messages.some((m) => m.type === 'notice' && /airship pilot/.test(m.message)));
+    const fare = b.p.inventory.economy.state.coins;
+    await command(game, b.p, 'airshipInvite');
+    assert.equal(requiredResult(b.messages).ok, true);
+    await command(game, b.p, 'airshipRope', { retract: true });
+    assert.equal(requiredResult(b.messages).ok, false, 'the traveler is still on the rope');
+    for (let i = 0; i < 400 && ship().rope.passenger?.phase !== 'aboard'; i++) game.tick(0.05);
+    const traveler = requiredFixture(ship().rope.passenger);
+    assert.equal(traveler.phase, 'aboard');
+    assert.ok(traveler.gender === 'woman' || traveler.gender === 'man');
+    assert.equal(b.p.inventory.economy.state.coins, fare + 5);
+    await command(game, b.p, 'airshipRope', { retract: true });
+    assert.equal(requiredResult(b.messages).ok, true);
+    assert.deepEqual(ship().rope.passenger, traveler);
+    await command(game, a.p, 'airshipTarget', { x: 145, z: 150 });
+    assert.equal(requiredResult(a.messages).ok, false);
+    await command(game, b.p, 'airshipTarget', { x: 145, z: 150 });
+    assert.equal(requiredResult(b.messages).ok, true);
+    for (let i = 0; i < 80; i++) game.tick(0.05);
+    assert.ok(ship().position.x > 140);
+    assert.deepEqual(ship().rope.passenger, traveler);
+    assert.equal(b.p.inventory.economy.state.coins, fare + 5);
   } finally {
     await game.close();
   }

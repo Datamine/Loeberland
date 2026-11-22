@@ -114,7 +114,7 @@ export interface AirshipSnapshot {
     deployed: boolean;
     top: (WorldPoint & { y: number }) | null;
     bottom: (WorldPoint & { y: number }) | null;
-    passenger?: (WorldPoint & { y: number; phase: string }) | null;
+    passenger?: import('../airship-rope.ts').AirshipTraveler | null;
     passengerPaid?: boolean;
   };
   grapplers: { id: number; x: number; y: number; z: number }[];
@@ -202,6 +202,7 @@ export interface MultiplayerState {
   max?: number;
   inventory?: InventorySnapshot;
   returningCharacter?: boolean;
+  serverBuild?: BuildInfo;
   hasCharacterPassword?: boolean;
   autoName?: boolean;
   serverOffset?: number;
@@ -242,11 +243,17 @@ interface ServerEnvelope {
   inventory?: InventorySnapshot;
   award?: import('./content.ts').PendingAward;
 }
+export interface BuildInfo {
+  commit: string | null;
+  version: string;
+  fingerprint?: string;
+}
 export interface WelcomeMessage extends ServerEnvelope {
   type: 'welcome';
   id: number;
   name: string;
   returningCharacter: boolean;
+  serverBuild?: BuildInfo;
   hasCharacterPassword?: boolean;
   autoName: boolean;
   renameAt: number;
@@ -336,7 +343,7 @@ export type ServerEvent = ServerEnvelope &
       }
     | { type: 'pvpBound'; target: number; duration: number }
     | { type: 'pvpKill'; target: number; name: string; drops: string[] }
-    | { type: 'say'; id: number; text: string }
+    | { type: 'say'; id: number; name?: string; text: string }
     | {
         type: 'position';
         reason?: string;

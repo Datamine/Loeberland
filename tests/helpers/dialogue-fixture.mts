@@ -17,7 +17,7 @@ export function dialogueFixture(
     tagName: string;
     children: Element[];
     dataset: Record<string, string>;
-    handlers: Record<string, () => void>;
+    handlers: Record<string, (event: { preventDefault(): void }) => void>;
     hidden: boolean;
     value: string;
     disabled = false;
@@ -55,18 +55,23 @@ export function dialogueFixture(
       const value: unknown = Reflect.get(this, name);
       return typeof value === 'string' ? value : null;
     }
-    addEventListener(type: string, fn: () => void) {
+    addEventListener(type: string, fn: (event: { preventDefault(): void }) => void) {
       this.handlers[type] = fn;
     }
     click() {
-      if (!this.disabled) this.handlers.click?.();
+      if (!this.disabled) this.handlers.click?.({ preventDefault() {} });
+    }
+    submit() {
+      this.handlers.submit?.({ preventDefault() {} });
     }
     focus() {
       doc.activeElement = this;
     }
     querySelectorAll(selector: string): Element[] {
       return this.children.flatMap((n) => [
-        ...(n.tagName === 'button' && (!selector.includes('disabled') || !n.disabled) ? [n] : []),
+        ...(selector.startsWith(n.tagName) && (!selector.includes('disabled') || !n.disabled)
+          ? [n]
+          : []),
         ...n.querySelectorAll(selector),
       ]);
     }

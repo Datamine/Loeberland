@@ -152,6 +152,11 @@ test('shop, quest and finance actions accept the same arrival points used by the
     const a = await visitor(arrival(n), extra),
       r = await act(a, action, args);
     assert.equal(requiredFixture(r).ok, true, n.id + ': ' + requiredFixture(r).message);
+    if (action === 'airshipStatus') {
+      const sale = requiredFixture(await act(a, 'buyGrapple'));
+      assert.equal(sale.ok, true, sale.message);
+      assert.equal(a.p.profile.grapplingHook, true);
+    }
   }
   const broker = geometry.merchants.find((n) => n.kind === 'stockbroker'),
     a = await visitor(arrival(broker));

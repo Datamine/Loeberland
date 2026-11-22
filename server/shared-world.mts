@@ -650,15 +650,46 @@ export function createSharedWorld({
   const blockedByStatic = (p: ServerPlayer, target: Actor) =>
     target.combatKind === 'emf-warrior' &&
     !(p.appearance.tinfoil && equipmentOwned(p.inventory.economy.state, 'tinfoil-suit'));
-  function leave(p: ServerPlayer) {
+  function announceCaptain(id: number) {
+    const pilot = players.get(id);
+    if (pilot)
+      send(pilot, {
+        type: 'notice',
+        message: contentText('world-message.server.shared-world.you-are-the-airship-pilot', {
+          value1: '',
+        }),
+      });
+  }
+  function removePassenger(p: ServerPlayer) {
     passengers.delete(p.id);
+    p.deckTarget = null;
+    p.airship = false;
+    if (captain === p.id) {
+      captain = passengers.values().next().value ?? null;
+      if (captain !== null) announceCaptain(captain);
+    }
+  }
+  function clearRope() {
+    Object.assign(shipRope, {
+      deployed: false,
+      top: null,
+      bottom: null,
+      passenger: null,
+      passengerPaid: false,
+      fareOwner: null,
+    });
+  }
+  function leave(p: ServerPlayer) {
+    removePassenger(p);
     p.grappling = null;
-    if (captain === p.id) captain = passengers.values().next().value ?? null;
-    if (!passengers.size && airship.state.active) {
-      shipRope.deployed = false;
+    if (
+      !passengers.size &&
+      airship.state.active &&
+      ![...players.values()].some((other) => other.grappling && !other.grappling.down)
+    ) {
+      clearRope();
       airship.returnHome();
     }
-    p.airship = false;
     return { ok: true };
   }
   function airshipSnapshot() {
@@ -686,14 +717,7 @@ export function createSharedWorld({
     airship.state.heading = -Math.PI / 2;
     captain = null;
     passengers.clear();
-    Object.assign(shipRope, {
-      deployed: false,
-      top: null,
-      bottom: null,
-      passenger: null,
-      passengerPaid: false,
-      fareOwner: null,
-    });
+    clearRope();
     for (const item of loot.values())
       if (item.ship) {
         item.x = shipHome.x + (item.deck?.z || 0);
@@ -723,7 +747,7 @@ export function createSharedWorld({
     for (const p of players.values())
       if (publicPlayer(p)) {
         const message =
-          reason === 'hourly'
+          reason === 'scheduled'
             ? contentText(
                 'world-message.server.shared-world.the-hourly-airship-reset-has-returned-the-ship-to-the-terminal',
               )
@@ -1105,7 +1129,10 @@ export function createSharedWorld({
           ),
         };
       if (args.retract) {
-        if ([...players.values()].some((other) => other.grappling))
+        if (
+          shipRope.passenger?.phase === 'ascending' ||
+          [...players.values()].some((other) => other.grappling)
+        )
           return {
             ok: false,
             message: contentText(
@@ -1126,8 +1153,6 @@ export function createSharedWorld({
       airship.stop();
       Object.assign(shipRope, {
         deployed: true,
-        passenger: null,
-        passengerPaid: false,
         top: { ...s },
         bottom: { x: s.x, y: geometry.characterGround(s.x, s.z), z: s.z },
       });
@@ -1146,7 +1171,11 @@ export function createSharedWorld({
             'world-message.server.shared-world.lower-the-rope-and-invite-one-traveler-at-a-time',
           ),
         };
-      shipRope.passenger = { ...shipRope.bottom!, phase: 'ascending' };
+      shipRope.passenger = {
+        ...shipRope.bottom!,
+        phase: 'ascending',
+        gender: random() < 0.5 ? 'man' : 'woman',
+      };
       shipRope.fareOwner = p.id;
       return {
         ok: true,
@@ -1163,9 +1192,7 @@ export function createSharedWorld({
         };
       const from = { x: p.x, y: p.y, z: p.z },
         to = { ...shipRope.bottom! };
-      passengers.delete(p.id);
-      if (captain === p.id) captain = passengers.values().next().value ?? null;
-      p.airship = false;
+      removePassenger(p);
       p.grappling = {
         down: true,
         from,
@@ -1349,6 +1376,10 @@ export function createSharedWorld({
     }
     const event = airship.update(dt),
       ship = airship.state.position || shipHome;
+    if (event === 'landed') {
+      clearRope();
+      captain = null;
+    }
     if (shipRope.deployed && shipRope.passenger?.phase === 'ascending') {
       shipRope.passenger.y = Math.min(shipRope.top!.y, shipRope.passenger.y + dt * 2.6);
       if (shipRope.passenger.y === shipRope.top!.y) {
@@ -1397,7 +1428,10 @@ export function createSharedWorld({
           } else {
             p.deck = freeDeckSpot();
             passengers.add(p.id);
-            captain ??= p.id;
+            if (captain === null) {
+              captain = p.id;
+              announceCaptain(p.id);
+            }
             p.airship = true;
           }
         }
@@ -1685,6 +1719,7 @@ export function createSharedWorld({
     bombCreatures,
     airship,
     passengers,
+    canBuyGrapple: airshipRental.canBuyGrapple,
     raptor,
     cows,
     tiger,

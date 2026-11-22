@@ -10,6 +10,7 @@ import {
 import { requiredFixture } from '../../tests/helpers/required.mts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { AIRSHIP_TERMINAL } from '../../src/airship.ts';
 
 import { normalizeUsername } from '../usernames.mts';
 import { decodePlayerFrame, encodePlayerFrame } from '../../src/multiplayer-protocol.ts';
@@ -150,11 +151,23 @@ test('the airship is shared, passengers cannot steer and a hook boards an occupi
   }
   await command(game, passenger.p, 'airshipTarget', { x: 94, z: 120 });
   assert.equal(requiredResult(passenger.messages).ok, false);
+  const boarding = { x: climber.p.x, z: climber.p.z };
+  const entry = { x: AIRSHIP_TERMINAL.entry.x + 0.5, z: AIRSHIP_TERMINAL.entry.y + 0.5 };
+  Object.assign(climber.p, entry);
+  await command(game, climber.p, 'buyGrapple');
+  assert.equal(requiredResult(climber.messages).ok, false);
+  await command(game, climber.p, 'airshipStatus');
+  assert.equal(requiredResult(climber.messages).ok, true);
+  Object.assign(climber.p, boarding);
+  await command(game, climber.p, 'buyGrapple');
+  assert.equal(requiredResult(climber.messages).ok, false);
+  Object.assign(climber.p, entry);
   await command(game, climber.p, 'buyGrapple');
   assert.equal(requiredResult(climber.messages).ok, true);
   assert.equal(climber.p.profile.grapplingHook, true);
   await command(game, climber.p, 'buyGrapple');
   assert.equal(requiredResult(climber.messages).ok, false);
+  Object.assign(climber.p, boarding);
   for (let i = 0; i < 400; i++) game.tick(0.05);
   await command(game, climber.p, 'grapple');
   assert.equal(requiredResult(climber.messages).ok, true);

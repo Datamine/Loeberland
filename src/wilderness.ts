@@ -272,7 +272,7 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
     actor.hp -= hit;
     const stats = walkingStats(actor.combatKind);
     const reflected = stats.reflectDamage ? Math.ceil(hit * stats.reflectDamage) : 0;
-    if (retaliate && actor.combatKind !== 'frog' && !stats.reflectDamage) provoke(actor, attacker);
+    if (retaliate && !stats.reflectDamage) provoke(actor, attacker);
     if (actor.dispatchedFor !== undefined) actor.lastCombatAt = clock;
     actor.affection = 0;
     onHit({ actor, attacker, damage: hit });
@@ -453,7 +453,10 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
       }
       const distance = enemy ? Math.hypot(enemy.x - actor.x, enemy.z - actor.z) : Infinity;
       let budget =
-        enemy && (stats.attackRange ? inFiringRange(enemy) : distance < 1.35)
+        enemy &&
+        (stats.attackRange
+          ? inFiringRange(enemy)
+          : distance < 1.35 && (direct || clear(actor, enemy)))
           ? 0
           : dt * (enemy || actor.returning ? stats.speed : stats.roamSpeed || 0.45);
       actor.motion = 0;
@@ -483,13 +486,13 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
       actor.base = ground(actor.x, actor.z);
       if (
         enemy &&
+        clock >= actor.attackAt &&
         canPursue(enemy) &&
         (stats.attackRange
           ? inFiringRange(enemy)
           : (stats.territoryHalfWidth ||
               Math.hypot(enemy.x - actor.x, enemy.z - actor.z) < attackRange) &&
-            clear(actor, enemy)) &&
-        clock >= actor.attackAt
+            clear(actor, enemy))
       ) {
         actor.attackAt = clock + stats.interval;
         actor.angle = Math.atan2(enemy.z - actor.z, enemy.x - actor.x);

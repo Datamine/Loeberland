@@ -1,7 +1,26 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Mesh } from '../src/geometry.ts';
-import { createStreetTraffic } from '../src/street-traffic.ts';
+import { createStreetTraffic, drawWaymo } from '../src/street-traffic.ts';
+
+test('the Waymo rider’s head is visible above the roof', () => {
+  const car = { x: 4, y: 2, z: 3, angle: 0.8 };
+  const rider = { skin: '#ff0000', hair: '#111111' };
+  const hasVisibleFace = (mesh: Mesh) => {
+    for (let i = 0; i < mesh.data.length; i += 11) {
+      const y = mesh.data[i + 1];
+      const [red, green, blue] = mesh.data.slice(i + 6, i + 9);
+      if (y > car.y + 0.91 && red > 0.35 && green === 0 && blue === 0) return true;
+    }
+    return false;
+  };
+  const empty = new Mesh();
+  const occupied = new Mesh();
+  drawWaymo(empty, car);
+  drawWaymo(occupied, car, rider);
+  assert.equal(hasVisibleFace(empty), false);
+  assert.equal(hasVisibleFace(occupied), true);
+});
 
 test('patrol circuits cover every directed road edge, including overlapping continuations and cul-de-sacs', () => {
   const routes = [

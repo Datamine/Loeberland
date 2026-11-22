@@ -88,7 +88,7 @@ export interface InspectionRecord {
   source: string;
   position: { x?: number; z?: number };
   description?: string;
-  appearance?: (Appearance & { chef?: boolean; topHat?: boolean }) | null;
+  appearance?: (Appearance & { chef?: boolean }) | null;
   actions: InspectionActionVariant[];
   dialogues: InspectionDialogueVariant[];
 }

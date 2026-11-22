@@ -4,6 +4,7 @@ import type { PlayerDocument } from './content.ts';
 export interface PlayerProfile {
   playerState: PlayerDocument;
   stateRevision: number;
+  hasPlayed?: boolean;
   characterPlaySeconds?: number;
   characterReminderAt?: number;
   privateState: Record<string, string>;

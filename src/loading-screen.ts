@@ -27,15 +27,20 @@ export function createLoadingScreen(element: HTMLElement) {
     play = element.querySelector<HTMLButtonElement>('[data-loading-play]');
   const loginLink = element.querySelector<HTMLButtonElement>('[data-character-login-link]');
   const loginForm = element.querySelector<HTMLFormElement>('[data-character-login]');
+  const loginStatus = loginForm?.querySelector<HTMLElement>('[data-login-status]');
   loginLink?.addEventListener('click', () => {
-    loginForm!.hidden = !loginForm!.hidden;
-    if (!loginForm!.hidden) loginForm!.querySelector('input')?.focus();
+    if (!loginForm || entering) return;
+    loginForm.hidden = !loginForm.hidden;
+    if (loginStatus) loginStatus.textContent = '';
+    updatePlay();
+    if (!loginForm.hidden) loginForm.querySelector('input')?.focus();
   });
   loginForm?.addEventListener('submit', async (event) => {
     event.preventDefault();
-    if (!client?.state.connected || entering) return;
+    if (!ready || !client?.state.connected || entering || loginForm.hidden) return;
     const data = new FormData(loginForm);
-    const status = loginForm.querySelector<HTMLElement>('[data-login-status]')!;
+    const status = loginStatus!;
+    status.textContent = '';
     entering = true;
     updatePlay();
     try {
@@ -44,10 +49,11 @@ export function createLoadingScreen(element: HTMLElement) {
         password: data.get('password'),
       });
       if (result.ok && result.loginToken) {
-        localStorage.setItem('sf-mp-identity', result.loginToken);
         sessionStorage.setItem('sf-resume-character', '1');
         location.reload();
       } else status.textContent = result.message || 'Unable to log in.';
+    } catch {
+      status.textContent = 'Unable to log in. Please try again.';
     } finally {
       entering = false;
       updatePlay();
@@ -56,10 +62,17 @@ export function createLoadingScreen(element: HTMLElement) {
   let username: ReturnType<typeof createUsernameForm> | null = null;
   username = form ? createUsernameForm(form, { allowBlank: true, onChange: updatePlay }) : null;
   function updatePlay() {
-    if (form) form.hidden = client?.state.returningCharacter === true;
-    const login = loginForm?.querySelector<HTMLButtonElement>('button[type="submit"]');
-    if (login) login.disabled = entering || !client?.state.connected;
-    if (play) play.disabled = !ready || entering || username?.pending || !client?.state.connected;
+    const loggingIn = loginForm?.hidden === false;
+    if (form) form.hidden = loggingIn || client?.state.returningCharacter === true;
+    if (loginLink) {
+      loginLink.disabled = entering;
+      loginLink.setAttribute('aria-expanded', String(loggingIn));
+      loginLink.textContent = loggingIn ? 'Back' : 'Already have an account?';
+    }
+    if (play) {
+      play.type = loggingIn ? 'submit' : 'button';
+      play.disabled = !ready || entering || !!username?.pending || !client?.state.connected;
+    }
   }
   function report(value: number, label: string) {
     percent = Math.max(percent, Math.min(100, Math.round(value)));
@@ -94,6 +107,7 @@ export function createLoadingScreen(element: HTMLElement) {
     if (loginForm) {
       loginForm.hidden = true;
       loginForm.reset();
+      if (loginStatus) loginStatus.textContent = '';
     }
     const retry = element.querySelector<HTMLButtonElement>('[data-refresh-map]');
     if (retry) retry.hidden = true;
@@ -107,6 +121,7 @@ export function createLoadingScreen(element: HTMLElement) {
     if (!element.contains(document.activeElement)) element.focus({ preventScroll: true });
   }
   play?.addEventListener('click', async () => {
+    if (loginForm?.hidden === false) return;
     if (!ready || entering || !client?.state.connected) return;
     entering = true;
     updatePlay();
@@ -162,7 +177,7 @@ export function createLoadingScreen(element: HTMLElement) {
       await nextLoadingPaint();
       const resume = globalThis.sessionStorage?.getItem('sf-resume-character') === '1';
       globalThis.sessionStorage?.removeItem('sf-resume-character');
-      if (!play || resume) {
+      if (!play || resume || client?.state.returningCharacter) {
         hide();
         return;
       }
@@ -183,6 +198,7 @@ export function createLoadingScreen(element: HTMLElement) {
       if (loginForm) {
         loginForm.hidden = true;
         loginForm.reset();
+        if (loginStatus) loginStatus.textContent = '';
       }
       element.hidden = false;
       element.dataset.failed = 'true';

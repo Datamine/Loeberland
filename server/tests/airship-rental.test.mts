@@ -12,6 +12,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { createGame } from '../game.mts';
+import { createAirshipRental } from '../airship-rental.mts';
 import { AIRSHIP_TERMINAL } from '../../src/airship.ts';
 import { AIRSHIP_RULES } from '../../src/config/airship.ts';
 
@@ -254,13 +255,14 @@ test('invalid location, state, quotes, inventory epochs and insufficient funds n
   assert.equal(coins(payer), 15);
 });
 
-test('only the persisted hourly reset returns the next rental to 5 coins, including after downtime', async (t) => {
+test('the persisted 20-minute reset returns the next rental to 5 coins, including after downtime', async (t) => {
   const f = await fixture();
   let game = f.game;
   t.after(() => game.close());
   const pilot = await player(game, 431),
     payer = await player(game, 432);
   const deadline = ship(game).resetAt;
+  assert.equal(deadline, f.advance(0) + 20 * 60_000);
   await act(game, pilot, 'airshipBoard');
   fly(game);
   atAgent(payer);
@@ -278,7 +280,7 @@ test('only the persisted hourly reset returns the next rental to 5 coins, includ
   assert.equal(
     pilot.messages.filter(
       (m): m is Extract<typeof m, { type: 'airshipReset' }> =>
-        m.type === 'airshipReset' && m.reason === 'hourly',
+        m.type === 'airshipReset' && m.reason === 'scheduled',
     ).length,
     1,
   );
@@ -311,6 +313,29 @@ test('only the persisted hourly reset returns the next rental to 5 coins, includ
   assert.equal(ship(game).resetAt, next + 4 * AIRSHIP_RULES.resetIntervalMs);
   assert.equal(ship(game).rentalPrice, 5);
   assert.equal(ship(game).active, false);
+});
+
+test('a saved reset under the old interval is brought within 20 minutes of startup', () => {
+  const geometry = fixtureGeometry();
+  let time = 1_000_000;
+  const resets: string[] = [];
+  const rental = createAirshipRental({
+    geometry,
+    airship: geometry.airship,
+    players: new Map(),
+    captain: () => null,
+    reset: (reason) => resets.push(reason),
+    now: () => time,
+    dirty() {},
+    saved: { resetAt: time + 60 * 60_000, lastPrice: 15 },
+  });
+  const deadline = time + 20 * 60_000;
+  assert.equal(rental.publicStatus().resetAt, deadline);
+  assert.equal(rental.publicStatus().rentalPrice, 20);
+  time = deadline;
+  rental.tick();
+  assert.equal(rental.publicStatus().rentalPrice, 5);
+  assert.deepEqual(resets, ['scheduled']);
 });
 
 test('a paid bid and price survive reconnect and restart without exposing the anonymous credential', async (t) => {

@@ -34,12 +34,18 @@ import {
   marketStreetcarRider,
   STREETCAR_BOARD_RANGE,
 } from '../src/market-streetcar.ts';
-import { ATV_JUMP_LANE, ATV_RENTAL, ATV_SPEED, rampRise } from '../src/atv.ts';
+import { ATV_RENTAL, ATV_SPEED, rampRise } from '../src/atv.ts';
 import { MOTORCYCLE_SPEED, MOTORCYCLE_TRICKS } from '../src/motorcycle.ts';
 import { SWING_RANGE, swingAngle, swingRiderGround } from '../src/swings.ts';
 import { WAYMO_RENTAL } from '../src/waymo-rental.ts';
 import { createWaymoRental } from './waymo.mts';
-import { chairForGesture, FACTORY_CHAIRS, goblinRoofAt } from '../src/goblin-town.ts';
+import {
+  chairForGesture,
+  FACTORY_CHAIRS,
+  goblinRampLane,
+  goblinRoofAt,
+  GOBLIN_HUTS,
+} from '../src/goblin-town.ts';
 import { MUD_BATH } from '../src/goblin-space-layout.ts';
 
 const json = (value: string | undefined): Record<string, unknown> => {
@@ -175,6 +181,7 @@ export function createServerMovement({
   function stop(p: ServerPlayer) {
     const s = state(p);
     s.route = [];
+    if (s.atv) s.atv.ramp = undefined;
     s.combatTarget = undefined;
     s.queuedWalk = undefined;
     s.speed = 0;
@@ -304,6 +311,7 @@ export function createServerMovement({
           ok: false,
           message: contentText('world-message.server.movement.the-atv-needs-a-clear-route'),
         };
+      s.atv.ramp = undefined;
       beginRoute(p, s, route, to);
       return { ok: true, goal: to };
     }
@@ -609,7 +617,10 @@ export function createServerMovement({
     }
     if (atv.air || atv.donut) return { ok: false };
     if (args.kind === 'atvJump') {
-      const { x, start, end } = ATV_JUMP_LANE;
+      const hut =
+        args.id === undefined ? GOBLIN_HUTS[0] : GOBLIN_HUTS.find((h) => h.id === args.id);
+      if (!hut) return { ok: false };
+      const { x, start, end } = goblinRampLane(hut);
       const entry = { x, z: start };
       const route = atvSegment(p, entry)
         ? [{ x: x - 0.5, y: start - 0.5 }]
@@ -625,6 +636,7 @@ export function createServerMovement({
             'world-message.server.movement.drive-closer-to-the-goblin-village-ramps',
           ),
         };
+      atv.ramp = hut.id;
       beginRoute(p, s, [...route, { x: x - 0.5, y: end - 0.5 }], { x, z: end });
       return { ok: true };
     }
@@ -645,6 +657,7 @@ export function createServerMovement({
           };
       }
       s.route = [];
+      atv.ramp = undefined;
       atv.donut = { center, start, elapsed: 0 };
       return { ok: true };
     }
@@ -700,6 +713,7 @@ export function createServerMovement({
         p.angle = atv.takeoffAngle;
         p.phase = 0;
         atv.air = null;
+        p.gesture = '';
         const aim = s.route[0];
         if (
           aim &&
@@ -727,7 +741,11 @@ export function createServerMovement({
         }
         const hut = goblinRoofAt(x, z);
         const crest =
-          hut && Math.abs(dz) > distance * 0.4 && (p.z - hut.z) * dz < 0 && (z - hut.z) * dz >= 0;
+          hut &&
+          (!atv.ramp || (atv.ramp === hut.id && s.route.length === 1)) &&
+          Math.abs(dz) > distance * 0.4 &&
+          (p.z - hut.z) * dz < 0 &&
+          (z - hut.z) * dz >= 0;
         p.angle = Math.atan2(dz, dx);
         p.moving = true;
         Object.assign(p, { x, z, y: atvGround(x, z) });
@@ -735,11 +753,13 @@ export function createServerMovement({
         if (crest) {
           atv.takeoffAngle = p.angle;
           atv.air = { velocity: 3.8, elapsed: 0 };
+          p.gesture = 'atv-air';
           break;
         }
         budget -= step;
       }
     }
+    if (!s.route.length) atv.ramp = undefined;
     p.motion = p.moving ? 1 : 0;
     dirty(p);
   }
