@@ -18,8 +18,6 @@ import { skillStatus, hitpointMaximum, playerLevel } from '../src/progression.ts
 import {
   chairForGesture,
   FACTORY_CHAIRS,
-  FACTORY_CHAIR_BUY,
-  FACTORY_CHAIR_SELL,
   GOBLIN_INCUBATOR,
 } from '../src/goblin-town.ts';
 import {
@@ -1300,19 +1298,25 @@ export function createPlayerState({
               'world-message.server.player-state.visit-the-furniture-maker-at-the-goblin-furniture-factory-when',
             ),
           );
-        if (purse.coins < FACTORY_CHAIR_BUY)
-          return deny(contentText('world-message.server.player-state.a-chair-costs-200-coins'));
+        if (purse.coins < chair.buy)
+          return deny(contentText('world-message.furniture.price', {
+            name: chair.name,
+            price: chair.buy.toLocaleString('en-US'),
+          }));
         if (purse.ownedEquipment.includes(chair.id))
           return deny(contentText('world-message.server.player-state.you-already-own-this-chair'));
-        purse.coins -= FACTORY_CHAIR_BUY;
+        purse.coins -= chair.buy;
         purse.ownedEquipment.push(chair.id);
         result = {
           ok: true,
-          message: contentText('world-message.server.player-state.you-buy-the-for-200-coins', {
-            name: String(chair.name),
+          message: contentText('world-message.furniture.purchase', {
+            name: chair.name,
+            price: chair.buy.toLocaleString('en-US'),
           }),
         };
       } else {
+        const price = chair.sell;
+        if (price === null) return deny(contentText('world-message.furniture.no-buyback'));
         if (
           !npc(p, (actor) => actor.stroller === true && String(actor.id).startsWith('noe-parent-'))
         )
@@ -1324,11 +1328,11 @@ export function createPlayerState({
         const index = purse.ownedEquipment.indexOf(chair.id);
         if (index < 0)
           return deny(contentText('world-message.server.player-state.you-do-not-own-this-chair'));
-        if (!Number.isSafeInteger(purse.coins + FACTORY_CHAIR_SELL))
+        if (!Number.isSafeInteger(purse.coins + price))
           return deny(contentText('world-message.server.player-state.your-coin-purse-is-full'));
         purse.ownedEquipment.splice(index, 1);
         if (p.mode === 'sit' && chairForGesture(p.gesture) === chair) movement.wake(p);
-        purse.coins += FACTORY_CHAIR_SELL;
+        purse.coins += price;
         result = {
           ok: true,
           message: contentText('world-message.server.player-state.you-sell-the-for-220-coins', {
@@ -1590,10 +1594,17 @@ export function createPlayerState({
                 p.z <= n.y + n.d,
             ));
       r.job.update(dt, { inside: !!inside, eligible: eligible(p) });
+      const sitting = (p.mode === 'sit' || p.mode === 'bench') && !p.moving && p.hp > 0;
+      if (sitting && !p.respawnAllowed) {
+        const interval = 5;
+        const seconds = (p.seatedRecoverySeconds || 0) + dt;
+        const recovered = Math.floor((seconds + 1e-9) / interval);
+        p.seatedRecoverySeconds = Math.max(0, seconds - recovered * interval);
+        if (recovered > 0 && p.hp < p.max) r.health.heal(recovered);
+      } else if (p.seatedRecoverySeconds) p.seatedRecoverySeconds = 0;
       r.social.update(dt, {
         insideTwitter: geometry.instituteRoomAt?.(p.x, p.z)?.id === 'twitter-hq',
-        sitting:
-          (['sit', 'bench'] satisfies [string, string]).includes(p.mode) && !p.moving && p.hp > 0,
+        sitting,
       });
       if (r.fishing.state.active) {
         if (!eligible(p) || p.moving || !near(p, geometry.fishingSite, 2)) {
@@ -1749,6 +1760,10 @@ export function createPlayerState({
     tick,
     transient,
     components,
+    visiblePolice: (p: ServerPlayer) => {
+      const state = runtimes.get(p.id)?.police.state;
+      return state?.wanted && !state.jailed ? state.officers : undefined;
+    },
     awardCombat,
     remove: (p: Pick<ServerPlayer, 'id'>) => {
       runtimes.delete(p.id);

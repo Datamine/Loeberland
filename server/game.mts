@@ -4,7 +4,7 @@ import { contentText } from '../src/content-runtime.ts';
 import { isFiniteNumber, isRecord } from '../src/types/json.ts';
 import { readClientMessage } from './client-messages.mts';
 import type { CommandMessage, ClientHello } from './client-messages.mts';
-import { playerChatLine, PLAYER_CHAT_COOLDOWN_MS } from '../src/player-chat.ts';
+import { playerChatLine, quickChatLine, PLAYER_CHAT_COOLDOWN_MS } from '../src/player-chat.ts';
 import type { PlayerProfile } from '../src/types/profile.ts';
 import type { BuildInfo } from '../src/types/network.ts';
 import type { Appearance } from '../src/types/content.ts';
@@ -18,6 +18,9 @@ interface GameOptions {
   random?: () => number;
   maxPlayers?: number;
   allowDebug?: boolean;
+  googleChatAvailable?: boolean;
+  oauthRequired?: boolean;
+  upgradeRequiredForServerChat?: boolean;
   serverBuild?: BuildInfo;
   tuning?: Partial<{ [K in keyof typeof SERVER_TUNING]: number }>;
 }
@@ -25,6 +28,7 @@ import { DEATH_DURATION } from '../src/capture-animation.ts';
 import { clothingSelection, ownedClothing } from '../src/clothing.ts';
 import { createResidentialSearch } from './residential-search.mts';
 import { createCharacterAccounts } from './character-accounts.mts';
+import { googleLinkKey, googleOwnerKey } from './google-account-links.mts';
 import { GAMEPLAY } from '../src/config/gameplay.ts';
 import { HAIRSTYLES } from '../src/config/hairstyles.ts';
 import { normalizeUsername, renameDecision, generateUsername } from './usernames.mts';
@@ -118,6 +122,9 @@ export async function createGame({
   random = Math.random,
   maxPlayers = 2000,
   allowDebug = false,
+  googleChatAvailable = false,
+  oauthRequired = true,
+  upgradeRequiredForServerChat = true,
   serverBuild,
   tuning: tuningOverrides = {},
 }: GameOptions) {
@@ -487,6 +494,60 @@ export async function createGame({
     }
     while ((persistedRevisions.get(p.owner) || 0) < revision) await flush();
   }
+  async function existingChatOwner(token: string) {
+    if (closing || !/^[a-f0-9]{64}$/.test(token)) return null;
+    try {
+      return await accounts.existingOwner(token);
+    } catch {
+      return null;
+    }
+  }
+  async function canStartChatUnlock(token: string) {
+    const owner = await existingChatOwner(token);
+    return !!owner && identities.get(owner)?.characterPlaying === true;
+  }
+  const canTypeChat = (profile: PlayerProfile) => !oauthRequired || profile.chatUnlocked === true;
+  const canUseServerChat = (profile: PlayerProfile) =>
+    canTypeChat(profile) && (!upgradeRequiredForServerChat || profile.upgrade === true);
+
+  function grantChatUnlock(token: string, googleSubject: string, accountLabel?: string) {
+    return enqueueMutation(async () => {
+      const owner = await existingChatOwner(token);
+      if (!owner) return false;
+      const p = identities.get(owner);
+      const stored = profiles.get(owner) || (await store.get('player:' + owner));
+      if (!isRecord(stored)) return false;
+      const identityKey = googleLinkKey(owner);
+      const identity = await store.get(identityKey);
+      if (identity != null && (!isRecord(identity) || identity.subject !== googleSubject))
+        return false;
+      const ownerKey = googleOwnerKey(googleSubject);
+      const registeredOwner = await store.get(ownerKey);
+      if (registeredOwner != null && registeredOwner !== owner)
+        return 'google-already-linked' as const;
+      const profile = hydratePlayerProfile(stored);
+      const updates: StorageEntry[] = [];
+      if (registeredOwner == null) updates.push([ownerKey, owner]);
+      if (!isRecord(identity) || identity.label !== accountLabel)
+        updates.push([
+          identityKey,
+          { subject: googleSubject, ...(accountLabel ? { label: accountLabel } : {}) },
+        ]);
+      if (profile.chatUnlocked !== true) {
+        const state = p ? profileForSave(p) : serializePlayerProfile(profile);
+        updates.push(['player:' + owner, { ...state, chatUnlocked: true }]);
+      }
+      if (updates.length) await store.batch(updates);
+      profile.chatUnlocked = true;
+      if (p)
+        send(p, {
+          type: 'chatUnlocked',
+          googleAccountLabel: accountLabel,
+          serverChatAllowed: canUseServerChat(profile),
+        });
+      return true;
+    });
+  }
   async function connect(hello: ClientHello, transport: PlayerTransport) {
     if (closing) throw Error('Server restarting');
     if (
@@ -547,6 +608,8 @@ export async function createGame({
       }
       if (players.size >= maxPlayers) throw Error('The world is full. Please try again soon.');
       profiles.set(owner, profile);
+      const googleIdentity =
+        profile.chatUnlocked === true ? await store.get(googleLinkKey(owner)) : null;
       const inventory = createInventoryAccount(profile);
       if (profile.deathPending) {
         const xp = skillStatus(parse(profile.privateState['sf-hitpoints-v1']).xp).xp,
@@ -663,6 +726,13 @@ export async function createGame({
         name: p.name,
         returningCharacter,
         hasCharacterPassword: p.hasCharacterPassword,
+        chatUnlocked: canTypeChat(profile),
+        serverChatAllowed: canUseServerChat(profile),
+        googleAccountLabel:
+          isRecord(googleIdentity) && typeof googleIdentity.label === 'string'
+            ? googleIdentity.label
+            : undefined,
+        googleChatAvailable,
         autoName: !p.nameChanged,
         renameAt: p.nameChanged ? p.nameChanged + 60_000 : 0,
         privateState: profile.privateState,
@@ -1555,11 +1625,23 @@ export async function createGame({
         const time = now();
         if (players.get(p.id) !== p || time - (p.spokeAt ?? -Infinity) < PLAYER_CHAT_COOLDOWN_MS)
           return;
-        const text = playerChatLine(message.text);
+        const line = canTypeChat(p.profile)
+          ? playerChatLine(message.text)
+          : quickChatLine(message.text);
+        const serverWide = line.startsWith('/');
+        if (serverWide && !canUseServerChat(p.profile)) return;
+        const text = serverWide ? line.slice(1).trimStart() : line;
         if (!text) return;
         p.spokeAt = time;
-        const speech = JSON.stringify({ type: 'say', id: p.id, name: p.name, text });
-        for (const other of replication.observersOf(p, 25)) send(other, speech);
+        const speech = JSON.stringify({
+          type: 'say',
+          id: p.id,
+          name: p.name,
+          text,
+          ...(serverWide && { scope: 'server' }),
+        });
+        for (const other of serverWide ? players.values() : replication.observersOf(p, 25))
+          send(other, speech);
       };
       if (store.inMemory) p.queue = enqueueMutation(say);
       else say();
@@ -1766,6 +1848,8 @@ export async function createGame({
       ? (p: ServerPlayer) => (closing ? undefined : enqueueMutation(() => disconnect(p)))
       : disconnect,
     receive,
+    canStartChatUnlock,
+    grantChatUnlock,
     tick,
     broadcast,
     flush,

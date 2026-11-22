@@ -978,13 +978,16 @@ test('the Berkeley chapel and East Bay neighborhood connect to the bridge and po
   const neighborhood = requiredFixture(campus.life).people.filter(
     ({ points }) => campus.local(points[0][0], points[0][1]).v < 0,
   );
-  assert.equal(neighborhood.length, 6);
+  assert.equal(neighborhood.length, 10);
   assert.equal(neighborhood.filter((person) => person.stroller).length, 1);
   assert.equal(neighborhood.filter((person) => person.dogWalker).length, 1);
   for (const person of neighborhood) assert.ok(!person.child);
 
-  const zombies = world.wilderness.actors.filter((n) => n.id.startsWith('in-n-out-zombie-'));
-  assert.equal(zombies.length, 2);
+  const zombies = world.wilderness.actors.filter((n) => n.id.startsWith('in-n-out-'));
+  assert.equal(zombies.length, 3);
+  const armed = requiredFixture(zombies.find((npc) => npc.combatKind === 'armed-zombie'));
+  assert.equal(armed.level, 13);
+  assert.ok(armed.max > zombies.find((npc) => npc.combatKind === 'soma-zombie')!.max);
   const diner = requiredFixture(world.sights.find((s) => s.id === 'in-n-out'));
   for (const zombie of zombies) assert.ok(zombie.z > diner.entry.y + 1.5);
 

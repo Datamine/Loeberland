@@ -160,9 +160,9 @@ export function createNetwork(context: WorldContext) {
       characterGround: context.characterGround,
       playerGround: context.playerGround,
       announce: context.announce,
-      onChat: (text, name, own) => {
-        context.announce(text, name, true);
-        if (own) {
+      onChat: (text, name, own, serverWide) => {
+        context.announce(text, serverWide ? '[Server] ' + name : name, true);
+        if (own && !serverWide) {
           context.playerSpeechUntil = performance.now() + 3000;
           context.$('sf-player-speech').textContent = text;
         }

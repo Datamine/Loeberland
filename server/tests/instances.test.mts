@@ -122,7 +122,7 @@ test('initiates share the basement, movement and chat while surface players and 
   assert.equal(requiredFixture(await act(game, a, 'releaseTiger')).ok, false);
   game.receive(a.p, { type: 'say', text: 'yo' });
   await a.p.queue;
-  assert.ok(b.messages.some((m) => m.type === 'say' && m.id === a.p.id && m.text === 'yo'));
+  assert.ok(b.messages.some((m) => m.type === 'say' && m.id === a.p.id && m.text === 'Yo'));
   assert.equal(
     surface.messages.some((m) => m.type === 'say' && m.id === a.p.id),
     false,

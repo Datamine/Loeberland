@@ -1211,8 +1211,7 @@ test('every authored actor has usable context actions, protected actors have no 
     'walk',
     'duel',
     'follow',
-    'unfollow',
-  ] satisfies [string, string, string, string, string, string, string, string]);
+  ] satisfies [string, string, string, string, string, string, string]);
   for (const actor of actors) {
     const actions = npcContextActions(actor);
     assert.ok(actions.length, actor.id);
@@ -1226,10 +1225,13 @@ test('every authored actor has usable context actions, protected actors have no 
     if (!npcOffersAttack(actor))
       assert.ok(!actions.includes('attack'), actor.id + ' should be protected');
   }
-  assert.deepEqual(
-    npcContextActions({ networkPlayer: true }, { duel: true, following: true, pvp: true }),
-    ['trade', 'duel', 'follow', 'unfollow', 'attack', 'walk'],
-  );
+  assert.deepEqual(npcContextActions({ networkPlayer: true }, { duel: true, pvp: true }), [
+    'trade',
+    'duel',
+    'follow',
+    'attack',
+    'walk',
+  ]);
   assert.deepEqual(npcContextActions({ police: true }), ['walk', 'examine'] satisfies [
     string,
     string,
@@ -2006,7 +2008,7 @@ test('the frog farm offers reachable level-10 practice targets that fight back, 
   }
 });
 
-test('the factory sells all three chairs and a Noe Valley stroller parent buys them back', async () => {
+test('the factory sells all five seats and a Noe Valley stroller parent buys the original chairs back', async () => {
   const maker = requiredFixture(
     game.shared.wilderness.actors.find((n) => n.combatKind === 'goblin-maker'),
   );
@@ -2020,10 +2022,26 @@ test('the factory sells all three chairs and a Noe Valley stroller parent buys t
     assert.equal((await trade(chairs[0], 'buy')).ok, false);
     assert.equal((await trade(chairs[0], 'sell')).ok, false);
     assert.equal(a.p.inventory.economy.state.coins, 999400);
+    for (const [id, price] of [['marshmallow-sofa', 3000], ['ovalia-chair', 6000]] as const) {
+      const purse = a.p.inventory.economy.state;
+      const funds = purse.coins;
+      purse.coins = price - 1;
+      const denied = await trade(id, 'buy');
+      assert.equal(denied.ok, false);
+      assert.ok(denied.message?.includes(price.toLocaleString('en-US')));
+      assert.equal(purse.coins, price - 1);
+      purse.coins = funds;
+      assert.equal((await trade(id, 'buy')).ok, true);
+      assert.ok(purse.ownedEquipment.includes(id));
+      assert.equal(purse.coins, funds - price);
+      assert.equal((await trade(id, 'buy')).ok, false);
+      assert.equal(purse.coins, funds - price);
+    }
     stand(a, { x: parent.x - 0.5, y: parent.z - 0.5 });
     for (const chair of chairs) assert.equal((await trade(chair, 'sell')).ok, true);
+    assert.equal((await trade('ovalia-chair', 'sell')).ok, false);
     assert.equal((await trade(chairs[0], 'sell')).ok, false);
-    assert.equal(a.p.inventory.economy.state.coins, 1000060);
+    assert.equal(a.p.inventory.economy.state.coins, 991060);
   } finally {
     stop(a);
   }

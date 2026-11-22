@@ -196,7 +196,7 @@ test('animal releases affect the common world and an escaped tiger survives a re
   await command(game, a.p, 'releaseTiger');
   assert.equal(requiredResult(a.messages).ok, true);
   for (let i = 0; i < 40; i++) game.tick(0.05);
-  assert.equal(game.shared.snapshot(a.p).tiger.phase, game.shared.snapshot(b.p).tiger.phase);
+  assert.equal(game.shared.snapshot(a.p).tiger?.phase, game.shared.snapshot(b.p).tiger?.phase);
   assert.notEqual(game.shared.tiger.state.phase, 'caged');
   await game.close();
   assert.notEqual((await storedWorldFixture(store, 'world')).shared.tiger.state.phase, 'caged');

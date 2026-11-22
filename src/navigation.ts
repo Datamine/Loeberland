@@ -443,10 +443,12 @@ export function buildTileNavigation(
     obstacles = [],
     clearance = 0.3,
     types = TILE_TYPES,
+    walkableDeck,
   }: {
     obstacles?: NavigationObstacle[];
     clearance?: number;
     types?: Readonly<Record<string, TileType>>;
+    walkableDeck?: (x: number, z: number) => boolean;
   } = {},
 ) {
   const width = map.size,
@@ -462,7 +464,9 @@ export function buildTileNavigation(
       if (!types[type] || types[type].walkable === undefined)
         throw new Error('Missing navigation rule for tile type ' + type);
       surface[id] = typeNames.indexOf(type);
-      mask[id] = types[type].walkable ? 1 : 0;
+      const walkable =
+        types[type].walkable || walkableDeck?.((x + 0.5) * map.step, (z + 0.5) * map.step);
+      mask[id] = walkable ? 1 : 0;
       if (!mask[id]) blockedBy[id] = 1;
     }
   for (const [index, { polygon }] of obstacles.entries()) {

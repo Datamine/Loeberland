@@ -64,6 +64,14 @@ export const ITEM_STATS = defineItems({
     name: 'Bertoia Chair',
     description: 'A wire-frame chair from the Goblin Furniture Factory.',
   },
+  'marshmallow-sofa': {
+    name: 'Marshmallow Sofa',
+    description: 'Eighteen red upholstered discs on a slim tubular steel frame.',
+  },
+  'ovalia-chair': {
+    name: 'Ovalia Chair',
+    description: 'A tall fiberglass egg with beige upholstery and an aluminum pedestal.',
+  },
   'ball-chair': {
     name: contentText('config.item-stats.module.name-7', {}),
     description: contentText('config.item-stats.module.description-8', {}),
@@ -376,6 +384,8 @@ export const EQUIPMENT_IDS = Object.freeze([
   'ball-chair',
   'eames-chair',
   'bertoia-chair',
+  'marshmallow-sofa',
+  'ovalia-chair',
   'bayonet',
   'railgun',
   'battleaxe',

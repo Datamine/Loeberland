@@ -23,7 +23,8 @@ credentials Display the active admin panel credentials.
 status      Show the status of the four services.
 
 Deploy requires AWS_ACCESS_KEY and AWS_SECRET_KEY. The defaults are Oregon,
-c8i.large, 100 players and HTTPS on the Elastic IP. See deploy/README.md.
+c8i.large, 100 players and HTTPS on the Elastic IP. Edit deploy/chat.env to
+set chat permissions. See deploy/README.md.
 HELP
 }
 
@@ -47,9 +48,23 @@ if [[ $action == deploy ]]; then
         echo 'Set and export both AWS_ACCESS_KEY and AWS_SECRET_KEY before deploying.' >&2
         exit 1
     fi
+    require node npm git curl ssh-keygen
+    chat_environment=$(node -e '
+        const { readFileSync } = require("node:fs");
+        const { parseEnv } = require("node:util");
+        const settings = parseEnv(readFileSync(process.argv[1], "utf8"));
+        for (const key of ["OAUTH_REQUIRED", "UPGRADE_REQUIRED_FOR_SERVER_CHAT"]) {
+            const value = (process.env[key] || settings[key])?.trim();
+            if (!value) continue;
+            if (!/^(true|false)$/i.test(value)) {
+                console.error(key + " in deploy/chat.env or the environment must be True or False.");
+                process.exit(2);
+            }
+            console.log(key + "=" + value);
+        }
+    ' "$root/deploy/chat.env")
     export AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY"
     export AWS_SECRET_ACCESS_KEY="$AWS_SECRET_KEY"
-    require node npm git curl ssh-keygen
     mkdir -p -m 700 "$local_dir"
     key_name=''
     create_key=0
@@ -236,7 +251,10 @@ done
     'sudo timeout 15m cloud-init status --wait || sudo test -x /usr/local/sbin/loeberland-deploy'
 digest=$("${tf[@]}" output -raw release_sha256)
 [[ $digest =~ ^[a-f0-9]{64}$ ]]
-"${tf[@]}" output -raw compose_environment |
+{
+    "${tf[@]}" output -raw compose_environment
+    printf '\n%s\n' "$chat_environment"
+} |
     "${ssh_client[@]}" "$host" "sudo /usr/local/sbin/loeberland-deploy $digest"
 
 echo 'Waiting for public HTTPS…'

@@ -94,16 +94,45 @@
         <div class="sf-journal">
           <div id="sf-server-update" role="status" hidden></div>
           <div id="sf-log" role="log" aria-label="Chat and adventure log"></div>
-          <form id="sf-chat-form" class="sf-chat-form" autocomplete="off">
+          <div id="sf-quick-chat" class="sf-quick-chat" role="group" aria-label="Quick chat">
+            <button type="button" data-quick-chat>Yo</button>
+            <button type="button" data-quick-chat>OK</button>
+            <button type="button" data-quick-chat>No</button>
+            <button id="sf-chat-unlock" type="button" aria-haspopup="dialog">Unlock</button>
+          </div>
+          <form id="sf-chat-form" class="sf-chat-form" autocomplete="off" hidden>
+            <span aria-hidden="true">*</span>
             <input
               id="sf-chat-draft"
               type="text"
               maxlength="140"
               enterkeyhint="send"
-              aria-label="Nearby chat message"
-              placeholder="Type a message and press Enter"
+              aria-label="Chat message"
             />
           </form>
+          <dialog
+            id="sf-chat-unlock-dialog"
+            class="sf-chat-unlock-dialog"
+            aria-labelledby="sf-chat-unlock-title"
+          >
+            <h2 id="sf-chat-unlock-title">Unlock chat</h2>
+            <p>Sign in with Google to type messages as this character.</p>
+            <p id="sf-chat-unavailable" hidden>
+              Google sign-in is unavailable. You can still use Yo, OK, and No.
+            </p>
+            <div class="sf-trade-buttons">
+              <form method="dialog"><button type="submit">Cancel</button></form>
+              <a
+                id="sf-chat-google"
+                class="sf-primary"
+                href="/auth/google/chat/start"
+                target="_blank"
+                rel="noopener"
+                hidden
+                >Continue with Google</a
+              >
+            </div>
+          </dialog>
           <div
             id="sf-dialogue"
             class="sf-dialogue"
@@ -130,30 +159,39 @@
                 ><span id="sf-enemy-health" hidden></span>
               </div>
               <div class="sf-strength">
-                <label id="sf-hp-level-text" for="sf-hp-level">Hitpoints · Level 1</label>
-                <progress id="sf-hp-level" max="100" value="0"></progress>
-                <label id="sf-strength-level-text" for="sf-strength-progress"
-                  >Strength · Level 1</label
-                >
-                <progress id="sf-strength-progress" max="100" value="0"></progress>
+                <div class="sf-skill-progress">
+                  <label id="sf-hp-level-text" for="sf-hp-level">Hitpoints · Level 1</label>
+                  <progress id="sf-hp-level" max="100" value="0" tabindex="0"></progress>
+                  <span id="sf-hp-progress-text" class="sf-skill-readout" aria-hidden="true"></span>
+                </div>
+                <div class="sf-skill-progress">
+                  <label id="sf-strength-level-text" for="sf-strength-progress"
+                    >Strength · Level 1</label
+                  >
+                  <progress id="sf-strength-progress" max="100" value="0" tabindex="0"></progress>
+                  <span
+                    id="sf-strength-progress-text"
+                    class="sf-skill-readout"
+                    aria-hidden="true"
+                  ></span>
+                </div>
               </div>
               <div class="sf-food-controls">
                 <button id="sf-order-doordash" class="sf-bike-button" type="button">
-                  <span class="sf-action-target" data-kind="object">DoorDash</span> · 15 coins</button
-                ><button id="sf-eat-sandwich" class="sf-bike-button" type="button" hidden>
-                  Eat sandwich
+                  <span class="sf-action-target" data-kind="object">DoorDash</span> · 15 coins
                 </button>
                 <button id="sf-call-waymo" class="sf-bike-button" type="button">
                   <span class="sf-action-target" data-kind="object">Waymo</span> · 12 coins
+                </button>
+                <button id="sf-eat-sandwich" class="sf-bike-button" type="button" hidden>
+                  Eat sandwich
                 </button>
               </div>
               <button id="sf-stop-construction" class="sf-bike-button" type="button" hidden>
                 Stop work at
                 <span class="sf-action-target" data-kind="object">Construction Site</span>
               </button>
-              <button id="sf-exit-streetcar" class="sf-bike-button" type="button" hidden>
-                Get off <span class="sf-action-target" data-kind="personal-item">cable car</span>
-              </button>
+              <button id="sf-exit-streetcar" class="sf-bike-button" type="button" hidden></button>
               <button id="sf-exit-swing" class="sf-bike-button" type="button" hidden>
                 Get off <span class="sf-action-target" data-kind="object">swing</span>
               </button>
@@ -296,14 +334,6 @@
                     360 shove-it · 3
                   </button>
                 </div>
-                <button
-                  id="sf-bike-button"
-                  class="sf-bike-button"
-                  type="button"
-                  aria-pressed="false"
-                >
-                  Find <span class="sf-action-target" data-kind="npc">bike</span>
-                </button>
                 <div
                   id="sf-motorcycle-tricks"
                   class="sf-vehicle-tricks"
@@ -342,9 +372,6 @@
                 <button id="sf-ski-button" class="sf-bike-button" type="button" hidden>
                   Ride gondola
                 </button>
-                <button id="sf-atv-rent" class="sf-bike-button" type="button" hidden>
-                  Rent <span class="sf-action-target" data-kind="object">ATV</span>
-                </button>
                 <div
                   id="sf-atv-controls"
                   class="sf-atv-controls"
@@ -380,14 +407,6 @@
                     Dismount ATV
                   </button>
                 </div>
-                <button
-                  id="sf-roll-button"
-                  class="sf-bike-button"
-                  type="button"
-                  title="Forward roll (Esc, then V)"
-                >
-                  Forward roll
-                </button>
                 <div id="sf-rocket-ignition" class="sf-rocket-ignition" hidden>
                   <button
                     id="sf-light-decorative-rocket"
@@ -410,15 +429,23 @@
                   <span class="sf-action-target" data-kind="item">Rocket</span> hop
                   <span class="sf-key">Space</span>
                 </button>
-                <button
-                  id="sf-dance-button"
-                  class="sf-bike-button"
-                  type="button"
-                  aria-pressed="false"
-                >
-                  Dance
-                </button>
                 <div id="sf-quick-actions" class="sf-quick-actions">
+                  <button
+                    id="sf-roll-button"
+                    class="sf-bike-button"
+                    type="button"
+                    title="Forward roll (Esc, then V)"
+                  >
+                    Forward roll
+                  </button>
+                  <button
+                    id="sf-dance-button"
+                    class="sf-bike-button"
+                    type="button"
+                    aria-pressed="false"
+                  >
+                    Dance
+                  </button>
                   <button
                     id="sf-sit-button"
                     class="sf-bike-button"
@@ -430,6 +457,15 @@
                     Sit
                   </button>
                   <button
+                    id="sf-character-button"
+                    class="sf-bike-button"
+                    type="button"
+                    aria-haspopup="dialog"
+                    aria-controls="sf-character"
+                  >
+                    Character
+                  </button>
+                  <button
                     id="sf-teleport-button"
                     class="sf-bike-button"
                     type="button"
@@ -438,6 +474,32 @@
                     disabled
                   >
                     Teleport
+                  </button>
+                  <button
+                    id="sf-bike-button"
+                    class="sf-bike-button"
+                    type="button"
+                    aria-pressed="false"
+                  >
+                    Find <span class="sf-action-target" data-kind="npc">bike</span>
+                  </button>
+                  <button
+                    id="sf-collection-button"
+                    class="sf-bike-button"
+                    type="button"
+                    aria-haspopup="dialog"
+                    aria-controls="sf-collection"
+                  >
+                    Collection log
+                  </button>
+                  <button
+                    id="sf-quests-button"
+                    class="sf-bike-button"
+                    type="button"
+                    aria-haspopup="dialog"
+                    aria-controls="sf-quests"
+                  >
+                    Quests
                   </button>
                   <div
                     id="sf-chairs"
@@ -455,6 +517,12 @@
                     </button>
                     <button class="sf-bike-button" type="button" data-chair="ball-chair" hidden>
                       Ball Chair
+                    </button>
+                    <button class="sf-bike-button" type="button" data-chair="marshmallow-sofa" hidden>
+                      Marshmallow Sofa
+                    </button>
+                    <button class="sf-bike-button" type="button" data-chair="ovalia-chair" hidden>
+                      Ovalia Chair
                     </button>
                   </div>
                   <div
@@ -502,33 +570,6 @@
                     </button>
                   </div>
                 </div>
-                <button
-                  id="sf-collection-button"
-                  class="sf-bike-button"
-                  type="button"
-                  aria-haspopup="dialog"
-                  aria-controls="sf-collection"
-                >
-                  Collection log
-                </button>
-                <button
-                  id="sf-quests-button"
-                  class="sf-bike-button"
-                  type="button"
-                  aria-haspopup="dialog"
-                  aria-controls="sf-quests"
-                >
-                  Quests
-                </button>
-                <button
-                  id="sf-character-button"
-                  class="sf-bike-button"
-                  type="button"
-                  aria-haspopup="dialog"
-                  aria-controls="sf-character"
-                >
-                  Character
-                </button>
                 <div id="sf-growth-ticker" class="sf-growth-ticker" aria-live="polite" hidden></div>
               </div>
             </div>
@@ -581,6 +622,10 @@
               </button>
               <span id="sf-online-count" class="sf-online-count">0 online</span>
             </div>
+            <section id="sf-shortcut-menu" class="sf-shortcut-menu" aria-label="Shortcuts" hidden>
+              <h3>Shortcuts</h3>
+              <ul id="sf-shortcut-list"></ul>
+            </section>
           </div>
         </div>
       </div>
@@ -857,7 +902,7 @@
                     <option value="crop">Close crop</option>
                     <option value="side-part">Side part</option>
                     <option value="short-curls">Curls</option>
-                    <option value="broccoli">Broccoli cut</option>
+                    <option value="broccoli">Broccoli</option>
                   </select></label
                 >
                 <label>Shirt <input data-character="shirt" type="color" value="#707b4b" /></label>
@@ -948,6 +993,10 @@
             aria-labelledby="sf-account-tab"
             hidden
           >
+            <div id="sf-google-account" class="sf-google-account" hidden>
+              <span>Google account</span>
+              <output id="sf-google-account-label"></output>
+            </div>
             <label
               >Username <input id="sf-username" type="text" maxlength="12" autocomplete="username"
             /></label>
@@ -1005,30 +1054,56 @@
           </dd>
           <dt>Chat</dt>
           <dd>
-            Click the message field or press Enter to draft. Press Enter to send up to 140
-            characters to nearby players.
+            Type to start a chat message, then press Enter to send it to nearby players. If you see
+            Yo, OK, and No, choose Unlock and sign in with Google to type.
+          </dd>
+          <dt>Server chat</dt>
+          <dd>
+            Start a message with <kbd>/</kbd> to send it to everyone on the server. For example,
+            <code>/Hello, everyone!</code> Messages can be up to 140 characters. Some servers
+            require an upgrade to send server chat.
           </dd>
           <dt>Inventory</dt>
           <dd>Use the inventory buttons to use carried items.</dd>
           <dt>Activity controls</dt>
           <dd>Additional buttons and keyboard hints appear during activities.</dd>
+          <dt>Sitting</dt>
+          <dd>Recover 1 hitpoint every 5 seconds while seated.</dd>
           <dt>Tab / Shift+Tab</dt>
           <dd>Move keyboard focus between controls.</dd>
           <dt>Escape</dt>
           <dd>Close a panel or menu, end a conversation, or stop moving.</dd>
         </dl>
         <h3>Shortcuts</h3>
-        <p>Press Esc, then the letter to use a shortcut.</p>
+        <p>
+          Press <kbd class="sf-key">Esc</kbd> to see the available shortcuts, then press a key shown
+          in the menu. During vehicle tricks, this can include <kbd class="sf-key">1</kbd>,
+          <kbd class="sf-key">2</kbd>, or <kbd class="sf-key">3</kbd>.
+        </p>
         <dl>
-          <dt>Esc, C / Q / L / H</dt>
+          <dt><kbd class="sf-key">E</kbd></dt>
+          <dd>Open the exit menu aboard a cable car or Waymo, or while on Sutro Tower.</dd>
+          <dt>
+            <kbd class="sf-key">Esc</kbd> then <kbd class="sf-key">C</kbd> /
+            <kbd class="sf-key">Q</kbd> / <kbd class="sf-key">L</kbd> / <kbd class="sf-key">H</kbd>
+          </dt>
           <dd>Open Character, Quests, Collection log, or Help.</dd>
-          <dt>Esc, X / D / V</dt>
+          <dt>
+            <kbd class="sf-key">Esc</kbd> then <kbd class="sf-key">X</kbd> /
+            <kbd class="sf-key">D</kbd> / <kbd class="sf-key">V</kbd>
+          </dt>
           <dd>Sit or stand, dance, or roll forward.</dd>
-          <dt>Esc, T</dt>
+          <dt><kbd class="sf-key">Esc</kbd> then <kbd class="sf-key">T</kbd></dt>
           <dd>Choose a teleport destination.</dd>
-          <dt>Esc, B / K / M</dt>
+          <dt>
+            <kbd class="sf-key">Esc</kbd> then <kbd class="sf-key">B</kbd> /
+            <kbd class="sf-key">K</kbd> / <kbd class="sf-key">M</kbd>
+          </dt>
           <dd>Use the bicycle, skateboard, or rented motorcycle.</dd>
-          <dt>Esc, E / F / R</dt>
+          <dt>
+            <kbd class="sf-key">Esc</kbd> then <kbd class="sf-key">E</kbd> /
+            <kbd class="sf-key">F</kbd> / <kbd class="sf-key">R</kbd>
+          </dt>
           <dd>
             Use the Tahoe activity button, return from surfing, or park the Ferrari when available.
           </dd>
@@ -1124,6 +1199,17 @@
         <a href="../">Return to homepage</a>
       </div>
     </section>
+    <dialog
+      id="sf-screen-requirement"
+      class="sf-screen-requirement"
+      aria-labelledby="sf-screen-requirement-title"
+      aria-describedby="sf-screen-requirement-size"
+    >
+      <div>
+        <h1 id="sf-screen-requirement-title">Loeberland is best enjoyed on a desktop.</h1>
+        <p id="sf-screen-requirement-size" hidden></p>
+      </div>
+    </dialog>
     <div
       id="sf-loading"
       class="sf-loading"

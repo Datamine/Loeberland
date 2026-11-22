@@ -191,6 +191,7 @@ export function createServerMovement({
     if (s.ferrari?.state.riding) s.ferrari.state.target = null;
   }
   function leaveSeat(p: ServerPlayer) {
+    if (p.seatedRecoverySeconds) p.seatedRecoverySeconds = 0;
     if (!p.seat) return;
     const exit = p.seat.exit;
     Object.assign(p, { x: exit.x, z: exit.z, y: geometry.characterGround(exit.x, exit.z) });

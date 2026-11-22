@@ -37,6 +37,7 @@ import { ILLUMINATI_CAVE, ILLUMINATI_INSTANCE, instanceTile } from '../map-insta
 import '../characters.ts';
 import { raycastNightlife } from '../nightlife.ts';
 import type { Ray } from '../types/geometry.ts';
+import { SOUTH_BEACH_PIER, onSouthBeachPier } from '../south-beach.ts';
 
 const CAMERA_FAR = 850;
 
@@ -494,6 +495,9 @@ export function createRuntime(context: WorldContext) {
       d = ray.dir,
       water = (0.02 - o[1]) / d[1];
     let best = water > 0 ? Math.min(water, maxDistance) : maxDistance;
+    const pier = (SOUTH_BEACH_PIER.deck - o[1]) / d[1];
+    if (pier > 0 && pier < best && onSouthBeachPier(o[0] + d[0] * pier, o[2] + d[2] * pier))
+      best = pier;
     for (const hit of [
       countrysideHit,
       marinHit,

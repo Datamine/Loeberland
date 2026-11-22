@@ -3,7 +3,8 @@
 export const SF_SHADOW_GLSL = `
 float sfShadow(vec4 coordinate,float bias){
     vec3 p=coordinate.xyz/coordinate.w*.5+.5;
-    if(uShadows<.5||p.x<=0.||p.x>=1.||p.y<=0.||p.y>=1.)return 0.;
+    // Receivers beyond the light's depth range would read even cleared texels as shadows.
+    if(uShadows<.5||any(lessThanEqual(p,vec3(0.)))||any(greaterThanEqual(p,vec3(1.))))return 0.;
     float shade=0.;
     for(int x=0;x<3;x++){for(int y=0;y<3;y++){
         vec2 tap=vec2(float(x),float(y))-1.;

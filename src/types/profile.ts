@@ -5,6 +5,8 @@ export interface PlayerProfile {
   playerState: PlayerDocument;
   stateRevision: number;
   hasPlayed?: boolean;
+  chatUnlocked?: boolean;
+  upgrade: boolean;
   characterPlaySeconds?: number;
   characterReminderAt?: number;
   privateState: Record<string, string>;

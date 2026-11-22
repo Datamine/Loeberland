@@ -201,3 +201,15 @@ test('police, tiger, animal control, zookeeper and raptor all move between autho
   view.update(true);
   assert.equal(actors[0].x, paused[0], 'removed or reset tracks cannot keep moving');
 });
+
+test('leaving zoo pursuit range clears the old wardens and re-entry starts from the new snapshot', () => {
+  let time = 0;
+  const { view, zoo } = pursuitFixture(() => time);
+  view.syncWorld(chaseSample(0).world, time);
+  assert.equal(zoo.state.wardens.length, 1);
+  view.syncWorld({ tiger: null }, ++time);
+  assert.equal(zoo.state.wardens.length, 0);
+  view.syncWorld(chaseSample(3).world, ++time);
+  assert.equal(zoo.state.tiger.x, 3);
+  assert.equal(zoo.state.wardens[0].x, 3);
+});

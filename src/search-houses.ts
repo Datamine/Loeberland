@@ -26,13 +26,14 @@ export function houseClimb(id: string) {
 function searchHome(id: string, p: Parcel, search: (typeof HOUSE_SEARCHES)[number]) {
   const inside = searchHousePoint(p, 0, p.d / 2 - 0.7),
     entry = searchHousePoint(p, 0, p.d / 2 + 0.45),
+    sideYard = -p.w / 2 - 0.5,
     target =
       search.container === 'doghouse'
-        ? searchHousePoint(p, -p.w / 2 + 0.48, p.d / 2 + 0.5)
+        ? searchHousePoint(p, sideYard, 0.15)
         : searchHousePoint(p, -p.w / 2 + 0.65, -p.d / 2 + 0.65),
     approach =
       search.container === 'doghouse'
-        ? entry
+        ? searchHousePoint(p, sideYard, 0.85)
         : searchHousePoint(p, -p.w / 2 + 0.95, -p.d / 2 + 1.3);
   return Object.freeze({
     id,

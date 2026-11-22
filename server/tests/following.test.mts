@@ -190,3 +190,45 @@ test('following never routes through members-only grounds and path planning stay
     await game.close();
   }
 });
+
+test('reciprocal follows orbit together and a walk command ends the orbit', async () => {
+  const geometry = fixtureGeometry();
+  let blocked = false;
+  geometry.canTravel = () => !blocked;
+  const { game, advance } = await setup(geometry);
+  const a = await player(game, 921);
+  const b = await player(game, 922);
+  try {
+    // Players can start a reciprocal follow even if they are standing on the same tile.
+    const center = { x: a.p.x, z: a.p.z };
+    assert.equal(requiredFixture(await act(game, a, 'followPlayer', { id: b.p.id })).ok, true);
+    const reply = requiredFixture(await act(game, b, 'followPlayer', { id: a.p.id }));
+    assert.equal(reply.ok, true);
+    assert.equal(reply.message, undefined);
+    let angle = 0;
+    let swept = 0;
+    for (let i = 0; i < 100; i++) {
+      advance(50);
+      game.tick(0.05);
+      assert.ok(Math.abs((a.p.x + b.p.x) / 2 - center.x) < 1e-6);
+      assert.ok(Math.abs((a.p.z + b.p.z) / 2 - center.z) < 1e-6);
+      const next = Math.atan2(a.p.z - center.z, a.p.x - center.x);
+      if (i > 0) swept += Math.atan2(Math.sin(next - angle), Math.cos(next - angle));
+      angle = next;
+    }
+    assert.ok(Math.abs(swept) > 2 * Math.PI);
+    assert.ok(Math.hypot(a.p.x - b.p.x, a.p.z - b.p.z) >= 1.49);
+    assert.ok(a.p.moving && b.p.moving);
+    const before = [a.p.x, a.p.z, b.p.x, b.p.z];
+    blocked = true;
+    game.tick(0.05);
+    assert.deepEqual([a.p.x, a.p.z, b.p.x, b.p.z], before);
+
+    blocked = false;
+    await act(game, a, 'moveTo', { x: center.x + 3, z: center.z });
+    assert.equal(a.p.following, null);
+    assert.equal(b.p.following, a.p.id);
+  } finally {
+    await game.close();
+  }
+});

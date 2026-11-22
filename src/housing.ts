@@ -15,6 +15,7 @@ type HousingPlan = ReturnType<typeof planHouse> & {
   roof: string;
   hasLift: boolean;
   frontRise: number;
+  frontWindow: { x: number; y: number; z: number; width: number };
 };
 import { SOUTHERN_PALETTES } from './neighborhood-palette.ts';
 import { drawSouthernHouseDetails } from './southern-house-details.ts';
@@ -1121,12 +1122,11 @@ export function createHousing({
             m.box(u, floor + 1.75, face + 0.018, 0.03, H - 1.8, 0.045, tint(color, 21));
         }
         const bx = left + ww * 0.7,
-          bw = ww * 0.47;
+          bw = ww * 0.47,
+          firstWindowSill = floor + (kind === 'west' ? 0.66 : 0.57),
+          windowSpacing = kind === 'west' ? 1.38 : kind === 'mission' ? 1 : 1.12;
         for (let storey = 0; storey < storeys; storey++) {
-          const yy =
-              floor +
-              (kind === 'west' ? 0.66 : 0.57) +
-              storey * (kind === 'west' ? 1.38 : kind === 'mission' ? 1 : 1.12),
+          const yy = firstWindowSill + storey * windowSpacing,
             windowH = kind === 'west' ? 0.73 : 0.55;
           if (
             ((kind === 'victorian' || kind === 'bayview') && shape > 0.25) ||
@@ -1360,7 +1360,20 @@ export function createHousing({
             );
         }
         const frontRise = floor - p.entryHeight;
-        plans.push({ ...p, color, roof: roofStyle, hasLift, frontRise });
+        const [windowX, windowZ] = point(bx, face);
+        plans.push({
+          ...p,
+          color,
+          roof: roofStyle,
+          hasLift,
+          frontRise,
+          frontWindow: {
+            x: windowX,
+            y: firstWindowSill + (storeys - 1) * windowSpacing,
+            z: windowZ,
+            width: bw,
+          },
+        });
         housingDetails.push(plans[plans.length - 1]);
         low = Math.min(low, p.entryHeight - 0.08, floor - 0.08);
         high = Math.max(

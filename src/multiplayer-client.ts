@@ -26,14 +26,13 @@ export interface ConnectionSocket {
 }
 export type ConnectionSocketConstructor = new (url: string) => ConnectionSocket;
 type EventInput<T> = T extends unknown ? Omit<T, 'sampleTime'> & { sampleTime?: number } : never;
-const characterIdentityKey = 'sf-mp-identity';
 const isCharacterToken = (value: string | null | undefined): value is string =>
   !!value && /^[a-f0-9]{64}$/.test(value);
 
 export function characterIdentityCookie(document: Pick<Document, 'cookie'>, secure: boolean) {
   function write(token: string, maxAge: number) {
     document.cookie =
-      characterIdentityKey +
+      CHARACTER_IDENTITY_COOKIE +
       '=' +
       token +
       '; Path=/; SameSite=Strict; Max-Age=' +
@@ -42,7 +41,7 @@ export function characterIdentityCookie(document: Pick<Document, 'cookie'>, secu
   }
   return {
     read() {
-      const prefix = characterIdentityKey + '=';
+      const prefix = CHARACTER_IDENTITY_COOKIE + '=';
       const token = document.cookie
         .split(';')
         .map((value) => value.trim())
@@ -61,6 +60,7 @@ export function characterIdentityCookie(document: Pick<Document, 'cookie'>, secu
 // CONTENT-BINDINGS-MIGRATED
 import { contentText } from './content-runtime.ts';
 import {
+  CHARACTER_IDENTITY_COOKIE,
   MP_PROTOCOL,
   MP_PRIVATE_KEYS,
   MP_INTERPOLATION_MS,
@@ -148,13 +148,13 @@ export function createMultiplayerClient({
     const identity = [...crypto.getRandomValues(new Uint8Array(32))]
       .map((v) => v.toString(16).padStart(2, '0'))
       .join('');
-    storage.setItem(characterIdentityKey, identity);
+    storage.setItem(CHARACTER_IDENTITY_COOKIE, identity);
     return identity;
   }
-  const existing = identityCookie?.read() ?? storage.getItem(characterIdentityKey);
+  const existing = identityCookie?.read() ?? storage.getItem(CHARACTER_IDENTITY_COOKIE);
   let token = isCharacterToken(existing) ? existing : newIdentity();
   function rememberIdentity(credential: string) {
-    storage.setItem(characterIdentityKey, credential);
+    storage.setItem(CHARACTER_IDENTITY_COOKIE, credential);
     identityCookie?.remember(credential);
   }
   let worldMaps: WorldMaps = {},
@@ -382,6 +382,10 @@ export function createMultiplayerClient({
         state.id = message.id;
         state.name = message.name;
         state.returningCharacter = message.returningCharacter === true;
+        state.chatUnlocked = message.chatUnlocked === true;
+        state.serverChatAllowed = message.serverChatAllowed === true;
+        state.googleAccountLabel = message.googleAccountLabel;
+        state.googleChatAvailable = message.googleChatAvailable === true && !!identityCookie;
         state.serverBuild = message.serverBuild;
         if (state.returningCharacter) rememberIdentity(token);
         state.hasCharacterPassword = message.hasCharacterPassword === true;
@@ -485,6 +489,11 @@ export function createMultiplayerClient({
       } else if (message.type === 'pong') {
         state.latency = Math.max(0, now() - message.clientTime);
       } else {
+        if (message.type === 'chatUnlocked') {
+          state.chatUnlocked = true;
+          state.serverChatAllowed = message.serverChatAllowed === true;
+          state.googleAccountLabel = message.googleAccountLabel;
+        }
         if (message.type === 'notice' && message.id === 'server-update')
           updateExpectedUntil = now() + 30_000;
         emit(message);

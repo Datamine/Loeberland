@@ -3,6 +3,7 @@ import test from 'node:test';
 import { actionTargetKind, orderPrimaryActions } from '../src/context-menu.ts';
 import { ATV_RAMP_KIND } from '../src/atv.ts';
 import { AIRSHIP_TRAVELER } from '../src/airship-rope.ts';
+import { MARKET_STREETCAR } from '../src/market-streetcar.ts';
 import { menuFromContent } from '../src/content-game.ts';
 import { npcContextActions, npcDisplayLabel, npcPrimaryVerb } from '../src/npc-interactions.ts';
 import { createInteractions } from '../src/world/interactions.ts';
@@ -13,6 +14,29 @@ test('Bani has no combat level or hostile menu actions', () => {
   assert.equal(npcDisplayLabel(bani), 'Bani');
   assert.equal(npcPrimaryVerb(bani), 'talk');
   assert.deepEqual(npcContextActions(bani), ['talk', 'walk', 'examine']);
+});
+
+test('clicking the cable car while aboard uses the shared exit action and the standard object color', () => {
+  const calls: unknown[][] = [];
+  const { primaryWorldAction, streetcarExit } = createInteractions({
+    multiplayerWorld: {
+      selfMode: 'streetcar',
+      command: (...args: unknown[]) => calls.push(args),
+    },
+  } as unknown as WorldContext);
+  const action = primaryWorldAction({
+    sx: 0,
+    sy: 0,
+    npc: null,
+    sight: MARKET_STREETCAR,
+    place: null,
+    tile: { x: 0, y: 0 },
+    researchRoom: false,
+  });
+  assert.equal(action, streetcarExit);
+  assert.deepEqual(action.target, { label: 'cable car', kind: 'object' });
+  action.run();
+  assert.deepEqual(calls, [['travel', { kind: 'streetcarExit' }]]);
 });
 
 test('the airship traveler can be clicked to talk from the basket and has only peaceful actions', () => {
@@ -85,7 +109,9 @@ test('the primary action is shared by NPCs, vehicles, objects, and walkable surf
     primaryWorldAction({ ...target, sight: site(kind, id) }).id;
 
   assert.equal(action('ferrari'), 'interaction.28');
-  assert.equal(actionTargetKind({ id: 'ferrari-car', kind: 'ferrari' }), 'personal-item');
+  assert.equal(actionTargetKind({ id: 'ferrari-car', kind: 'ferrari' }), 'object');
+  assert.equal(actionTargetKind({ id: 'called-waymo', kind: 'called-waymo' }), 'object');
+  assert.equal(actionTargetKind(MARKET_STREETCAR), 'object');
   assert.equal(actionTargetKind({ kind: 'fishing', editorCategory: 'object' }), 'object');
   assert.equal(actionTargetKind({ kind: 'sand', editorCategory: 'object' }), 'item');
   assert.equal(actionTargetKind({ kind: 'sunglasses' }), 'item');

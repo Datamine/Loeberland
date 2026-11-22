@@ -54,7 +54,11 @@ const COAST_REFERENCE = [
   [55.8, 32.2] satisfies [number, number],
   [55.2, 33.7] satisfies [number, number],
   [56.3, 35] satisfies [number, number],
-  [56.5, 37.7] satisfies [number, number],
+  // The ballpark block extends into the bay before curving back at the cove.
+  [57.15, 35.6] satisfies [number, number],
+  [58.15, 36.5] satisfies [number, number],
+  [58.25, 38] satisfies [number, number],
+  [57.85, 39] satisfies [number, number],
   [57.2, 40] satisfies [number, number],
   [57, 42.2] satisfies [number, number],
   [58, 43.3] satisfies [number, number],

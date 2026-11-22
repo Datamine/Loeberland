@@ -3,9 +3,14 @@ import { bindActionChoices } from '../ui/action-choices.ts';
 import { bindHighScores } from '../high-scores.ts';
 import { bindTradeDialog } from '../trade-dialog.ts';
 import { LAKE_MERCED_SHORE, distanceToLakeMerced } from '../lake-merced.ts';
-import { ATV_RENTAL } from '../atv.ts';
 import { marketStreetcarPose, marketStreetcarRoute } from '../market-streetcar.ts';
-import { playerChatLine, PLAYER_CHAT_COOLDOWN_MS, PLAYER_CHAT_LIMIT } from '../player-chat.ts';
+import {
+  playerChatLine,
+  PLAYER_CHAT_COOLDOWN_MS,
+  PLAYER_CHAT_LIMIT,
+  QUICK_CHAT,
+} from '../player-chat.ts';
+import { SOUTH_BEACH_BALLPARK, SOUTH_BEACH_LAWN } from '../south-beach.ts';
 import type {
   SceneObject,
   PickTarget,
@@ -1906,6 +1911,9 @@ export function createSFWorld({
     descendSutro,
     worldTarget,
     primaryWorldAction,
+    streetcarExit,
+    waymoExit,
+    showExitMenu,
     orderDoorDash,
     eatSandwich,
     parkBike,
@@ -1916,7 +1924,6 @@ export function createSFWorld({
     performSurfTrick,
     useSurf,
     arrestPlayer,
-    interactCitizen,
     debugTeleport,
     walkTo,
     goToPlace,
@@ -2078,7 +2085,7 @@ export function createSFWorld({
     places: DestinationBuilding[] = [],
     instituteRooms: InstituteRoom[] = [],
     visited = new Set(),
-    policeActors = new Map<number, Actor>();
+    policeActors = new Map<string, Actor>();
   let multiplayerWorld: ReturnType<
       typeof import('../multiplayer-world.ts').createWorldMultiplayer
     > | null = null,
@@ -3113,6 +3120,7 @@ export function createSFWorld({
       (x < 13 && y > 18 && y < 26) ||
       (x >= 33 && x <= 36 && y >= 27 && y <= 30) ||
       inBounds(x, y, DOLORES_PARK) ||
+      insidePolygon(wx, wy, SOUTH_BEACH_LAWN) ||
       ((x - 29) / 4) ** 2 + ((y - 43) / 5) ** 2 < 1 ||
       ((x - 28) / 3) ** 2 + ((y - 52) / 3) ** 2 < 1 ||
       ((x - 17) / 3.6) ** 2 + ((y - 57) / 3.5) ** 2 < 1
@@ -3584,16 +3592,6 @@ export function createSFWorld({
       description: contentText('world.scene.createSFWorld.description-93', {}),
     },
     {
-      id: 'oracle',
-      label: contentText('world.scene.createSFWorld.label-94', {}),
-      category: 'South Beach · ballpark & cove',
-      kind: 'stadium',
-      x: 52,
-      y: 34,
-      entry: { x: 51, y: 36 },
-      description: contentText('world.scene.createSFWorld.description-95', {}),
-    },
-    {
       id: 'dolores',
       label: contentText('world.scene.createSFWorld.label-96', {}),
       category: 'Mission · hillside lawns',
@@ -3661,6 +3659,20 @@ export function createSFWorld({
     if (s.kind !== 'bike') s.entry = { x: mapTile(s.entry.x), y: mapTile(s.entry.y) };
     if (s.mapPoint) s.mapPoint = { x: mapPosition(s.mapPoint.x), y: mapPosition(s.mapPoint.y) };
   }
+  sights.push({
+    id: 'oracle',
+    label: contentText('world.scene.createSFWorld.label-94', {}),
+    category: 'South Beach · ballpark & cove',
+    kind: 'stadium',
+    x: SOUTH_BEACH_BALLPARK.x - 0.5,
+    y: SOUTH_BEACH_BALLPARK.z - 0.5,
+    mapPoint: { x: SOUTH_BEACH_BALLPARK.x, y: SOUTH_BEACH_BALLPARK.z },
+    entry: {
+      x: SOUTH_BEACH_BALLPARK.approach.x - 0.5,
+      y: SOUTH_BEACH_BALLPARK.approach.z - 0.5,
+    },
+    description: contentText('world.scene.createSFWorld.description-95', {}),
+  });
 
   const npcRevealed = (npc: import('../types/world.ts').ActorMetadata) =>
     !!(npc.alienId && playerLook.sunglasses);
@@ -4031,16 +4043,17 @@ export function createSFWorld({
   $('sf-stop-construction').addEventListener('click', () =>
     multiplayerWorld?.command('playerAction', { verb: 'constructionStop' }),
   );
-  $('sf-exit-streetcar').addEventListener('click', () =>
-    multiplayerWorld?.command('travel', { kind: 'streetcarExit' }),
-  );
+  const exitStreetcarButton = $('sf-exit-streetcar');
+  setActionText(exitStreetcarButton, streetcarExit.label, [streetcarExit.target]);
+  exitStreetcarButton.addEventListener('click', streetcarExit.run);
   $('sf-exit-swing').addEventListener('click', () =>
     multiplayerWorld?.command('travel', { kind: 'swingExit' }),
   );
   $('sf-call-waymo').addEventListener('click', () => {
     const phase = multiplayer?.state.personal?.travel?.waymo?.phase;
+    if (phase === 'riding') return waymoExit.run();
     multiplayerWorld?.command('travel', {
-      kind: phase === 'riding' ? 'waymoExit' : phase === 'parked' ? 'waymoBoard' : 'waymoCall',
+      kind: phase === 'parked' ? 'waymoBoard' : 'waymoCall',
     });
   });
   $('sf-eat-sandwich').addEventListener('click', eatSandwich);
@@ -4066,12 +4079,6 @@ export function createSFWorld({
   $('sf-climb-button').addEventListener('click', descendSutro);
   $('sf-rope-button').addEventListener('click', () => showRopeMenu());
   $('sf-ski-button').addEventListener('click', useTahoeActivity);
-  $('sf-atv-rent').addEventListener('click', () =>
-    interactCitizen(
-      merchants.find((npc) => npc.id === ATV_RENTAL.npcId),
-      'talk',
-    ),
-  );
   for (const button of $('sf-atv-controls').querySelectorAll<HTMLButtonElement>(
     '[data-atv-action]',
   ))
@@ -4118,17 +4125,62 @@ export function createSFWorld({
     questMenu?.close();
   });
   const chatDraft = $('sf-chat-draft');
+  const chatForm = $('sf-chat-form');
+  const quickChat = $('sf-quick-chat');
+  const chatUnlockDialog = $('sf-chat-unlock-dialog');
   chatDraft.maxLength = PLAYER_CHAT_LIMIT;
   let lastChatSent = -Infinity;
-  chatDraft.addEventListener('focus', () => keys.clear());
-  $('sf-chat-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const text = playerChatLine(chatDraft.value);
+  function sendChat(text: string) {
     const time = performance.now();
     if (!text || time - lastChatSent < PLAYER_CHAT_COOLDOWN_MS || !multiplayerWorld?.say(text))
-      return;
+      return false;
     lastChatSent = time;
-    chatDraft.value = '';
+    return true;
+  }
+  function updateChatControls() {
+    const unlocked = multiplayer?.state.chatUnlocked === true;
+    chatForm.hidden = !unlocked;
+    quickChat.hidden = unlocked;
+    $('sf-chat-google').hidden = !multiplayer?.state.googleChatAvailable;
+    $('sf-chat-unavailable').hidden = !!multiplayer?.state.googleChatAvailable;
+    const accountLabel = multiplayer?.state.googleAccountLabel;
+    $('sf-google-account').hidden = !accountLabel;
+    $('sf-google-account-label').textContent = accountLabel || '';
+    if (unlocked && chatUnlockDialog.open) {
+      chatUnlockDialog.close();
+      chatDraft.focus({ preventScroll: true });
+    }
+  }
+  multiplayer?.subscribe((message) => {
+    if (message.type === 'welcome' || message.type === 'chatUnlocked') updateChatControls();
+  });
+  updateChatControls();
+  quickChat.querySelectorAll('button[data-quick-chat]').forEach((button, index) => {
+    button.addEventListener('click', () => sendChat(QUICK_CHAT[index]));
+  });
+  $('sf-chat-unlock').addEventListener('click', () => {
+    keys.clear();
+    chatUnlockDialog.showModal();
+  });
+  chatDraft.addEventListener('focus', () => {
+    keys.clear();
+    closeShortcutMenu();
+  });
+  chatForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (!multiplayer?.state.chatUnlocked) return;
+    const text = playerChatLine(chatDraft.value);
+    if (text.startsWith('/')) {
+      if (!text.slice(1).trim()) return;
+      if (!multiplayer.state.serverChatAllowed) {
+        announce('Server chat requires an upgrade.');
+        return;
+      }
+    }
+    if (sendChat(text)) {
+      chatDraft.value = '';
+      canvas.focus({ preventScroll: true });
+    }
   });
   $('sf-roll-button').addEventListener('click', rollForward);
   $('sf-drink-coffee').addEventListener('click', drinkBankCoffee);
@@ -4325,33 +4377,96 @@ export function createSFWorld({
       'data-show-ground-items',
       useCommandForGroundItems ? e.metaKey : e.altKey,
     );
-  let shortcutDeadline = 0;
-  const clickAction = (id: keyof GameElements) => {
-    const button = $(id);
-    if (button instanceof HTMLButtonElement && !button.hidden && !button.disabled) button.click();
-  };
-  const shortcuts: Record<string, () => unknown> = {
-    b: () => clickAction('sf-bike-button'),
-    c: () => clickAction('sf-character-button'),
-    d: () => clickAction('sf-dance-button'),
-    e: () => clickAction('sf-ski-button'),
-    f: () => surf.state.riding && useSurf(),
-    h: showHelp,
-    k: () => clickAction('sf-skateboard-button'),
-    l: () => clickAction('sf-collection-button'),
-    m: () => motorcycle?.state.rented && useMotorcycle(),
-    q: () => clickAction('sf-quests-button'),
-    r: () => ferrari?.state.riding && useFerrari(),
-    t: () => clickAction('sf-teleport-button'),
-    v: () => clickAction('sf-roll-button'),
-    x: () => clickAction('sf-sit-button'),
-  };
+  const shortcutMenu = $('sf-shortcut-menu');
+  const shortcutList = $('sf-shortcut-list');
+  function closeShortcutMenu() {
+    shortcutMenu.hidden = true;
+  }
+  function availableShortcuts() {
+    const entries = new Map<string, { label: string; run: () => unknown }>();
+    const control = (key: string, id: keyof GameElements, label: string) => {
+      const button = $(id);
+      if (button instanceof HTMLButtonElement && !button.hidden && !button.disabled)
+        entries.set(key, { label, run: () => button.click() });
+    };
+    control('c', 'sf-character-button', 'Character');
+    control('q', 'sf-quests-button', 'Quests');
+    control('l', 'sf-collection-button', 'Collection log');
+    control('h', 'sf-help-button', 'Help');
+    control('x', 'sf-sit-button', 'Sit or stand');
+    control('d', 'sf-dance-button', 'Dance');
+    control('v', 'sf-roll-button', 'Forward roll');
+    control('t', 'sf-teleport-button', 'Teleport');
+    control('b', 'sf-bike-button', 'Bicycle');
+    control('k', 'sf-skateboard-button', 'Skateboard');
+    control('e', 'sf-ski-button', 'Tahoe activity');
+    entries.set('+', { label: 'Zoom in', run: () => setZoom(zoom + 0.1) });
+    entries.set('-', { label: 'Zoom out', run: () => setZoom(zoom - 0.1) });
+    if (motorcycle?.state.rented)
+      entries.set('m', { label: 'Motorcycle', run: () => useMotorcycle() });
+    if (surf.state.riding) entries.set('f', { label: 'Return to shore', run: () => useSurf() });
+    if (ferrari?.state.riding) entries.set('r', { label: 'Park Ferrari', run: () => useFerrari() });
+    const exit = multiplayerWorld?.selfMode;
+    if (exit === 'streetcar' || exit === 'waymo' || sutroClimb.state.active)
+      entries.set('e', { label: 'Exit options', run: showExitMenu });
+    for (const group of [
+      $('sf-wave-controls'),
+      $('sf-skate-tricks'),
+      $('sf-motorcycle-tricks'),
+      $('sf-atv-controls'),
+    ]) {
+      if (group.hidden) continue;
+      for (const button of group.querySelectorAll<HTMLButtonElement>('button[aria-keyshortcuts]')) {
+        if (button.hidden || button.disabled) continue;
+        const label = button.textContent?.trim().split(' · ')[0] || '';
+        const keys = (button.getAttribute('aria-keyshortcuts') || '').toLowerCase().split(/\s+/);
+        for (const key of keys) {
+          if (key) entries.set(key === 'space' ? ' ' : key, { label, run: () => button.click() });
+        }
+      }
+    }
+    return entries;
+  }
+  function showShortcuts() {
+    shortcutList.replaceChildren();
+    for (const [key, { label }] of availableShortcuts()) {
+      const item = document.createElement('li');
+      const prefix = document.createElement('kbd');
+      const cap = document.createElement('kbd');
+      const name = document.createElement('span');
+      prefix.className = cap.className = 'sf-key';
+      prefix.textContent = 'Esc';
+      cap.textContent = key === ' ' ? 'Space' : key.toUpperCase();
+      name.textContent = label;
+      item.append(prefix, cap, name);
+      shortcutList.append(item);
+    }
+    shortcutMenu.hidden = false;
+  }
+  document.addEventListener('pointerdown', closeShortcutMenu, true);
+  document.addEventListener('wheel', closeShortcutMenu, { capture: true, passive: true });
+  function startTyping(event: KeyboardEvent) {
+    if (chatForm.hidden || !$('sf-reader').hidden || !$('sf-context').hidden) return false;
+    if (event.key === ' ' && event.target instanceof HTMLButtonElement) return false;
+    if ([...event.key].length !== 1 && event.key !== 'Dead' && !event.isComposing) return false;
+    chatDraft.focus({ preventScroll: true });
+    if (event.isComposing || event.key === 'Dead') return true;
+    event.preventDefault();
+    const start = chatDraft.selectionStart ?? chatDraft.value.length;
+    const end = chatDraft.selectionEnd ?? start;
+    if (chatDraft.value.length - end + start + event.key.length <= PLAYER_CHAT_LIMIT)
+      chatDraft.setRangeText(event.key, start, end, 'end');
+    return true;
+  }
   document.addEventListener('keydown', (e) => {
     if (active && built && !loading?.visible) {
       updateGroundItemModifier(e);
       if (!useCommandForGroundItems && e.key === 'Alt' && !e.ctrlKey) e.preventDefault();
     }
-    if (e.defaultPrevented || tradePanel.open) return;
+    if (e.defaultPrevented || tradePanel.open || chatUnlockDialog.open) {
+      closeShortcutMenu();
+      return;
+    }
     if (
       !active ||
       !built ||
@@ -4362,12 +4477,33 @@ export function createSFWorld({
       return;
     const key = e.key.toLowerCase();
     if (e.target === chatDraft) {
-      shortcutDeadline = 0;
-      if (key === 'escape' && !e.isComposing) {
+      closeShortcutMenu();
+      if (!e.isComposing && key === 'enter') {
+        e.preventDefault();
+        if (!e.repeat) chatForm.requestSubmit();
+        return;
+      }
+      if (key === 'escape' && !e.isComposing && !e.repeat) {
         e.preventDefault();
         canvas.focus({ preventScroll: true });
+        showShortcuts();
       }
       return;
+    }
+    if (!shortcutMenu.hidden && !['shift', 'control', 'alt', 'meta'].includes(key)) {
+      closeShortcutMenu();
+      if (key === 'escape') {
+        e.preventDefault();
+        return;
+      }
+      if (!e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const shortcut = availableShortcuts().get(key === '=' ? '+' : key);
+        if (shortcut) {
+          e.preventDefault();
+          shortcut.run();
+          return;
+        }
+      }
     }
     if (e.key === 'Shift' && secretWorld?.bomber.state.phase === 'flying') {
       e.preventDefault();
@@ -4377,8 +4513,6 @@ export function createSFWorld({
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     if (requiredValue(debugConsole, 'Debug console').handleKey(e)) return;
     if (capture.state.active || rehabilitation.state.active) return;
-    const shortcut = !e.repeat && key !== 'escape' && performance.now() < shortcutDeadline;
-    if (!e.repeat) shortcutDeadline = 0;
     if (context.aiInterview.visible) {
       keys.clear();
       context.aiInterview.handleKey(e);
@@ -4428,10 +4562,10 @@ export function createSFWorld({
         return;
       }
       if (ferrari?.state.riding) {
-        shortcutDeadline = performance.now() + 2000;
         ferrari.state.target = null;
         ferrari.state.speed = 0;
         destination = null;
+        showShortcuts();
         return;
       }
       if (context.dialogue.active) {
@@ -4442,20 +4576,20 @@ export function createSFWorld({
       else if (fishing.state.active) {
         fishing.cancel();
         announce(contentText('world-message.src.world.scene.you-reel-in-your-line'), 'Fishing');
-      } else if (sutroClimb.state.active) descendSutro();
+      } else if (sutroClimb.state.active) showShortcuts();
       else if (airship.state.active) {
-        shortcutDeadline = performance.now() + 2000;
         airship.stop();
         destination = null;
         updateAirshipButton();
+        showShortcuts();
       } else {
-        shortcutDeadline = performance.now() + 2000;
         cancelMovingInteraction();
         player.path = [];
         player.speed = 0;
         action = null;
         destination = null;
         drawMini();
+        showShortcuts();
       }
       return;
     }
@@ -4495,6 +4629,10 @@ export function createSFWorld({
       (e.target instanceof HTMLElement && e.target.isContentEditable)
     )
       return;
+    if (key === 'e' && !e.repeat && $('sf-reader').hidden && showExitMenu()) {
+      e.preventDefault();
+      return;
+    }
     if (!$('sf-context').hidden && (key === 'arrowdown' || key === 'arrowup')) {
       e.preventDefault();
       const opts = [...$('sf-context').querySelectorAll<HTMLElementTagNameMap['button']>('button')],
@@ -4504,11 +4642,13 @@ export function createSFWorld({
     }
     if (
       key === 'enter' &&
+      !chatForm.hidden &&
       $('sf-context').hidden &&
       (e.target === canvas || e.target === document.body)
     ) {
       e.preventDefault();
-      chatDraft.focus({ preventScroll: true });
+      if (chatDraft.value) chatForm.requestSubmit();
+      else chatDraft.focus({ preventScroll: true });
       return;
     }
     if (
@@ -4542,20 +4682,17 @@ export function createSFWorld({
         return;
       }
     }
-    if (multiplayerWorld?.selfMode === 'atv') {
-      if (!e.repeat && (key === 'r' || key === 't') && multiplayerWorld.selfGesture === 'atv-air') {
-        e.preventDefault();
-        multiplayerWorld.command('travel', {
-          kind: 'atvTrick',
-          trick: key === 'r' ? 'roll' : 'spin',
-        });
-      }
-      return;
-    }
-    if (shortcut && shortcuts[key]) {
+    if (
+      multiplayerWorld?.selfMode === 'atv' &&
+      !e.repeat &&
+      (key === 'r' || key === 't') &&
+      multiplayerWorld.selfGesture === 'atv-air'
+    ) {
       e.preventDefault();
-      if (!((chase?.state.jailed || rocket.state.active) && ['b', 'e', 'f'].includes(key)))
-        shortcuts[key]();
+      multiplayerWorld.command('travel', {
+        kind: 'atvTrick',
+        trick: key === 'r' ? 'roll' : 'spin',
+      });
       return;
     }
     if (
@@ -4598,12 +4735,12 @@ export function createSFWorld({
       if (!e.repeat) hopRocket();
       return;
     }
-    if (e.repeat) return;
-    if (key === ' ' && tahoe.state.mode === 'ski') {
+    if (!e.repeat && key === ' ' && tahoe.state.mode === 'ski') {
       e.preventDefault();
       tahoe.flip();
       return;
     }
+    if (startTyping(e) || e.repeat || multiplayerWorld?.selfMode === 'atv') return;
     if (key === '+' || key === '=') {
       e.preventDefault();
       setZoom(zoom + 0.1);
@@ -4619,7 +4756,7 @@ export function createSFWorld({
     keys.delete(e.key.toLowerCase());
   });
   window.addEventListener('blur', () => {
-    shortcutDeadline = 0;
+    closeShortcutMenu();
     world.removeAttribute('data-show-ground-items');
     keys.clear();
     clearTimeout(pressTimer);

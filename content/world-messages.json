@@ -248,9 +248,6 @@
   "world-message.server.finance.visit": {
     "template": "Visit {value1}"
   },
-  "world-message.server.following.following-click-the-ground-to-stop": {
-    "template": "Following {name}. Click the ground to stop."
-  },
   "world-message.server.following.no-walkable-route-to-that-player": {
     "template": "No walkable route to that player."
   },
@@ -512,8 +509,11 @@
   "world-message.server.movement.your-atv-rental-has-expired": {
     "template": "Your ATV rental has expired."
   },
-  "world-message.server.player-state.a-chair-costs-200-coins": {
-    "template": "A chair costs 200 coins."
+  "world-message.furniture.price": {
+    "template": "The {name} costs {price} coins."
+  },
+  "world-message.furniture.no-buyback": {
+    "template": "The parent is looking for a less expensive chair."
   },
   "world-message.server.player-state.board-the-pequod-first": {
     "template": "Board the Pequod first."
@@ -674,8 +674,8 @@
   "world-message.server.player-state.you-already-own-this-chair": {
     "template": "You already own this chair."
   },
-  "world-message.server.player-state.you-buy-the-for-200-coins": {
-    "template": "You buy the {name} for 200 coins."
+  "world-message.furniture.purchase": {
+    "template": "You buy the {name} for {price} coins."
   },
   "world-message.server.player-state.you-do-not-own-this-chair": {
     "template": "You do not own this chair."

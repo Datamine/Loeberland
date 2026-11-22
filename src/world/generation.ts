@@ -76,6 +76,7 @@ import { TECH_SIGNS, drawAppleCampus, drawRobotaxiDealer } from '../tech-buildin
 import { HABERDASHER_SIGNS, drawHaberdasherShop } from '../haberdasher-shop.ts';
 import { SALT_FLATS_SIGNS, drawSaltFlats } from '../salt-flats.ts';
 import { planBlockStreetLights, houseDoorPositions } from '../street-light-layout.ts';
+import { drawNeighborhoodFlag, planNeighborhoodFlags } from '../neighborhood-flags.ts';
 
 import { drawDogHouse } from '../search-house-models.ts';
 import {
@@ -166,6 +167,8 @@ import {
   drawTrainingSites,
   createHighwaySites,
   drawHighwaySites,
+  drawInNOutCampfire,
+  inNOutBackyard,
 } from '../adventure-sites.ts';
 import { fitnessObstacles } from '../fitness-layout.ts';
 
@@ -236,6 +239,16 @@ import { createIlluminatiCaveMesh, drawSecretStair } from '../illuminati-models.
 import { applyWorldEdits } from '../world-edits.ts';
 import { bomberCruiseHeight } from '../stealth-bomber.ts';
 import { AIRPORT_AD_GARDEN } from '../south-bay-layout.ts';
+import {
+  SOUTH_BEACH_BALLPARK,
+  SOUTH_BEACH_BENCHES,
+  SOUTH_BEACH_LAWN,
+  SOUTH_BEACH_PIER,
+  SOUTH_BEACH_SHINGLE,
+  SOUTH_BEACH_WATERFRONT,
+  onSouthBeachPier,
+} from '../south-beach.ts';
+import { makeNeighborhoodBench } from '../neighborhood-interactions.ts';
 import { serviceStaffPosition } from '../building-interactions.ts';
 import {
   COFFEE_STALL,
@@ -912,18 +925,24 @@ export function createGeneration(context: WorldContext) {
       });
     }
     const spawns = wildernessSpawns({ marin: context.goldenGate.gate('marin'), tahoe: TAHOE.base });
-    const dinerRoad = context.ferrari.sample(context.ferrari.dealer - 10);
-    const east = Math.cos(dinerRoad.angle),
-      north = Math.sin(dinerRoad.angle);
     spawns.push(
       context.esotericCampus.madScientistSpawn,
       context.esotericCampus.pastorSpawn,
-      ...[-1.6, 1.2].map((u, i) => ({
-        id: 'in-n-out-zombie-' + (i + 1),
+      {
+        id: 'in-n-out-zombie-1',
         combatKind: 'soma-zombie',
-        x: dinerRoad.x + east * u - north * 7.6,
-        z: dinerRoad.z + north * u + east * 7.6,
-      })),
+        ...inNOutBackyard(context.ferrari, -1.55, 7.6),
+      },
+      {
+        id: 'in-n-out-zombie-2',
+        combatKind: 'soma-zombie',
+        ...inNOutBackyard(context.ferrari, 1.55, 7.6),
+      },
+      {
+        id: 'in-n-out-armed-zombie',
+        combatKind: 'armed-zombie',
+        ...inNOutBackyard(context.ferrari, 0.15, 9.85),
+      },
       ...LAB_SPAWNS,
     );
     const bison = requiredValue(
@@ -946,8 +965,8 @@ export function createGeneration(context: WorldContext) {
       );
     if (!grass) throw Error('The park bison needs a clear grass meadow');
     Object.assign(bison, { x: grass.x + 0.5, z: grass.y + 0.5 });
-    for (const p of spawns.filter(
-      (p) => p.combatKind === 'seagull' || p.combatKind === 'soma-zombie',
+    for (const p of spawns.filter((p) =>
+      ['seagull', 'soma-zombie', 'armed-zombie'].includes(p.combatKind),
     )) {
       const clear = context.nearestNavigation(p.x - 0.5, p.z - 0.5, 6, (x: number, y: number) =>
         context.landClearAt(x, y),
@@ -1769,7 +1788,10 @@ export function createGeneration(context: WorldContext) {
           context.sceneMesh.rod([lx, y, lz], [rx, y, rz], 0.024, '#817052', 7);
       }
       const outdoorStart = mesh.data.length;
-      if (outside) drawDogHouse(mesh, home.target.x, base, home.target.z);
+      if (outside)
+        pose(mesh, home.target.x, base, home.target.z, p.rotation || 0, () =>
+          drawDogHouse(mesh, 0, 0, 0),
+        );
       const range = outside
         ? { start: outdoorStart, count: mesh.data.length - outdoorStart }
         : requiredValue(house.searchContainer, 'Search container geometry');
@@ -2292,6 +2314,7 @@ export function createGeneration(context: WorldContext) {
       context.signs,
     ))
       register(site, context.highwayMesh);
+    drawInNOutCampfire(context.highwayMesh, context.ferrari);
     context.esotericCampus = createEsotericCampus(context.ferrari);
     const grove = drawBurningManGrove(context.highwayMesh, context.esotericCampus);
     register(grove.statue, context.highwayMesh);
@@ -2301,6 +2324,7 @@ export function createGeneration(context: WorldContext) {
       context.highwayMesh,
     );
     context.merchants.push(context.esotericCampus.npc);
+    context.streetLights.push(...context.esotericCampus.drawStreetlights(context.highwayMesh));
     for (const home of context.esotericCampus.drawHomes(context.highwayMesh))
       register(home, context.highwayMesh);
     register(
@@ -2333,15 +2357,15 @@ export function createGeneration(context: WorldContext) {
       visible: context.actorInView,
       routes: context.esotericCampus.routes,
       surfaceType: context.esotericCampus.surfaceType,
-      lamps: [],
+      lamps: context.esotericCampus.lampPosts,
       terrainHeight: context.esotericCampus.ground,
       groundHeight: characterGround,
       scale: context.MAP_SCALE,
       human: context.human,
       bicycle: context.bicycle,
-      maxWalkers: 12,
+      maxWalkers: 16,
       walkerQuotas: [
-        { count: 6, contains: (x, z) => context.esotericCampus.local(x, z).v < 0 },
+        { count: 10, contains: (x, z) => context.esotericCampus.local(x, z).v < 0 },
         { count: 6, contains: (x, z) => context.esotericCampus.local(x, z).v > 0 },
       ],
       maxRiders: 0,
@@ -3736,6 +3760,7 @@ export function createGeneration(context: WorldContext) {
     if (u >= 23.7 && u <= 26.9 && v >= 12.8 && v <= 17.4) return 'grass';
     if (u >= 47.8 && u <= 51.6 && v >= 18.8 && v <= 23) return 'plaza';
     if (u < 9.6 && v > 28) return 'sand';
+    if (insidePolygon(x, z, SOUTH_BEACH_SHINGLE)) return 'rock';
     if (context.greenArea(x, z)) return sfHillCover(u, v);
     return 'plaza';
   }
@@ -4514,6 +4539,11 @@ export function createGeneration(context: WorldContext) {
   function characterGround(x: number, z: number): number {
     if (context.secretWorld?.kind === 'illuminati') return ILLUMINATI_CAVE.floor + 0.025;
     if (context.secretWorld?.kind === 'berkeley-lab') return LAB_FLOOR + 0.025;
+    if (onSouthBeachPier(x, z)) {
+      // Planks meet the sloping bank where the top of the deck clears the ground.
+      const bank = terrainHeight(x, z) + (TILE_TYPES[surfaceTypeAt(x, z)]?.height || 0);
+      return Math.max(SOUTH_BEACH_PIER.deck, bank) + 0.008;
+    }
     const home = searchHomeContaining(x, z),
       residence = home && planningPlaces().find((p) => p.id === home.id);
     if (residence?.object) return requiredValue(residence.object.base, 'house floor') + 0.045;
@@ -6326,6 +6356,118 @@ export function createGeneration(context: WorldContext) {
     }
   }
 
+  function setupSouthBeachPark() {
+    const mesh = context.sceneMesh;
+    for (const bench of SOUTH_BEACH_BENCHES) {
+      const { x, z, angle } = bench,
+        base = characterGround(x, z),
+        start = mesh.data.length;
+      pose(mesh, x, base, z, angle, (m) => {
+        for (const leg of [-0.39, 0.33]) {
+          m.box(leg, -0.12, -0.18, 0.06, 0.47, 0.28, '#4c5a54', 'metal');
+          m.box(leg, 0.32, -0.22, 0.06, 0.33, 0.06, '#4c5a54', 'metal');
+        }
+        for (let slat = 0; slat < 4; slat++)
+          m.box(-0.48, 0.33, -0.15 + slat * 0.09, 0.96, 0.05, 0.075, '#a98157', 'wood');
+        for (const h of [0.46, 0.57])
+          m.box(-0.48, h, -0.22, 0.96, 0.08, 0.045, '#b18d63', 'wood');
+      });
+      const count = mesh.data.length - start,
+        sight: Site = makeNeighborhoodBench({ ...bench, base, start, count }),
+        object = {
+          sight,
+          mesh,
+          start: start / 11,
+          count: count / 11,
+          lo: sight.lo,
+          hi: sight.hi,
+          x: x - 0.6,
+          y: z - 0.6,
+          w: 1.2,
+          d: 1.2,
+          base,
+          preserveGround: true,
+          navigationPolygons: sight.navigationPolygons,
+        };
+      sight.object = object;
+      context.sights.push(sight);
+      context.objects.push(object);
+    }
+
+    const { west, east, north, south, deck } = SOUTH_BEACH_PIER,
+      pierStart = mesh.data.length;
+    for (let x = west; x < east; x += 0.125)
+      mesh.box(x, deck - 0.08, north, 0.121, 0.08, south - north, '#ae8c68', 'wood');
+    for (const z of [north + 0.08, south - 0.16]) {
+      mesh.box(west, deck - 0.18, z, east - west, 0.11, 0.08, '#7e624f', 'wood');
+      for (const x of [83.35, 84.65, east - 0.08])
+        mesh.cylinder(x, -0.48, z + 0.04, 0.065, deck + 1.26, '#79624e', 6);
+      mesh.box(83.35, deck + 0.63, z, east - 83.4, 0.08, 0.08, '#9e7954', 'wood');
+    }
+    mesh.box(
+      east - 0.11,
+      deck + 0.63,
+      north + 0.12,
+      0.08,
+      0.08,
+      south - north - 0.2,
+      '#9e7954',
+      'wood',
+    );
+    context.objects.push({
+      mesh,
+      start: pierStart / 11,
+      count: (mesh.data.length - pierStart) / 11,
+      x: west,
+      y: north,
+      w: east - west,
+      d: south - north,
+      lo: [west, -0.48, north],
+      hi: [east, deck + 0.78, south],
+      preserveGround: true,
+    });
+
+    const rockStart = mesh.data.length;
+    const rocks = [
+      [82.65, 45.6, 0.42],
+      [83.08, 46.32, 0.65],
+      [82.82, 46.63, 0.3],
+      [83.57, 47.12, 0.52],
+      [83.4, 47.7, 0.35],
+      [83.87, 47.85, 0.62],
+      [83.42, 48.42, 0.36],
+      [83.85, 48.55, 0.28],
+      [84.04, 48.68, 0.39],
+      [82.65, 50.87, 0.37],
+      [83.02, 50.95, 0.54],
+      [83.55, 51.18, 0.46],
+      [83.48, 51.73, 0.53],
+      [83.95, 51.9, 0.33],
+      [84.11, 52.24, 0.48],
+    ].map(([x, z, rx], seed) => ({
+      x,
+      z,
+      rx,
+      rz: rx * (0.63 + rand(seed, 3) * 0.4),
+      height: rx * (0.75 + rand(seed, 7) * 0.55),
+      angle: rand(seed, 13) * Math.PI,
+      seed,
+    }));
+    drawCoastalRocks(mesh, rocks, terrainHeight, (x, z) => insidePolygon(x, z, context.COAST));
+    context.objects.push({
+      mesh,
+      start: rockStart / 11,
+      count: (mesh.data.length - rockStart) / 11,
+      x: 82,
+      y: 45,
+      w: 3,
+      d: 8,
+      lo: [82, -0.25, 45],
+      hi: [85, 1.2, 53],
+      preserveGround: true,
+    });
+  }
+
   function* buildSteps() {
     yield [8, 'Preparing graphics…'] satisfies [number, string];
     if (context.headless) {
@@ -6343,9 +6485,16 @@ export function createGeneration(context: WorldContext) {
     setupJurassicCampus();
     setupIndustrialCenter();
     setupCityNightlife();
+    const ballpark = SOUTH_BEACH_BALLPARK;
+    levelTerrainPad(ballpark.x, ballpark.z, ballpark.size, ballpark.size, ballpark.angle);
     context.makeLandmarks();
     context.enhanceLandmarks();
     fitLandmarksToBlocks();
+    setupSouthBeachPark();
+    for (const polygon of [SOUTH_BEACH_LAWN, SOUTH_BEACH_WATERFRONT]) {
+      claimParcel({ polygon, kind: 'waterfront public space' });
+      context.publicSpaces.push(polygon);
+    }
     const grove = context.rectangle(
       (COIT_GROVE.west + COIT_GROVE.east) / 2,
       (COIT_GROVE.north + COIT_GROVE.south) / 2,
@@ -6468,6 +6617,12 @@ export function createGeneration(context: WorldContext) {
       (x, z) => surfaceTypeAt(x, z) === 'grass' && context.navFree(x, z),
     );
     placeStreetLights();
+    const blocks = [
+      ...context.cityLightPlan.blocks,
+      ...context.southernNeighborhood.lightPlan.blocks,
+    ];
+    for (const flag of planNeighborhoodFlags(blocks, context.objects))
+      drawNeighborhoodFlag(context.sceneMesh, flag);
     context.finalizeSceneryNavigation();
     setupNPCRoaming();
     const regionalRoutes = [

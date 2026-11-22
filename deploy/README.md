@@ -62,6 +62,40 @@ For several edits during one maintenance window, close the admin tunnel and run 
 
 Updates build the new release before replacing containers. Player connections reconnect after the restart. A failed startup attempts to restore the previous release. The Redis volume survives normal updates. The deploy script refuses plans that would destroy or replace the instance. Follow the [backup and restore instructions](../server/README.md#sqlite-backups) before moving an existing world or changing to this VPC from the old Terraform setup.
 
+## Chat settings
+
+Both settings default to `True` and accept `True` or `False` regardless of case.
+
+- `OAUTH_REQUIRED` controls whether players need Google sign-in for typed chat. With `False`, anyone can type. When sign-in is required, players can use Yo, OK, and No before unlocking typed chat.
+- `UPGRADE_REQUIRED_FOR_SERVER_CHAT` controls whether players who can type need an upgrade to send server-wide messages. With `False`, they can type `/Hello!` to send “Hello!” to everyone online. With `True`, only players with `upgrade: true` can send server chat. Players default to `upgrade: false`.
+
+For AWS, edit [`deploy/chat.env`](chat.env) in your checkout, then run `./deploy/aws.sh`. To open both types of chat, set:
+
+```dotenv
+OAUTH_REQUIRED=False
+UPGRADE_REQUIRED_FOR_SERVER_CHAT=False
+```
+
+Environment variables passed to `./deploy/aws.sh` override this file for that run. Values in the host’s `/etc/loeberland/overrides.env` take precedence over both.
+
+For local Compose, use the same variables with `./deploy/local.sh` or put them in the file specified by `COMPOSE_ENV_FILE`. A direct server launch also reads these variables from the environment.
+
+## Google chat sign-in
+
+In Google Cloud, set up the OAuth consent screen and create a **Web application** OAuth client. Add `https://interactive.johnloeber.com/auth/google/chat/callback` as an authorized redirect URI. While the consent screen is in Testing, add the Google accounts that should be able to sign in as test users. The game requests the `openid` and `email` scopes. [Google OAuth web server setup](https://developers.google.com/identity/protocols/oauth2/web-server)
+
+On the game server, add these settings to `/etc/loeberland/overrides.env` with file permissions `0600`, then run `./deploy/aws.sh deploy` from your checkout. Keep the client secret out of Git and Terraform.
+
+```dotenv
+GOOGLE_CHAT_CLIENT_ID=your-client-id.apps.googleusercontent.com
+GOOGLE_CHAT_CLIENT_SECRET=your-client-secret
+GOOGLE_CHAT_REDIRECT_URI=https://interactive.johnloeber.com/auth/google/chat/callback
+```
+
+For local Compose, put the same keys in an ignored file such as `.deploy/local-google-chat.env` and run `COMPOSE_ENV_FILE=.deploy/local-google-chat.env ./deploy/local.sh`. Register the local URL `http://127.0.0.1:8787/auth/google/chat/callback` with Google and use it as the redirect URI in that file. Open the game from the matching origin.
+
+Google sign-in unlocks typed chat for the existing game character when `OAUTH_REQUIRED=True`. Each character can link one Google account, and each Google account can link to one character. The server keeps the verified Google account ID (`sub`) and a masked email label in a private record. Only the authenticated character's client receives the label for the Character menu.
+
 ## Local
 
 Install Docker with Compose v2 and OpenSSL, then run:

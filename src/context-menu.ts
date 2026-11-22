@@ -7,7 +7,6 @@ type ActionTarget = Omit<ContentEntity, 'id'> & {
   mobile?: boolean;
 };
 export type ActionLabelTarget = { label: string; kind: string };
-export const cableCarExitTarget = { label: 'cable car', kind: 'personal-item' };
 
 /** Mobile actors use NPC colors even when their interactions are represented
  * as sights. Animated scenery and collectable items retain their own colors. */
@@ -31,7 +30,6 @@ const mobileActionKinds = new Set([
 ] satisfies string[]);
 export function actionTargetKind(target: ActionTarget = {}) {
   applyEntityEdits(target, target.editorKey || 'sight:' + target.id);
-  if (target.kind === 'ferrari' || target.kind === 'called-waymo') return 'personal-item';
   if (target.kind === 'loot' || target.kind === 'sand' || target.kind === 'sunglasses')
     return 'item';
   if (mobileActionKinds.has(target.kind || '')) return 'npc';

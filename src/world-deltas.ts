@@ -17,6 +17,7 @@ export const WORLD_FIELDS = Object.freeze({
     'bicycleTaken',
   ] as const,
   traffic: ['x', 'z', 'angle'] as const,
+  police: ['x', 'z', 'angle', 'phase'] as const,
   cows: ['x', 'z', 'base', 'angle', 'hp', 'max', 'respawn', 'phase', 'motion'] as const,
   wilderness: [
     'x',
@@ -56,6 +57,7 @@ export const WORLD_KINDS = Object.keys(WORLD_FIELDS) as WorldKind[];
 export interface WorldCollections {
   npcs: import('./types/network.ts').NetworkNPC;
   traffic: import('./types/network.ts').NetworkTraffic;
+  police: import('./types/network.ts').NetworkPoliceOfficer;
   cows: import('./types/network.ts').NetworkCreature;
   wilderness: import('./types/network.ts').NetworkCreature;
   loot: import('./types/expeditions.ts').ExpeditionLoot;

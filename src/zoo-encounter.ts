@@ -3,6 +3,8 @@ import type { Point } from './types/geometry.ts';
 // Navigation positions use the same logical tile coordinates as the player.
 // Randomness is injected so dispatch and net attempts can be tested reliably.
 export const ZOO_PURSUIT_SPEED = 4.6;
+export const ZOO_VIEW_RADIUS = 100;
+export const TIGER_CATCH_GRACE = 6;
 export function createTigerEncounter({
   player,
   home,
@@ -15,6 +17,7 @@ export function createTigerEncounter({
   onEvent = () => {},
   random = Math.random,
   speed = ZOO_PURSUIT_SPEED,
+  captureGrace = TIGER_CATCH_GRACE,
 }: TigerOptions) {
   const tiger: PursuitActor = {
     ...home,
@@ -201,7 +204,7 @@ export function createTigerEncounter({
         canCapture(tiger, player)
       ) {
         state.deaths++;
-        state.grace = 6;
+        state.grace = captureGrace;
         onDeath();
         return 'player-caught';
       }

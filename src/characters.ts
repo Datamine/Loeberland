@@ -1069,32 +1069,53 @@ function drawSweptBackHair(m: CharacterMeshBuilder) {
 function drawPonytail(m: CharacterMeshBuilder) {
   const { head } = CHARACTER_BONES;
   const { hair, trim } = CHAR_SLOT;
-  m.loft(
-    [
-      [0.074, 1.16, -0.188, 0.004, 0.007],
-      [0.083, 1.23, -0.217, 0.023, 0.025],
-      [0.083, 1.32, -0.242, 0.048, 0.037],
-      [0.061, 1.43, -0.25, 0.067, 0.055],
-      [0.032, 1.54, -0.232, 0.068, 0.064],
-      [0.011, 1.605, -0.194, 0.052, 0.061],
-      [0, 1.649, -0.151, 0.039, 0.049],
-      [0, 1.69, -0.126, 0.042, 0.039],
-      [0, 1.721, -0.094, 0.045, 0.031],
-    ],
-    hair,
-    head,
-    12,
-  );
-  m.loft(
-    [
-      [0.004, 1.631, -0.169, 0.051, 0.061],
-      [0.001, 1.645, -0.155, 0.047, 0.057],
-    ],
-    trim,
-    head,
-    12,
-    false,
-  );
+  const path = [
+    [0, 1.648, -0.116, 0.032, 0.024],
+    [0, 1.664, -0.142, 0.031, 0.028],
+    [0, 1.678, -0.151, 0.03, 0.027],
+    [0, 1.706, -0.164, 0.023, 0.021],
+    [0.002, 1.746, -0.184, 0.027, 0.022],
+    [0.006, 1.775, -0.219, 0.031, 0.024],
+    [0.012, 1.767, -0.253, 0.034, 0.025],
+    [0.021, 1.729, -0.278, 0.037, 0.025],
+    [0.032, 1.672, -0.292, 0.041, 0.024],
+    [0.041, 1.589, -0.292, 0.041, 0.023],
+    [0.045, 1.5, -0.281, 0.036, 0.022],
+    [0.048, 1.408, -0.263, 0.028, 0.017],
+    [0.046, 1.326, -0.243, 0.017, 0.013],
+    [0.042, 1.259, -0.232, 0.007, 0.006],
+    [0.035, 1.23, -0.236, 0.001, 0.001],
+  ];
+  const sides = 12;
+  // Angle each cross-section along the strand so it can rise and turn over the tie.
+  const rings = path.map(([x, y, z, width, thickness], i) => {
+    const before = path[Math.max(0, i - 1)];
+    const after = path[Math.min(i + 1, path.length - 1)];
+    const dy = after[1] - before[1];
+    const dz = after[2] - before[2];
+    const radius = thickness / Math.hypot(dy, dz);
+    return Array.from({ length: sides }, (_, side) => {
+      const angle = (side * CHAR_TAU) / sides;
+      const offset = Math.sin(angle) * radius;
+      return [x + Math.cos(angle) * width, y - dz * offset, z + dy * offset];
+    });
+  });
+  for (let i = 0; i < rings.length - 1; i++)
+    for (let side = 0; side < sides; side++) {
+      const next = (side + 1) % sides;
+      m.quad(
+        rings[i][side],
+        rings[i + 1][side],
+        rings[i + 1][next],
+        rings[i][next],
+        i === 1 ? trim : hair,
+        head,
+        i !== 1 && side % 4 === 1 ? 1.05 : 1,
+      );
+    }
+  const tip = rings[rings.length - 1];
+  for (let side = 0; side < sides; side++)
+    m.tri([0.035, 1.23, -0.236], tip[(side + 1) % sides], tip[side], hair, head);
 }
 
 function drawBraid(m: CharacterMeshBuilder) {

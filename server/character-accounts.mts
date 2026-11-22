@@ -27,7 +27,7 @@ export function createCharacterAccounts(store: GameplayStore, now: () => number)
     )) as Buffer;
     return !!record && expected.length === actual.length && timingSafeEqual(expected, actual);
   }
-  async function resolveOwner(id: string, checkNewOwner: () => void) {
+  async function resolveOwner(id: string, checkNewOwner: () => void, checkLegacyName = true) {
     const session = await store.get('character-session:' + id);
     if (!isRecord(session)) {
       const deviceKey = 'character-device:' + id;
@@ -37,7 +37,7 @@ export function createCharacterAccounts(store: GameplayStore, now: () => number)
         if (typeof saved === 'string') return saved;
         if (
           (await store.get('player:' + id)) ||
-          (await store.names()).some((row) => row.owner === id)
+          (checkLegacyName && (await store.names()).some((row) => row.owner === id))
         )
           return id;
         checkNewOwner();
@@ -139,6 +139,15 @@ export function createCharacterAccounts(store: GameplayStore, now: () => number)
   }
   return {
     ownerFor,
+    existingOwner(token: string) {
+      return resolveOwner(
+        hashToken(token),
+        () => {
+          throw new Error('A character session is required');
+        },
+        false,
+      );
+    },
     logIn,
     preparePassword,
     hasPassword: async (owner: string) => !!(await credential(owner)),

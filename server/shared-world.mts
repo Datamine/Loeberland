@@ -37,7 +37,8 @@ import { AIRSHIP_BASKET } from '../src/airship-basket.ts';
 import { JURASSIC, cowSpawns } from '../src/jurassic-layout.ts';
 import { raptorCivilian } from '../src/jurassic.ts';
 import { SF_ZOO } from '../src/zoo.ts';
-import { createTigerEncounter } from '../src/zoo-encounter.ts';
+import { createTigerEncounter, TIGER_CATCH_GRACE, ZOO_VIEW_RADIUS } from '../src/zoo-encounter.ts';
+import type { TigerState } from '../src/types/zoo.ts';
 import { rollWeaponDamage, rollEnemyDamage } from '../src/combat.ts';
 import { strengthStatus } from '../src/strength.ts';
 import { SpatialIndex } from './spatial-index.mts';
@@ -69,6 +70,18 @@ const LEGACY_RAPTOR_MAX_HP = 40;
 function restoredMonsterHealth(hp: number, savedMax: number | undefined, currentMax: number) {
   if (isFiniteNumber(savedMax) && savedMax > 0 && hp >= savedMax) return currentMax;
   return Math.max(0, Math.min(currentMax, hp));
+}
+export function canSeeZooPursuit(
+  observer: WorldPoint,
+  encounter: Pick<TigerState, 'tiger' | 'wardens'>,
+) {
+  const inRange = (x: number, z: number) =>
+    Math.hypot(x - observer.x, z - observer.z) < ZOO_VIEW_RADIUS;
+  return (
+    inRange(SF_ZOO.x, SF_ZOO.z) ||
+    inRange(encounter.tiger.x + 0.5, encounter.tiger.y + 0.5) ||
+    encounter.wardens.some((warden) => inRange(warden.x + 0.5, warden.y + 0.5))
+  );
 }
 export function createSharedWorld({
   geometry,
@@ -253,6 +266,7 @@ export function createSharedWorld({
     if (roam && npc.roam)
       Object.assign(npc.roam, { index: roam.index, pause: roam.pause, stops: roam.stops });
   }
+  const tigerGrace = new WeakMap<ServerPlayer, number>();
   const tigerPlayer = { x: SF_ZOO.exit.x, y: SF_ZOO.exit.y },
     tiger = createTigerEncounter({
       player: tigerPlayer,
@@ -262,17 +276,21 @@ export function createSharedWorld({
       routeTo: (x: number, y: number, from?: Point) => routeTo(x, y, from || tigerPlayer),
       canCapture: (a, b) => geometry.canTravel!(a.x, a.y, b.x, b.y, true),
       canPursue: () => !!focus,
+      captureGrace: 0,
       onDeath: () => {
         if (focus) {
+          tigerGrace.set(focus, clock + TIGER_CATCH_GRACE);
           focus.hp = 0;
           send(focus, { type: 'caught', source: 'tiger' });
           focus.respawnAllowed = true;
           dirty(focus);
+          focus = null;
         }
       },
       random,
     });
   tiger.restore(saved.tiger);
+  tiger.state.grace = 0;
   // Preserve the aircraft in flight, returning it safely to the mooring
   // after a restart; never restore dangling socket IDs as pilot authority.
   if (saved.airship?.active && saved.airship.position) {
@@ -1475,15 +1493,19 @@ export function createSharedWorld({
     const combatants = [...players.values()].filter(eligible);
     wilderness.update(dt, combatants);
     const available = combatants.filter(publicPlayer);
-    focus = available.reduce<ServerPlayer | null>(
-      (best, p) =>
-        !best ||
-        near(p, { x: tiger.state.tiger.x + 0.5, z: tiger.state.tiger.y + 0.5 }) <
-          near(best, { x: tiger.state.tiger.x + 0.5, z: tiger.state.tiger.y + 0.5 })
-          ? p
-          : best,
-      null,
-    );
+    focus = null;
+    if (tiger.dangerous) {
+      const position = { x: tiger.state.tiger.x + 0.5, z: tiger.state.tiger.y + 0.5 };
+      let nearest = Infinity;
+      for (const p of available) {
+        if (p.respawnAllowed || (tigerGrace.get(p) || 0) > clock) continue;
+        const distance = near(p, position);
+        if (distance < nearest) {
+          focus = p;
+          nearest = distance;
+        }
+      }
+    }
     if (focus) {
       tigerPlayer.x = focus.x - 0.5;
       tigerPlayer.y = focus.z - 0.5;
@@ -1673,12 +1695,16 @@ export function createSharedWorld({
         release: raptor.release,
         preyId: raptor.prey?.id ?? null,
       },
-      tiger: {
-        ...tiger.state,
-        elapsed: tiger.state.phase === 'caged' ? 0 : tiger.state.elapsed,
-        tiger: { ...tiger.state.tiger, path: [], target: null },
-        wardens: tiger.state.wardens.map((w) => ({ ...w, path: [], target: null })),
-      },
+      tiger:
+        observer && (!publicPlayer(observer) || !canSeeZooPursuit(observer, tiger.state))
+          ? null
+          : {
+              ...tiger.state,
+              targetId: tiger.dangerous ? (focus?.id ?? null) : null,
+              elapsed: tiger.state.phase === 'caged' ? 0 : tiger.state.elapsed,
+              tiger: { ...tiger.state.tiger, path: [], target: null },
+              wardens: tiger.state.wardens.map((w) => ({ ...w, path: [], target: null })),
+            },
       airship: airshipSnapshot(),
       loot: [...loot.values()]
         .filter(

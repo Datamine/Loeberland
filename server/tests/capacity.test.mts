@@ -144,7 +144,7 @@ test('crowded replication stays bounded, isolates private instances and re-enter
           cows: [],
           wilderness: [],
           loot: [],
-          tiger: { tiger: { x: 0, y: 0 } },
+          tiger: { tiger: { x: 0, y: 0 }, wardens: [] },
           raptor: { x: 0, z: 0 },
           airship: null,
           peptideSpawnAt: 10,
@@ -153,7 +153,7 @@ test('crowded replication stays bounded, isolates private instances and re-enter
     replication = createReplication({
       players,
       shared,
-      personal: { components: () => new Map() },
+      personal: { components: () => new Map(), visiblePolice: () => undefined },
       send: (p, m) => messages.get(p.id)!.push(m as CapturedMessage),
       publicPlayer: (p) => ({
         id: p.id,
@@ -470,6 +470,10 @@ test('crowded speech goes only to observers that can see the speaker, including 
     for (const a of crowd) a.messages.length = 0;
     const speaker = crowd.at(-1);
     assert.ok(speaker != null, 'Missing test fixture: speaker');
+    assert.equal(
+      await game.grantChatUnlock(speaker.token, 'test-speaker', 's•••@example.com'),
+      true,
+    );
     const text = 'x'.repeat(140);
     game.receive(speaker.p, { type: 'say', text: text + 'x' });
     await speaker.p.queue;
@@ -491,6 +495,10 @@ test('crowded speech goes only to observers that can see the speaker, including 
         Number(a.p.seen.has(speaker.p.id)),
       );
     crowd[1].p.instance = { kind: 'kraken', id: 'personal', layer: -2 };
+    assert.equal(
+      await game.grantChatUnlock(crowd[0].token, 'test-reply', 'r•••@example.com'),
+      true,
+    );
     game.receive(crowd[0].p, { type: 'say', text: '  Nice view!\nSee you there.  ' });
     await crowd[0].p.queue;
     const reply = crowd[0].messages.find((m) => m.type === 'say' && m.id === crowd[0].p.id);

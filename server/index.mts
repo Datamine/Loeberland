@@ -29,6 +29,8 @@ import { createGame } from './game.mts';
 import { createStore } from './store.mts';
 import { createCheckpointManager } from './checkpoints.mts';
 import { readServerBuild } from './build-info.mts';
+import { readChatPolicy } from './chat-policy.mts';
+import { createGoogleChatRoutes, readGoogleChatConfig } from './google-chat.mts';
 import { MP_PROTOCOL, MP_TICK_HZ, MP_BROADCAST_HZ } from '../src/multiplayer-protocol.ts';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -60,6 +62,8 @@ export async function startServer({
   logger = console,
 }: ServerOptions = {}) {
   const serverBuild = readServerBuild();
+  const googleChat = readGoogleChatConfig();
+  const chatPolicy = readChatPolicy();
   const geometry: ServerGeometry = providedGeometry || createWorldModel();
   if (!providedGeometry) {
     console.log('Preparing the authoritative map and its tile adjacency…');
@@ -91,7 +95,15 @@ export async function startServer({
       logger,
     });
     const ram = checkpoints.openGame('world');
-    game = await createGame({ geometry, store: ram, maxPlayers, allowDebug, serverBuild });
+    game = await createGame({
+      geometry,
+      store: ram,
+      maxPlayers,
+      allowDebug,
+      serverBuild,
+      googleChatAvailable: !!googleChat,
+      ...chatPolicy,
+    });
     checkpoints.attach('world', { prepare: game.prepareCheckpoint, drain: game.close });
   } catch (error) {
     await store.close();
@@ -142,8 +154,11 @@ export async function startServer({
       return false;
     }
   }
+  const googleChatRoutes = createGoogleChatRoutes(googleChat, game);
   const http = createServer(async (req, res) => {
     const url = new URL(req.url || '/', 'http://localhost');
+    if (url.pathname.startsWith('/auth/google/chat/') && (await googleChatRoutes(req, res, url)))
+      return;
     if (url.pathname === '/healthz') {
       const ok = healthy && !draining && store.leaseHealthy !== false;
       res.writeHead(ok ? 200 : 503, {

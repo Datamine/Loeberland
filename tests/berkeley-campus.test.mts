@@ -4,13 +4,15 @@ import assert from 'node:assert/strict';
 import { Mesh } from '../src/geometry.ts';
 import { createFerrari } from '../src/ferrari.ts';
 import { createRegionalRoad } from '../src/regional-road.ts';
-import { createEsotericCampus } from '../src/alien-sites.ts';
+import { ALIEN_SITE_SIGNS, createEsotericCampus } from '../src/alien-sites.ts';
 import { LAB_SIGN } from '../src/berkeley-lab.ts';
 
 import {
   BERKELEY_CHURCH_ROOM,
+  BERKELEY_SIDEWALKS,
   BERKELEY_HOMES,
   BERKELEY_INSTITUTE_ROOM,
+  BERKELEY_NEIGHBORHOOD,
   MAD_HOUSE,
 } from '../src/berkeley-campus.ts';
 import { BURNING_MAN } from '../src/burning-man.ts';
@@ -26,10 +28,32 @@ test('Berkeley has a sculpted institute, campanile, library, reading hall and ch
     [0.13, 0.41],
   ];
   const site = campus.draw(m, new Map());
-  const church = campus.drawChurch(m, new Map([[LAB_SIGN, signUV]]));
-  assert.equal(campus.layout.buildings.length, 15);
+  const boardUV = [
+    [0.53, 0.63],
+    [0.77, 0.63],
+    [0.77, 0.81],
+    [0.53, 0.81],
+  ];
+  const church = campus.drawChurch(
+    m,
+    new Map([
+      [LAB_SIGN, signUV],
+      [ALIEN_SITE_SIGNS[2], boardUV],
+    ]),
+  );
+  assert.equal(
+    campus.layout.buildings.length,
+    BERKELEY_HOMES.length + BERKELEY_NEIGHBORHOOD.length + 5,
+  );
   const homes = campus.drawHomes(m).filter((home) => home.kind !== 'hot-trapdoor');
-  assert.equal(homes.length, 10);
+  assert.equal(homes.length, BERKELEY_HOMES.length + BERKELEY_NEIGHBORHOOD.length);
+  for (const home of homes)
+    assert.ok(
+      campus.path(campus.gate, home.entry, () => null),
+      'reachable front door for ' + home.id,
+    );
+  assert.ok(BERKELEY_NEIGHBORHOOD.filter((home) => home.style === 'victorian').length >= 8);
+  assert.ok(BERKELEY_NEIGHBORHOOD.filter((home) => home.style === 'eichler').length >= 4);
   assert.equal(campus.residents.length, BERKELEY_HOMES.length);
   for (const [left, north, right, south] of BERKELEY_HOMES.map((home) => home.rect)) {
     assert.ok(south < 0 && BERKELEY_INSTITUTE_ROOM.z > 0);
@@ -49,16 +73,25 @@ test('Berkeley has a sculpted institute, campanile, library, reading hall and ch
   assert.ok(m.data.every(Number.isFinite));
   assert.ok(m.data.length / 33 > 18000);
   assert.ok(site.hi[1] - requiredFixture(site.base) > 8);
-  assert.ok(site.hi[0] - site.lo[0] > 15);
+  const instituteVertices = m.data.slice(site.start, site.start + site.count);
+  for (let i = 0; i < instituteVertices.length; i += 11)
+    assert.ok(
+      campus.local(instituteVertices[i], instituteVertices[i + 2]).v > 1.6,
+      'Institute picking excludes the highway and residential terrain',
+    );
   assert.equal(site.kind, 'esoteric-institute');
   assert.equal(church.kind, 'unusual-church');
   assert.ok(church.hi[1] - requiredFixture(church.base) > 3);
-  let posterVertices = 0;
+  let posterVertices = 0,
+    boardVertices = 0;
   assert.equal(church.enterableInstitute, true);
   assert.ok(campus.path(church.entry, church.inside, () => null));
   const interior = church.interior.mesh.data;
-  for (let i = 0; i < interior.length; i += 11)
+  for (let i = 0; i < interior.length; i += 11) {
     if (signUV.some(([u, v]) => interior[i + 9] === u && interior[i + 10] === v)) posterVertices++;
+    if (boardUV.some(([u, v]) => interior[i + 9] === u && interior[i + 10] === v)) boardVertices++;
+  }
+  assert.equal(boardVertices, 6, 'the church noticeboard has a sign inside the chapel');
   assert.equal(posterVertices, 12, 'two posters use the shared Goose Corp artwork');
   assert.ok(
     campus.mapFeatures.some((f) => f.color === '#879c78'),
@@ -115,4 +148,68 @@ test('the campus adjacency graph connects every lawn and path around solid build
   const gate = campus.graph.regionAt(-campus.layout.bounds[0], -campus.layout.bounds[1]),
     regions = new Set([...campus.graph.regions].filter((n) => n >= 0));
   assert.deepEqual([...regions], [gate], 'there must be no stranded courtyard pockets');
+});
+
+test('the neighborhood has two connected blocks and clear grass at the former highway frontage', () => {
+  for (const x of [133, 133.75, 134.5]) assert.equal(campus.surfaceType(x, 6), 'grass');
+  const aroundBlocks = [
+    [-13, -24.95],
+    [3, -24.95],
+    [18, -24.95],
+    [18, -16.45],
+    [3, -16.45],
+    [-13, -16.45],
+    [-13, -24.95],
+  ].map(([u, v]) => campus.point(u, v));
+  for (const [i, start] of aroundBlocks.slice(0, -1).entries()) {
+    const end = aroundBlocks[i + 1];
+    for (let f = 0; f <= 1; f += 0.05)
+      assert.equal(
+        campus.surfaceType(start.x + f * (end.x - start.x), start.z + f * (end.z - start.z)),
+        'road',
+      );
+  }
+  const roads = campus.layout.roads;
+  for (const [i, [a, b, c, d]] of roads.entries())
+    for (const [x, z, xx, zz] of roads.slice(i + 1))
+      assert.ok(
+        Math.min(c, xx) - Math.max(a, x) < 1e-7 || Math.min(d, zz) - Math.max(b, z) < 1e-7,
+        'street meshes meet at their edges',
+      );
+});
+
+test('residential lights glow over the street and verge fixtures leave sidewalks clear', () => {
+  const mesh = new Mesh();
+  const lights = campus.drawStreetlights(mesh);
+  assert.equal(lights.length, campus.layout.streetLamps.length);
+  assert.ok(lights.length >= 8 && mesh.data.every(Number.isFinite));
+  for (const [i, post] of campus.layout.streetLamps.entries()) {
+    const light = lights[i];
+    const { x, z } = campus.point(post.u, post.v);
+    assert.ok(light.y > campus.ground() + 2);
+    assert.ok(light.strength > 0 && light.poolStrength > 0);
+    assert.equal(campus.contains(x, z), false);
+  }
+  const fixtures = [
+    ...campus.layout.streetLamps,
+    ...campus.layout.hydrants,
+    ...campus.layout.mailboxes,
+  ];
+  for (const { u, v } of fixtures) {
+    const p = campus.point(u, v);
+    const { r } = requiredFixture(
+      campus.layout.obstacles.find((obstacle) => obstacle.u === u && obstacle.v === v),
+    );
+    assert.equal(campus.contains(p.x, p.z), false);
+    for (const [left, north, right, south] of BERKELEY_SIDEWALKS) {
+      const x =
+        right - left < south - north ? (left + right) / 2 : Math.max(left, Math.min(right, u));
+      const z =
+        south - north < right - left ? (north + south) / 2 : Math.max(north, Math.min(south, v));
+      assert.ok(
+        Math.hypot(x - u, z - v) > r + 0.16 + 0.125,
+        'fixture is clear of pedestrian routes',
+      );
+    }
+  }
 });

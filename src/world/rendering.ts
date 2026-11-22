@@ -135,6 +135,7 @@ import { NIGHTLIFE, inNightlife, drawNightlife } from '../nightlife.ts';
 import { collapseCharacterMesh } from '../capture-animation.ts';
 import { drawZooAnimals, drawMonkey } from '../zoo-animals.ts';
 import { SF_ZOO, drawTigerGate, drawTiger, drawAnimalControlNet } from '../zoo.ts';
+import { ZOO_VIEW_RADIUS } from '../zoo-encounter.ts';
 import { drawWindsurfer } from '../windsurfing.ts';
 import { drawWaveSurfer, drawPacificaWaves } from '../surfing.ts';
 
@@ -1835,10 +1836,10 @@ export function createRendering(context: WorldContext) {
         Math.hypot(x - context.player.x - 0.5, z - context.player.y - 0.5) < 65,
       visible: (x: number, z: number, y: number) => dynamicInView(x, z, y, 2, 7),
     });
-    if (context.zoo) {
+    if (context.zoo && (!context.multiplayerWorld || context.multiplayerWorld.zooVisible)) {
       const animal = context.zoo.state.tiger,
         near = (x: number, y: number) =>
-          Math.hypot(x - context.player.x, y - context.player.y) < 100 &&
+          Math.hypot(x - context.player.x, y - context.player.y) < ZOO_VIEW_RADIUS &&
           dynamicInView(x + 0.5, y + 0.5, context.characterGround(x + 0.5, y + 0.5), 2, 3);
       if (near(SF_ZOO.x, SF_ZOO.z)) {
         const start = m.data.length;
@@ -1859,7 +1860,10 @@ export function createRendering(context: WorldContext) {
             z: animal.y + 0.5,
             base: context.characterGround(animal.x + 0.5, animal.y + 0.5),
             height: 1.65,
-            chasing: context.zoo.dangerous && !context.capture.state.active,
+            chasing:
+              context.zoo.dangerous &&
+              !context.capture.state.active &&
+              (context.multiplayerWorld?.tigerIsChasingSelf ?? true),
           });
       }
       const lines = [
@@ -2406,25 +2410,46 @@ export function createRendering(context: WorldContext) {
       }
       addTarget(start, { npc });
     }
-    if (!context.chase.state.officers.length) context.policeActors.clear();
-    for (const o of context.chase.state.officers) {
-      if (Math.hypot(o.x - context.player.x, o.y - context.player.y) > 27) continue;
+    const drawnPolice = new Set<string>();
+    function drawPoliceOfficer(
+      { x, z, angle, phase }: { x: number; z: number; angle: number; phase: number },
+      id: string,
+      chasing: boolean,
+      speech = '',
+    ) {
+      if (Math.hypot(x - context.player.x - 0.5, z - context.player.y - 0.5) > 27) return;
+      drawnPolice.add(id);
       const start = m.data.length,
-        water = context.surf.water(o.x + 0.5, o.y + 0.5),
-        base = water ? 0.06 : context.characterGround(o.x + 0.5, o.y + 0.5) + 0.025;
+        water = context.surf.water(x, z),
+        base = water ? 0.06 : context.characterGround(x, z) + 0.025;
+      let officer = context.policeActors.get(id);
+      if (!officer) {
+        officer = {
+          id,
+          x,
+          z,
+          label: contentText('world.rendering.makeActors.label-2', {}),
+          police: true,
+          kind: 'police',
+          height: 1.95,
+          description: contentText('world.rendering.makeActors.description-3', {}),
+        };
+        context.policeActors.set(id, officer);
+      }
+      Object.assign(officer, { x, z, base, angle });
       if (water)
-        drawWindsurfer(m, o.x + 0.5, o.y + 0.5, base, o.angle, t, {
+        drawWindsurfer(m, x, z, base, angle, t, {
           police: true,
           moving: true,
           reduced: context.reduced,
         });
       else
-        drawHumanNPC(m, o, t, {
-          x: o.x + 0.5,
-          z: o.y + 0.5,
-          base: base,
-          angle: o.angle,
-          phase: context.reduced ? 0 : (o.phase * Math.PI * 2) / (10 * CHARACTER_CLIPS.run.stride),
+        drawHumanNPC(m, officer, t, {
+          x,
+          z,
+          base,
+          angle,
+          phase: context.reduced ? 0 : (phase * Math.PI * 2) / (10 * CHARACTER_CLIPS.run.stride),
           seated: false,
           skin: '#ba9476',
           shirt: '#304b66',
@@ -2442,44 +2467,33 @@ export function createRendering(context: WorldContext) {
           reduced: context.reduced,
           draw: context.human,
         });
-      let officer = context.policeActors.get(o.index);
-      if (!officer) {
-        officer = {
-          id: 'personal-police-' + o.index,
-          x: o.x + 0.5,
-          z: o.y + 0.5,
-          label: contentText('world.rendering.makeActors.label-2', {}),
-          police: true,
-          kind: 'police',
-          height: 1.95,
-          description: contentText('world.rendering.makeActors.description-3', {}),
-        };
-        context.policeActors.set(o.index, officer);
-      }
-      Object.assign(officer, { x: o.x + 0.5, z: o.y + 0.5, base, angle: o.angle });
       addTarget(start, { npc: officer });
-      const phrases = ['Stop!', 'You are under arrest!', 'Stop right there!'] satisfies [
-          string,
-          string,
-          string,
-        ],
-        speaking = Math.floor(context.chase.state.elapsed / 2.8) % 3 === o.index,
-        speech =
-          speaking && context.chase.state.elapsed % 2.8 < 2.25
-            ? phrases[Math.floor(context.chase.state.elapsed / 2.8) % phrases.length]
-            : '';
       context.actorTags.push({
-        x: o.x + 0.5,
-        z: o.y + 0.5,
+        x,
+        z,
         base,
         height: water ? 3.3 : 1.95,
         label: contentText('world.rendering.makeActors.label-4', {}),
         police: true,
-        chasing: context.chase.state.wanted && !context.capture.state.active,
+        chasing,
         speech,
         speechUntil: Infinity,
       });
     }
+    const chase = context.chase.state;
+    const phrases = ['Stop!', 'You are under arrest!', 'Stop right there!'];
+    const phraseIndex = Math.floor(chase.elapsed / 2.8) % phrases.length;
+    for (const o of chase.officers)
+      drawPoliceOfficer(
+        { x: o.x + 0.5, z: o.y + 0.5, angle: o.angle, phase: o.phase },
+        'personal-police-' + o.index,
+        chase.wanted && !context.capture.state.active,
+        phraseIndex === o.index && chase.elapsed % 2.8 < 2.25 ? phrases[phraseIndex] : '',
+      );
+    for (const officer of context.multiplayerWorld?.policeOfficers ?? [])
+      drawPoliceOfficer(officer, officer.id, false);
+    for (const id of context.policeActors.keys())
+      if (!drawnPolice.has(id)) context.policeActors.delete(id);
     const car = context.streetcarPose();
     const carGround = context.terrainHeight(car.x, car.z);
     if (dynamicInView(car.x, car.z, carGround, 2, 3)) {
@@ -2568,7 +2582,7 @@ export function createRendering(context: WorldContext) {
     for (const actor of context.actorTags) {
       const marked = !!actor.chasing,
         speechText = actorSpeechText(actor, t);
-      if (!marked && !actor.player && !speechText) continue;
+      if (!marked && !actor.player && !actor.police && !speechText) continue;
       if (
         !marked &&
         Math.hypot(actor.x - context.player.x - 0.5, actor.z - context.player.y - 0.5) > 13

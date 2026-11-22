@@ -2,7 +2,7 @@
   "schema": 1,
   "texts": {
     "config.hairstyles.module.broccoli": {
-      "template": "Broccoli cut"
+      "template": "Broccoli"
     },
     "adventure-sites.drawFitness.label-1": {
       "template": "SF Fitness"
@@ -23,7 +23,7 @@
       "template": "The pump accepts every coin you have. The attendant calls this “market pricing.”"
     },
     "adventure-sites.createHighwaySites.description-6.no.yes": {
-      "template": "A red Ferrari waits beyond the Bay Bridge. Borrow it for free, drive at twenty times walking speed, and refuel here for free."
+      "template": "Fast, fashionable, and free. What a great deal."
     },
     "adventure-sites.createHighwaySites.description-6.no.no": {
       "template": "Free fuel beside the Tahoe gondola. Fill the tank before driving back to San Francisco."
@@ -3019,6 +3019,9 @@
     "service.ai-recruiter.root.choices.0.receipt": {
       "template": "The interview screen is ready. Press Start when you’re ready for two minutes of arithmetic."
     },
+    "service.ai-recruiter.root.topic.work.receipt": {
+      "template": "You’d design evaluations for models that use tools. Start with a task where the obvious shortcut gives a convincing but wrong answer. Then read the trace and rerun the task with one thing changed. Did the model guess? Did the tool hand it stale data? Did our grader reward the shortcut? An average score can hide all three. Bring me a failure the next person can reproduce and we’ll have something worth fixing."
+    },
     "service.ai-employee.root.intro": {
       "template": "Good to see you. The racks are humming, and someone has put an Infrastructure label on the kettle. If you’re here to work, I can get your session started. If you’re here for tea, the kettle works as long as nobody has filed a ticket about it."
     },
@@ -3121,8 +3124,11 @@
     "service.fuel-paid.root.choices.1.label": {
       "template": "Fuel can · {fuelPrice}"
     },
+    "service.ferrari-dealer.lease-offer": {
+      "template": "You can lease the Ferrari for free. Just hop into the red one out front."
+    },
     "service.fuel-free.root.intro": {
-      "template": "Complimentary fuel, including portable cans. Take a can along if your Ferrari is stranded."
+      "template": "{leaseOffer}Complimentary fuel, including portable cans. Take a can along if your Ferrari is stranded."
     },
     "service.fuel-free.root.choices.1.label": {
       "template": "Fuel can · {fuelPrice}"

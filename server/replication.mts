@@ -2,8 +2,11 @@ import { LAB_INSTANCE } from '../src/berkeley-lab.ts';
 import type { SimulationServices, ServerPlayer } from '../src/types/server.ts';
 import type { Appearance } from '../src/types/content.ts';
 import type { WorldKind, WorldPatch } from '../src/world-deltas.ts';
-import type { InventorySnapshot } from '../src/types/network.ts';
-type ReplicatedWorld = ReturnType<SimulationServices['shared']['snapshot']>;
+import type { InventorySnapshot, NetworkPoliceOfficer } from '../src/types/network.ts';
+type PublicPoliceOfficer = NetworkPoliceOfficer & { ownerId: number };
+type ReplicatedWorld = ReturnType<SimulationServices['shared']['snapshot']> & {
+  police: PublicPoliceOfficer[];
+};
 type ReplicatedActor = ReplicatedWorld[WorldKind][number];
 interface PublicPlayer {
   id: number;
@@ -15,7 +18,7 @@ interface PublicPlayer {
 }
 interface ReplicationOptions extends Pick<SimulationServices, 'players' | 'send' | 'now'> {
   shared: Pick<SimulationServices['shared'], 'clock' | 'snapshot'>;
-  personal: Pick<SimulationServices['personal'], 'components'>;
+  personal: Pick<SimulationServices['personal'], 'components' | 'visiblePolice'>;
   publicPlayer: (p: ServerPlayer) => PublicPlayer;
   metrics: {
     slowClients: number;
@@ -37,6 +40,7 @@ import { sameMapInstance, ILLUMINATI_INSTANCE } from '../src/map-instances.ts';
 import { SpatialIndex } from './spatial-index.mts';
 import { GAMEPLAY } from '../src/config/gameplay.ts';
 import { createPlayerFrames } from './player-frames.mts';
+import { canSeeZooPursuit } from './shared-world.mts';
 
 const compact = (value: unknown) =>
   JSON.stringify(value, (_key, v) =>
@@ -66,6 +70,24 @@ export function createReplication({
     indices = Object.fromEntries(
       kinds.map((k) => [k, new SpatialIndex<ReplicatedActor>()]),
     ) as Record<WorldKind, SpatialIndex<ReplicatedActor>>;
+  function publicPolice() {
+    const officers: PublicPoliceOfficer[] = [];
+    for (const owner of players.values()) {
+      if ((owner.instance?.kind || 'world') !== 'world') continue;
+      const chase = personal.visiblePolice(owner);
+      if (!chase) continue;
+      for (const officer of chase)
+        officers.push({
+          id: 'police-' + owner.id + '-' + officer.index,
+          ownerId: owner.id,
+          x: officer.x + 0.5,
+          z: officer.y + 0.5,
+          angle: officer.angle,
+          phase: officer.phase,
+        });
+    }
+    return officers;
+  }
   let nextWorld = 0;
   function broadcast(tick: number) {
     const start = performance.now(),
@@ -95,7 +117,7 @@ export function createReplication({
       }
       return record.value;
     };
-    const world = entityFrame ? shared.snapshot() : null,
+    const world = entityFrame ? { ...shared.snapshot(), police: publicPolice() } : null,
       packed: Partial<Record<WorldKind, Map<string, PackedActor>>> = {},
       dispatchedByPlayer = new Map<number, ReplicatedActor[]>(),
       globals: Partial<
@@ -210,6 +232,8 @@ export function createReplication({
           state: Record<string, unknown> = {};
         const publicWorld = (p.instance?.kind || 'world') === 'world';
         for (const kind of kinds) {
+          if (kind === 'police' && !world?.police.length && !p.entityVersions.police?.size)
+            continue;
           const visible =
             publicWorld ||
             (p.instance?.id === LAB_INSTANCE.id && (kind === 'loot' || kind === 'wilderness'));
@@ -222,10 +246,11 @@ export function createReplication({
                 : kind === 'loot'
                   ? GAMEPLAY.maxNearbyLoot
                   : 12,
+            // Allow room for the observer's own three officers, which use the private snapshot.
             nearby = !visible
               ? []
-              : kind === 'npcs'
-                ? indices[kind].near(p.x, p.z, radius, limit)
+              : kind === 'npcs' || kind === 'police'
+                ? indices[kind].near(p.x, p.z, radius, kind === 'police' ? limit + 3 : limit)
                 : [...previous.keys()]
                     .map((id) => packed[kind]!.get(id)?.record)
                     .filter(
@@ -238,10 +263,16 @@ export function createReplication({
                     (n) => Math.hypot(n.x - p.x, n.z - p.z) <= radius,
                   )
                 : [],
-            records = dispatched.length
-              ? [...dispatched, ...nearby.filter((n) => !dispatched.includes(n))].slice(0, limit)
-              : nearby;
-          if (visible && records.length < limit) {
+            records =
+              kind === 'police'
+                ? nearby.filter((n) => 'ownerId' in n && n.ownerId !== p.id).slice(0, limit)
+                : dispatched.length
+                  ? [...dispatched, ...nearby.filter((n) => !dispatched.includes(n))].slice(
+                      0,
+                      limit,
+                    )
+                  : nearby;
+          if (visible && kind !== 'police' && records.length < limit) {
             const ids = new Set(records.map((n) => n.id));
             for (const n of indices[kind].near(p.x, p.z, radius, limit))
               if (!ids.has(n.id) && records.length < limit) {
@@ -265,16 +296,12 @@ export function createReplication({
           p.entityVersions[kind] = next;
         }
         for (const [key, global] of Object.entries(globals)) {
-          const actor =
-            key === 'tiger'
-              ? { x: world!.tiger.tiger.x + 0.5, z: world!.tiger.tiger.y + 0.5 }
-              : key === 'raptor'
-                ? world!.raptor
-                : null;
-          const text =
-            publicWorld && (!actor || Math.hypot(actor.x - p.x, actor.z - p.z) < 45)
-              ? global.text
-              : 'null';
+          const visible =
+            publicWorld &&
+            (key === 'tiger'
+              ? !!world!.tiger && canSeeZooPursuit(p, world!.tiger)
+              : key !== 'raptor' || Math.hypot(world!.raptor.x - p.x, world!.raptor.z - p.z) < 45);
+          const text = visible ? global.text : 'null';
           if (p.globalVersions[key] !== text) {
             state[key] = text === 'null' ? null : global.value;
             p.globalVersions[key] = text;

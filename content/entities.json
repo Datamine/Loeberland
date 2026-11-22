@@ -3743,7 +3743,7 @@
       "name": "Dog house",
       "category": "object",
       "kind": "house-storage",
-      "description": "A little roofed dog house beside the front path.",
+      "description": "A little roofed dog house in the side yard.",
       "menus": [
         {
           "id": "sight:house-search-2.menu-1",
@@ -4679,7 +4679,7 @@
       "name": "Ferrari Dealership",
       "category": "object",
       "kind": "dealership",
-      "description": "A red Ferrari waits beyond the Bay Bridge. Borrow it for free, drive at twenty times walking speed, and refuel here for free.",
+      "description": "Fast, fashionable, and free. What a great deal.",
       "menus": [
         {
           "id": "sight:ferrari-dealer.menu-1",
@@ -16662,8 +16662,8 @@
       "actor": false,
       "source": "sights",
       "position": {
-        "x": 59.60831683168317,
-        "z": 129.86623762376237
+        "x": 58.69915841584159,
+        "z": 128.71623762376237
       }
     },
     "actor:pacifica-dog-surf-judge": {
@@ -18095,8 +18095,8 @@
       "actor": false,
       "source": "sights",
       "position": {
-        "x": 78,
-        "z": 52.625
+        "x": 83.62132034355965,
+        "z": 55.25
       }
     },
     "sight:southern-village-gardens": {

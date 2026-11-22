@@ -14,6 +14,7 @@ import { insideInstitute } from '../institute-interiors.ts';
 import { TAHOE_COMBAT_TRUNKS, nearTahoe } from '../tahoe.ts';
 import { insideGuild } from '../guild.ts';
 import { CAVE_NAVIGATION } from '../map-instances.ts';
+import { onSouthBeachPier } from '../south-beach.ts';
 
 /** Navigation services for the browser scene.
  * Dependencies are explicit live scene bindings, preserving initialization
@@ -261,6 +262,7 @@ export function createNavigation(context: WorldContext) {
   function buildNavigation() {
     context.cityNavigation = buildTileNavigation(context.worldTiles, {
       obstacles: navigationObstacles(context.objects),
+      walkableDeck: onSouthBeachPier,
     });
     for (const p of context.places) {
       const inside = nearestNavigation(
@@ -318,6 +320,7 @@ export function createNavigation(context: WorldContext) {
       );
     context.cityNavigation = buildTileNavigation(context.worldTiles, {
       obstacles: [...context.cityNavigation.obstacles, ...navigationObstacles(late)],
+      walkableDeck: onSouthBeachPier,
     });
     context.airship.setObstacles(
       navigationObstacles(

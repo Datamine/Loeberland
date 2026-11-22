@@ -48,4 +48,5 @@ export interface TigerOptions {
   onEvent?: (event: string, warden?: ZooWarden) => void;
   random?: () => number;
   speed?: number;
+  captureGrace?: number;
 }

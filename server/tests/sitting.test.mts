@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fixture, player, command, requiredResult } from './fixtures.mts';
+import { makeNeighborhoodBench } from '../../src/neighborhood-interactions.ts';
 
 test('server resting stops movement and doubles sobering without any client clocks or pose updates', async () => {
   const { game } = await fixture(),
@@ -23,6 +24,43 @@ test('server resting stops movement and doubles sobering without any client cloc
     assert.equal(a.p.mode, 'walk');
     assert.ok(a.p.x > x);
     assert.equal(game.personal.runtime(a.p).inebriation.state.percent, 37.5);
+  } finally {
+    await game.close();
+  }
+});
+
+test('resting restores one HP per five seconds on the ground or a bench and stops on standing', async () => {
+  const { game, geometry } = await fixture(),
+    a = await player(game, 994);
+  const { p, messages } = a;
+  const bench = makeNeighborhoodBench({
+    id: 'rest-test-bench',
+    x: p.x,
+    z: p.z - 0.85,
+    base: p.y,
+    start: 0,
+    count: 0,
+  });
+  geometry.sights = [...(geometry.sights || []), bench];
+  try {
+    p.hp = p.max - 4;
+    game.tick(5);
+    assert.equal(p.hp, p.max - 4);
+    await command(game, p, 'activity', { mode: 'sit' });
+    game.tick(4.99);
+    assert.equal(p.hp, p.max - 4);
+    game.tick(0.01);
+    assert.equal(p.hp, p.max - 3);
+    game.tick(4);
+    await command(game, p, 'activity', { mode: 'walk' });
+    await command(game, p, 'activity', { mode: 'sit', seat: bench.id });
+    assert.equal(requiredResult(messages).ok, true);
+    game.tick(4.99);
+    assert.equal(p.hp, p.max - 3);
+    game.tick(0.01);
+    assert.equal(p.hp, p.max - 2);
+    game.tick(15);
+    assert.equal(p.hp, p.max);
   } finally {
     await game.close();
   }

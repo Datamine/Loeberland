@@ -75,6 +75,7 @@ export const MONSTER_DROPS: Readonly<Record<string, readonly DropRule[]>> = Obje
 
   seagull: [],
   'soma-zombie': [ironGearDrop],
+  'armed-zombie': [ironGearDrop],
   robocop: [{ item: 'peptides', oneIn: 10 }, ironGearDrop],
   raptor: [{ item: 'raptor', oneIn: 1 }],
   kraken: [{ item: 'kraken', oneIn: 1 }],
@@ -336,6 +337,28 @@ export const MONSTER_STATS = defineMonsterStats({
       hairstyle: 'short-curls',
     },
     description: 'Green skin, grubby clothes, and a lurching walk.',
+  },
+  'armed-zombie': {
+    name: 'Armed Zombie',
+    ...monsterCombat(13, 1.55),
+    respawn: 25,
+    speed: 2.05,
+    leash: 7,
+    aggression: 4.1,
+    roamRadius: 0.7,
+    roamSpeed: 0.42,
+    attackRange: 1.5,
+    height: 1.9,
+    model: 'human',
+    appearance: {
+      skin: '#7c8e64',
+      shirt: '#755952',
+      pants: '#454a40',
+      hair: '#4a483c',
+      hairstyle: 'short-curls',
+      crowbar: true,
+    },
+    description: 'This zombie has a rust-red crowbar and enough coordination to swing it.',
   },
   ...Object.fromEntries(
     LEGACY_BUGS.map(([level, , , species]) => [

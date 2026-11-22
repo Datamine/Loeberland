@@ -860,7 +860,7 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0, reduced =
       stats.appearance,
       'Human monster appearance is missing: ' + actor.combatKind,
     );
-    const zombie = actor.combatKind === 'soma-zombie';
+    const zombie = actor.combatKind === 'soma-zombie' || actor.combatKind === 'armed-zombie';
     const second = zombie && actor.id === 'soma-zombie-2';
     drawHumanNPC(m, actor, time, {
       x: actor.x,

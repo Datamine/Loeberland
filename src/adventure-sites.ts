@@ -7,7 +7,7 @@ type HighwaySite = Site & { distance: number };
 
 // CONTENT-BINDINGS-MIGRATED
 import { contentText } from './content-runtime.ts';
-import { TAHOE_VILLAGE, tahoeHeight } from './tahoe.ts';
+import { TAHOE_VILLAGE, regionalGroundHeight, tahoeHeight } from './tahoe.ts';
 import { drawEstateArchitecture } from './estate-architecture.ts';
 import type { Mesh } from './geometry.ts';
 import { pose } from './geometry.ts';
@@ -240,7 +240,7 @@ export function createHighwaySites(car: HighwayCar) {
     };
   };
   return [
-    make('in-n-out', 'In-N-Out', 'burger', car.dealer - 10, {
+    make('in-n-out', 'In-N-Out', 'burger', car.dealer + IN_N_OUT_OFFSET, {
       description: contentText('adventure-sites.createHighwaySites.description-5', {}),
     }),
     ...car.stations.map((s) =>
@@ -255,6 +255,60 @@ export function createHighwaySites(car: HighwayCar) {
     ),
   ];
 }
+const IN_N_OUT_OFFSET = -10;
+export function inNOutBackyard(car: HighwayCar, along: number, behind: number) {
+  const p = car.sample(car.dealer + IN_N_OUT_OFFSET);
+  const c = Math.cos(p.angle);
+  const s = Math.sin(p.angle);
+  return { x: p.x + c * along - s * behind, z: p.z + s * along + c * behind };
+}
+
+export function drawInNOutCampfire(m: Mesh, car: HighwayCar) {
+  const { x, z } = inNOutBackyard(car, 0, 8.3);
+  pose(m, x, regionalGroundHeight(x, z) + 0.025, z, 0, () => {
+    m.cylinder(0, 0, 0, 0.45, 0.03, '#5b4c41', 12, 0.42, 'sand');
+    for (let i = 0; i < 11; i++) {
+      const angle = (i * 2 * Math.PI) / 11;
+      m.sphere(
+        Math.cos(angle) * 0.4,
+        0.065,
+        Math.sin(angle) * 0.4,
+        0.108,
+        0.098 + (i % 3) * 0.02,
+        0.116,
+        i % 2 ? '#7d7566' : '#958674',
+        8,
+        5,
+        'stone',
+      );
+    }
+    for (const angle of [0.25, 2.23, 4.42])
+      m.rod(
+        [Math.cos(angle) * 0.31, 0.07, Math.sin(angle) * 0.31],
+        [-Math.cos(angle) * 0.22, 0.12, -Math.sin(angle) * 0.22],
+        0.076,
+        '#543a2b',
+        7,
+        'wood',
+      );
+    for (let i = 0; i < 5; i++) {
+      const angle = (i * 2 * Math.PI) / 5;
+      const u = Math.cos(angle);
+      const v = Math.sin(angle);
+      m.cylinder(u * 0.13, 0.11, v * 0.13, 0.11, 0.38 + (i % 3) * 0.1, '#f17e37', 6, 0.005, {
+        emissive: 0.95,
+      });
+    }
+    m.cylinder(0.015, 0.13, -0.032, 0.12, 0.57, '#ffd17a', 7, 0.005, { emissive: 1 });
+    for (const [u, y, v] of [
+      [0.15, 0.75, 0.11],
+      [-0.09, 0.85, 0.05],
+      [0.04, 0.99, -0.12],
+    ])
+      m.sphere(u, y, v, 0.018, 0.035, 0.018, '#eaa14e', 5, 3, { emissive: 1.0 });
+  });
+}
+
 export function drawHighwaySites(m: Mesh, car: HighwayCar, sites: HighwaySite[], signs: SignAtlas) {
   return sites.map((site) => {
     const start = m.data.length,

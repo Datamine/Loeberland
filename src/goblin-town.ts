@@ -6,6 +6,7 @@ import { GOBLIN_INDUSTRIALIST } from './goblin-industrialist.ts';
 import { GOBLIN_AI_LAB, goblinAILabScrapBlocks } from './goblin-ai-lab.ts';
 import { GOBLIN_SPACE_PROGRAM, VILLAGE_GOOSE } from './goblin-space-layout.ts';
 import { FROG_FARM } from './frog-farm.ts';
+import { drawMarshmallowSofa, drawOvaliaChair } from './furniture-models.ts';
 
 export const FURNITURE_FACTORY = Object.freeze({
   name: 'Goblin Furniture Factory',
@@ -28,16 +29,37 @@ export const GOBLIN_INCUBATOR = Object.freeze({
   entry: { x: 45, y: -37.8 },
 });
 export const FACTORY_CHAIRS = Object.freeze([
-  { id: 'ball-chair', name: 'Ball Chair', gesture: 'chair', height: 0.2 },
-  { id: 'eames-chair', name: 'Eames Chair', gesture: 'eames-chair', height: 0.07 },
-  { id: 'bertoia-chair', name: 'Bertoia Chair', gesture: 'bertoia-chair', height: 0.03 },
+  { id: 'ball-chair', name: 'Ball Chair', gesture: 'chair', height: 0.2, buy: 200, sell: 220 },
+  { id: 'eames-chair', name: 'Eames Chair', gesture: 'eames-chair', height: 0.07, buy: 200, sell: 220 },
+  {
+    id: 'bertoia-chair',
+    name: 'Bertoia Chair',
+    gesture: 'bertoia-chair',
+    height: 0.03,
+    buy: 200,
+    sell: 220,
+  },
+  {
+    id: 'marshmallow-sofa',
+    name: 'Marshmallow Sofa',
+    gesture: 'marshmallow-sofa',
+    height: 0.07,
+    buy: 3000,
+    sell: null,
+  },
+  {
+    id: 'ovalia-chair',
+    name: 'Ovalia Chair',
+    gesture: 'ovalia-chair',
+    height: 0.13,
+    buy: 6000,
+    sell: null,
+  },
 ]);
 export type FactoryChair = (typeof FACTORY_CHAIRS)[number];
 export function chairForGesture(gesture: string | undefined) {
   return FACTORY_CHAIRS.find((chair) => chair.gesture === gesture);
 }
-export const FACTORY_CHAIR_BUY = 200;
-export const FACTORY_CHAIR_SELL = 220;
 
 export const GOBLIN_TOWN = Object.freeze({ x: 30, z: -23, entry: { x: 29.5, y: -17.5 } });
 export const GOBLIN_HUTS = Object.freeze([
@@ -356,7 +378,9 @@ export function drawOwnedChair(
 ) {
   if (chair.id === 'ball-chair') drawBallChair(m, x, base, z, angle);
   else if (chair.id === 'eames-chair') drawEamesChair(m, x, base, z, angle - Math.PI / 2);
-  else drawBertoiaChair(m, x, base, z, angle - Math.PI / 2);
+  else if (chair.id === 'bertoia-chair') drawBertoiaChair(m, x, base, z, angle - Math.PI / 2);
+  else if (chair.id === 'marshmallow-sofa') drawMarshmallowSofa(m, x, base, z, angle - Math.PI / 2);
+  else if (chair.id === 'ovalia-chair') drawOvaliaChair(m, x, base, z, angle - Math.PI / 2);
 }
 
 function drawFactory(m: Mesh, ground: (x: number, z: number) => number) {
@@ -404,14 +428,16 @@ function drawFactory(m: Mesh, ground: (x: number, z: number) => number) {
     m.box(
       x + 0.75 + (i % 2) * 0.13,
       y + 0.12 + i * 0.067,
-      back + 0.33,
+      back + 0.18,
       1.05,
       0.045,
-      0.38,
+      0.25,
       i % 2 ? '#b38b5e' : '#956946',
       'wood',
     );
-  drawEamesChair(m, x - 1.34, y + 0.1, front - 0.57, -0.25);
-  drawBertoiaChair(m, x + 0.18, y + 0.1, front - 0.55, 0.25);
-  drawBallChair(m, x + 1.53, y + 0.1, front - 0.66, Math.PI / 2);
+  drawEamesChair(m, x - 1.42, y + 0.1, front - 0.26, -0.25);
+  drawBertoiaChair(m, x + 0.06, y + 0.1, front - 0.24, 0.25);
+  drawBallChair(m, x + 1.45, y + 0.1, front - 0.28, Math.PI / 2);
+  drawMarshmallowSofa(m, x - 0.98, y + 0.1, back + 1.20, 0);
+  drawOvaliaChair(m, x + 1.3, y + 0.1, back + 0.99, -0.28);
 }

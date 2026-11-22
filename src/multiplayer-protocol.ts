@@ -2,6 +2,7 @@ import { isFiniteNumber, isRecord } from './types/json.ts';
 import type { NetworkPose, PoseCoordinates, NetworkNPC, PackedNPC } from './types/network.ts';
 
 import { GAMEPLAY } from './config/gameplay.ts';
+export const CHARACTER_IDENTITY_COOKIE = 'sf-mp-identity';
 export const MP_PROTOCOL = 4,
   MP_TICK_HZ = GAMEPLAY.simulationHz,
   MP_BROADCAST_HZ = GAMEPLAY.playerHz,
@@ -66,6 +67,8 @@ export const MP_GESTURES = Object.freeze([
   'motorcycle-wheelie',
   'motorcycle-endo',
   'motorcycle-hop',
+  'marshmallow-sofa',
+  'ovalia-chair',
 ]);
 export const MP_FRAME_HEADER = 12,
   MP_PLAYER_BYTES = 32;

@@ -29,7 +29,6 @@ import { contentText } from '../content-runtime.ts';
 import {
   setActionText,
   actionTargetKind,
-  cableCarExitTarget,
   type ActionLabelTarget,
   orderPrimaryActions,
   placeEntryVerb,
@@ -110,8 +109,6 @@ import { WHALE_JUMP_LEAD_MS } from '../wildlife.ts';
 import { dogWalkerDialogue } from '../companions.ts';
 import {
   FACTORY_CHAIRS,
-  FACTORY_CHAIR_BUY,
-  FACTORY_CHAIR_SELL,
   GOBLIN_INCUBATOR,
 } from '../goblin-town.ts';
 import { houseClimb } from '../search-houses.ts';
@@ -3140,7 +3137,6 @@ export function createInteractions(context: WorldContext) {
   }
 
   function furnitureDialogue(npc: Actor, trade: 'buy' | 'sell') {
-    const price = trade === 'buy' ? FACTORY_CHAIR_BUY : FACTORY_CHAIR_SELL;
     return openNPCDialogue({
       ...npc,
       contentResolved: true,
@@ -3149,15 +3145,22 @@ export function createInteractions(context: WorldContext) {
         trade === 'buy'
           ? 'Welcome to the Goblin Furniture Factory. Everything here passed the sit test. Even the intern.'
           : 'The baby finally fell asleep. Now if only I had a decent chair at home. Got any Mount Tam furniture?',
-      choices: FACTORY_CHAIRS.map((chair) => ({
-        label: (trade === 'buy' ? 'Buy ' : 'Sell ') + chair.name + ' · ' + price + ' coins',
-        accept: () =>
-          serverCommand(context.multiplayer, 'playerAction', {
-            verb: 'tradeFactoryChair',
-            trade,
-            item: chair.id,
-          }),
-      })),
+      choices: FACTORY_CHAIRS.flatMap((chair) => {
+        const price = chair[trade];
+        if (price === null) return [];
+        return [
+          {
+            label: (trade === 'buy' ? 'Buy ' : 'Sell ') +
+              chair.name + ' · ' + price.toLocaleString('en-US') + ' coins',
+            accept: () =>
+              serverCommand(context.multiplayer, 'playerAction', {
+                verb: 'tradeFactoryChair',
+                trade,
+                item: chair.id,
+              }),
+          },
+        ];
+      }),
       repeat: true,
     });
   }
@@ -4405,8 +4408,8 @@ export function createInteractions(context: WorldContext) {
       case 'house-storage':
         return action('interaction.8', 'Search ' + label);
       case 'unusual-church':
-        return action('church.search', 'Read the church noticeboard', () => searchChurch(sight), {
-          label: 'church noticeboard',
+        return action('church.search', 'Read the CHURCH NOTICEBOARD', () => searchChurch(sight), {
+          label: 'CHURCH NOTICEBOARD',
           kind: 'object',
         });
       case 'lore-book':
@@ -4526,16 +4529,25 @@ export function createInteractions(context: WorldContext) {
     };
   }
 
+  const streetcarExit: WorldAction & { target: ActionLabelTarget } = {
+    id: 'streetcar.exit',
+    label: 'Get off cable car',
+    target: { label: 'cable car', kind: 'object' },
+    run: () => context.multiplayerWorld?.command('travel', { kind: 'streetcarExit' }),
+  };
+
+  const waymoExit: WorldAction & { target: ActionLabelTarget } = {
+    id: 'waymo.exit',
+    label: 'Exit Waymo',
+    target: { label: 'Waymo', kind: 'object' },
+    run: () => context.multiplayerWorld?.command('travel', { kind: 'waymoExit' }),
+  };
+
   function primaryWorldAction(target: ReturnType<typeof worldTarget>): WorldAction {
     const { npc, sight, place, researchRoom } = target;
     if (context.multiplayerWorld?.selfMode === 'streetcar') {
       return sight?.kind === MARKET_STREETCAR.kind
-        ? {
-            id: 'streetcar.exit',
-            label: 'Get off cable car',
-            target: cableCarExitTarget,
-            run: () => context.multiplayerWorld.command('travel', { kind: 'streetcarExit' }),
-          }
+        ? streetcarExit
         : { id: 'streetcar.ride', label: 'Riding the cable car', run: () => false };
     }
     if (context.multiplayerWorld?.selfMode === 'roof')
@@ -4605,23 +4617,32 @@ export function createInteractions(context: WorldContext) {
     return groundAction(target.tile);
   }
 
-  function showMenu(sx: number, sy: number) {
-    if (context.tabletService?.state.active) return false;
-    if (context.rocket.state.active) return false;
-    if (context.surf.state.jump) return false;
-    if (context.tahoe.state.mode !== 'ground' || context.multiplayerWorld?.selfMode === 'atv')
-      return false;
-    const target = worldTarget(sx, sy);
-    if (target.sight?.kind === 'airship-rope' && context.airship.state.active)
-      return showRopeMenu(sx, sy);
-    if (
-      context.flying() &&
-      !target.npc?.networkPlayer &&
-      !target.npc?.police &&
-      target.npc?.kind !== AIRSHIP_TRAVELER
-    )
-      return showAirshipMenu(sx, sy);
+  function showExitMenu(sx?: number, sy?: number) {
+    const mode = context.multiplayerWorld?.selfMode;
+    const exit = mode === 'streetcar' ? streetcarExit : mode === 'waymo' ? waymoExit : null;
+    if (exit) {
+      const menu = context.$('sf-context');
+      const heading = document.createElement('div');
+      heading.className = 'sf-context-title';
+      setActionText(heading, exit.target.label, [exit.target]);
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.actionId = exit.id;
+      button.setAttribute('role', 'menuitem');
+      setActionText(button, exit.label, [exit.target]);
+      button.addEventListener('click', (e) =>
+        clicked(e.clientX, e.clientY, () => {
+          closeMenu();
+          return exit.run();
+        }),
+      );
+      menu.replaceChildren(heading, button);
+      context.$('sf-hover').hidden = true;
+      revealContextMenu(menu, sx, sy);
+      return true;
+    }
     if (context.sutroClimb.state.active) {
+      context.$('sf-hover').hidden = true;
       const menu = context.$('sf-context');
       menu.replaceChildren();
       const heading = document.createElement('div');
@@ -4671,6 +4692,26 @@ export function createInteractions(context: WorldContext) {
       revealContextMenu(menu, sx, sy);
       return true;
     }
+    return false;
+  }
+
+  function showMenu(sx: number, sy: number) {
+    if (context.tabletService?.state.active) return false;
+    if (context.rocket.state.active) return false;
+    if (context.surf.state.jump) return false;
+    if (context.tahoe.state.mode !== 'ground' || context.multiplayerWorld?.selfMode === 'atv')
+      return false;
+    const target = worldTarget(sx, sy);
+    if (target.sight?.kind === 'airship-rope' && context.airship.state.active)
+      return showRopeMenu(sx, sy);
+    if (
+      context.flying() &&
+      !target.npc?.networkPlayer &&
+      !target.npc?.police &&
+      target.npc?.kind !== AIRSHIP_TRAVELER
+    )
+      return showAirshipMenu(sx, sy);
+    if (showExitMenu(sx, sy)) return true;
     const { npc, sight: s, place: p, tile: t } = target;
     if (
       !npc &&
@@ -4759,16 +4800,6 @@ export function createInteractions(context: WorldContext) {
       menu.append(b);
       return b;
     };
-    if (context.multiplayerWorld?.selfMode === 'streetcar') {
-      add(
-        'Get off cable car',
-        () => context.multiplayerWorld.command('travel', { kind: 'streetcarExit' }),
-        'streetcar.exit',
-        cableCarExitTarget,
-      );
-      revealContextMenu(menu, sx, sy);
-      return true;
-    }
     if (context.multiplayerWorld?.selfMode === 'roof') {
       add(
         'Climb down',
@@ -4822,7 +4853,6 @@ export function createInteractions(context: WorldContext) {
         primary: context.npcPrimary(npc),
         duel:
           atDuelArena(context.player.x + 0.5, context.player.y + 0.5) && atDuelArena(npc.x, npc.z),
-        following: context.multiplayerWorld?.following === npc.id,
         pvp:
           context.multiplayer.state.pvp?.enabled &&
           npc.pvp &&
@@ -4851,13 +4881,6 @@ export function createInteractions(context: WorldContext) {
               if (npc.networkPlayer) context.multiplayerWorld.followPlayer(npc);
             },
             'npc.follow',
-          );
-        else if (verb === 'unfollow')
-          add(
-            'Stop following',
-            () => context.multiplayerWorld.stopFollowing(true),
-            'npc.unfollow',
-            actionTargets[1],
           );
         else if (verb === 'examine')
           add('Examine ' + context.npcLabel(npc, false), () => examineNPC(npc), 'npc.examine');
@@ -5631,6 +5654,9 @@ export function createInteractions(context: WorldContext) {
     climbSutro,
     worldTarget,
     primaryWorldAction,
+    streetcarExit,
+    waymoExit,
+    showExitMenu,
     goToSight,
     walkAtSight,
     orderDoorDash,

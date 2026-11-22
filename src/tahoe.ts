@@ -29,7 +29,12 @@ import { drawTahoeGroundCover, drawTahoeTree } from './tahoe-scenery.ts';
 import { drawCharacter } from './characters.ts';
 import { drawPlaque } from './southern-district.ts';
 import { drawRocketPad } from './rocket.ts';
-import { EAST_BAY_COAST_X, EAST_BAY_SHORE, eastBayShoreX } from './geography.ts';
+import {
+  EAST_BAY_COAST_X,
+  EAST_BAY_GRASS_COLOR,
+  EAST_BAY_SHORE,
+  eastBayShoreX,
+} from './geography.ts';
 import { drawFacadeWindow } from './windows.ts';
 
 // Mid-lake coordinates: https://waterdata.usgs.gov/monitoring-location/USGS-390618120021101/
@@ -1293,7 +1298,7 @@ export function drawRegionalBackdrop(m: Mesh, x: number, z: number, viewerHeight
       [x1, z1] satisfies [number, number],
       [x1, z0] satisfies [number, number],
     ].map(([u, v]) => [u, regionalGroundHeight(u, v), v] satisfies [number, number, number]);
-    m.quad(points[0], points[1], points[2], points[3], '#a7ac87', 'grass');
+    m.quad(points[0], points[1], points[2], points[3], EAST_BAY_GRASS_COLOR, 'grass');
   };
   for (let zz = minZ; zz < z + r; zz += step)
     for (let xx = minX; xx < x + r; xx += step) {
@@ -1308,7 +1313,14 @@ export function drawRegionalBackdrop(m: Mesh, x: number, z: number, viewerHeight
           coastZ += EAST_BAY_SHORE.step
         )
           for (const [i, [a, b, c, d]] of eastBayShoreStrip(coastZ).entries())
-            m.quad(a, b, c, d, ['#bca183', '#a4a17d', '#a7ac87'][i], i === 0 ? 'sand' : 'grass');
+            m.quad(
+              a,
+              b,
+              c,
+              d,
+              ['#bca183', '#a4a17d', EAST_BAY_GRASS_COLOR][i],
+              i === 0 ? 'sand' : 'grass',
+            );
         rect(EAST_BAY_SHORE.east, zz, x1, z1);
         if (zz < EAST_BAY_SHORE.north) rect(x0, zz, EAST_BAY_SHORE.east, EAST_BAY_SHORE.north);
         if (z1 > EAST_BAY_SHORE.south) rect(x0, EAST_BAY_SHORE.south, EAST_BAY_SHORE.east, z1);

@@ -1,4 +1,3 @@
-import { ATV_RENTAL, hasATVRental } from '../atv.ts';
 import { MOTORCYCLE_TRICKS } from '../motorcycle.ts';
 import type { GameElements } from '../types/ui.ts';
 import type { EconomyState } from '../types/content.ts';
@@ -44,6 +43,7 @@ function updateActionLabel(button: HTMLElement, text: string, label: string, kin
 function updateSkillProgress(
   bar: HTMLProgressElement,
   label: HTMLElement,
+  readout: HTMLElement,
   skillName: string,
   skill: ReturnType<typeof skillStatus>,
 ) {
@@ -52,7 +52,7 @@ function updateSkillProgress(
     skill.next === null ? 'Max level' : skill.percent.toFixed(2) + '% to Level ' + skill.next;
   const text = skillName + ' · Level ' + skill.level;
   if (label.textContent !== text) label.textContent = text;
-  if (bar.title !== progress) bar.title = progress;
+  if (readout.textContent !== progress) readout.textContent = progress;
   if (bar.getAttribute('aria-valuetext') !== progress) bar.setAttribute('aria-valuetext', progress);
 }
 
@@ -92,7 +92,7 @@ export function createHud(context: WorldContext) {
       : flying
         ? 'flying'
         : 'ground';
-    $('sf-bike-button').hidden = flying || climbing;
+    updateBikeButton();
     $('sf-rope-button').hidden = !context.airship.state.active && !context.rope.onGround;
     $('sf-rope-button').disabled =
       !!context.chase?.state.jailed ||
@@ -109,7 +109,8 @@ export function createHud(context: WorldContext) {
   }
 
   function updateRocketControls() {
-    for (const id of ['sf-bike-button', 'sf-rope-button', 'sf-climb-button'] as const)
+    updateBikeButton();
+    for (const id of ['sf-rope-button', 'sf-climb-button'] as const)
       $(id).disabled = context.rocket.state.active;
   }
 
@@ -138,8 +139,8 @@ export function createHud(context: WorldContext) {
               : 'Rent skis · 1 coin'
             : 'Ride gondola';
     updateActionLabel(button, label, 'gondola', 'object');
+    updateBikeButton();
     if (near) {
-      $('sf-bike-button').hidden = true;
       $('sf-rope-button').hidden = !context.airship.state.active || mode !== 'ground';
     }
   }
@@ -160,6 +161,12 @@ export function createHud(context: WorldContext) {
       Math.hypot(context.player.x - context.bike.x, context.player.y - context.bike.y) < 2.5;
     const button = $('sf-bike-button'),
       mode = context.bike.riding ? 'riding' : near ? 'near' : 'far';
+    const disabled =
+      context.airship.state.active ||
+      context.sutroClimb.state.active ||
+      context.rocket.state.active ||
+      nearTahoe(context.player.x + 0.5, context.player.y + 0.5);
+    if (button.disabled !== disabled) button.disabled = disabled;
     if (button.dataset.mode === mode) return;
     button.dataset.mode = mode;
     setActionText(button, context.bike.riding ? 'Park bike ' : near ? 'Ride bike ' : 'Find bike ', [
@@ -190,16 +197,7 @@ export function createHud(context: WorldContext) {
 
   function updateATVControls() {
     const riding = context.multiplayerWorld?.selfMode === 'atv';
-    const rent = $('sf-atv-rent');
     const controls = $('sf-atv-controls');
-    rent.hidden =
-      riding ||
-      hasATVRental(context.multiplayer.state.personal?.travel?.atvRentalUntil) ||
-      context.secretWorld?.kind !== 'world' ||
-      Math.hypot(
-        context.player.x + 0.5 - ATV_RENTAL.npc.x,
-        context.player.y + 0.5 - ATV_RENTAL.npc.z,
-      ) >= 6;
     controls.hidden = !riding;
     if (!riding) return;
     const gesture = context.multiplayerWorld?.selfGesture;
@@ -242,6 +240,11 @@ export function createHud(context: WorldContext) {
     const teleport = $('sf-teleport-button');
     const teleportDisabled = !hasTablets || teleportBlocked;
     if (teleport.disabled !== teleportDisabled) teleport.disabled = teleportDisabled;
+    teleport.title = !hasTablets
+      ? 'No teleport tablets'
+      : teleportBlocked
+        ? 'Teleport unavailable here'
+        : 'Choose a destination (Esc, then T)';
     const coffee = context.bankService?.snapshot().coffee || 0;
     $('sf-drink-coffee').hidden = !coffee;
     $('sf-drink-coffee').disabled =
@@ -454,7 +457,13 @@ export function createHud(context: WorldContext) {
         (context.expeditions.state.target?.max ? context.expeditions.state.target : null);
     if ($('sf-hitpoints-text').textContent !== hpText) $('sf-hitpoints-text').textContent = hpText;
     const hps = skillStatus(context.health.state.xp);
-    updateSkillProgress($('sf-hp-level'), $('sf-hp-level-text'), 'Hitpoints', hps);
+    updateSkillProgress(
+      $('sf-hp-level'),
+      $('sf-hp-level-text'),
+      $('sf-hp-progress-text'),
+      'Hitpoints',
+      hps,
+    );
     $('sf-enemy-health').hidden = !enemy;
     if (enemy)
       $('sf-enemy-health').textContent =
@@ -510,7 +519,13 @@ export function createHud(context: WorldContext) {
             : 'Waymo · ' + WAYMO_RENTAL.price + ' coins';
     updateActionLabel(waymo, waymoLabel, 'Waymo', 'object');
     const s = context.strength.status;
-    updateSkillProgress($('sf-strength-progress'), $('sf-strength-level-text'), 'Strength', s);
+    updateSkillProgress(
+      $('sf-strength-progress'),
+      $('sf-strength-level-text'),
+      $('sf-strength-progress-text'),
+      'Strength',
+      s,
+    );
     const characterLevel = 'Level ' + playerLevel(s.level, hps.level);
     if ($('sf-character-level').textContent !== characterLevel)
       $('sf-character-level').textContent = characterLevel;

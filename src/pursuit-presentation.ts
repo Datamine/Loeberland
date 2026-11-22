@@ -1,3 +1,4 @@
+import type { NetworkPoliceOfficer } from './types/network.ts';
 export interface PursuitActorView {
   index?: number;
   x?: number;
@@ -33,6 +34,7 @@ export interface PersonalPursuits {
   keeper?: Partial<KeeperView> | null;
 }
 interface WorldPursuits {
+  police?: NetworkPoliceOfficer[];
   tiger?: ZooView | null;
   raptor?: object | null;
 }
@@ -54,6 +56,7 @@ export function createPursuitPresentation({
   now,
 }: PursuitOptions = {}) {
   const motion = createActorMotionGroup({ now });
+  const publicPolice = new Map<string, NetworkPoliceOfficer>();
   let lastPolice: PersonalPursuits['police'] = null,
     lastKeeper: PersonalPursuits['keeper'] = null,
     lastZoo: WorldPursuits['tiger'] = null,
@@ -91,13 +94,30 @@ export function createPursuitPresentation({
     }
   }
   function syncWorld(state: WorldPursuits, time: number) {
-    if (zoo && state.tiger && state.tiger !== lastZoo) {
+    const active = new Set<string>();
+    for (const source of state.police || []) {
+      const id = source.id;
+      const target = publicPolice.get(id) || { ...source };
+      active.add(id);
+      motion.accept(id, target, source, time);
+      publicPolice.set(id, target);
+    }
+    for (const id of publicPolice.keys()) if (!active.has(id)) publicPolice.delete(id);
+    motion.retain(active, 'police-');
+    if (zoo && state.tiger !== lastZoo) {
       lastZoo = state.tiger;
-      const { tiger, wardens, ...flags } = state.tiger;
-      // Retain render objects; never mutate objects held in client.state.
-      motion.accept('zoo', zoo.state, flags, time);
-      motion.accept('tiger', zoo.state.tiger, tiger, time);
-      zoo.state.wardens = actors('warden/', zoo.state.wardens, wardens || [], time);
+      if (state.tiger) {
+        const { tiger, wardens, ...flags } = state.tiger;
+        // Retain render objects; never mutate objects held in client.state.
+        motion.accept('zoo', zoo.state, flags, time);
+        motion.accept('tiger', zoo.state.tiger, tiger, time);
+        zoo.state.wardens = actors('warden/', zoo.state.wardens, wardens || [], time);
+      } else {
+        zoo.state.wardens = [];
+        motion.retain(new Set(), 'warden/');
+        motion.retain(new Set(), 'tiger');
+        motion.retain(new Set(), 'zoo');
+      }
     }
     if (raptor && state.raptor && state.raptor !== lastRaptor) {
       lastRaptor = state.raptor;
@@ -107,9 +127,12 @@ export function createPursuitPresentation({
   return {
     syncPersonal,
     syncWorld,
+    publicPolice,
     update: (connected: boolean) => motion.update(connected),
     clear() {
       motion.clear();
+      publicPolice.clear();
+      if (zoo) zoo.state.wardens = [];
       lastPolice = lastKeeper = lastZoo = lastRaptor = null;
     },
   };

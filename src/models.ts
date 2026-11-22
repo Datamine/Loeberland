@@ -33,6 +33,7 @@ import {
 } from './downtown.ts';
 import { drawSomaPyramid } from './soma-pyramid.ts';
 import { TRANSAMERICA_PYRAMID, drawTransamericaPyramid } from './transamerica.ts';
+import { SOUTH_BEACH_BALLPARK } from './south-beach.ts';
 import type { Material } from './types/geometry.ts';
 
 export const BANI_APPEARANCE = Object.freeze({
@@ -1491,8 +1492,61 @@ export function createModels({
     [50.4, 15.3, 0.65, 2.1, 0.7] satisfies [number, number, number, number, number],
     [53, 18.5, 0.7, 2.4, 1] satisfies [number, number, number, number, number],
     [55, 24.5, 0.55, 1.8, 1.3] satisfies [number, number, number, number, number],
-    [56, 37, 0.8, 2.3, 1.4] satisfies [number, number, number, number, number],
+    [58.15, 37, 0.8, 2.3, 1.4] satisfies [number, number, number, number, number],
+    [57.7, 39, 0.72, 1.9, 1.55] satisfies [number, number, number, number, number],
   ];
+  function addOraclePark(m: Mesh) {
+    const { x, z, size, angle } = SOUTH_BEACH_BALLPARK,
+      base = terrainHeight(x, z),
+      start = m.data.length,
+      footprint = rectangle(x, z, size, size, angle),
+      span = size * Math.SQRT2;
+    pose(m, x - span / 2, base, z, angle, (m) => {
+      m.box(0, 0, 0, size, 0.15, size, '#a57958');
+      m.box(0.3, 0.16, 0.3, 2.4, 0.025, 2.4, '#789853');
+      for (const [radius, height, color] of [
+        [0.8, 0.2, '#c7a776'],
+        [0.47, 0.21, '#76924f'],
+      ] as const)
+        m.quad(
+          [1.5, height, 1.5 - radius],
+          [1.5 + radius, height, 1.5],
+          [1.5, height, 1.5 + radius],
+          [1.5 - radius, height, 1.5],
+          color,
+        );
+      for (let tier = 0; tier < 4; tier++) {
+        const height = 0.3 + tier * 0.18;
+        m.box(0.02 + tier * 0.06, height, 0.05, 0.16, 0.12, 2.7, '#476c62');
+        m.box(0.05, height, 0.02 + tier * 0.06, 2.7, 0.12, 0.16, '#567c6e');
+        m.box(2.78 - tier * 0.06, height, 0.05, 0.16, 0.12, 2.5, '#476c62');
+      }
+      for (const [x, z] of [
+        [0.1, 0.1],
+        [2.8, 0.1],
+        [2.8, 2.6],
+        [0.1, 2.7],
+      ]) {
+        m.cylinder(x, 0, z, 0.025, 2.55, '#97a69b', 6);
+        m.box(x - 0.18, 2.55, z - 0.06, 0.36, 0.2, 0.12, '#d6d7b8');
+      }
+      m.box(0, 0, 2.75, size, 0.6, 0.2, '#b77d5a');
+      m.box(1.02, 0.6, 2.75, 0.95, 0.42, 0.2, '#bd916a');
+    });
+    registerObject(m, start, {
+      x: x - span / 2,
+      y: z - span / 2,
+      w: span,
+      d: span,
+      h: 2.75,
+      base,
+      footprint,
+      rotation: angle,
+      solid: true,
+      pinned: true,
+      sight: sightById('oracle'),
+    });
+  }
   function enhanceLandmarks() {
     const m = getSceneMesh(),
       addScenery = mapScenery,
@@ -1520,50 +1574,7 @@ export function createModels({
       true,
     );
     hall.sight!.entry = { x: hall.x + hall.w / 2 - 0.5, y: hall.y + hall.d + 0.15 };
-    addScenery(
-      'oracle',
-      52,
-      34,
-      3,
-      3,
-      3.3,
-      (m, h) => {
-        m.box(52, h, 34, 3, 0.15, 3, '#a57958');
-        m.box(52.3, h + 0.16, 34.3, 2.4, 0.025, 2.4, '#789853');
-        m.quad(
-          [53.5, h + 0.2, 34.7] satisfies [number, number, number],
-          [54.3, h + 0.2, 35.5] satisfies [number, number, number],
-          [53.5, h + 0.2, 36.3] satisfies [number, number, number],
-          [52.7, h + 0.2, 35.5] satisfies [number, number, number],
-          '#c7a776',
-        );
-        m.quad(
-          [53.5, h + 0.21, 35.03] satisfies [number, number, number],
-          [53.97, h + 0.21, 35.5] satisfies [number, number, number],
-          [53.5, h + 0.21, 35.97] satisfies [number, number, number],
-          [53.03, h + 0.21, 35.5] satisfies [number, number, number],
-          '#76924f',
-        );
-        for (let tier = 0; tier < 4; tier++) {
-          const hh = 0.3 + tier * 0.18;
-          m.box(52.02 + tier * 0.06, h + hh, 34.05, 0.16, 0.12, 2.7, '#476c62');
-          m.box(52.05, h + hh, 34.02 + tier * 0.06, 2.7, 0.12, 0.16, '#567c6e');
-          m.box(54.78 - tier * 0.06, h + hh, 34.05, 0.16, 0.12, 2.5, '#476c62');
-        }
-        for (const [x, z] of [
-          [52.1, 34.1] satisfies [number, number],
-          [54.8, 34.1] satisfies [number, number],
-          [54.8, 36.6] satisfies [number, number],
-          [52.1, 36.7] satisfies [number, number],
-        ]) {
-          m.cylinder(x, h, z, 0.025, 2.55, '#97a69b', 6);
-          m.box(x - 0.18, h + 2.55, z - 0.06, 0.36, 0.2, 0.12, '#d6d7b8');
-        }
-        m.box(52, h, 36.75, 3, 0.6, 0.2, '#b77d5a');
-        m.box(53.02, h + 0.6, 36.75, 0.95, 0.42, 0.2, '#bd916a');
-      },
-      true,
-    );
+    addOraclePark(m);
     addScenery('dolores', 36, 44, 1, 1, 0.7, (m, h) => {
       m.box(36.17, h, 44.5, 0.65, 0.14, 0.35, '#b7aa87');
     });

@@ -46,7 +46,7 @@ interface WorldMultiplayerOptions {
   characterGround: (x: number, z: number) => number;
   playerGround: () => number;
   announce: (message: string, speaker?: string) => void;
-  onChat?: (text: string, name: string, own: boolean) => void;
+  onChat?: (text: string, name: string, own: boolean, serverWide: boolean) => void;
   onPosition: (position: Position & { reason?: string }) => void;
   onCaught: (source: string) => void;
   onPrivateAward: (award: PendingAward) => void;
@@ -200,11 +200,7 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
           result.message || contentText('world-message.src.multiplayer-world.following-stopped'),
           'Follow',
         );
-      } else if (result.message)
-        announce(
-          result.message || contentText('world-message.src.multiplayer-world.following-stopped'),
-          'Follow',
-        );
+      }
     });
     return true;
   }
@@ -485,12 +481,14 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
     } else if (message.type === 'say') {
       const peer = client.peers.get(message.id);
       const own = message.id === client.state.id;
+      const serverWide = message.scope === 'server';
       api.onChat?.(
         message.text,
         message.name || (own ? client.state.name : peer?.name) || 'Player',
         own,
+        serverWide,
       );
-      if (peer) {
+      if (peer && !serverWide) {
         peer.speech = message.text;
         peer.speechUntil = performance.now() + 3000;
       }
@@ -756,6 +754,15 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
     ) {
       if (followState.target !== null && pose.mode !== 'walk') stopFollowing(false);
       client.update(pose);
+    },
+    get zooVisible() {
+      return client.state.connected && !!snapshot?.tiger;
+    },
+    get tigerIsChasingSelf() {
+      return client.state.id != null && snapshot?.tiger?.targetId === client.state.id;
+    },
+    get policeOfficers() {
+      return client.state.connected ? pursuits.publicPolice.values() : [];
     },
     say: (text: string) => client.say(text),
     checkpoint: () => client.checkpoint(true),

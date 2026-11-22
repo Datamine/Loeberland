@@ -23,8 +23,8 @@ test('a cashmere turtleneck changes the knit collar geometry and is offered to o
   assert.ok(equipmentOptions().torso.every((choice) => choice.value !== 'cashmere-turtleneck'));
 });
 
-test('hairstyle menus offer a broccoli cut and ponytail with distinct animated meshes', () => {
-  assert.ok(HAIRSTYLES.man.some((style) => style.id === 'broccoli'));
+test('hairstyle menus offer Broccoli and Ponytail with distinct animated meshes', () => {
+  assert.equal(HAIRSTYLES.man.find((style) => style.id === 'broccoli')?.label, 'Broccoli');
   assert.ok(HAIRSTYLES.woman.some((style) => style.id === 'ponytail'));
   for (const [gender, styles] of Object.entries(HAIRSTYLES)) {
     const meshes: import('../src/characters.ts').CharacterMesh[] = [];
@@ -78,6 +78,19 @@ test('pulled-back hairstyles cover the sides and nape while leaving the ears and
     assert.equal(visibleSlot({ origin: [-0.066, 1.467, -1], dir: [0, 0, 1] }), hair, hairstyle);
     assert.equal(visibleSlot({ origin: [1, 1.56, 0.01], dir: [-1, 0, 0] }), face, hairstyle);
   }
+});
+
+test('the ponytail arches above the tie and falls as a narrow strand', () => {
+  const look = characterAppearance(normalizeCharacter({ gender: 'woman', hairstyle: 'ponytail' }));
+  const { vertices, slots } = getCharacterMesh(look);
+  const hair = [...slots].flatMap((slot, i) =>
+    slot === 3 ? [vertices.slice(i * 6, i * 6 + 3)] : [],
+  );
+  assert.ok(hair.some(([, y, z]) => y > 1.79 && z < -0.19));
+  assert.ok(hair.some(([, y, z]) => y < 1.25 && z < -0.21));
+  const hanging = hair.filter(([, y, z]) => y >= 1.4 && y <= 1.68 && z < -0.22);
+  const widths = hanging.map(([x]) => x);
+  assert.ok(hanging.length > 0 && Math.max(...widths) - Math.min(...widths) < 0.1);
 });
 
 test('human mouths sit below the nose and curve upward at the corners', () => {

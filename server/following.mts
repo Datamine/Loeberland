@@ -10,6 +10,7 @@ interface FollowState {
   goalZ: number;
   checked?: Point;
   checkedRevision?: number;
+  orbitDirection?: number;
 }
 import type { SimulationServices, ServerPlayer } from '../src/types/server.ts';
 import { sameMapInstance } from '../src/map-instances.ts';
@@ -18,7 +19,10 @@ import { fighterYardMayEnter } from './fighter-yard.mts';
 import { guildMayEnter } from './guild.mts';
 import { ITEM_STATS } from '../src/item-stats.ts';
 const FOLLOW_SPEED = 4.6,
-  FOLLOW_RANGE = 1.2;
+  FOLLOW_RANGE = 1.2,
+  ORBIT_RANGE = 2.2,
+  ORBIT_MIN_RADIUS = 0.75,
+  ORBIT_SPEED = 1.7;
 /** Routes and distance budgets belong to the fixed-step server. Neither
  * camera focus nor client pose packets advance a follower. */
 export function createServerFollowing({
@@ -167,25 +171,76 @@ export function createServerFollowing({
     });
     dirty(p);
     send(p, { type: 'following', target: id, attack, position: pose(p) });
-    return {
-      ok: true,
-      following: id,
-      message: contentText('world-message.server.following.following-click-the-ground-to-stop', {
-        name: String(target.name),
-      }),
-    };
+    return { ok: true, following: id };
+  }
+  function orbit(a: ServerPlayer, b: ServerPlayer, state: FollowState, dt: number) {
+    const centerX = (a.x + b.x) / 2;
+    const centerZ = (a.z + b.z) / 2;
+    const radius = Math.hypot(a.x - centerX, a.z - centerZ);
+    const angle = radius > 1e-6 ? Math.atan2(a.z - centerZ, a.x - centerX) : a.angle;
+    const nextRadius = Math.max(
+      radius,
+      Math.min(ORBIT_MIN_RADIUS, radius + (FOLLOW_SPEED * dt) / 2),
+    );
+    const preferred = state.orbitDirection ?? 1;
+    for (const direction of [preferred, -preferred]) {
+      const nextAngle = angle + direction * ORBIT_SPEED * dt;
+      const dx = nextRadius * Math.cos(nextAngle);
+      const dz = nextRadius * Math.sin(nextAngle);
+      const steps = [a, b].map((p, i) => {
+        const sign = i === 0 ? 1 : -1;
+        const x = centerX + sign * dx;
+        const z = centerZ + sign * dz;
+        return { p, x, z, y: geometry.characterGround(x, z) };
+      });
+      if (
+        !steps.every(
+          ({ p, x, y, z }) =>
+            geometry.landClearAt(x - 0.5, z - 0.5) &&
+            geometry.canTravel!(p.x - 0.5, p.z - 0.5, x - 0.5, z - 0.5, true) &&
+            (inFighterYard(p.x, p.z) || fighterYardMayEnter(p, x, z)) &&
+            guildMayEnter(p, geometry, x, y, z),
+        )
+      )
+        continue;
+
+      state.orbitDirection = direction;
+      for (const { p, x, y, z } of steps) {
+        const dx = x - p.x;
+        const dz = z - p.z;
+        const distance = Math.hypot(dx, dz);
+        Object.assign(p, {
+          x,
+          y,
+          z,
+          angle: Math.atan2(dz, dx),
+          mode: 'walk',
+          moving: true,
+          motion: 1,
+          phase: p.phase + distance * Math.PI,
+          lastPoseAt: now(),
+        });
+        dirty(p);
+      }
+      return;
+    }
+    for (const p of [a, b]) {
+      p.moving = false;
+      p.motion = 0;
+    }
   }
   function tick(dt: unknown) {
     if (!isFiniteNumber(dt) || dt <= 0) return;
     elapsed += dt;
     const groundCache = new Map<number, number>();
     const ids = [...active.keys()];
+    const orbited = new Set<number>();
     let nextCursor = cursor;
     for (let i = 0; i < ids.length; i++) {
       const index = (cursor + i) % ids.length,
         id = ids[index],
         state = active.get(id);
-      if (!state) continue;
+      if (!state || orbited.has(id)) continue;
       const p = players.get(id),
         target = players.get(state.target);
       if (!p) {
@@ -195,6 +250,23 @@ export function createServerFollowing({
       const error = validate(p, target, state.attack, groundCache);
       if (error || !target || Math.hypot(p.x - target.x, p.z - target.z) > 80) {
         stop(p, error || 'That player is no longer nearby.');
+        continue;
+      }
+      const reciprocal = active.get(target.id);
+      if (
+        !state.attack &&
+        reciprocal &&
+        !reciprocal.attack &&
+        reciprocal.target === id &&
+        available(target) &&
+        Math.hypot(p.x - target.x, p.z - target.z) <= ORBIT_RANGE
+      ) {
+        orbited.add(target.id);
+        state.route = [];
+        reciprocal.route = [];
+        state.replan = reciprocal.replan = elapsed;
+        if (id < target.id) orbit(p, target, state, dt);
+        else orbit(target, p, reciprocal, dt);
         continue;
       }
       const range = state.attack ? ITEM_STATS[pvp.weaponFor(p)].range + 0.1 : FOLLOW_RANGE,

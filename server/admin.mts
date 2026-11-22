@@ -64,7 +64,8 @@ function adminAuthorization(username: string | undefined, password: string | und
     timingSafeEqual(expected, digest(Buffer.from(header.slice(6), 'base64')));
 }
 
-const isAccountKey = (key: string) => /^character-(password|session|device):/.test(key);
+const isAccountKey = (key: string) =>
+  /^character-(password|session|device|google|google-owner):/.test(key);
 type PlayerParts = [state: string | null, username: string | null];
 
 function validate(

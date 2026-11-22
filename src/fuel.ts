@@ -73,7 +73,11 @@ export function createFuelDialogue(
           };
         }),
     },
-    { fuelPrice: site.paid ? 'all carried coins' : 'Free' },
+    {
+      fuelPrice: site.paid ? 'all carried coins' : 'Free',
+      leaseOffer:
+        site.id === 'ferrari-dealer' ? contentText('service.ferrari-dealer.lease-offer') + ' ' : '',
+    },
   );
   if (!near()) person.choices = person.choices?.filter((choice) => choice.id !== 'refuel');
   return person;

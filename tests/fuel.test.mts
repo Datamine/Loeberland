@@ -2,6 +2,7 @@ import { requiredFixture } from './helpers/required.mts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createFerrari } from '../src/ferrari.ts';
+import { compileEntityDialogue } from '../src/content-game.ts';
 import { createRegionalRoad } from '../src/regional-road.ts';
 import { createEconomy } from '../src/economy.ts';
 import { createFuelDialogue, refuelFerrariFromCan } from '../src/fuel.ts';
@@ -141,4 +142,23 @@ test('direct pump refueling still requires the car and cannot charge for a remot
   );
   assert.equal(car.state.fuel, 1);
   assert.equal(purse.state.coins, 0);
+});
+
+test('the dealership attendant advertises the free Ferrari lease, and Tahoe offers only fuel', () => {
+  const car = createFerrari(createRegionalRoad());
+  const economy = createEconomy({ coins: 0 });
+  const dealer = requiredFixture(car.stations.find((station) => station.id === 'ferrari-dealer'));
+  const tahoe = requiredFixture(car.stations.find((station) => station.id === 'fuel-tahoe'));
+  const dialogue = (station: typeof dealer) =>
+    compileEntityDialogue(
+      createFuelDialogue(station, car, economy),
+      'actor:' + station.id + '-attendant',
+      {},
+    );
+  const dealerIntro = dialogue(dealer).intro;
+  const tahoeIntro = dialogue(tahoe).intro;
+  assert.ok(typeof dealerIntro === 'string');
+  assert.ok(typeof tahoeIntro === 'string');
+  assert.match(dealerIntro, /lease the Ferrari for free/);
+  assert.doesNotMatch(tahoeIntro, /lease/i);
 });

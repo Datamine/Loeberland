@@ -126,7 +126,13 @@ export interface AirshipSnapshot {
   reservedName?: string | null;
   reservedUntil?: number;
 }
+export interface NetworkPoliceOfficer extends WorldPoint {
+  id: string;
+  angle: number;
+  phase: number;
+}
 export interface SharedSnapshot {
+  police?: NetworkPoliceOfficer[];
   clock?: number;
   population?: number;
   peptideSpawnAt?: number;
@@ -137,7 +143,7 @@ export interface SharedSnapshot {
   loot?: import('./expeditions.ts').ExpeditionLoot[];
   raptor?:
     (NetworkCreature & { phase: string; release: number; preyId: number | string | null }) | null;
-  tiger?: ReturnType<typeof import('../zoo-encounter.ts').createTigerEncounter>['state'] | null;
+  tiger?: (import('./zoo.ts').TigerState & { targetId?: number | null }) | null;
   airship?: AirshipSnapshot | null;
 }
 export interface Position extends WorldPoint {
@@ -186,6 +192,10 @@ export interface PersonalSnapshot extends PersonalPursuits {
 export interface MultiplayerState {
   following: number | null;
   connected: boolean;
+  chatUnlocked?: boolean;
+  serverChatAllowed?: boolean;
+  googleAccountLabel?: string;
+  googleChatAvailable?: boolean;
   configured: boolean;
   id: number | null;
   name: string;
@@ -255,6 +265,10 @@ export interface WelcomeMessage extends ServerEnvelope {
   returningCharacter: boolean;
   serverBuild?: BuildInfo;
   hasCharacterPassword?: boolean;
+  chatUnlocked?: boolean;
+  serverChatAllowed?: boolean;
+  googleAccountLabel?: string;
+  googleChatAvailable?: boolean;
   autoName: boolean;
   renameAt: number;
   time: number;
@@ -343,7 +357,8 @@ export type ServerEvent = ServerEnvelope &
       }
     | { type: 'pvpBound'; target: number; duration: number }
     | { type: 'pvpKill'; target: number; name: string; drops: string[] }
-    | { type: 'say'; id: number; name?: string; text: string }
+    | { type: 'say'; id: number; name?: string; text: string; scope?: 'server' }
+    | { type: 'chatUnlocked'; googleAccountLabel?: string; serverChatAllowed?: boolean }
     | {
         type: 'position';
         reason?: string;

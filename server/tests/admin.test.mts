@@ -183,8 +183,14 @@ test('editor reads and atomically edits checkpoint-backed players and names inst
 });
 
 test('HTTP editor lists, reads and saves records, and rejects unauthorized or invalid requests', async (t) => {
-  const { filename } = await fixture(t),
-    store = await openAdminStore({ filename, redisURL: '' });
+  const { filename } = await fixture(t);
+  const db = new DatabaseSync(filename);
+  db.prepare('INSERT INTO state VALUES (?, ?)').run(
+    'character-google:alice',
+    '{"subject":"private-google-subject"}',
+  );
+  db.close();
+  const store = await openAdminStore({ filename, redisURL: '' });
   const admin = await startAdmin({ store, port: 0, ...credentials });
   t.after(() => admin.close());
   const headers = {
@@ -215,6 +221,23 @@ test('HTTP editor lists, reads and saves records, and rejects unauthorized or in
   assert.equal(page.status, 200);
   assert.match(await page.text(), /Loeberland database editor/);
   const records = await (await fetch(admin.origin + '/api/records', { headers })).json();
+  assert.ok(!records.records.some((row: { key: string }) => row.key === 'character-google:alice'));
+  const identity = await fetch(admin.origin + '/api/record?kind=state&key=character-google:alice', {
+    headers,
+  });
+  assert.equal(identity.status, 404);
+  assert.ok(!(await identity.text()).includes('private-google-subject'));
+  const changeIdentity = await fetch(admin.origin + '/api/record', {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify({
+      kind: 'state',
+      key: 'character-google:alice',
+      original: '{"subject":"private-google-subject"}',
+      value: { subject: 'different-google-subject' },
+    }),
+  });
+  assert.equal(changeIdentity.status, 404);
   assert.deepEqual(
     records.records.filter((row: { label: string }) => row.label === 'BayPilot'),
     [{ kind: 'player', key: 'alice', label: 'BayPilot' }],

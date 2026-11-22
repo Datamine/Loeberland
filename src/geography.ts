@@ -9,6 +9,7 @@ export const WORLD_SIZE = 96,
   STREET_LAYOUT_SIZE = 83;
 // Compressed East Bay shore: a short crossing from the island to the shops.
 export const EAST_BAY_COAST_X = 112;
+export const EAST_BAY_GRASS_COLOR = '#a7ac87';
 export const EAST_BAY_SHORE = Object.freeze({ north: -96, south: 112, east: 128, step: 4 });
 function shoreVertex(z: number) {
   if (z <= EAST_BAY_SHORE.north || z >= EAST_BAY_SHORE.south) return EAST_BAY_COAST_X;

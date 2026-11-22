@@ -114,18 +114,11 @@ export function npcPrimaryVerb(npc: ActorMetadata, revealed = false) {
  * actor interaction handler. Keep menu eligibility independent of rendering. */
 export function npcContextActions(
   npc: ActorMetadata = {},
-  { primary = 'talk', duel = false, following = false, pvp = false } = {},
+  { primary = 'talk', duel = false, pvp = false } = {},
 ) {
   if (npc.kind === AIRSHIP_TRAVELER) return ['talk', 'examine'];
   if (npc.networkPlayer)
-    return [
-      'trade',
-      ...(duel ? ['duel'] : []),
-      'follow',
-      ...(following ? ['unfollow'] : []),
-      ...(pvp ? ['attack'] : []),
-      'walk',
-    ];
+    return ['trade', ...(duel ? ['duel'] : []), 'follow', ...(pvp ? ['attack'] : []), 'walk'];
   let actions: string[];
   if (npc.police) actions = [];
   else if (npc.wilderness)

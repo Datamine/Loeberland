@@ -206,7 +206,6 @@ export interface Actor extends RuntimeDialogue {
   stop?: () => void;
   duel?: () => void;
   follow?: () => void;
-  unfollow?: () => void;
   examine?: () => void;
 }
 export interface RemoteActor extends Omit<Actor, 'id' | 'networkPlayer' | 'phase' | 'gesture'> {
@@ -346,6 +345,7 @@ export interface WorldObject {
   lamp?: StreetLamp;
   pool?: Pool | null;
   houses?: {
+    frontWindow?: { x: number; y: number; z: number; width: number };
     door?: number;
     dw?: number;
     entry?: number;

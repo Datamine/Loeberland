@@ -602,7 +602,9 @@
         {
           "id": "service.ai-recruiter.root.topic.work",
           "label": "What kind of work would I do?",
-          "receipt": "We run models here and pay people in coins for time spent working. Most afternoons somebody thinks they’ve made a breakthrough, then discovers that they loaded the wrong file. If you can spot that sort of thing and keep your nerve, you’ll fit in.",
+          "receipt": {
+            "text": "service.ai-recruiter.root.topic.work.receipt"
+          },
           "repeat": true
         }
       ],
@@ -1788,7 +1790,9 @@
             {
               "id": "service.ai-recruiter.root.topic.work",
               "label": "What kind of work would I do?",
-              "receipt": "We run models here and pay people in coins for time spent working. Most afternoons somebody thinks they’ve made a breakthrough, then discovers that they loaded the wrong file. If you can spot that sort of thing and keep your nerve, you’ll fit in."
+              "receipt": {
+                "text": "service.ai-recruiter.root.topic.work.receipt"
+              }
             }
           ],
           "repeat": false,
@@ -6123,6 +6127,7 @@
       },
       "sampleValues": {
         "service.fuel-free.root:intro": {
+          "leaseOffer": "You can lease the Ferrari for free. Just hop into the red one out front. ",
           "equityPrice": 10,
           "secondaryPrice": 20,
           "grainPrice": 1,

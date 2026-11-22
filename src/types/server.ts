@@ -139,6 +139,7 @@ export interface ServerPlayer {
   deathTask?: Promise<unknown>;
   instanceReturn?: NetworkPosition | null;
   seat?: { id: string; exit: WorldPoint; soakSeconds?: number } | null;
+  seatedRecoverySeconds?: number;
   surfShore?: Point | null;
   deckTarget?: WorldPoint | null;
   moveGoal?: WorldPoint | null;

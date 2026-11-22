@@ -106,3 +106,18 @@ test('all eight homes have connected doorways, walkable interiors and reachable 
     }
   }
 });
+
+test('the whole doghouse sits in the yard and can be searched from outside', () => {
+  const site = requiredFixture(world.searchSites.find((s) => s.id === 'house-search-2'));
+  const [left, , north] = requiredFixture(site.object?.lo);
+  const [right, , south] = requiredFixture(site.object?.hi);
+  for (const x of [left, right]) {
+    for (const z of [north, south]) {
+      assert.equal(world.groundSurfaceAt(x, z), 'grass');
+      assert.equal(world.placeAt(x - 0.5, z - 0.5), null);
+    }
+  }
+  assert.equal(world.groundSurfaceAt(site.entry.x + 0.5, site.entry.y + 0.5), 'grass');
+  assert.ok(world.landClearAt(site.entry.x, site.entry.y));
+  assert.ok(world.pathTo(site.entry.x, site.entry.y, world.spawn));
+});
