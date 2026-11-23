@@ -197,6 +197,7 @@ export function gameElement(id: string): HTMLElement {
 interface EditorElements {
   'catalog-version': HTMLElementTagNameMap['p'];
   detail: HTMLElementTagNameMap['main'];
+  'different-examine': HTMLElementTagNameMap['input'];
   'draft-count': HTMLElementTagNameMap['span'];
   'edit-mode': HTMLElementTagNameMap['input'];
   'editor-catalog': HTMLElementTagNameMap['script'];
@@ -211,6 +212,7 @@ interface EditorElements {
   'result-count': HTMLElementTagNameMap['p'];
   'save-source': HTMLElementTagNameMap['button'];
   search: HTMLElementTagNameMap['input'];
+  'show-duplicates': HTMLElementTagNameMap['input'];
   status: HTMLElementTagNameMap['span'];
 }
 export function editorElement<K extends keyof EditorElements>(id: K): EditorElements[K];

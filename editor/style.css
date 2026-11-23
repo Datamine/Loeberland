@@ -228,6 +228,15 @@ input::placeholder {
 .catalog-controls .kind-filter[hidden] {
   display: none;
 }
+.catalog-controls .catalog-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 10px 0 0;
+}
+.catalog-controls .catalog-checkbox[hidden] {
+  display: none;
+}
 #kind {
   padding: 5px;
   min-width: 0;

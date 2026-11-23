@@ -225,16 +225,19 @@ generic Man, Woman and Child NPCs. Search by name, ID, examine text or dialogue;
 inspect action order and quest/ownership variants, expand dialogue branches,
 or use Play through to preview a conversation. The editor never performs game
 actions. Shared casual conversations are available from eligible NPCs.
-Repeated NPCs and objects with the same name and type share one catalog entry.
+Placements with the same definition and examine text share one catalog entry.
+Enable **Show duplicates** to list each placement separately.
 Definition details provides a world-placement selector for inspecting any
 location-specific text or menus; searches include every placement's ID and text.
+Use **NPCs with the same name and different examine text** to narrow the list
+to those NPCs. The filter works with search and type selection.
 
 Enable **Draft edits** to rename entries, switch their category between NPC and
 Object, or edit their examine text and menus. Names and categories update the
-editor's labels, colors, filters and action previews immediately. Name/category
-edits apply to all placements in the selected entry; existing models, actions and
-dialogue remain available. Categories control NPC/object classification and menu
-colors; they preserve each target's existing capabilities.
+editor's labels, colors, filters and action previews immediately. Name and category
+edits apply to all placements using the selected definition. Categories control
+NPC/object classification and menu colors while preserving each target's existing
+capabilities.
 
 Run `npm run dev` and open **http://localhost:8080/editor.html**.
 **Save to game** validates and writes canonical JSON in [`content/`](../content/README.md), then publishes a fresh runtime document and editor. It does not rebuild the map. Stale edits are rejected; failed publication restores previous source files and retains drafts. HTTP clients load new content automatically. The write API exists only on the development server and accepts known catalog fields, not file paths or executable callbacks.

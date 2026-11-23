@@ -8,7 +8,10 @@ import { requiredFixture } from './helpers/required.mts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { groupEditorRecords } from '../editor/groups.ts';
+import { readContent } from '../content/build.mts';
+import { groupEditorRecords, npcNamesWithDifferentExamineText } from '../editor/groups.ts';
+import { projectCatalog } from '../editor/project.mts';
+import { planEditorWrite } from '../editor/write-plan.mts';
 import {
   applicableDraft,
   draftKey,
@@ -54,11 +57,11 @@ const record = (
 
 test('repeated NPCs and objects share one editor entry while preserving every original record', () => {
   const placed = [
-    { key: 'cow-1', name: 'Cow', kind: 'cow', group: 'npc' },
-    { key: 'cow-2', name: 'Cow', kind: 'cow', group: 'npc' },
-    { key: 'home-1', name: 'House', kind: 'residence', group: 'object' },
-    { key: 'home-2', name: 'House', kind: 'residence', group: 'object' },
-    { key: 'chef', name: 'Chef', kind: 'chef', group: 'npc' },
+    { key: 'cow-1', name: 'Cow', kind: 'cow', group: 'npc', description: 'A cow.' },
+    { key: 'cow-2', name: 'Cow', kind: 'cow', group: 'npc', description: 'A cow.' },
+    { key: 'home-1', name: 'House', kind: 'residence', group: 'object', description: '' },
+    { key: 'home-2', name: 'House', kind: 'residence', group: 'object', description: '' },
+    { key: 'chef', name: 'Chef', kind: 'chef', group: 'npc', description: '' },
   ];
   const before = JSON.stringify(placed);
   const groups = groupEditorRecords(placed);
@@ -77,6 +80,39 @@ test('repeated NPCs and objects share one editor entry while preserving every or
     'placement IDs, menu paths and drafts keep their original records',
   );
   assert.equal(JSON.stringify(placed), before);
+});
+
+test('the eight cows have separately editable examine text under a shared definition', async () => {
+  const source = await readContent();
+  const catalog = projectCatalog(source);
+  const cows = catalog.records.filter((record) => record.kind === 'cow');
+  assert.equal(new Set(cows.map((cow) => cow.definitionId)).size, 1);
+  const groups = groupEditorRecords(cows);
+  assert.equal(groups.length, 8);
+  assert.ok(groups.every(({ members }) => members.length === 1));
+
+  const target = requiredFixture(groups.find((cow) => cow.key === 'actor:south-cow-1'));
+  const after = 'A cow with a new examine text.';
+  const next = planEditorWrite(catalog, source, [
+    { record: target.key, path: ['description'], before: target.description, after },
+  ]);
+  const updated = projectCatalog(next).records.filter((record) => record.kind === 'cow');
+  assert.deepEqual(
+    updated.map(({ key, description }) => [key, description]),
+    cows.map(({ key, description }) => [key, key === target.key ? after : description]),
+  );
+});
+
+test('the examine filter finds repeated NPC names only when their examine text differs', () => {
+  const names = npcNamesWithDifferentExamineText([
+    { group: 'npc', name: 'Cow', description: 'Brown spots.' },
+    { group: 'npc', name: ' cow ', description: 'White spots.' },
+    { group: 'npc', name: 'Diner', description: 'Enjoys dinner.' },
+    { group: 'npc', name: 'Diner', description: 'Enjoys dinner.' },
+    { group: 'npc', name: 'Giraffe', description: 'A tall animal.' },
+    { group: 'object', name: 'Giraffe', description: 'A tall statue.' },
+  ]);
+  assert.deepEqual([...names], ['cow']);
 });
 
 test('name and NPC/Object drafts cover every placement and keep original source records intact', () => {
@@ -143,6 +179,7 @@ test('grouping keeps location-specific dialogue available and separates differen
       name: 'Fuel attendant',
       kind: 'fuel-attendant',
       group: 'npc',
+      description: '',
       dialogues: ['First price'],
     },
     {
@@ -150,10 +187,17 @@ test('grouping keeps location-specific dialogue available and separates differen
       name: 'Fuel attendant',
       kind: 'fuel-attendant',
       group: 'npc',
+      description: '',
       dialogues: ['Second price'],
     },
-    { key: 'other', name: 'Fuel attendant', kind: 'other', group: 'npc' },
-    { key: 'object', name: 'Fuel attendant', kind: 'fuel-attendant', group: 'object' },
+    { key: 'other', name: 'Fuel attendant', kind: 'other', group: 'npc', description: '' },
+    {
+      key: 'object',
+      name: 'Fuel attendant',
+      kind: 'fuel-attendant',
+      group: 'object',
+      description: '',
+    },
   ]);
   assert.equal(groups.length, 3);
   assert.deepEqual(

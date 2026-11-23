@@ -45,6 +45,13 @@
               <option value="all">All types</option>
             </select></label
           >
+          <label class="catalog-checkbox">
+            <input id="show-duplicates" type="checkbox" /> Show duplicates
+          </label>
+          <label class="catalog-checkbox">
+            <input id="different-examine" type="checkbox" />
+            NPCs with the same name and different examine text
+          </label>
           <p id="result-count" class="muted" aria-live="polite"></p>
         </div>
         <nav id="entity-list" aria-label="Catalog entries"></nav>
@@ -62,14 +69,14 @@
         <p>
           Menus and conversations come from canonical JSON definitions. State variants cover quests,
           ownership and activities. Generic casual conversations are shared across eligible NPCs.
-          Conditions use the same JSON player state as the game. Repeated names and types share one
-          entry. Definition details lists their world placements.
+          Conditions use the same JSON player state as the game. Placements with the same definition
+          and examine text share an entry. Definition details lists their world placements.
         </p>
         <p>
           Edits stay in this browser until you choose Save to game. The local server writes the
           entity, dialogue, and text sources under <code>content/</code>. The game reloads content
           automatically. Export changes also saves a reviewable JSON file. Name changes and
-          NPC/Object conversions apply to every placement in the selected entry.
+          NPC/Object conversions apply to every placement using the selected definition.
         </p>
         <p>
           Refresh the catalog with <code>npm run build:editor</code>. The normal game build

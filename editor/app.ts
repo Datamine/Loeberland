@@ -17,7 +17,7 @@ import { conditionMatches } from '../src/content-conditions.ts';
 import { previewField } from './project.mts';
 import { setActionText } from '../src/context-menu.ts';
 import { drawNPCChatHead } from '../src/chat-head.ts';
-import { groupEditorRecords } from './groups.ts';
+import { groupEditorRecords, normalizedName, npcNamesWithDifferentExamineText } from './groups.ts';
 import {
   valueAt,
   draftKey,
@@ -29,10 +29,12 @@ import {
 
 const catalog = JSON.parse(editorElement('editor-catalog').textContent || '{}') as EditorCatalog;
 const $ = editorElement;
+const showDuplicates = $('show-duplicates');
 const records = new Map(catalog.records.map((r) => [r.key, r]));
 const worldMessages = new Map(catalog.worldMessages.map((r) => [r.key, r]));
 const groups = groupEditorRecords(catalog.records);
 const recordGroups = new Map(groups.flatMap((g) => g.members.map((r) => [r.key, g])));
+const placementRows = catalog.records.map((record) => ({ ...record, members: [record] }));
 const shared = catalog.sharedDialogue.map((r) => ({
   ...r,
   key: 'shared:' + r.id,
@@ -169,6 +171,9 @@ function renderStatePreview(parent: HTMLElement) {
 function identity(record: EditorRecord) {
   return { name: read(record.key, ['name']), group: read(record.key, ['group']) };
 }
+function definitionPlacements(record: EditorRecord) {
+  return catalog.records.filter((placement) => placement.definitionId === record.definitionId);
+}
 function announce(text: string | null) {
   $('status').textContent = text;
 }
@@ -196,7 +201,7 @@ function saveIdentity(field: string, value: string, input: HTMLInputElement | HT
       : null;
   let changes;
   try {
-    changes = identityDraftChanges(recordGroups.get(state.key)!.members, field, value);
+    changes = identityDraftChanges(definitionPlacements(records.get(state.key)!), field, value);
   } catch (error) {
     input.setCustomValidity(errorMessage(error));
     return;
@@ -237,10 +242,7 @@ function updateDraftStatus() {
   $('reset-drafts').textContent = changes.length || !undo ? 'Discard drafts' : 'Undo discard';
   for (const row of $('entity-list').querySelectorAll<HTMLElement>(':scope > *')) {
     const key = row.dataset.key || '';
-    const group = recordGroups.get(key);
-    const count = changes.filter((c) =>
-      group ? recordGroups.get(c.record) === group : c.record === key,
-    ).length;
+    const count = changes.filter((c) => catalogRowKey(c.record) === key).length;
     const dot = row.querySelector('.draft-dot');
     if (dot) {
       dot.textContent = count ? '●' : '';
@@ -284,6 +286,7 @@ function field(
     input.addEventListener('input', () => {
       saveDraft(root, path, input.value);
       input.classList.toggle('changed', input.value !== valueAt(roots.get(root), path));
+      if (path[0] === 'description' && differentExamineFilterActive()) renderList();
     });
     box.append(caption, input);
   } else {
@@ -297,11 +300,16 @@ function field(
   }
   return box;
 }
+function catalogRows() {
+  return showDuplicates.checked ? placementRows : groups;
+}
+function catalogRowKey(key: string) {
+  return showDuplicates.checked ? key : (recordGroups.get(key)?.key ?? key);
+}
 function counts() {
-  $('object-count').textContent = String(
-    groups.filter((r) => identity(r).group === 'object').length,
-  );
-  $('npc-count').textContent = String(groups.filter((r) => identity(r).group === 'npc').length);
+  const rows = catalogRows();
+  $('object-count').textContent = String(rows.filter((r) => identity(r).group === 'object').length);
+  $('npc-count').textContent = String(rows.filter((r) => identity(r).group === 'npc').length);
 }
 function updateKinds() {
   $('kind').closest('label')!.hidden = state.group === 'message';
@@ -331,6 +339,9 @@ function matches(record: EditorRecord) {
       .includes(state.query)
   );
 }
+function differentExamineFilterActive() {
+  return (state.group === 'all' || state.group === 'npc') && $('different-examine').checked;
+}
 function renderList({ chooseFirst = false } = {}) {
   if (state.group === 'message') {
     const matches = [...worldMessages.values()].filter((r) =>
@@ -358,22 +369,32 @@ function renderList({ chooseFirst = false } = {}) {
     updateDraftStatus();
     return;
   }
-  visible = groups.filter(
-    (r) =>
-      (state.group === 'all' || identity(r).group === state.group) &&
+  const repeatedNames = differentExamineFilterActive()
+    ? npcNamesWithDifferentExamineText(
+        catalog.records.map((r) => ({ ...identity(r), description: read(r.key, ['description']) })),
+      )
+    : null;
+  const rows = catalogRows();
+  visible = rows.filter((r) => {
+    const { group, name } = identity(r);
+    return (
+      (state.group === 'all' || group === state.group) &&
+      (!repeatedNames || (group === 'npc' && repeatedNames.has(normalizedName(name)))) &&
       (state.kind === 'all' || r.kind === state.kind) &&
-      r.members.some(matches),
-  );
+      r.members.some(matches)
+    );
+  });
   $('entity-list').replaceChildren();
   if (!visible.length)
     $('entity-list').append(
       element('p', 'no-results', 'No matches. Try another name, ID, or line of dialogue.'),
     );
+  const selectedKey = catalogRowKey(state.key);
   for (const record of visible) {
     const row = button('', () => select(matchingMember(record).key), 'entity');
     row.dataset.key = record.key;
     row.dataset.group = identity(record).group;
-    row.setAttribute('aria-current', String(recordGroups.get(state.key) === record));
+    row.setAttribute('aria-current', String(record.key === selectedKey));
     row.append(
       element('span', 'draft-dot'),
       element('span', 'entity-name', identity(record).name),
@@ -387,15 +408,11 @@ function renderList({ chooseFirst = false } = {}) {
     );
     $('entity-list').append(row);
   }
-  $('result-count').textContent = visible.length + ' of ' + groups.length + ' unique entries';
-  if (
-    chooseFirst &&
-    visible.length &&
-    (!visible.some((g) => g === recordGroups.get(state.key)) || !current() || !matches(current()!))
-  )
-    select(
-      matchingMember(visible.find((g) => g === recordGroups.get(state.key)) || visible[0]).key,
-    );
+  $('result-count').textContent =
+    visible.length + ' of ' + rows.length + (rows === groups ? ' unique entries' : ' placements');
+  const selected = visible.find((r) => r.key === selectedKey);
+  if (chooseFirst && visible.length && (!selected || !current() || !matches(current()!)))
+    select(matchingMember(selected || visible[0]).key);
   else if (chooseFirst && !visible.length)
     $('detail').replaceChildren(
       element('div', 'empty-panel', 'No matching entries. Clear the search or change the filters.'),
@@ -416,10 +433,7 @@ function select(key: string, setHash = true) {
   state.receipt = null;
   if (setHash) history.replaceState(null, '', '#' + encodeURIComponent(key));
   for (const row of $('entity-list').querySelectorAll<HTMLElement>(':scope > *'))
-    row.setAttribute(
-      'aria-current',
-      String(row.dataset.key === (recordGroups.get(key)?.key || key)),
-    );
+    row.setAttribute('aria-current', String(row.dataset.key === catalogRowKey(key)));
   renderDetail();
   $('detail').scrollTop = 0;
 }
@@ -619,13 +633,13 @@ function renderIdentityEditor(main: HTMLElement, r: EditorRecord) {
     wrapper.append(label, input);
     fields.append(wrapper);
   }
-  const count = recordGroups.get(r.key)!.members.length;
+  const count = definitionPlacements(r).length;
   panel.append(
     fields,
     element(
       'p',
       'muted',
-      (count > 1 ? 'Applies to all ' + count + ' placements in this entry. ' : '') +
+      (count > 1 ? 'Applies to all ' + count + ' placements using this definition. ' : '') +
         'Save to game writes names and NPC/Object categories to the game’s source configuration. Existing menus remain available to edit below.',
     ),
   );
@@ -980,6 +994,8 @@ function renderPreview(
 function syncGroupFilters() {
   for (const tab of document.querySelectorAll<HTMLButtonElement>('.filters button'))
     tab.setAttribute('aria-pressed', String(tab.dataset.group === state.group));
+  $('different-examine').closest('label')!.hidden = state.group !== 'all' && state.group !== 'npc';
+  showDuplicates.closest('label')!.hidden = state.group === 'message';
 }
 for (const b of document.querySelectorAll<HTMLButtonElement>('.filters [data-group]'))
   b.addEventListener('click', () => {
@@ -994,6 +1010,11 @@ $('search').addEventListener('input', (e) => {
 });
 $('kind').addEventListener('change', (e) => {
   state.kind = $('kind').value;
+  renderList({ chooseFirst: true });
+});
+$('different-examine').addEventListener('change', () => renderList({ chooseFirst: true }));
+showDuplicates.addEventListener('change', () => {
+  counts();
   renderList({ chooseFirst: true });
 });
 $('edit-mode').addEventListener('change', (e) => {
@@ -1144,7 +1165,7 @@ document.addEventListener('keydown', (e) => {
       next?.focus();
       return;
     }
-    const i = visible.indexOf(recordGroups.get(state.key)!),
+    const i = visible.findIndex((r) => r.key === catalogRowKey(state.key)),
       next = visible[(i + (e.key === 'ArrowDown' ? 1 : -1) + visible.length) % visible.length];
     if (next) {
       select(matchingMember(next).key);

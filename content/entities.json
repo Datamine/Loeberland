@@ -12207,7 +12207,7 @@
         "x": 49.5,
         "z": 184.7
       },
-      "description": "Seems suspiciously well rested for someone living in a city with this much coffee.",
+      "description": "Fearless and thankfully peaceful.",
       "level": 2
     },
     "actor:south-cow-2": {
@@ -12219,7 +12219,7 @@
         "x": 53,
         "z": 185.2
       },
-      "description": "Walking with purpose, although the purpose may simply be a very specific sandwich.",
+      "description": "Goose Corp relation unclear.",
       "level": 2
     },
     "actor:south-cow-3": {
@@ -12231,7 +12231,7 @@
         "x": 47.2,
         "z": 188.2
       },
-      "description": "Carries a reusable bag with the quiet confidence of someone who remembered to bring it.",
+      "description": "Definitely not a coward.",
       "level": 2
     },
     "actor:south-cow-4": {
@@ -12243,7 +12243,7 @@
         "x": 51.5,
         "z": 188
       },
-      "description": "Appears to be mentally composing a strongly worded review of the weather.",
+      "description": "Straightforwardly maximizing his utility function thanks to the local abundance of grass.",
       "level": 2
     },
     "actor:south-cow-5": {
@@ -12255,7 +12255,7 @@
         "x": 53.7,
         "z": 190.6
       },
-      "description": "Knows a shortcut. Will probably describe it using a café that closed in 2018.",
+      "description": "Local ruminant.",
       "level": 2
     },
     "actor:south-cow-6": {
@@ -12267,7 +12267,7 @@
         "x": 43.9,
         "z": 191.1
       },
-      "description": "Their jacket is prepared for three microclimates. Their ankles are prepared for none.",
+      "description": "Has never once been online, and is happier for it.",
       "level": 2
     },
     "actor:south-cow-7": {
@@ -12279,7 +12279,7 @@
         "x": 48.8,
         "z": 191.2
       },
-      "description": "Has the air of someone who has just explained a very niche hobby to a captive audience.",
+      "description": "Working hard on inventing a bicycle for creatures with udders. Intends to apply to the Goblin Startup Incubator Q1 next year.",
       "level": 2
     },
     "sight:lost-pirate-wreck": {
