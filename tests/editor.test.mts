@@ -9,7 +9,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { readContent } from '../content/build.mts';
-import { groupEditorRecords, npcNamesWithDifferentExamineText } from '../editor/groups.ts';
+import { duplicateNPCNames, groupEditorRecords } from '../editor/groups.ts';
 import { projectCatalog } from '../editor/project.mts';
 import { planEditorWrite } from '../editor/write-plan.mts';
 import {
@@ -103,16 +103,17 @@ test('the eight cows have separately editable examine text under a shared defini
   );
 });
 
-test('the examine filter finds repeated NPC names only when their examine text differs', () => {
-  const names = npcNamesWithDifferentExamineText([
+test('duplicate NPC names can be filtered with or without matching examine text', () => {
+  const records = [
     { group: 'npc', name: 'Cow', description: 'Brown spots.' },
     { group: 'npc', name: ' cow ', description: 'White spots.' },
     { group: 'npc', name: 'Diner', description: 'Enjoys dinner.' },
     { group: 'npc', name: 'Diner', description: 'Enjoys dinner.' },
     { group: 'npc', name: 'Giraffe', description: 'A tall animal.' },
     { group: 'object', name: 'Giraffe', description: 'A tall statue.' },
-  ]);
-  assert.deepEqual([...names], ['cow']);
+  ];
+  assert.deepEqual([...duplicateNPCNames(records)], ['cow', 'diner']);
+  assert.deepEqual([...duplicateNPCNames(records, { differentExamineText: true })], ['cow']);
 });
 
 test('name and NPC/Object drafts cover every placement and keep original source records intact', () => {

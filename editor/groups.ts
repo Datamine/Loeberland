@@ -9,8 +9,9 @@ export function normalizedName(name: string) {
   return name.trim().toLocaleLowerCase('en');
 }
 
-export function npcNamesWithDifferentExamineText(
+export function duplicateNPCNames(
   records: Iterable<Pick<GroupableRecord, 'group' | 'name' | 'description'>>,
+  { differentExamineText = false } = {},
 ) {
   const firstExamineText = new Map<string, string>();
   const repeatedNames = new Set<string>();
@@ -19,7 +20,7 @@ export function npcNamesWithDifferentExamineText(
     const key = normalizedName(name);
     const first = firstExamineText.get(key);
     if (first === undefined) firstExamineText.set(key, description);
-    else if (first !== description) repeatedNames.add(key);
+    else if (!differentExamineText || first !== description) repeatedNames.add(key);
   }
   return repeatedNames;
 }

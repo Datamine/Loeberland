@@ -17,7 +17,7 @@ import { conditionMatches } from '../src/content-conditions.ts';
 import { previewField } from './project.mts';
 import { setActionText } from '../src/context-menu.ts';
 import { drawNPCChatHead } from '../src/chat-head.ts';
-import { groupEditorRecords, normalizedName, npcNamesWithDifferentExamineText } from './groups.ts';
+import { duplicateNPCNames, groupEditorRecords, normalizedName } from './groups.ts';
 import {
   valueAt,
   draftKey,
@@ -30,6 +30,7 @@ import {
 const catalog = JSON.parse(editorElement('editor-catalog').textContent || '{}') as EditorCatalog;
 const $ = editorElement;
 const showDuplicates = $('show-duplicates');
+const onlyDuplicateNPCNames = $('only-duplicate-npc-names');
 const records = new Map(catalog.records.map((r) => [r.key, r]));
 const worldMessages = new Map(catalog.worldMessages.map((r) => [r.key, r]));
 const groups = groupEditorRecords(catalog.records);
@@ -339,8 +340,11 @@ function matches(record: EditorRecord) {
       .includes(state.query)
   );
 }
+function npcFiltersAvailable() {
+  return state.group === 'all' || state.group === 'npc';
+}
 function differentExamineFilterActive() {
-  return (state.group === 'all' || state.group === 'npc') && $('different-examine').checked;
+  return npcFiltersAvailable() && $('different-examine').checked;
 }
 function renderList({ chooseFirst = false } = {}) {
   if (state.group === 'message') {
@@ -369,11 +373,17 @@ function renderList({ chooseFirst = false } = {}) {
     updateDraftStatus();
     return;
   }
-  const repeatedNames = differentExamineFilterActive()
-    ? npcNamesWithDifferentExamineText(
-        catalog.records.map((r) => ({ ...identity(r), description: read(r.key, ['description']) })),
-      )
-    : null;
+  const differentExamineText = differentExamineFilterActive();
+  const repeatedNames =
+    differentExamineText || (npcFiltersAvailable() && onlyDuplicateNPCNames.checked)
+      ? duplicateNPCNames(
+          catalog.records.map((r) => ({
+            ...identity(r),
+            description: differentExamineText ? read(r.key, ['description']) : r.description,
+          })),
+          { differentExamineText },
+        )
+      : null;
   const rows = catalogRows();
   visible = rows.filter((r) => {
     const { group, name } = identity(r);
@@ -994,7 +1004,8 @@ function renderPreview(
 function syncGroupFilters() {
   for (const tab of document.querySelectorAll<HTMLButtonElement>('.filters button'))
     tab.setAttribute('aria-pressed', String(tab.dataset.group === state.group));
-  $('different-examine').closest('label')!.hidden = state.group !== 'all' && state.group !== 'npc';
+  $('different-examine').closest('label')!.hidden = !npcFiltersAvailable();
+  onlyDuplicateNPCNames.closest('label')!.hidden = !npcFiltersAvailable();
   showDuplicates.closest('label')!.hidden = state.group === 'message';
 }
 for (const b of document.querySelectorAll<HTMLButtonElement>('.filters [data-group]'))
@@ -1013,6 +1024,7 @@ $('kind').addEventListener('change', (e) => {
   renderList({ chooseFirst: true });
 });
 $('different-examine').addEventListener('change', () => renderList({ chooseFirst: true }));
+onlyDuplicateNPCNames.addEventListener('change', () => renderList({ chooseFirst: true }));
 showDuplicates.addEventListener('change', () => {
   counts();
   renderList({ chooseFirst: true });

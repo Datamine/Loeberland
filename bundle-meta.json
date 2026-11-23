@@ -121,7 +121,7 @@
       "format": "esm"
     },
     "src/types/ui.ts": {
-      "bytes": 11180,
+      "bytes": 11288,
       "imports": [],
       "format": "esm"
     },
@@ -136,7 +136,7 @@
       "format": "esm"
     },
     "content/entities.json": {
-      "bytes": 459310,
+      "bytes": 459041,
       "imports": [],
       "format": "esm",
       "with": {
@@ -10099,7 +10099,7 @@
       "imports": [],
       "exports": [],
       "inputs": {},
-      "bytes": 9275904
+      "bytes": 9275646
     },
     "explore.js": {
       "imports": [],
@@ -10167,7 +10167,7 @@
           "bytesInOutput": 1568
         },
         "content/entities.json": {
-          "bytesInOutput": 272633
+          "bytesInOutput": 272231
         },
         "content/dialogues.json": {
           "bytesInOutput": 259047
@@ -11160,7 +11160,7 @@
           "bytesInOutput": 1701
         }
       },
-      "bytes": 4280544
+      "bytes": 4280142
     }
   }
 }

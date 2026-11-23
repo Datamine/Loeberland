@@ -126,7 +126,7 @@
       "name": "AI Lab Recruiter",
       "category": "npc",
       "kind": "recruiter",
-      "description": "A lab recruiter clutching a clipboard labeled “general intelligence.” The entire interview fits in a calculator, which is strictly forbidden.",
+      "description": "A lab recruiter clutching a clipboard labeled \"general intelligence.\" The entire interview fits in a calculator, which is strictly forbidden.",
       "menus": [
         {
           "id": "actor:ai-lab-recruiter.menu-1",
@@ -424,7 +424,7 @@
       "name": "B-2 Stealth Bomber",
       "category": "object",
       "kind": "stealth-bomber",
-      "description": "Your personal flying wing, its dark fuselage disappearing into the hangar’s shadows.",
+      "description": "Your personal flying wing, its dark fuselage disappearing into the hangar's shadows.",
       "menus": [
         {
           "id": "sight:personal-b2.menu-1",
@@ -559,7 +559,7 @@
       "name": "Battery Seller",
       "category": "npc",
       "kind": "battery-seller",
-      "description": "A local adventurer. Currently undertaking the difficult quest called “one more errand.”",
+      "description": "A local adventurer. Currently undertaking the difficult quest called \"one more errand.\"",
       "menus": [
         {
           "id": "actor:ssf-battery-seller.menu-1",
@@ -963,7 +963,7 @@
       "name": "Bolinas Grocer",
       "category": "npc",
       "kind": "bolinas-local",
-      "description": "Knows a shortcut. Will probably describe it using a café that closed in 2018.",
+      "description": "Knows a shortcut. Will probably describe it using a cafe that closed in 2018.",
       "menus": [
         {
           "id": "actor:bolinas-grocer.menu-1",
@@ -1412,7 +1412,7 @@
       "name": "Californian Research Institute for Consciousness",
       "category": "object",
       "kind": "research-institute",
-      "description": "The Californian Research Institute for Consciousness was the original institute’s field station before the split. Star charts cover the glass roof, and the brass instruments are still calibrated to a different consensus reality.",
+      "description": "The Californian Research Institute for Consciousness was the original institute's field station before the split. Star charts cover the glass roof, and the brass instruments are still calibrated to a different consensus reality.",
       "menus": [
         {
           "id": "sight:center-research-institute.menu-1",
@@ -1779,7 +1779,7 @@
     },
     "place:writing": {
       "id": "place:writing",
-      "name": "City Lights · Essays",
+      "name": "City Lights - Essays",
       "category": "object",
       "kind": "building",
       "description": "Pull up a chair. Essays on technology, markets, and the ideas that won't leave you alone.",
@@ -2830,7 +2830,7 @@
       "name": "Duel Arena",
       "category": "object",
       "kind": "duel-arena",
-      "description": "A tiny garden arena, with room for two large financial opinions. Equal coin stakes, explicit agreement, and a fair 50–50 flip. Speak to the referee or challenge another player here.",
+      "description": "A tiny garden arena, with room for two large financial opinions. Equal coin stakes, explicit agreement, and a fair 50-50 flip. Speak to the referee or challenge another player here.",
       "menus": [
         {
           "id": "sight:duel-arena.menu-1",
@@ -4026,7 +4026,7 @@
       "name": "Goblin Furniture Maker",
       "category": "npc",
       "kind": "goblin-maker",
-      "description": "Mount Tam’s most temperamental modernist. His ball chairs are round; his customer service is pointed.",
+      "description": "Mount Tam's most temperamental modernist. His ball chairs are round; his customer service is pointed.",
       "menus": [
         {
           "id": "actor:tam-furniture-maker.menu-1",
@@ -4623,7 +4623,7 @@
       "name": "Hillsborough Works",
       "category": "object",
       "kind": "construction",
-      "description": "Two lattice cranes lift the next chapter of the neighborhood. A small fenced digsite, a patient excavator, and Vic’s clipboard keep the main square free for pedestrians.",
+      "description": "Two lattice cranes lift the next chapter of the neighborhood. A small fenced digsite, a patient excavator, and Vic's clipboard keep the main square free for pedestrians.",
       "menus": [
         {
           "id": "sight:times-square-works.menu-1",
@@ -5096,7 +5096,7 @@
     },
     "sight:menottis-cafe": {
       "id": "sight:menottis-cafe",
-      "name": "Menotti’s",
+      "name": "Menotti's",
       "category": "object",
       "kind": "neighborhood-shop",
       "description": "The espresso machine is always busy, and regulars linger at the little pavement terrace.",
@@ -5124,7 +5124,7 @@
     },
     "actor:menottis-cafe-neighbor": {
       "id": "actor:menottis-cafe-neighbor",
-      "name": "Menotti’s Barista",
+      "name": "Menotti's Barista",
       "category": "npc",
       "kind": "person",
       "description": "The barista keeps the espresso going and pays a coin for help clearing the tables.",
@@ -5801,7 +5801,7 @@
     },
     "sight:lucindas-deli": {
       "id": "sight:lucindas-deli",
-      "name": "Lucinda’s Deli",
+      "name": "Lucinda's Deli",
       "category": "object",
       "kind": "restaurant",
       "description": "A busy neighborhood deli with a well-used counter and the smell of freshly baked bread.",
@@ -5829,7 +5829,7 @@
     },
     "place:books": {
       "id": "place:books",
-      "name": "Main Library · Bookshelf",
+      "name": "Main Library - Bookshelf",
       "category": "object",
       "kind": "building",
       "description": "Fiction and non-fiction that stay with you, long after the last page.",
@@ -6085,7 +6085,7 @@
       "name": "Minutes of the Lodge Committee",
       "category": "object",
       "kind": "lore-book",
-      "description": "A red ledger records the lodge’s more discreet arrangements.",
+      "description": "A red ledger records the lodge's more discreet arrangements.",
       "menus": [
         {
           "id": "sight:lore-freemasons-guild.menu-1",
@@ -6256,7 +6256,7 @@
       "name": "Motorcycle",
       "category": "npc",
       "kind": "motorcycle",
-      "description": "A parked motorcycle with a gleaming tank and a neatly printed rental note: “5 coins.”",
+      "description": "A parked motorcycle with a gleaming tank and a neatly printed rental note: \"5 coins.\"",
       "menus": [
         {
           "id": "sight:zoo-motorcycle.menu-1",
@@ -6387,7 +6387,7 @@
       "name": "Mount Tam Goblin Town",
       "category": "object",
       "kind": "goblin-town",
-      "description": "A muddy path north of the jail leads to the Mount Tam goblins’ settlement. Redwood offcuts, fog jars, and a furniture workshop have made the journey down the mountain.",
+      "description": "A muddy path north of the jail leads to the Mount Tam goblins' settlement. Redwood offcuts, fog jars, and a furniture workshop have made the journey down the mountain.",
       "menus": [
         {
           "id": "sight:mount-tam-goblins.menu-1",
@@ -6819,7 +6819,7 @@
     },
     "place:orin-house": {
       "id": "place:orin-house",
-      "name": "Orin’s house",
+      "name": "Orin's house",
       "category": "object",
       "kind": "wizard-house",
       "description": "The noisy wizard inside is ruining the neighborhood character.",
@@ -7165,7 +7165,7 @@
       "name": "Park Windmill",
       "category": "object",
       "kind": "windmill",
-      "description": "A timber windmill and flower beds stand near the park’s western end.",
+      "description": "A timber windmill and flower beds stand near the park's western end.",
       "menus": [
         {
           "id": "sight:windmill.menu-1",
@@ -7346,7 +7346,7 @@
     },
     "sight:presidio": {
       "id": "sight:presidio",
-      "name": "Presidio · Main Post",
+      "name": "Presidio - Main Post",
       "category": "object",
       "kind": "park",
       "description": "Wooded hills give way to a broad parade ground, a flagpole, and rows of red-roof barracks.",
@@ -8237,7 +8237,7 @@
       "name": "Rowan Zero",
       "category": "npc",
       "kind": "researcher",
-      "description": "The facilities lead. Their keyring is labeled “ground truth” and opens considerably more doors than the institute’s theories do.",
+      "description": "The facilities lead. Their keyring is labeled \"ground truth\" and opens considerably more doors than the institute's theories do.",
       "menus": [
         {
           "id": "actor:rowan-zero.menu-1",
@@ -8306,7 +8306,7 @@
       "name": "Salesforce Tower",
       "category": "object",
       "kind": "tower",
-      "description": "Broad glass façades taper toward a flat rooftop and a softly illuminated crown over the dense towers south of Market.",
+      "description": "Broad glass facades taper toward a flat rooftop and a softly illuminated crown over the dense towers south of Market.",
       "menus": [
         {
           "id": "sight:salesforce.menu-1",
@@ -8922,7 +8922,7 @@
     },
     "sight:shanghai-kelly": {
       "id": "sight:shanghai-kelly",
-      "name": "Shanghai Kelly’s",
+      "name": "Shanghai Kelly's",
       "category": "object",
       "kind": "restaurant",
       "description": "A neighborhood bar with a polished counter and a floor that has heard every story.",
@@ -9246,7 +9246,7 @@
       "name": "Soren Still",
       "category": "npc",
       "kind": "researcher",
-      "description": "A contemplative fellow taking a very slow walk around the bench he identifies as “compute infrastructure.”",
+      "description": "A contemplative fellow taking a very slow walk around the bench he identifies as \"compute infrastructure.\"",
       "menus": [
         {
           "id": "actor:soren-still.menu-1",
@@ -9343,7 +9343,7 @@
       "name": "SpaceX Attendant",
       "category": "npc",
       "kind": "crew",
-      "description": "An attendant with a flight manifest and immaculate coveralls. The clipboard says “Reusable” with a reassuring number of check marks.",
+      "description": "An attendant with a flight manifest and immaculate coveralls. The clipboard says \"Reusable\" with a reassuring number of check marks.",
       "menus": [
         {
           "id": "actor:sf-spaceport-attendant.menu-1",
@@ -9542,7 +9542,7 @@
       "name": "Stairs to the Guild",
       "category": "object",
       "kind": "cave-exit",
-      "description": "A long stairway returns to the Freemasons’ Guild above.",
+      "description": "A long stairway returns to the Freemasons' Guild above.",
       "menus": [
         {
           "id": "sight:illuminati-exit.menu-1",
@@ -10418,7 +10418,7 @@
       "name": "The Pequod",
       "category": "object",
       "kind": "pequod",
-      "description": "Captain Ahab’s whaling ship. Its timbers smell of salt, tar, and extremely stubborn ambition.",
+      "description": "Captain Ahab's whaling ship. Its timbers smell of salt, tar, and extremely stubborn ambition.",
       "menus": [
         {
           "id": "sight:pequod.menu-1",
@@ -10549,7 +10549,7 @@
       "name": "The Quarterly Honk",
       "category": "object",
       "kind": "lore-book",
-      "description": "A household magazine, addressed to “The Current Beneficial Occupant”.",
+      "description": "A household magazine, addressed to \"The Current Beneficial Occupant\".",
       "menus": [
         {
           "id": "sight:lore-explorable-home-8.menu-1",
@@ -11048,7 +11048,7 @@
       "name": "UCSF Hospital",
       "category": "object",
       "kind": "hospital",
-      "description": "UCSF Hospital. Excellent emergency care, including the surprisingly common diagnosis “opened the tiger gate.”",
+      "description": "UCSF Hospital. Excellent emergency care, including the surprisingly common diagnosis \"opened the tiger gate.\"",
       "menus": [
         {
           "id": "sight:ucsf.menu-1",
@@ -11538,7 +11538,7 @@
       "name": "Zookeeper",
       "category": "npc",
       "kind": "person",
-      "description": "A watchful zookeeper with an extremely literal interpretation of ‘monkey business.’",
+      "description": "A watchful zookeeper with an extremely literal interpretation of 'monkey business.'",
       "menus": [
         {
           "id": "actor:monkey-zookeeper.menu-1",
@@ -11604,7 +11604,7 @@
     },
     "sight:monkey-keeper-post": {
       "id": "sight:monkey-keeper-post",
-      "name": "Zookeeper’s Post",
+      "name": "Zookeeper's Post",
       "category": "object",
       "kind": "scenery",
       "description": "A remarkably athletic zookeeper is keeping a close eye on the monkey habitat.",

@@ -208,6 +208,7 @@ interface EditorElements {
   kind: HTMLElementTagNameMap['select'];
   'npc-count': HTMLElementTagNameMap['span'];
   'object-count': HTMLElementTagNameMap['span'];
+  'only-duplicate-npc-names': HTMLElementTagNameMap['input'];
   'reset-drafts': HTMLElementTagNameMap['button'];
   'result-count': HTMLElementTagNameMap['p'];
   'save-source': HTMLElementTagNameMap['button'];

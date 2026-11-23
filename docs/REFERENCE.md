@@ -229,8 +229,9 @@ Placements with the same definition and examine text share one catalog entry.
 Enable **Show duplicates** to list each placement separately.
 Definition details provides a world-placement selector for inspecting any
 location-specific text or menus; searches include every placement's ID and text.
-Use **NPCs with the same name and different examine text** to narrow the list
-to those NPCs. The filter works with search and type selection.
+Use **Only duplicate NPC names** to filter by repeated names. Use **NPCs with
+the same name and different examine text** to further narrow the results by
+examine text. Both filters work with search and type selection.
 
 Enable **Draft edits** to rename entries, switch their category between NPC and
 Object, or edit their examine text and menus. Names and categories update the
