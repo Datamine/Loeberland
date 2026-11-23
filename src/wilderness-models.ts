@@ -118,12 +118,6 @@ export function drawGoblinHead(m: Mesh, actor: MonsterPose) {
       m.cylinder(0, 1.175, 0.002, 0.201, 0.137, '#c4a665', 12, 0.164, 'canvasWeave');
       m.cylinder(0, 1.18, 0.002, 0.205, 0.036, '#755739', 12);
     }
-    if (actor.modelVariant === 'scientist') {
-      for (const s of [-1, 1])
-        m.rod([s * 0.06, 1.079, 0.225], [s * 0.167, 1.079, 0.179], 0.022, '#8aaaba', 7, {
-          metal: 0.57,
-        });
-    }
     if (guard || veteran) {
       const { plate, trim } = IRON_ARMOR_COLORS;
       m.sphere(0, 1.19, -0.011, 0.254, 0.135, 0.218, plate, 16, 8, goblinIron);

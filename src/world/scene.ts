@@ -4423,16 +4423,34 @@ export function createSFWorld({
     );
   const shortcutMenu = $('sf-shortcut-menu');
   const shortcutList = $('sf-shortcut-list');
+  const shortcutActions = requiredValue(
+    actionsPanel.querySelector<HTMLElement>('.sf-shortcut-actions'),
+    'Additional shortcut buttons',
+  );
+  type Shortcut = { label: string; run: () => unknown; button?: HTMLButtonElement };
+  let shownShortcuts = new Map<string, Shortcut>();
+  let shortcutFrame = 0;
+  function clearShortcutButtons() {
+    for (const { button } of shownShortcuts.values())
+      if (button) delete button.dataset.visibleShortcut;
+  }
   function closeShortcutMenu() {
+    if (shortcutMenu.hidden) return;
     shortcutMenu.hidden = true;
+    cancelAnimationFrame(shortcutFrame);
+    shortcutActions.hidden = true;
+    shortcutActions.replaceChildren();
+    clearShortcutButtons();
+    shownShortcuts.clear();
   }
   function availableShortcuts() {
-    const entries = new Map<string, { label: string; run: () => unknown }>();
+    const entries = new Map<string, Shortcut>();
     const control = (key: string, id: keyof GameElements, label: string) => {
       const button = $(id);
       if (button instanceof HTMLButtonElement && !button.hidden && !button.disabled)
         entries.set(key, {
           label,
+          button,
           run: () => {
             if (id === 'sf-sit-button') expandActions(true);
             button.click();
@@ -4449,7 +4467,13 @@ export function createSFWorld({
     control('b', 'sf-bike-button', 'Bicycle');
     control('k', 'sf-skateboard-button', 'Skateboard');
     control('j', 'sf-rocket-hop', 'Rocket hop');
-    if (tahoe.state.mode === 'ski') control(' ', 'sf-ski-button', 'Ski flip');
+    const mode = multiplayerWorld?.selfMode;
+    if (mode === 'streetcar') control('e', 'sf-exit-streetcar', streetcarExit.label);
+    else if (mode === 'swing') control('e', 'sf-exit-swing', 'Get off swing');
+    else if (mode === 'waymo') control('e', 'sf-call-waymo', waymoExit.label);
+    else if (sutroClimb.state.active)
+      entries.set('e', { label: 'Exit options', run: showExitMenu });
+    else if (tahoe.state.mode === 'ski') control(' ', 'sf-ski-button', 'Ski flip');
     else control('e', 'sf-ski-button', 'Tahoe activity');
     entries.set('+', { label: 'Zoom in', run: () => setZoom(zoom + 0.1) });
     entries.set('-', { label: 'Zoom out', run: () => setZoom(zoom - 0.1) });
@@ -4457,9 +4481,6 @@ export function createSFWorld({
       entries.set('m', { label: 'Motorcycle', run: () => useMotorcycle() });
     if (surf.state.riding) entries.set('f', { label: 'Return to shore', run: () => useSurf() });
     if (ferrari?.state.riding) entries.set('r', { label: 'Park Ferrari', run: () => useFerrari() });
-    const exit = multiplayerWorld?.selfMode;
-    if (exit === 'streetcar' || exit === 'waymo' || sutroClimb.state.active)
-      entries.set('e', { label: 'Exit options', run: showExitMenu });
     for (const group of [
       $('sf-bomber-controls'),
       $('sf-wave-controls'),
@@ -4469,30 +4490,32 @@ export function createSFWorld({
     ]) {
       if (group.hidden) continue;
       for (const button of group.querySelectorAll<HTMLButtonElement>('button[data-shortcut]')) {
-        if (button.hidden || button.disabled) continue;
-        const label = button.textContent?.trim().split(' · ')[0] || '';
-        for (const key of button.dataset.shortcut!.split(' '))
-          entries.set(key === 'space' ? ' ' : key, { label, run: () => button.click() });
+        const key = button.dataset.shortcut;
+        if (!key || button.hidden || button.disabled) continue;
+        const label = button.textContent?.trim() || '';
+        entries.set(key === 'space' ? ' ' : key, { label, button, run: () => button.click() });
       }
     }
-    entries.set('t', {
-      label: 'Teleport',
-      run: () => {
-        const teleport = $('sf-teleport-button');
-        if (!teleport.disabled && !teleport.hidden) {
-          expandActions(true);
-          teleport.click();
-        } else if (!debugConsole?.openTeleport()) {
-          announce(teleport.title || 'Teleport unavailable', 'Teleport');
-        }
-      },
-    });
+    control('t', 'sf-teleport-button', 'Teleport');
+    if (!entries.has('t') && multiplayer?.state.debug)
+      entries.set('t', {
+        label: 'Teleport to coordinates',
+        run: () => debugConsole?.openTeleport(),
+      });
     return entries;
   }
-  function showShortcuts() {
-    canvas.focus({ preventScroll: true });
+  function renderShortcuts(entries: Map<string, Shortcut>) {
+    const focused = document.activeElement;
+    const focusedKey =
+      focused instanceof HTMLButtonElement && shortcutActions.contains(focused)
+        ? focused.dataset.visibleShortcut
+        : undefined;
+    clearShortcutButtons();
+    shownShortcuts = entries;
     shortcutList.replaceChildren();
-    for (const [key, { label }] of availableShortcuts()) {
+    shortcutActions.replaceChildren();
+    let focusTarget: HTMLButtonElement | undefined;
+    for (const [key, { label, button }] of entries) {
       const item = document.createElement('li');
       const prefix = document.createElement('kbd');
       const cap = document.createElement('kbd');
@@ -4501,13 +4524,67 @@ export function createSFWorld({
       prefix.textContent = 'Esc';
       cap.textContent = key === ' ' ? 'Space' : key.toUpperCase();
       name.textContent = label;
-      item.append(prefix, cap, name);
+      if (key !== 'j') item.append(prefix);
+      item.append(cap, name);
       shortcutList.append(item);
+      if (button) {
+        button.dataset.visibleShortcut = cap.textContent;
+      } else {
+        const option = document.createElement('button');
+        option.type = 'button';
+        option.className = 'sf-bike-button';
+        option.textContent = label;
+        option.dataset.visibleShortcut = cap.textContent;
+        if (cap.textContent === focusedKey) focusTarget = option;
+        option.addEventListener('click', () => {
+          closeShortcutMenu();
+          canvas.focus({ preventScroll: true });
+          const shortcut = availableShortcuts().get(key);
+          if (shortcut?.label === label) shortcut.run();
+        });
+        shortcutActions.append(option);
+      }
     }
-    shortcutMenu.hidden = false;
+    shortcutActions.hidden = !shortcutActions.childElementCount;
+    if (focusedKey) (focusTarget ?? canvas).focus({ preventScroll: true });
   }
-  document.addEventListener('pointerdown', closeShortcutMenu, true);
-  document.addEventListener('wheel', closeShortcutMenu, { capture: true, passive: true });
+  function refreshShortcuts() {
+    if (shortcutMenu.hidden) return;
+    const entries = availableShortcuts();
+    if (
+      entries.size !== shownShortcuts.size ||
+      [...entries].some(([key, { label, button }]) => {
+        const previous = shownShortcuts.get(key);
+        return previous?.label !== label || previous.button !== button;
+      })
+    )
+      renderShortcuts(entries);
+    shortcutFrame = requestAnimationFrame(refreshShortcuts);
+  }
+  function showShortcuts() {
+    canvas.focus({ preventScroll: true });
+    expandActions(true);
+    actionsPanel.querySelector<HTMLButtonElement>('#sf-you-tab[aria-selected="false"]')?.click();
+    shortcutMenu.hidden = false;
+    refreshShortcuts();
+  }
+  document.addEventListener(
+    'pointerdown',
+    (event) => {
+      if (!(event.target instanceof Node) || !actionsPanel.contains(event.target))
+        closeShortcutMenu();
+    },
+    true,
+  );
+  actionsPanel.addEventListener('click', closeShortcutMenu);
+  document.addEventListener(
+    'wheel',
+    (event) => {
+      if (!(event.target instanceof Node) || !actionsPanel.contains(event.target))
+        closeShortcutMenu();
+    },
+    { capture: true, passive: true },
+  );
   function startTyping(event: KeyboardEvent) {
     if (chatForm.hidden || !$('sf-reader').hidden || !$('sf-context').hidden) return false;
     if (event.key === ' ' && event.target instanceof HTMLButtonElement) return false;
@@ -4579,6 +4656,13 @@ export function createSFWorld({
         if (!e.repeat) closeShortcutMenu();
         return;
       }
+      if (
+        key === 'tab' ||
+        ((key === ' ' || key === 'enter') &&
+          e.target instanceof HTMLButtonElement &&
+          actionsPanel.contains(e.target))
+      )
+        return;
       closeShortcutMenu();
       if (!e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) {
         const shortcut = availableShortcuts().get(key === '=' ? '+' : key);

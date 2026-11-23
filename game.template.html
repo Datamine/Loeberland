@@ -281,14 +281,14 @@
                     type="button"
                     data-shortcut="r"
                   >
-                    Barrel roll · Esc R</button
+                    Barrel roll</button
                   ><button
                     id="sf-bomber-bomb"
                     class="sf-bike-button"
                     type="button"
                     data-shortcut="space"
                   >
-                    Drop bomb · Esc Space</button
+                    Drop bomb</button
                   ><button id="sf-bomber-land" class="sf-bike-button" type="button">
                     Land · Parachute out
                   </button>
@@ -313,15 +313,15 @@
                     type="button"
                     data-shortcut="space"
                   >
-                    Catch wave · Esc Space
+                    Catch wave
                   </button>
                   <button
                     class="sf-bike-button"
                     type="button"
                     data-surf-trick="air-360"
-                    data-shortcut="1 space"
+                    data-shortcut="1"
                   >
-                    Air 360 · Esc 1 / Esc Space
+                    Air 360
                   </button>
                   <button
                     class="sf-bike-button"
@@ -329,7 +329,7 @@
                     data-surf-trick="kickflip"
                     data-shortcut="2"
                   >
-                    Kickflip · Esc 2
+                    Kickflip
                   </button>
                   <button
                     class="sf-bike-button"
@@ -337,7 +337,7 @@
                     data-surf-trick="backflip"
                     data-shortcut="3"
                   >
-                    Backflip · Esc 3
+                    Backflip
                   </button>
                 </div>
                 <button
@@ -347,7 +347,7 @@
                   hidden
                   aria-pressed="false"
                 >
-                  Skateboard · Esc K
+                  Skateboard
                 </button>
                 <div
                   id="sf-skate-tricks"
@@ -362,7 +362,7 @@
                     data-skate-trick="ollie"
                     data-shortcut="1"
                   >
-                    Ollie · Esc 1
+                    Ollie
                   </button>
                   <button
                     class="sf-bike-button"
@@ -370,7 +370,7 @@
                     data-skate-trick="kickflip"
                     data-shortcut="2"
                   >
-                    Kickflip · Esc 2
+                    Kickflip
                   </button>
                   <button
                     class="sf-bike-button"
@@ -378,7 +378,7 @@
                     data-skate-trick="shove-it"
                     data-shortcut="3"
                   >
-                    360 shove-it · Esc 3
+                    360 shove-it
                   </button>
                 </div>
                 <div
@@ -394,7 +394,7 @@
                     data-motorcycle-trick="motorcycle-wheelie"
                     data-shortcut="1"
                   >
-                    Wheelie · Esc 1
+                    Wheelie
                   </button>
                   <button
                     class="sf-bike-button"
@@ -402,7 +402,7 @@
                     data-motorcycle-trick="motorcycle-endo"
                     data-shortcut="2"
                   >
-                    Endo · Esc 2
+                    Endo
                   </button>
                   <button
                     class="sf-bike-button"
@@ -410,7 +410,7 @@
                     data-motorcycle-trick="motorcycle-hop"
                     data-shortcut="3"
                   >
-                    Bunny hop · Esc 3
+                    Bunny hop
                   </button>
                 </div>
                 <button id="sf-rope-button" class="sf-bike-button" type="button" hidden>
@@ -439,7 +439,7 @@
                     data-atv-trick="roll"
                     data-shortcut="r"
                   >
-                    Air roll · Esc R
+                    Air roll
                   </button>
                   <button
                     class="sf-bike-button"
@@ -448,32 +448,29 @@
                     data-atv-trick="spin"
                     data-shortcut="s"
                   >
-                    Air spin · Esc S
+                    Air spin
                   </button>
                   <button class="sf-bike-button" type="button" data-atv-action="atvDismount">
                     Dismount ATV
                   </button>
                 </div>
-                <div id="sf-rocket-ignition" class="sf-rocket-ignition" hidden>
-                  <button
-                    id="sf-light-decorative-rocket"
-                    class="sf-bike-button"
-                    type="button"
-                    disabled
-                  >
-                    Light <span class="sf-action-target" data-kind="item">Rocket</span>
-                  </button>
-                  <small id="sf-rocket-countdown" hidden></small>
-                </div>
+                <button
+                  id="sf-light-decorative-rocket"
+                  class="sf-bike-button"
+                  type="button"
+                  disabled
+                  hidden
+                >
+                  Light <span class="sf-action-target" data-kind="item">Rocket</span>
+                </button>
                 <button
                   id="sf-rocket-hop"
                   class="sf-bike-button"
                   type="button"
-                  title="Jump with your burning back rocket (Esc, then J)"
+                  title="Jump with your burning back rocket"
                   hidden
                 >
                   <span class="sf-action-target" data-kind="item">Rocket</span> hop
-                  <span class="sf-key">Esc J</span>
                 </button>
                 <div id="sf-quick-actions" class="sf-quick-actions">
                   <button
@@ -488,6 +485,7 @@
                     id="sf-dance-button"
                     class="sf-bike-button"
                     type="button"
+                    title="Dance (Esc, then D)"
                     aria-pressed="false"
                   >
                     Dance
@@ -636,6 +634,7 @@
               <p role="status"></p>
               <ol></ol>
             </section>
+            <div class="sf-shortcut-actions" role="group" aria-label="More shortcuts" hidden></div>
             <div class="sf-action-tabs">
               <div class="sf-tablist" role="tablist" aria-label="Menu view">
                 <button
@@ -1170,8 +1169,8 @@
             <kbd class="sf-key">F</kbd> / <kbd class="sf-key">R</kbd>
           </dt>
           <dd>
-            Open exit options or use the Tahoe activity button, return from surfing, or park the
-            Ferrari.
+            Use E to get off the swing or cable car, exit Waymo, open Sutro Tower exit options, or
+            use the Tahoe activity button. Use F to return from surfing or R to park the Ferrari.
           </dd>
         </dl>
         <p>A yellow X confirms a click. A red X means the action is unavailable.</p>

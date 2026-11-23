@@ -2904,8 +2904,12 @@ export function createInteractions(context: WorldContext) {
   }
 
   function catchPacificaWave() {
-    if (!context.surf.state.riding || context.surf.state.mode !== 'surf') return false;
-    if (context.waveSurf.state.ride) return performSurfTrick('air-360');
+    if (
+      !context.surf.state.riding ||
+      context.surf.state.mode !== 'surf' ||
+      context.waveSurf.state.ride
+    )
+      return false;
     {
       context.multiplayerWorld.command('travel', { kind: 'catchWave' });
       return true;
@@ -5655,7 +5659,9 @@ export function createInteractions(context: WorldContext) {
     context.player.dancing = value;
     if (!context.headless) {
       context.$('sf-dance-button').setAttribute('aria-pressed', String(value));
-      context.$('sf-dance-button').title = value ? 'Stop dancing (D)' : 'Dance (D)';
+      context.$('sf-dance-button').title = value
+        ? 'Stop dancing (Esc, then D)'
+        : 'Dance (Esc, then D)';
     }
   }
 

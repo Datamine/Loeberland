@@ -128,7 +128,7 @@ export function createHud(context: WorldContext) {
         ? 'Riding gondola…'
         : mode === 'ski'
           ? context.tahoe.state.airTime > 0
-            ? 'Flip · Esc Space'
+            ? 'Flip'
             : 'Skiing…'
           : Math.hypot(
                 context.player.x + 0.5 - TAHOE.peak.x,
@@ -275,7 +275,7 @@ export function createHud(context: WorldContext) {
       (!context.multiplayer?.state.connected && !!context.multiplayer);
     $('sf-bomber-bomb').textContent = bombSeconds
       ? 'Reloading · ' + bombSeconds + 's'
-      : 'Drop bomb · Esc Space';
+      : 'Drop bomb';
     $('sf-bomber-land').disabled = parachuting;
     $('sf-bomber-roll').disabled =
       parachuting || context.secretWorld?.bomber.state.rollElapsed !== null;
@@ -387,9 +387,6 @@ export function createHud(context: WorldContext) {
         purse.sand > 0 ? 'Sand ×' + purse.sand.toLocaleString('en-US') : null,
         q.evidence && !q.permit ? 'Alien Evidence Certificate' : null,
         q.started && q.permit && !q.completed ? 'Alien-removal permit' : null,
-        q.bayonet ? 'Bayonet' : null,
-        equipmentOwned(context.economy.state, 'goblin-phone') ? 'Goblin Phone' : null,
-        q.skateboard ? 'Skateboard' : null,
         uni ? ITEM_STATS.uni.name + ' ×' + uni : null,
         ...TAHOE_PELTS.map((id) => (pelts?.[id] ? ITEM_STATS[id].name + ' ×' + pelts[id] : null)),
         context.quests.state.stochasticParrot === 'carrying' ? 'Stochastic parrot' : null,
@@ -411,7 +408,7 @@ export function createHud(context: WorldContext) {
       context.rocket.state.active
     );
     skate.setAttribute('aria-pressed', String(context.skateboard.riding));
-    const skateText = context.skateboard.riding ? 'Put away board · Esc K' : 'Skateboard · Esc K';
+    const skateText = context.skateboard.riding ? 'Put away board' : 'Skateboard';
     updateActionLabel(skate, skateText, context.skateboard.riding ? 'board' : 'Skateboard', 'item');
     $('sf-skate-tricks').hidden = !context.skateboard.riding;
     for (const button of context.world.querySelectorAll<HTMLButtonElement>('[data-skate-trick]'))
@@ -668,23 +665,24 @@ export function createHud(context: WorldContext) {
     const button = $('sf-light-decorative-rocket');
     const status = context.multiplayer?.state.inventory?.decorativeRocket;
     const now = Date.now() + (context.multiplayer?.state.serverOffset || 0);
-    const seconds = Math.max(0, Math.ceil(((status?.readyAt || 0) - now) / 1000));
-    const burning = Math.max(0, Math.ceil(((status?.burningUntil || 0) - now) / 1000));
+    const readyAt = Math.max(status?.readyAt || 0, status?.burningUntil || 0);
+    const seconds = Math.max(0, Math.ceil((readyAt - now) / 1000));
     const owned = equipmentOwned(context.economy.state, 'new-year-rocket');
-    $('sf-rocket-ignition').hidden = !owned;
-    const equipped = owned && context.playerLook.back === 'new-year-rocket';
+    button.hidden = !owned;
     button.disabled =
-      !equipped ||
+      !owned ||
+      context.playerLook.back !== 'new-year-rocket' ||
       !context.multiplayer?.state.connected ||
       context.lightingDecorativeRocket ||
       context.capture.state.active ||
       !!context.chase?.state.jailed ||
-      seconds > 0 ||
-      burning > 0;
-    const countdown = $('sf-rocket-countdown');
-    countdown.hidden = !equipped || (!seconds && !burning);
-    const label = burning ? burning + 's burning' : 'Ready in ' + seconds + 's';
-    if (countdown.textContent !== label) countdown.textContent = label;
+      seconds > 0;
+    updateActionLabel(
+      button,
+      seconds ? 'Light Rocket · ' + seconds + 's' : 'Light Rocket',
+      'Rocket',
+      'item',
+    );
   }
 
   async function lightDecorativeRocket() {

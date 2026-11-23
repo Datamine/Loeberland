@@ -279,7 +279,7 @@
       "format": "esm"
     },
     "src/types/ui.ts": {
-      "bytes": 11491,
+      "bytes": 11380,
       "imports": [],
       "format": "esm"
     },
@@ -3581,7 +3581,7 @@
       "format": "esm"
     },
     "src/wilderness-models.ts": {
-      "bytes": 51984,
+      "bytes": 51776,
       "imports": [
         {
           "path": "src/types/assert.ts",
@@ -4888,7 +4888,7 @@
       "format": "esm"
     },
     "src/world-stream.ts": {
-      "bytes": 536527,
+      "bytes": 536512,
       "imports": [
         {
           "path": "src/types/json.ts",
@@ -7811,7 +7811,7 @@
       "format": "esm"
     },
     "src/world/hud.ts": {
-      "bytes": 34732,
+      "bytes": 34314,
       "imports": [
         {
           "path": "src/motorcycle.ts",
@@ -8315,7 +8315,7 @@
       }
     },
     "src/world/interactions.ts": {
-      "bytes": 207189,
+      "bytes": 207213,
       "imports": [
         {
           "path": "src/backyard-details.ts",
@@ -9137,7 +9137,7 @@
       "format": "esm"
     },
     "src/world/scene.ts": {
-      "bytes": 146735,
+      "bytes": 149844,
       "imports": [
         {
           "path": "src/ui/tabs.ts",
@@ -10215,7 +10215,7 @@
       "imports": [],
       "exports": [],
       "inputs": {},
-      "bytes": 9594370
+      "bytes": 9597912
     },
     "explore.js": {
       "imports": [],
@@ -10793,7 +10793,7 @@
           "bytesInOutput": 2604
         },
         "src/wilderness-models.ts": {
-          "bytesInOutput": 27602
+          "bytesInOutput": 27472
         },
         "src/static-batches.ts": {
           "bytesInOutput": 1217
@@ -10922,7 +10922,7 @@
           "bytesInOutput": 2183
         },
         "src/world-stream.ts": {
-          "bytesInOutput": 501042
+          "bytesInOutput": 501027
         },
         "src/config/neighborhood-services.ts": {
           "bytesInOutput": 1397
@@ -11156,7 +11156,7 @@
           "bytesInOutput": 111
         },
         "src/world/hud.ts": {
-          "bytesInOutput": 25100
+          "bytesInOutput": 24739
         },
         "src/chat-head.ts": {
           "bytesInOutput": 2225
@@ -11225,7 +11225,7 @@
           "bytesInOutput": 1477
         },
         "src/world/interactions.ts": {
-          "bytesInOutput": 139254
+          "bytesInOutput": 139247
         },
         "src/ai-lab.ts": {
           "bytesInOutput": 3137
@@ -11282,7 +11282,7 @@
           "bytesInOutput": 3190
         },
         "src/world/scene.ts": {
-          "bytesInOutput": 82016
+          "bytesInOutput": 84239
         },
         "src/world/model.ts": {
           "bytesInOutput": 85
@@ -11291,7 +11291,7 @@
           "bytesInOutput": 1701
         }
       },
-      "bytes": 4419654
+      "bytes": 4421364
     }
   }
 }

@@ -1171,6 +1171,9 @@ body.sf-mode .sf-toggle {
 /* Compact exploration controls share one card in the bottom-right corner. */
 .sf-side-hud {
   --sf-side-menu-text: #f1deb3;
+  --sf-side-menu-background: #554e3e;
+  --sf-side-menu-border: #a39370;
+  --sf-side-menu-selected: #736448;
   display: flex;
   align-items: flex-end;
   justify-content: flex-end;
@@ -1196,9 +1199,9 @@ body.sf-mode .sf-toggle {
   height: 23px;
   place-items: center;
   padding: 0;
-  border: 1px solid #a39370;
+  border: 1px solid var(--sf-side-menu-border, #a39370);
   border-radius: 3px 3px 0 0;
-  background: #554e3e;
+  background: var(--sf-side-menu-background, #554e3e);
   color: var(--sf-side-menu-text, #efdfb1);
   font: 16px/1 Tahoma, sans-serif;
 }
@@ -1229,9 +1232,11 @@ body.sf-mode .sf-toggle {
   width: 286px;
   min-width: 0;
   padding: 10px;
-  background: repeating-linear-gradient(105deg, #ffffff03 0 3px, #00000004 3px 6px), #554e3e;
+  background:
+    repeating-linear-gradient(105deg, #ffffff03 0 3px, #00000004 3px 6px),
+    var(--sf-side-menu-background);
   border: 3px solid;
-  border-color: #a39370 #2e2a22 #2e2a22 #a39370;
+  border-color: var(--sf-side-menu-border) #2e2a22 #2e2a22 var(--sf-side-menu-border);
   box-shadow:
     inset 0 0 0 1px #29271f,
     2px 3px 0 #1e231d55;
@@ -1272,7 +1277,8 @@ body.sf-mode .sf-toggle {
   margin-inline-start: 3px;
 }
 .sf-shortcut-menu .sf-key,
-#sf-help .sf-key {
+#sf-help .sf-key,
+.sf-actions button[data-visible-shortcut]::before {
   display: inline-grid;
   min-width: 1.55em;
   height: 1.55em;
@@ -1285,6 +1291,33 @@ body.sf-mode .sf-toggle {
   font:
     11px Tahoma,
     sans-serif;
+}
+.sf-actions:has(> .sf-shortcut-actions:not([hidden])) {
+  grid-template-rows: minmax(0, 1fr) auto auto;
+}
+.sf-shortcut-actions:not([hidden]) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+}
+.sf-actions button[data-visible-shortcut]::before {
+  content: attr(data-visible-shortcut) / '';
+  box-sizing: border-box;
+  min-width: 1.7em;
+  border-color: #aa9568;
+  background: #433927;
+  vertical-align: middle;
+  text-shadow: none;
+  white-space: nowrap;
+}
+.sf-actions :is(#sf-help-button, button:has(> .sf-action-target))[data-visible-shortcut]::before {
+  margin-inline-end: 4px;
+}
+#sf-world .sf-actions .sf-vehicle-tricks button[data-visible-shortcut] {
+  padding-inline: 2px;
+  gap: 3px;
+  white-space: normal;
+  line-height: 1.1;
 }
 @media (max-width: 760px) {
   .sf-shortcut-menu {
@@ -1320,7 +1353,7 @@ body.sf-mode .sf-toggle {
   gap: 6px;
 }
 #sf-world .sf-quick-actions [aria-expanded='true']:where(:not(:disabled)) {
-  background: #74654b;
+  background: var(--sf-side-menu-selected);
 }
 .sf-quick-actions [aria-expanded]:not([data-sitting])::after {
   content: '▾';
@@ -1407,8 +1440,8 @@ body.sf-mode .sf-toggle {
 }
 .sf-fuel-card {
   padding: 7px;
-  background: #343e3c;
-  border: 1px solid #8c947b;
+  background: var(--sf-side-menu-background);
+  border: 1px solid var(--sf-side-menu-border);
   font:
     11px Tahoma,
     sans-serif;
@@ -1434,8 +1467,8 @@ body.sf-mode .sf-toggle {
     10px Tahoma,
     sans-serif;
   padding: 5px;
-  background: #736346;
-  border: 1px solid #b29b6b;
+  background: var(--sf-side-menu-selected);
+  border: 1px solid var(--sf-side-menu-border);
   color: inherit;
 }
 #sf-inventory {
@@ -1498,7 +1531,7 @@ body.sf-mode .sf-toggle {
 }
 .sf-chat-name {
   width: 100%;
-  color: var(--sf-npc-yellow);
+  color: #684526;
   text-align: center;
   font:
     bold 13px/1.35 Tahoma,
@@ -2337,7 +2370,6 @@ body.sf-mode .sf-toggle {
   font-size: var(--sf-player-text-size);
   text-shadow: none;
 }
-.sf-chat-name,
 .sf-player-speech,
 .sf-actor-label .sf-player-name,
 .sf-actor-label:has(> .sf-player-name) .sf-speech {
@@ -2389,8 +2421,8 @@ body.sf-mode .sf-toggle {
   grid-template-columns: 1fr 1fr;
   gap: 5px;
   padding: 6px;
-  border: 1px solid #a99b73;
-  background: #35433e;
+  border: 1px solid var(--sf-side-menu-border);
+  background: var(--sf-side-menu-background);
 }
 .sf-bomber-controls > span {
   grid-column: 1 / -1;
@@ -2704,8 +2736,8 @@ body.sf-mode .sf-toggle {
 .sf-growth-ticker {
   grid-column: 1 / -1;
   padding: 7px;
-  border: 1px solid #a18b5e;
-  background: #3b4c42;
+  border: 1px solid var(--sf-side-menu-border);
+  background: var(--sf-side-menu-background);
 }
 .sf-growth-ticker[hidden] {
   display: none;
@@ -3011,7 +3043,7 @@ body.sf-mode .sf-toggle {
   padding-inline: 2px;
 }
 #sf-world .sf-action-tabs [role='tab'][aria-selected='true'] {
-  background: #736448;
+  background: var(--sf-side-menu-selected);
   border-color: transparent #9f895f #9f895f;
 }
 #sf-world .sf-tablist button:hover,
@@ -3044,11 +3076,6 @@ body.sf-mode .sf-toggle {
   font-size: 11px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-}
-.sf-rocket-ignition {
-  display: grid;
-  gap: 3px;
-  text-align: center;
 }
 .sf-high-scores ol {
   padding-inline-start: 1.55rem;
