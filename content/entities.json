@@ -126,7 +126,7 @@
       "name": "AI Lab Recruiter",
       "category": "npc",
       "kind": "recruiter",
-      "description": "A lab recruiter clutching a clipboard labeled \u201cgeneral intelligence.\u201d The entire interview fits in a calculator, which is strictly forbidden.",
+      "description": "A lab recruiter clutching a clipboard labeled “general intelligence.” The entire interview fits in a calculator, which is strictly forbidden.",
       "menus": [
         {
           "id": "actor:ai-lab-recruiter.menu-1",
@@ -424,7 +424,7 @@
       "name": "B-2 Stealth Bomber",
       "category": "object",
       "kind": "stealth-bomber",
-      "description": "Your personal flying wing, its dark fuselage disappearing into the hangar\u2019s shadows.",
+      "description": "Your personal flying wing, its dark fuselage disappearing into the hangar’s shadows.",
       "menus": [
         {
           "id": "sight:personal-b2.menu-1",
@@ -455,7 +455,7 @@
     "sight:nia": {
       "id": "sight:nia",
       "name": "Bani",
-      "category": "object",
+      "category": "npc",
       "kind": "guest",
       "description": "A friendly woman enjoying her coffee at a table inside Mazarine.",
       "menus": [
@@ -559,7 +559,7 @@
       "name": "Battery Seller",
       "category": "npc",
       "kind": "battery-seller",
-      "description": "A local adventurer. Currently undertaking the difficult quest called \u201cone more errand.\u201d",
+      "description": "A local adventurer. Currently undertaking the difficult quest called “one more errand.”",
       "menus": [
         {
           "id": "actor:ssf-battery-seller.menu-1",
@@ -963,7 +963,7 @@
       "name": "Bolinas Grocer",
       "category": "npc",
       "kind": "bolinas-local",
-      "description": "Knows a shortcut. Will probably describe it using a caf\u00e9 that closed in 2018.",
+      "description": "Knows a shortcut. Will probably describe it using a café that closed in 2018.",
       "menus": [
         {
           "id": "actor:bolinas-grocer.menu-1",
@@ -1779,7 +1779,7 @@
     },
     "place:writing": {
       "id": "place:writing",
-      "name": "City Lights \u00b7 Essays",
+      "name": "City Lights · Essays",
       "category": "object",
       "kind": "building",
       "description": "Pull up a chair. Essays on technology, markets, and the ideas that won't leave you alone.",
@@ -2421,7 +2421,7 @@
     "sight:zoo-deer": {
       "id": "sight:zoo-deer",
       "name": "Deer",
-      "category": "object",
+      "category": "npc",
       "kind": "animals",
       "description": "The deer peacefully browses the grass. It has no plans to escape.",
       "menus": [
@@ -2598,7 +2598,7 @@
     "sight:dog-pony-show": {
       "id": "sight:dog-pony-show",
       "name": "Dog and Pony Show",
-      "category": "object",
+      "category": "npc",
       "kind": "dog-pony-show",
       "description": "A striped little showground beside Foundry Lane. The dog and pony have rehearsed exactly one trick, and are extremely proud of it.",
       "menus": [
@@ -3926,8 +3926,8 @@
     },
     "sight:zoo-giraffes": {
       "id": "sight:zoo-giraffes",
-      "name": "Giraffes",
-      "category": "object",
+      "name": "Giraffe",
+      "category": "npc",
       "kind": "animals",
       "description": "A giraffe surveys the city from an enviable height. Still cannot find affordable housing.",
       "menus": [
@@ -4023,10 +4023,10 @@
     },
     "actor:tam-furniture-maker": {
       "id": "actor:tam-furniture-maker",
-      "name": "Goblin furniture maker",
+      "name": "Goblin Furniture Maker",
       "category": "npc",
       "kind": "goblin-maker",
-      "description": "Mount Tam\u2019s most temperamental modernist. His ball chairs are round; his customer service is pointed.",
+      "description": "Mount Tam’s most temperamental modernist. His ball chairs are round; his customer service is pointed.",
       "menus": [
         {
           "id": "actor:tam-furniture-maker.menu-1",
@@ -4153,7 +4153,7 @@
     },
     "sight:lore-explorable-home-7": {
       "id": "sight:lore-explorable-home-7",
-      "name": "Goose Corp invoice",
+      "name": "Goose Corp Invoice",
       "category": "object",
       "kind": "lore-book",
       "description": "The rest of the invoice has been torn off.",
@@ -4214,7 +4214,7 @@
     },
     "actor:gpu-factory-buyer": {
       "id": "actor:gpu-factory-buyer",
-      "name": "GPU Factory buyer",
+      "name": "GPU Factory Buyer",
       "category": "npc",
       "kind": "gpu-buyer",
       "description": "A clean-room procurement specialist. Has found a way to expense a trip to the beach.",
@@ -4283,7 +4283,7 @@
     },
     "actor:grain-merchant": {
       "id": "actor:grain-merchant",
-      "name": "Grain merchant",
+      "name": "Grain Merchant",
       "category": "npc",
       "kind": "grain",
       "description": "A patient keeper of tiny sacks. Every duck in the park considers this person a major philanthropist.",
@@ -4355,7 +4355,7 @@
       "name": "Green Bank",
       "category": "object",
       "kind": "building",
-      "description": "A global financial institution for the people and agents of the future. Speak to the friendly banker inside: deposited coins earn 5% interest per hour. Coffee is on the house.",
+      "description": "A global financial institution for the people and agents of the future.",
       "menus": [
         {
           "id": "place:green.menu-1",
@@ -4495,7 +4495,7 @@
     },
     "sight:haberdasher": {
       "id": "sight:haberdasher",
-      "name": "Haberdasher",
+      "name": "Haberdashery",
       "category": "object",
       "kind": "haberdasher",
       "description": "A little hat shop just north of the GPU Factory, with recessed hat displays, a striped canopy, and a projecting top-hat sign.",
@@ -4523,7 +4523,7 @@
     },
     "sight:hiking-supplies": {
       "id": "sight:hiking-supplies",
-      "name": "Hiker\u2019s supplies",
+      "name": "Hiker's Supplies",
       "category": "object",
       "kind": "hiking-supplies",
       "description": "The summit lift attendant rents skis for one coin. Then ski the winding course and jump its ramps.",
@@ -4551,7 +4551,7 @@
     },
     "actor:hiking-supplier": {
       "id": "actor:hiking-supplier",
-      "name": "Hiking supplies clerk",
+      "name": "Hiking Supplies Clerk",
       "category": "npc",
       "kind": "hiking-supplier",
       "description": "Carries a reusable bag with the quiet confidence of someone who remembered to bring it.",
@@ -4623,7 +4623,7 @@
       "name": "Hillsborough Works",
       "category": "object",
       "kind": "construction",
-      "description": "Two lattice cranes lift the next chapter of the neighborhood. A small fenced digsite, a patient excavator, and Vic\u2019s clipboard keep the main square free for pedestrians.",
+      "description": "Two lattice cranes lift the next chapter of the neighborhood. A small fenced digsite, a patient excavator, and Vic’s clipboard keep the main square free for pedestrians.",
       "menus": [
         {
           "id": "sight:times-square-works.menu-1",
@@ -4736,7 +4736,7 @@
     },
     "sight:whale-0": {
       "id": "sight:whale-0",
-      "name": "Humpback whale",
+      "name": "Humpback Whale",
       "category": "npc",
       "kind": "whale",
       "description": "A humpback surfaces in the Pacific, followed by a silver plume of spray. Windsurf into position and jump over its back.",
@@ -4769,7 +4769,7 @@
     },
     "actor:tahoe-giant-1": {
       "id": "actor:tahoe-giant-1",
-      "name": "Ice giant",
+      "name": "Ice Giant",
       "category": "npc",
       "kind": "ice-giant",
       "description": "A glacier has stood up, and it is not pleased about your carbon footprint.",
@@ -4838,7 +4838,7 @@
     },
     "sight:illuminati-stairway": {
       "id": "sight:illuminati-stairway",
-      "name": "Illuminati passage",
+      "name": "Illuminati Passage",
       "category": "object",
       "kind": "secret-stairs",
       "description": "A discreet stairway carved beneath the lodge.",
@@ -4899,7 +4899,7 @@
     },
     "actor:in-n-out-clerk": {
       "id": "actor:in-n-out-clerk",
-      "name": "In-N-Out associate",
+      "name": "In-N-Out Associate",
       "category": "npc",
       "kind": "burger-clerk",
       "description": "Seems suspiciously well rested for someone living in a city with this much coffee.",
@@ -4968,10 +4968,10 @@
     },
     "place:home": {
       "id": "place:home",
-      "name": "John's place",
+      "name": "John's Place",
       "category": "object",
       "kind": "building",
-      "description": "A San Francisco resident, builder, and incurable optimist. Ring the bell and say hello.",
+      "description": "Are the renovations on this house finished? I'm not sure.",
       "menus": [
         {
           "id": "place:home.menu-1",
@@ -5027,7 +5027,7 @@
     },
     "actor:square-busker": {
       "id": "actor:square-busker",
-      "name": "June, street musician",
+      "name": "June",
       "category": "npc",
       "kind": "person",
       "description": "A street musician playing a song the zoning board has yet to approve.",
@@ -5099,7 +5099,7 @@
       "name": "Menotti’s",
       "category": "object",
       "kind": "neighborhood-shop",
-      "description": "A seaside café on Ocean Esplanade. The espresso machine is always busy, and regulars linger at the little pavement terrace.",
+      "description": "The espresso machine is always busy, and regulars linger at the little pavement terrace.",
       "menus": [
         {
           "id": "sight:menottis-cafe.menu-1",
@@ -5124,7 +5124,7 @@
     },
     "actor:menottis-cafe-neighbor": {
       "id": "actor:menottis-cafe-neighbor",
-      "name": "Menotti’s barista",
+      "name": "Menotti’s Barista",
       "category": "npc",
       "kind": "person",
       "description": "The barista keeps the espresso going and pays a coin for help clearing the tables.",
@@ -5227,10 +5227,10 @@
     },
     "actor:jurassic-scientist": {
       "id": "actor:jurassic-scientist",
-      "name": "Jurassic scientist",
+      "name": "Jurassic Scientist",
       "category": "npc",
       "kind": "person",
-      "description": "Seems suspiciously well rested for someone living in a city with this much coffee.",
+      "description": "A cheerful, incurable optimist.",
       "menus": [
         {
           "id": "actor:jurassic-scientist.menu-1",
@@ -5311,7 +5311,7 @@
       "name": "Kraken",
       "category": "npc",
       "kind": "kraken",
-      "description": "A local adventurer. Currently undertaking the difficult quest called \u201cone more errand.\u201d",
+      "description": "Goose Corp has persuaded him to take it easy on any adventurers.",
       "menus": [
         {
           "id": "actor:pacific-kraken.menu-1",
@@ -5408,7 +5408,7 @@
       "name": "Landshark",
       "category": "npc",
       "kind": "landshark",
-      "description": "don't let him ride",
+      "description": "Don't let him ride.",
       "menus": [
         {
           "id": "actor:ocean-beach-landshark.menu-1",
@@ -5477,7 +5477,7 @@
       "name": "Laundry basket",
       "category": "object",
       "kind": "house-storage",
-      "description": "A familiar bit of household storage, worn smooth by years of use.",
+      "description": "I can't believe I'm going to search through this thing.",
       "menus": [
         {
           "id": "sight:house-search-4.menu-1",
@@ -5507,10 +5507,10 @@
     },
     "actor:square-bookseller": {
       "id": "actor:square-bookseller",
-      "name": "Leo, bookseller",
+      "name": "Leo, Bookseller",
       "category": "npc",
       "kind": "person",
-      "description": "A bookseller with first editions of books that have not yet been written.",
+      "description": "Purveyor of first editions of books that have not yet been written.",
       "menus": [
         {
           "id": "actor:square-bookseller.menu-1",
@@ -5579,7 +5579,7 @@
       "name": "Limit",
       "category": "object",
       "kind": "building",
-      "description": "Tools that changed the daily lives of thousands of insurance professionals.",
+      "description": "Selling tools that changed the daily lives of thousands of insurance professionals.",
       "menus": [
         {
           "id": "place:limit.menu-1",
@@ -5801,7 +5801,7 @@
     },
     "sight:lucindas-deli": {
       "id": "sight:lucindas-deli",
-      "name": "Lucinda\u2019s Deli",
+      "name": "Lucinda’s Deli",
       "category": "object",
       "kind": "restaurant",
       "description": "A busy neighborhood deli with a well-used counter and the smell of freshly baked bread.",
@@ -5829,7 +5829,7 @@
     },
     "place:books": {
       "id": "place:books",
-      "name": "Main Library \u00b7 Bookshelf",
+      "name": "Main Library · Bookshelf",
       "category": "object",
       "kind": "building",
       "description": "Fiction and non-fiction that stay with you, long after the last page.",
@@ -5888,7 +5888,7 @@
     },
     "sight:ducks": {
       "id": "sight:ducks",
-      "name": "Mallards & ducklings",
+      "name": "Ducks",
       "category": "npc",
       "kind": "ducks",
       "description": "Mallards and little ducklings paddle around the pond. They seem certain you brought something for them.",
@@ -5921,7 +5921,7 @@
     },
     "sight:marin-bridge-landing": {
       "id": "sight:marin-bridge-landing",
-      "name": "Marin Headlands overlook",
+      "name": "Marin Headlands Overlook",
       "category": "object",
       "kind": "bridge",
       "description": "Across the Golden Gate, the Marin hills look back over the orange towers and San Francisco.",
@@ -5949,10 +5949,10 @@
     },
     "actor:mazarine-clerk": {
       "id": "actor:mazarine-clerk",
-      "name": "Mazarine clerk",
+      "name": "Mazarine Clerk",
       "category": "npc",
       "kind": "mazarine-clerk",
-      "description": "A local shopkeeper, keeping this corner of the neighborhood busy.",
+      "description": "Expert in brioche and soft-poached eggs.",
       "menus": [
         {
           "id": "actor:mazarine-clerk.menu-1",
@@ -6026,7 +6026,7 @@
       "name": "Mazarine Coffee",
       "category": "object",
       "kind": "building",
-      "description": "Coffee on Market Street. Bani is enjoying a table inside Mazarine; browse a few connections to the rest of the internet over coffee.",
+      "description": "The smoothest coffee on Market Street.",
       "menus": [
         {
           "id": "place:links.menu-1",
@@ -6085,7 +6085,7 @@
       "name": "Minutes of the Lodge Committee",
       "category": "object",
       "kind": "lore-book",
-      "description": "A red ledger records the lodge\u2019s more discreet arrangements.",
+      "description": "A red ledger records the lodge’s more discreet arrangements.",
       "menus": [
         {
           "id": "sight:lore-freemasons-guild.menu-1",
@@ -6184,7 +6184,7 @@
     },
     "actor:square-barista": {
       "id": "actor:square-barista",
-      "name": "Mira, coffee seller",
+      "name": "Mira, Coffee Seller",
       "category": "npc",
       "kind": "person",
       "description": "A barista measuring the progress of the neighborhood in empty cups.",
@@ -6256,7 +6256,7 @@
       "name": "Motorcycle",
       "category": "npc",
       "kind": "motorcycle",
-      "description": "A parked motorcycle with a gleaming tank and a neatly printed rental note: \u201c5 coins.\u201d",
+      "description": "A parked motorcycle with a gleaming tank and a neatly printed rental note: “5 coins.”",
       "menus": [
         {
           "id": "sight:zoo-motorcycle.menu-1",
@@ -6312,7 +6312,7 @@
     },
     "actor:zoo-motorcycle-clerk": {
       "id": "actor:zoo-motorcycle-clerk",
-      "name": "Motorcycle rental clerk",
+      "name": "Motorcycle Rental Clerk",
       "category": "npc",
       "kind": "motorcycle-clerk",
       "description": "A motorcycle rental clerk with a well-oiled keyring and a remarkably patient smile.",
@@ -6387,7 +6387,7 @@
       "name": "Mount Tam Goblin Town",
       "category": "object",
       "kind": "goblin-town",
-      "description": "A muddy path north of the jail leads to the Mount Tam goblins\u2019 settlement. Redwood offcuts, fog jars, and a furniture workshop have made the journey down the mountain.",
+      "description": "A muddy path north of the jail leads to the Mount Tam goblins’ settlement. Redwood offcuts, fog jars, and a furniture workshop have made the journey down the mountain.",
       "menus": [
         {
           "id": "sight:mount-tam-goblins.menu-1",
@@ -6412,7 +6412,7 @@
     },
     "sight:gondola-base": {
       "id": "sight:gondola-base",
-      "name": "Mountain gondola",
+      "name": "Mountain Gondola",
       "category": "object",
       "kind": "gondola",
       "description": "A gondola climbs the immense mountain above Lake Tahoe.",
@@ -6445,7 +6445,7 @@
     },
     "sight:southern-craft-1": {
       "id": "sight:southern-craft-1",
-      "name": "Neighborhood garden",
+      "name": "Neighborhood Garden",
       "category": "object",
       "kind": "neighborhood-garden",
       "description": "Herringbone paving, flowering pots, a cedar bench, and shade stitched together by the neighbors. A small but very good place to pause.",
@@ -6489,7 +6489,7 @@
       "name": "Nightlife",
       "category": "object",
       "kind": "nightlife",
-      "description": "A little nightclub in the South Mission, two blocks north of its former home. Mirror ball, colored dance floor, and two regulars with very firm relationship boundaries.",
+      "description": "There's only one reason to be on this block, and it's to party.",
       "menus": [
         {
           "id": "sight:nightlife.menu-1",
@@ -6578,7 +6578,7 @@
       "name": "Old Man",
       "category": "npc",
       "kind": "illuminati-elder",
-      "description": "An Old Man with silver hair, a very discreet lapel pin, and a philanthropic interest in exactly 250,000 of your coins.",
+      "description": "An Old Man with silver hair, a very discreet lapel pin, and a philanthropic interest in your coins.",
       "menus": [
         {
           "id": "actor:illuminati-old-man.menu-1",
@@ -6713,7 +6713,7 @@
       "name": "Orchard and Foundry Gardens",
       "category": "object",
       "kind": "neighborhood-garden",
-      "description": "Linked garden courts, tea tables, little bookshops and a birdwatching pergola link a quiet residential neighborhood to the foundry. The institutes sit farther south, beyond the lake and pasture.",
+      "description": "Linked garden courts, tea tables, little bookshops and a birdwatching pergola link a quiet residential neighborhood to the foundry.",
       "menus": [
         {
           "id": "sight:southern-village-gardens.menu-1",
@@ -6819,10 +6819,10 @@
     },
     "place:orin-house": {
       "id": "place:orin-house",
-      "name": "Orin\u2019s house",
+      "name": "Orin’s house",
       "category": "object",
       "kind": "wizard-house",
-      "description": "A quiet Victorian west of Sand Hill Road Capital Partners. Orin sells teleportation tablets inside.",
+      "description": "The noisy wizard inside is ruining the neighborhood character.",
       "menus": [
         {
           "id": "place:orin-house.menu-1",
@@ -6945,7 +6945,7 @@
       "name": "Pacifica Commons",
       "category": "object",
       "kind": "park",
-      "description": "Pacifica Commons: a neighborhood green with a fountain, shaded benches, and paths for a very unhurried lap. The ocean air is complimentary.",
+      "description": "A neighborhood green with a fountain, shaded benches, and paths for a very unhurried lap. The ocean air is complimentary.",
       "menus": [
         {
           "id": "sight:pacifica-park.menu-1",
@@ -6970,10 +6970,10 @@
     },
     "sight:pacifica-surf": {
       "id": "sight:pacifica-surf",
-      "name": "Pacifica surfboards",
+      "name": "Pacifica Surfboards",
       "category": "object",
       "kind": "surfing",
-      "description": "Bright boards wait on the Pacifica beach. Paddle into the foam lines, press Space to catch a wave, and use 1 / 2 / 3 for an Air 360, kickflip or backflip. U returns to the beach.",
+      "description": "Bright boards wait on the Pacifica beach. Paddle into the foam lines.",
       "menus": [
         {
           "id": "sight:pacifica-surf.menu-1",
@@ -7006,7 +7006,7 @@
       "name": "Painted Ladies",
       "category": "object",
       "kind": "painted",
-      "description": "A row of colorful Victorian houses overlooking Alamo Square. A good place to pause before riding west to the park.",
+      "description": "A row of colorful Victorian houses overlooking Alamo Square. A good place to pause before heading west to the park.",
       "menus": [
         {
           "id": "sight:painted.menu-1",
@@ -7062,7 +7062,7 @@
       "name": "Palmetto Pottery",
       "category": "object",
       "kind": "neighborhood-shop",
-      "description": "Every mug is a little different. The one with the wobble is about the nature of certainty. The carefully kept storefront has a little terrace and a lived-in upper floor.",
+      "description": "Every mug is a little different. The one with the wobble is about the nature of certainty.",
       "menus": [
         {
           "id": "sight:southern-corner-129.menu-1",
@@ -7087,10 +7087,10 @@
     },
     "actor:southern-corner-129-neighbor": {
       "id": "actor:southern-corner-129-neighbor",
-      "name": "Palmetto Pottery shopkeeper",
+      "name": "Palmetto Pottery Shopkeeper",
       "category": "npc",
       "kind": "person",
-      "description": "A local shopkeeper. The window display changes with the seasons; the welcome does not.",
+      "description": "It turns out that Palmetto Pottery is owned by the eponymous Palmetto.",
       "menus": [
         {
           "id": "actor:southern-corner-129-neighbor.menu-1",
@@ -7162,10 +7162,10 @@
     },
     "sight:windmill": {
       "id": "sight:windmill",
-      "name": "Park windmill",
+      "name": "Park Windmill",
       "category": "object",
       "kind": "windmill",
-      "description": "A timber windmill and flower beds stand near the park\u2019s western end. Beyond the Great Highway, Ocean Beach opens onto the Pacific.",
+      "description": "A timber windmill and flower beds stand near the park’s western end.",
       "menus": [
         {
           "id": "sight:windmill.menu-1",
@@ -7280,7 +7280,7 @@
       "name": "Poster",
       "category": "npc",
       "kind": "twitter-poster",
-      "description": "A poster staring into a phone. Someone, somewhere, has made a statement that cannot be allowed to stand.",
+      "description": "He is staring deeply into his phone.",
       "menus": [
         {
           "id": "actor:twitter-poster.menu-1",
@@ -7346,10 +7346,10 @@
     },
     "sight:presidio": {
       "id": "sight:presidio",
-      "name": "Presidio \u00b7 Main Post",
+      "name": "Presidio · Main Post",
       "category": "object",
       "kind": "park",
-      "description": "Wooded hills give way to a broad parade ground, a flagpole, and rows of red-roof barracks. Trails lead toward Crissy Field, Lovers Lane, and the Golden Gate.",
+      "description": "Wooded hills give way to a broad parade ground, a flagpole, and rows of red-roof barracks.",
       "menus": [
         {
           "id": "sight:presidio.menu-1",
@@ -7377,7 +7377,7 @@
       "name": "Private Jet Terminal",
       "category": "object",
       "kind": "airship",
-      "description": "The private jet terminal occupies the building east of the runway. Its passenger entrance faces the airship mooring to the north. Click Rent airship or press A nearby; click the ground or minimap to fly, and A returns to the mooring.",
+      "description": "The private jet terminal occupies the building east of the runway. Its passenger entrance faces the airship mooring to the north.",
       "menus": [
         {
           "id": "sight:airship.menu-1",
@@ -7559,7 +7559,7 @@
       "name": "Prometheus",
       "category": "object",
       "kind": "monument",
-      "description": "Prometheus lifts an eternal flame over the bay. The fire is for everyone; the birds have interpreted this as including the pedestal.",
+      "description": "The Promethean spirit holds an eternal flame over the bay.",
       "menus": [
         {
           "id": "sight:prometheus.menu-1",
@@ -7612,10 +7612,10 @@
     },
     "actor:qualia-bookshop-neighbor": {
       "id": "actor:qualia-bookshop-neighbor",
-      "name": "Qualia Books shopkeeper",
+      "name": "Qualia Books Shopkeeper",
       "category": "npc",
       "kind": "person",
-      "description": "A local shopkeeper. The window display changes with the seasons; the welcome does not.",
+      "description": "Strong opinions, loosely held, on things I don't understand.",
       "menus": [
         {
           "id": "actor:qualia-bookshop-neighbor.menu-1",
@@ -7688,7 +7688,7 @@
     },
     "actor:rail-lunch-worker": {
       "id": "actor:rail-lunch-worker",
-      "name": "Rail worker",
+      "name": "Rail Worker",
       "category": "npc",
       "kind": "rail-worker",
       "description": "An excavator operator protecting a sandwich of considerable historical significance.",
@@ -7760,7 +7760,7 @@
       "name": "Ray",
       "category": "npc",
       "kind": "guild-master",
-      "description": "Ray wears a red suit, a brass lapel compass and the serene expression of a man with a very orderly filing cabinet.",
+      "description": "He says the red suit is only for special occasions. But every day is a special occasion.",
       "menus": [
         {
           "id": "actor:guild-ray.menu-1",
@@ -7836,10 +7836,10 @@
     },
     "actor:software-vendor": {
       "id": "actor:software-vendor",
-      "name": "Redheaded software salesman",
+      "name": "Seniormost Software Salesman",
       "category": "npc",
       "kind": "software-vendor",
-      "description": "A redheaded salesman selling the software that sells the software. His business card has a business card.",
+      "description": "A highly experienced man selling the software that sells the software. His business card has a business card.",
       "menus": [
         {
           "id": "actor:software-vendor.menu-1",
@@ -7908,7 +7908,7 @@
       "name": "Redwood Lake and Meadows",
       "category": "object",
       "kind": "neighborhood-garden",
-      "description": "A wooded lake, open cow pasture, cottage gardens and colorful city flats along connected neighborhood lanes. The rival consciousness institutes stand side by side on a shared promenade off South Grove Avenue.",
+      "description": "A wooded lake, open cow pasture, cottage gardens and colorful city flats along connected neighborhood lanes.",
       "menus": [
         {
           "id": "sight:southern-lake-meadows.menu-1",
@@ -7966,10 +7966,10 @@
     },
     "actor:rehabilitation-specialist": {
       "id": "actor:rehabilitation-specialist",
-      "name": "Rehabilitation specialist",
+      "name": "Rehabilitation Specialist",
       "category": "npc",
       "kind": "person",
-      "description": "A spotless white coat, an immaculate bedside manner, and an enormous apparatus that has never once appeared in a medical textbook.",
+      "description": "He has a spotless white coat, an immaculate bedside manner, and an enormous apparatus that has never once appeared in a medical textbook.",
       "menus": [
         {
           "id": "actor:rehabilitation-specialist.menu-1",
@@ -8063,7 +8063,7 @@
     },
     "actor:lucindas-deli-diner-0": {
       "id": "actor:lucindas-deli-diner-0",
-      "name": "Rich Table diner",
+      "name": "Rich Table Diner",
       "category": "npc",
       "kind": "person",
       "description": "Contemplating a small plate with the seriousness usually reserved for a lunar landing.",
@@ -8142,10 +8142,10 @@
     },
     "actor:rich-table-diner-0": {
       "id": "actor:rich-table-diner-0",
-      "name": "Rich Table diner",
+      "name": "Rich Table Diner",
       "category": "npc",
       "kind": "person",
-      "description": "Contemplating a small plate with the seriousness usually reserved for a lunar landing.",
+      "description": "He says he is amused by the amuse bouche; surely the first person to ever make that joke.",
       "menus": [
         {
           "id": "actor:rich-table-diner-0.menu-1",
@@ -8237,7 +8237,7 @@
       "name": "Rowan Zero",
       "category": "npc",
       "kind": "researcher",
-      "description": "The facilities lead. Their keyring is labeled \u201cground truth\u201d and opens considerably more doors than the institute\u2019s theories do.",
+      "description": "The facilities lead. Their keyring is labeled “ground truth” and opens considerably more doors than the institute’s theories do.",
       "menus": [
         {
           "id": "actor:rowan-zero.menu-1",
@@ -8306,7 +8306,7 @@
       "name": "Salesforce Tower",
       "category": "object",
       "kind": "tower",
-      "description": "Broad glass fa\u00e7ades taper toward a flat rooftop and a softly illuminated crown over the dense towers south of Market. The Transamerica Pyramid stands farther north.",
+      "description": "Broad glass façades taper toward a flat rooftop and a softly illuminated crown over the dense towers south of Market.",
       "menus": [
         {
           "id": "sight:salesforce.menu-1",
@@ -8331,7 +8331,7 @@
     },
     "actor:salt-conservationist": {
       "id": "actor:salt-conservationist",
-      "name": "Salt conservationist",
+      "name": "Salt Conservationist",
       "category": "npc",
       "kind": "salt-activist",
       "description": "A salt conservationist with muddy boots, a stack of envelopes, and several strongly worded opinions about the phrase vacant land.",
@@ -8445,7 +8445,7 @@
       "name": "Sand Hill Road Capital Partner",
       "category": "npc",
       "kind": "capital",
-      "description": "A venture capitalist who interprets \u201cstrong fundamentals\u201d as a personal bench-press record. Their term sheet doubles as a workout plan.",
+      "description": "When he says a business has \"strong fundamentals\", he means the founder can bench-press big weights.",
       "menus": [
         {
           "id": "actor:sand-hill-partner.menu-1",
@@ -8578,7 +8578,7 @@
       "name": "Seabreeze Bakery",
       "category": "object",
       "kind": "neighborhood-shop",
-      "description": "The fog is an excellent proving drawer. The sourdough has lived here longer than I have. The carefully kept storefront has a little terrace and a lived-in upper floor.",
+      "description": "The sourdough has lived here longer than I have.",
       "menus": [
         {
           "id": "sight:southern-corner-127.menu-1",
@@ -8603,10 +8603,10 @@
     },
     "actor:southern-corner-127-neighbor": {
       "id": "actor:southern-corner-127-neighbor",
-      "name": "Seabreeze Bakery shopkeeper",
+      "name": "Seabreeze Bakery Shopkeeper",
       "category": "npc",
       "kind": "person",
-      "description": "A local shopkeeper. The window display changes with the seasons; the welcome does not.",
+      "description": "Everything he knows about empires rising and falling he has learned from watching bread in the oven.",
       "menus": [
         {
           "id": "actor:southern-corner-127-neighbor.menu-1",
@@ -8680,7 +8680,7 @@
       "name": "Seagull",
       "category": "npc",
       "kind": "seagull",
-      "description": "A waterfront regular with strong opinions about unattended sandwiches.",
+      "description": "A waterfront regular with the willingness and ability to repossess unattended sandwiches.",
       "menus": [
         {
           "id": "actor:waterfront-seagull-0.menu-1",
@@ -8751,10 +8751,10 @@
     },
     "actor:secondary-merchant": {
       "id": "actor:secondary-merchant",
-      "name": "Secondary purchaser",
+      "name": "Hot Markets Enthusiast",
       "category": "npc",
       "kind": "secondary",
-      "description": "Their eyes light up at the words \u201cliquid secondary.\u201d Their shoes have already priced in the upside.",
+      "description": "He's in the arena trying stuff. Some things will work, some things won't.",
       "menus": [
         {
           "id": "actor:secondary-merchant.menu-1",
@@ -8922,7 +8922,7 @@
     },
     "sight:shanghai-kelly": {
       "id": "sight:shanghai-kelly",
-      "name": "Shanghai Kelly\u2019s",
+      "name": "Shanghai Kelly’s",
       "category": "object",
       "kind": "restaurant",
       "description": "A neighborhood bar with a polished counter and a floor that has heard every story.",
@@ -8950,7 +8950,7 @@
     },
     "sight:dolores-skate-dog": {
       "id": "sight:dolores-skate-dog",
-      "name": "Skateboarding dog",
+      "name": "Skateboarding Dog",
       "category": "npc",
       "kind": "skate-dog",
       "description": "Four paws, four wheels, and absolutely no municipal skateboarding permit. A very good dog.",
@@ -8978,7 +8978,7 @@
     },
     "actor:summit-lift-attendant": {
       "id": "actor:summit-lift-attendant",
-      "name": "Ski lift attendant",
+      "name": "Ski Lift Attendant",
       "category": "npc",
       "kind": "lift",
       "description": "An experienced lift attendant in a warm parka. Has witnessed every conceivable interpretation of the phrase last run.",
@@ -9047,7 +9047,7 @@
     },
     "actor:tahoe-giant-0": {
       "id": "actor:tahoe-giant-0",
-      "name": "Snow giant",
+      "name": "Snow Giant",
       "category": "npc",
       "kind": "snow-giant",
       "description": "An ancient snowdrift with fists. Its scarf is a small avalanche.",
@@ -9119,7 +9119,7 @@
       "name": "Software Sales Conference",
       "category": "object",
       "kind": "sales-conference",
-      "description": "A round circus tent with a striped canopy and colorful pennants. Inside, the ringmaster is selling sales software to people who sell sales software.",
+      "description": "A round circus tent with a striped canopy and colorful pennants.",
       "menus": [
         {
           "id": "sight:sales-conference.menu-1",
@@ -9170,7 +9170,7 @@
     },
     "actor:software-buyer-1": {
       "id": "actor:software-buyer-1",
-      "name": "Software salesman",
+      "name": "Software Salesman",
       "category": "npc",
       "kind": "software-buyer",
       "description": "A conference delegate considering a sales funnel within a sales funnel. The lanyard is doing most of the work.",
@@ -9246,7 +9246,7 @@
       "name": "Soren Still",
       "category": "npc",
       "kind": "researcher",
-      "description": "A contemplative fellow taking a very slow walk around the bench he identifies as \u201ccompute infrastructure.\u201d",
+      "description": "A contemplative fellow taking a very slow walk around the bench he identifies as “compute infrastructure.”",
       "menus": [
         {
           "id": "actor:soren-still.menu-1",
@@ -9312,7 +9312,7 @@
     },
     "sight:south-cow-pen": {
       "id": "sight:south-cow-pen",
-      "name": "Southern cow pasture",
+      "name": "Southern Cow Pasture",
       "category": "object",
       "kind": "cattle",
       "description": "Cows graze in an open meadow. They seem entirely unconcerned with the afternoon.",
@@ -9340,10 +9340,10 @@
     },
     "actor:sf-spaceport-attendant": {
       "id": "actor:sf-spaceport-attendant",
-      "name": "SpaceX attendant",
+      "name": "SpaceX Attendant",
       "category": "npc",
       "kind": "crew",
-      "description": "An attendant with a flight manifest and immaculate coveralls. The clipboard says \u201cReusable\u201d with a reassuring number of check marks.",
+      "description": "An attendant with a flight manifest and immaculate coveralls. The clipboard says “Reusable” with a reassuring number of check marks.",
       "menus": [
         {
           "id": "actor:sf-spaceport-attendant.menu-1",
@@ -9409,10 +9409,10 @@
     },
     "sight:sf-spaceport": {
       "id": "sight:sf-spaceport",
-      "name": "SpaceX spaceport",
+      "name": "SpaceX Spaceport",
       "category": "object",
       "kind": "spaceport",
-      "description": "A SpaceX reusable rocket and landing pad. Speak to the attendant for a one-coin flight between San Francisco and Tahoe.",
+      "description": "A SpaceX reusable rocket and landing pad. Speak to the attendant for a flight between San Francisco and Tahoe.",
       "menus": [
         {
           "id": "sight:sf-spaceport.menu-1",
@@ -9437,7 +9437,7 @@
     },
     "actor:square-diner": {
       "id": "actor:square-diner",
-      "name": "Blue Bottle patron",
+      "name": "Blue Bottle Patron",
       "category": "npc",
       "kind": "person",
       "description": "She came for coffee and stayed to watch an entire neighborhood change its mind.",
@@ -9506,10 +9506,10 @@
     },
     "sight:zoo-monkeys": {
       "id": "sight:zoo-monkeys",
-      "name": "Squirrel monkeys",
-      "category": "object",
+      "name": "Squirrel Monkey",
+      "category": "npc",
       "kind": "animals",
-      "description": "Two squirrel monkeys debate the nature of experience. One has already stolen the footnotes.",
+      "description": "Quite literally monkeying around.",
       "menus": [
         {
           "id": "sight:zoo-monkeys.menu-1",
@@ -9539,10 +9539,10 @@
     },
     "sight:illuminati-exit": {
       "id": "sight:illuminati-exit",
-      "name": "Stairs to the guild",
+      "name": "Stairs to the Guild",
       "category": "object",
       "kind": "cave-exit",
-      "description": "A long stairway returns to the Freemasons\u2019 Guild above. The public minimap resumes on the surface.",
+      "description": "A long stairway returns to the Freemasons’ Guild above.",
       "menus": [
         {
           "id": "sight:illuminati-exit.menu-1",
@@ -9572,10 +9572,10 @@
     },
     "actor:founder-merchant": {
       "id": "actor:founder-merchant",
-      "name": "Startup founder",
+      "name": "Startup Founder",
       "category": "npc",
       "kind": "founder",
-      "description": "A founder with a pitch deck in one pocket and several possible futures in the other. The vest is pre-revenue.",
+      "description": "He has a pitch deck in his hand and a dream of a great future in his head.",
       "menus": [
         {
           "id": "actor:founder-merchant.menu-1",
@@ -9644,7 +9644,7 @@
       "name": "Startup HQ",
       "category": "object",
       "kind": "startup",
-      "description": "A small startup house on a quiet side lane off the peninsula highway. The orange Y Combinator sign hangs over the door.",
+      "description": "Home to a few brave and bright young entrepreneurs.",
       "menus": [
         {
           "id": "sight:startup-hq.menu-1",
@@ -9774,7 +9774,7 @@
     },
     "sight:gondola-summit": {
       "id": "sight:gondola-summit",
-      "name": "Summit gondola",
+      "name": "Summit Gondola",
       "category": "object",
       "kind": "gondola",
       "description": "A gondola climbs the immense mountain above Lake Tahoe.",
@@ -9807,7 +9807,7 @@
     },
     "sight:ski-rental": {
       "id": "sight:ski-rental",
-      "name": "Summit ski rental",
+      "name": "Summit Ski Rental",
       "category": "object",
       "kind": "ski-rental",
       "description": "The summit lift attendant rents skis for one coin. Then ski the winding course and jump its ramps.",
@@ -9909,7 +9909,7 @@
       "name": "Tahoe SpaceX spaceport",
       "category": "object",
       "kind": "spaceport",
-      "description": "A SpaceX reusable rocket and landing pad. Speak to the attendant for a one-coin flight between San Francisco and Tahoe.",
+      "description": "A SpaceX reusable rocket and landing pad. Speak to the attendant for a flight between San Francisco and Tahoe.",
       "menus": [
         {
           "id": "sight:tahoe-spaceport.menu-1",
@@ -9934,7 +9934,7 @@
     },
     "actor:tax-authority-0": {
       "id": "actor:tax-authority-0",
-      "name": "Tax authority",
+      "name": "Tax Authority",
       "category": "npc",
       "kind": "tax",
       "description": "A gilded suit, a towering hat, and an unwavering belief that your pockets contain public infrastructure.",
@@ -10012,7 +10012,7 @@
       "name": "Tax Authority Headquarters",
       "category": "object",
       "kind": "tax-hq",
-      "description": "The Tax Authority Headquarters. Gilded officials in top hats patrol the forecourt.",
+      "description": "So this is where all the money goes.",
       "menus": [
         {
           "id": "sight:tax-hq.menu-1",
@@ -10160,7 +10160,7 @@
     },
     "sight:tesla-robotaxi-1": {
       "id": "sight:tesla-robotaxi-1",
-      "name": "Tesla robotaxi",
+      "name": "Tesla Robotaxi",
       "category": "npc",
       "kind": "robotaxi",
       "description": "A low, silver Tesla robotaxi with a panoramic roof and a very quiet electric motor. Its passenger is reading a book about the future of work.",
@@ -10197,7 +10197,7 @@
     },
     "actor:robotaxi-sales": {
       "id": "actor:robotaxi-sales",
-      "name": "Tesla robotaxi dealer",
+      "name": "Tesla Robotaxi Dealer",
       "category": "npc",
       "kind": "robotaxi-sales",
       "description": "An autonomous-income salesperson. The car has no driver, but the invoice has excellent handwriting.",
@@ -10272,7 +10272,7 @@
     },
     "sight:tesla-robotaxi": {
       "id": "sight:tesla-robotaxi",
-      "name": "Tesla robotaxi dealership",
+      "name": "Tesla Robotaxi Dealership",
       "category": "object",
       "kind": "robotaxi-dealer",
       "description": "A small South Bay showroom of gold autonomous cabs. A showroom attendant has polished every windscreen to a golden shine.",
@@ -10328,10 +10328,10 @@
     },
     "place:press": {
       "id": "place:press",
-      "name": "The newsstand",
+      "name": "The Newsstand",
       "category": "object",
       "kind": "building",
-      "description": "Extra, extra. News, conversations, and dispatches from the world of building companies.",
+      "description": "Extra, extra. News, conversations, and dispatches from the world.",
       "menus": [
         {
           "id": "place:press.menu-1",
@@ -10390,7 +10390,7 @@
       "name": "The Panhandle",
       "category": "object",
       "kind": "park",
-      "description": "The narrow green strip continuing east from Golden Gate Park between Fell and Oak. Cycle beneath the trees, pass the park monument, and continue toward Alamo Square.",
+      "description": "The narrow green strip continuing east from Golden Gate Park between Fell and Oak.",
       "menus": [
         {
           "id": "sight:panhandle.menu-1",
@@ -10416,9 +10416,9 @@
     "sight:pequod": {
       "id": "sight:pequod",
       "name": "The Pequod",
-      "category": "npc",
+      "category": "object",
       "kind": "pequod",
-      "description": "Captain Ahab\u2019s whaling ship. Its timbers smell of salt, tar, and extremely stubborn ambition.",
+      "description": "Captain Ahab’s whaling ship. Its timbers smell of salt, tar, and extremely stubborn ambition.",
       "menus": [
         {
           "id": "sight:pequod.menu-1",
@@ -10443,7 +10443,7 @@
     },
     "sight:campus-tea-room": {
       "id": "sight:campus-tea-room",
-      "name": "The Present Tense \u00b7 Tea Room",
+      "name": "The Present Tense",
       "category": "object",
       "kind": "neighborhood-shop",
       "description": "A cedar-and-limestone tea room with a sheltered canopy and outdoor tables. The tea is warm; the discussion is pleasantly inconclusive.",
@@ -10471,10 +10471,10 @@
     },
     "actor:campus-tea-room-neighbor": {
       "id": "actor:campus-tea-room-neighbor",
-      "name": "The Present Tense \u00b7 Tea Room shopkeeper",
+      "name": "Tea Room Shopkeeper",
       "category": "npc",
       "kind": "person",
-      "description": "A local shopkeeper. The window display changes with the seasons; the welcome does not.",
+      "description": "Do not under any circumstance ask them what they think about coffee.",
       "menus": [
         {
           "id": "actor:campus-tea-room-neighbor.menu-1",
@@ -10549,7 +10549,7 @@
       "name": "The Quarterly Honk",
       "category": "object",
       "kind": "lore-book",
-      "description": "A household magazine, addressed to \u201cThe Current Beneficial Occupant\u201d.",
+      "description": "A household magazine, addressed to “The Current Beneficial Occupant”.",
       "menus": [
         {
           "id": "sight:lore-explorable-home-8.menu-1",
@@ -10582,7 +10582,7 @@
       "name": "The Terrace",
       "category": "object",
       "kind": "neighborhood-shop",
-      "description": "A coffee, a sunny chair, and absolutely no plans to pivot. The carefully kept storefront has a little terrace and a lived-in upper floor.",
+      "description": "A coffee, a sunny chair, and absolutely no plans to pivot.",
       "menus": [
         {
           "id": "sight:southern-corner-85.menu-1",
@@ -10607,10 +10607,10 @@
     },
     "actor:southern-corner-85-neighbor": {
       "id": "actor:southern-corner-85-neighbor",
-      "name": "The Terrace shopkeeper",
+      "name": "The Terrace Shopkeeper",
       "category": "npc",
       "kind": "person",
-      "description": "A local shopkeeper. The window display changes with the seasons; the welcome does not.",
+      "description": "Knows absolutely nothing about mezzanine financing. ",
       "menus": [
         {
           "id": "actor:southern-corner-85-neighbor.menu-1",
@@ -10713,7 +10713,7 @@
       "name": "Tim Apple",
       "category": "npc",
       "kind": "tim-apple",
-      "description": "Tim Apple, surrounded by very round architecture. His pockets contain one thousand songs and several hundred unread notifications.",
+      "description": "His pockets contain one thousand songs and several hundred unread notifications.",
       "menus": [
         {
           "id": "actor:tim-apple.menu-1",
@@ -10785,10 +10785,10 @@
     },
     "sight:tim-apple-campus": {
       "id": "sight:tim-apple-campus",
-      "name": "Tim Apple campus",
+      "name": "Apple Campus",
       "category": "object",
       "kind": "apple-campus",
-      "description": "A gleaming donut of curved glass and white aluminum, with a real open courtyard and northern gateway.",
+      "description": "A tremendous achievement in the field of donut-shaped architecture.",
       "menus": [
         {
           "id": "sight:tim-apple-campus.menu-1",
@@ -10841,10 +10841,10 @@
     },
     "sight:times-square-stock-exchange": {
       "id": "sight:times-square-stock-exchange",
-      "name": "Times Square Stock Exchange",
+      "name": "Stock Exchange",
       "category": "object",
       "kind": "stock-exchange",
-      "description": "A surprisingly compact stock exchange. The broker lists Sand Hill growth equity for a five-percent fee, then lets you try your hand at timing the market.",
+      "description": "A surprisingly compact place to list and trade equities.",
       "menus": [
         {
           "id": "sight:times-square-stock-exchange.menu-1",
@@ -10869,10 +10869,10 @@
     },
     "sight:house-search-5": {
       "id": "sight:house-search-5",
-      "name": "Tool box",
+      "name": "Tool Box",
       "category": "object",
       "kind": "house-storage",
-      "description": "A familiar bit of household storage, worn smooth by years of use.",
+      "description": "Full of tools its owner uses every day, I'm sure.",
       "menus": [
         {
           "id": "sight:house-search-5.menu-1",
@@ -10905,7 +10905,7 @@
       "name": "Transamerica Pyramid",
       "category": "object",
       "kind": "pyramid",
-      "description": "A pale, tapering pyramid with a gridded fa\u00e7ade and projecting side wings. A small redwood plaza softens the base of the Financial District landmark.",
+      "description": "Maybe not the tallest, but surely the greatest building west of the Mississippi.",
       "menus": [
         {
           "id": "sight:pyramid.menu-1",
@@ -10930,10 +10930,10 @@
     },
     "sight:house-search-8": {
       "id": "sight:house-search-8",
-      "name": "Travelling trunk",
+      "name": "Travelling Trunk",
       "category": "object",
       "kind": "house-storage",
-      "description": "A familiar bit of household storage, worn smooth by years of use.",
+      "description": "To be clear, the trunk itself does not travel. \"Travelling\" here is not a verb but a participial adjective.",
       "menus": [
         {
           "id": "sight:house-search-8.menu-1",
@@ -10966,7 +10966,7 @@
       "name": "Twin Peaks",
       "category": "object",
       "kind": "hill",
-      "description": "The central ridgeline rises between the Sunset and the Castro. Follow the winding trail for a different view of the city.",
+      "description": "Tall and windy.",
       "menus": [
         {
           "id": "sight:peaks.menu-1",
@@ -11048,7 +11048,7 @@
       "name": "UCSF Hospital",
       "category": "object",
       "kind": "hospital",
-      "description": "UCSF Hospital. Excellent emergency care, including the surprisingly common diagnosis \u201copened the tiger gate.\u201d",
+      "description": "UCSF Hospital. Excellent emergency care, including the surprisingly common diagnosis “opened the tiger gate.”",
       "menus": [
         {
           "id": "sight:ucsf.menu-1",
@@ -11076,7 +11076,7 @@
       "name": "Velociraptor",
       "category": "npc",
       "kind": "raptor",
-      "description": "Seems suspiciously well rested for someone living in a city with this much coffee.",
+      "description": "I suppose they revived the velociraptor, inspired by the classic story \"don't revive the velociraptor\". ",
       "menus": [
         {
           "id": "actor:jurassic-raptor.menu-1",
@@ -11142,7 +11142,7 @@
     },
     "place:venture": {
       "id": "place:venture",
-      "name": "Venture exchange",
+      "name": "Demo Day Hall",
       "category": "object",
       "kind": "building",
       "description": "An arcade of ambitious companies. Meet the builders working on what comes next.",
@@ -11201,7 +11201,7 @@
     },
     "actor:square-foreman": {
       "id": "actor:square-foreman",
-      "name": "Vic, demolition foreman",
+      "name": "Vic, Demolition Foreman",
       "category": "npc",
       "kind": "person",
       "description": "The excavator operator has traded a quiet suburb for a very interesting afternoon. His clipboard now lives at the digsite beside the square.",
@@ -11273,7 +11273,7 @@
       "name": "Wardrobe",
       "category": "object",
       "kind": "house-storage",
-      "description": "A familiar bit of household storage, worn smooth by years of use.",
+      "description": "No lions or witches to be found.",
       "menus": [
         {
           "id": "sight:house-search-6.menu-1",
@@ -11306,7 +11306,7 @@
       "name": "Waymo",
       "category": "npc",
       "kind": "waymo",
-      "description": "An autonomous white taxi with a spinning rooftop sensor and absolutely no driver to ask for directions. It is patiently touring the whole city, one impeccably calculated turn at a time.",
+      "description": "An autonomous white taxi with a spinning rooftop sensor and absolutely no driver to ask for directions.",
       "menus": [
         {
           "id": "sight:waymo-1.menu-1",
@@ -11336,7 +11336,7 @@
     },
     "actor:coit-parrot-0": {
       "id": "actor:coit-parrot-0",
-      "name": "Wild parrot",
+      "name": "Wild Parrot",
       "category": "npc",
       "kind": "person",
       "description": "A cherry-headed Telegraph Hill parrot. Small bird, enormous neighborhood opinions.",
@@ -11408,7 +11408,7 @@
       "name": "Windsurfing",
       "category": "object",
       "kind": "windsurf",
-      "description": "A windsurf board and rig wait beside Crissy Field. Click the bay to sail; use Return to shore when you are ready to land.",
+      "description": "Everyone's favorite municipal infrastructure: a windsurf board and rig wait for you beside Crissy Field.",
       "menus": [
         {
           "id": "sight:windsurf.menu-1",
@@ -11441,7 +11441,7 @@
       "name": "Yohji",
       "category": "npc",
       "kind": "yohji",
-      "description": "Carries a reusable bag with the quiet confidence of someone who remembered to bring it.",
+      "description": "Not to be confused with Issey.",
       "menus": [
         {
           "id": "actor:yohji.menu-1",
@@ -11507,7 +11507,7 @@
     },
     "sight:zoo-office": {
       "id": "sight:zoo-office",
-      "name": "Zoo keeper\u2019s office",
+      "name": "Zoo Keeper's Office",
       "category": "object",
       "kind": "scenery",
       "description": "Several nets, one kettle, and an employee handbook with a heavily underlined chapter on tigers.",
@@ -11538,7 +11538,7 @@
       "name": "Zookeeper",
       "category": "npc",
       "kind": "person",
-      "description": "A watchful zookeeper with an extremely literal interpretation of \u2018monkey business.\u2019",
+      "description": "A watchful zookeeper with an extremely literal interpretation of ‘monkey business.’",
       "menus": [
         {
           "id": "actor:monkey-zookeeper.menu-1",
@@ -11604,7 +11604,7 @@
     },
     "sight:monkey-keeper-post": {
       "id": "sight:monkey-keeper-post",
-      "name": "Zookeeper\u2019s post",
+      "name": "Zookeeper’s Post",
       "category": "object",
       "kind": "scenery",
       "description": "A remarkably athletic zookeeper is keeping a close eye on the monkey habitat.",
@@ -12255,7 +12255,7 @@
         "x": 53.7,
         "z": 190.6
       },
-      "description": "Knows a shortcut. Will probably describe it using a caf\u00e9 that closed in 2018.",
+      "description": "Knows a shortcut. Will probably describe it using a café that closed in 2018.",
       "level": 2
     },
     "actor:south-cow-6": {

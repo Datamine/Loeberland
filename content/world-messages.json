@@ -785,6 +785,9 @@
   "world-message.server.shared-world.find-your-feet-before-petting-the-bear": {
     "template": "Find your feet before petting the bear."
   },
+  "world-message.bear.eats-your-sandwiches": {
+    "template": "You pet the bear. It sniffs your bag and eats every sandwich you were carrying."
+  },
   "world-message.server.shared-world.go-to-the-tiger-enclosure-first": {
     "template": "Go to the tiger enclosure first."
   },

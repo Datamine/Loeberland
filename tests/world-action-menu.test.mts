@@ -62,8 +62,8 @@ test('Cotogna and Rich Table diners offer conversation without a level or hostil
   for (const [id, label] of [
     ['cotogna-diner-2', 'Cotogna Diner'],
     ['cotogna-diner-3', 'Cotogna Diner'],
-    ['rich-table-diner-0', 'Rich Table diner'],
-    ['rich-table-diner-1', 'Rich Table diner'],
+    ['rich-table-diner-0', 'Rich Table Diner'],
+    ['rich-table-diner-1', 'Rich Table Diner'],
   ]) {
     const diner = { id, label };
     const actions = npcContextActions(diner);

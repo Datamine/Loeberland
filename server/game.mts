@@ -1565,6 +1565,18 @@ export async function createGame({
         movement.stop(p);
         pvp.stop(p);
         p.personalBattle = null;
+        if (p.inventory.meta.sandwiches > 0) {
+          p.inventory.meta.sandwiches = 0;
+          personal.runtime(p).deli.state.sandwiches = 0;
+          p.inventory.save();
+          dirty(p);
+          await durable(p);
+          result = {
+            ...result,
+            inventory: p.inventory.snapshot(),
+            message: contentText('world-message.bear.eats-your-sandwiches'),
+          };
+        }
       }
       if ('award' in result && isRecord(result.award) && typeof result.award.kind === 'string') {
         personal.collect(p, { ...result.award, kind: result.award.kind });

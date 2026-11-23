@@ -277,24 +277,35 @@ test('shared bear kill has one peptide roll, a first-claim owner and durable col
   );
   await game.close();
 });
-test('the server rejects petting on the bear tile and authorizes a facing pet gesture only from beside it', async () => {
-  const { game } = await setup(),
-    a = await player(game, 720),
+test('petting the friendly bear requires standing beside it and costs all carried sandwiches', async () => {
+  const { game, store } = await setup(),
+    a = await player(game, 720, { 'sf-deli-v1': '{"sandwiches":3}' }),
     bear = game.shared.wilderness.actors[0];
   try {
     Object.assign(a.p, { x: bear.x, z: bear.z });
     assert.equal(requiredFixture(await act(game, a, 'petBear', { id: bear.id })).ok, false);
     assert.equal(bear.affection, 0);
+    assert.equal(a.p.inventory.meta.sandwiches, 3);
     Object.assign(a.p, { x: bear.x - 1.2, z: bear.z });
+    assert.equal(requiredFixture(await act(game, a, 'inventory', { op: 'order' })).ok, true);
     assert.equal(
       requiredFixture(await act(game, a, 'moveTo', { x: a.p.x - 5, z: a.p.z })).ok,
       true,
     );
-    assert.equal(requiredFixture(await act(game, a, 'petBear', { id: bear.id })).ok, true);
+    const pet = requiredFixture(await act(game, a, 'petBear', { id: bear.id }));
+    assert.equal(pet.ok, true);
+    assert.match(pet.message ?? '', /eats every sandwich/);
+    assert.equal(pet.inventory?.sandwiches, 0);
+    assert.equal(pet.inventory?.deliveryPending, true);
+    const saved = await storedPlayerFixture(store, 'player:' + a.p.owner);
+    assert.equal(requiredFixture(saved.playerState.inventory.ledger).sandwiches, 0);
     assert.equal(a.p.gesture, 'pet-bear');
     assert.equal(a.p.angle, 0);
     assert.equal(bear.angle, Math.PI);
     assert.equal(bear.motion, 0);
+    const emptyBag = requiredFixture(await act(game, a, 'petBear', { id: bear.id }));
+    assert.equal(emptyBag.ok, true);
+    assert.match(emptyBag.message ?? '', /contented huff/);
     const before = { x: bear.x, z: bear.z },
       person = { x: a.p.x, z: a.p.z };
     game.tick(0.3);

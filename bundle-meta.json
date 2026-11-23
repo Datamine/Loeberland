@@ -136,7 +136,7 @@
       "format": "esm"
     },
     "content/entities.json": {
-      "bytes": 462021,
+      "bytes": 459310,
       "imports": [],
       "format": "esm",
       "with": {
@@ -173,7 +173,7 @@
       "format": "esm"
     },
     "content/texts.json": {
-      "bytes": 148963,
+      "bytes": 148934,
       "imports": [],
       "format": "esm",
       "with": {
@@ -181,7 +181,7 @@
       }
     },
     "content/world-messages.json": {
-      "bytes": 98331,
+      "bytes": 98481,
       "imports": [],
       "format": "esm",
       "with": {
@@ -10099,7 +10099,7 @@
       "imports": [],
       "exports": [],
       "inputs": {},
-      "bytes": 9278487
+      "bytes": 9275904
     },
     "explore.js": {
       "imports": [],
@@ -10167,7 +10167,7 @@
           "bytesInOutput": 1568
         },
         "content/entities.json": {
-          "bytesInOutput": 275382
+          "bytesInOutput": 272633
         },
         "content/dialogues.json": {
           "bytesInOutput": 259047
@@ -10182,10 +10182,10 @@
           "bytesInOutput": 236
         },
         "content/texts.json": {
-          "bytesInOutput": 124559
+          "bytesInOutput": 124530
         },
         "content/world-messages.json": {
-          "bytesInOutput": 88639
+          "bytesInOutput": 88774
         },
         "content/world-message-sources.ts": {
           "bytesInOutput": 96
@@ -11160,7 +11160,7 @@
           "bytesInOutput": 1701
         }
       },
-      "bytes": 4283187
+      "bytes": 4280544
     }
   }
 }

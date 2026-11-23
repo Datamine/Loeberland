@@ -2870,7 +2870,7 @@
       "template": "One share of startup equity is yours. Welcome aboard."
     },
     "service.secondary.root.intro": {
-      "template": "I buy startup shares here at the Venture Exchange. A surprising number of people come in with a founder’s business card and no idea what they own. If you have a share of startup equity, my offer is {secondaryPrice} coins for it."
+      "template": "I buy startup shares. A surprising number of people come in with a founder’s business card and no idea what they own. If you have a share of startup equity, my offer is {secondaryPrice} coins for it."
     },
     "service.secondary.root.choices.0.label": {
       "template": "Sell one share · {secondaryPrice} coins"
