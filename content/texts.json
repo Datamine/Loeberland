@@ -3573,6 +3573,36 @@
     },
     "service.neighborhood-menottis.root.bus-tables.receipt": {
       "template": "You clear the cups and wipe down the tables."
+    },
+    "placement.southern-corner-129-neighbor.wheel.label": {
+      "template": "Help throw a little bowl · Earn 1 coin"
+    },
+    "placement.southern-corner-129-neighbor.wheel.receipt": {
+      "template": "You coax the clay into something almost circular. The potter calls its wobble “a useful record of the human hand.”"
+    },
+    "placement.southern-corner-129-neighbor.glaze.label": {
+      "template": "Ask about the sea-green glaze"
+    },
+    "placement.southern-corner-129-neighbor.glaze.receipt": {
+      "template": "“Copper, a hot kiln, and several very educational disasters. The recipe is pinned beside the kettle.”"
+    },
+    "placement.southern-corner-129-neighbor.service.neighborhood-pottery.root.intro": {
+      "template": "Would you like to try the wheel?"
+    },
+    "service.neighborhood-the-mill.root.intro": {
+      "template": "Welcome to The Mill. Can I get you a sandwich or a coffee?"
+    },
+    "service.neighborhood-the-mill.root.sandwich.label": {
+      "template": "Buy a sandwich · 2 coins"
+    },
+    "service.neighborhood-the-mill.root.sandwich.receipt": {
+      "template": "The barista wraps a fresh sandwich for you."
+    },
+    "service.neighborhood-the-mill.root.coffee.label": {
+      "template": "Buy a coffee · 1 coin"
+    },
+    "service.neighborhood-the-mill.root.coffee.receipt": {
+      "template": "You drink a hot coffee. It can restore 1 HP."
     }
   }
 }

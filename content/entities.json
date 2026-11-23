@@ -7067,7 +7067,35 @@
         {
           "id": "sight:southern-corner-129.menu-1",
           "states": ["New visitor", "Inside this building"],
-          "placements": ["sight:southern-corner-129", "sight:southern-corner-53"],
+          "placements": ["sight:southern-corner-129"],
+          "actions": [
+            {
+              "id": "walk",
+              "action": "walk",
+              "label": "Walk here"
+            },
+            {
+              "id": "examine",
+              "action": "examine",
+              "label": "Examine {name}"
+            }
+          ]
+        }
+      ],
+      "dialogues": [],
+      "capabilities": ["walk", "examine"]
+    },
+    "sight:southern-corner-53": {
+      "id": "sight:southern-corner-53",
+      "name": "The Mill",
+      "category": "object",
+      "kind": "neighborhood-shop",
+      "description": "A neighborhood cafe serving fresh sandwiches and hot coffee.",
+      "menus": [
+        {
+          "id": "sight:southern-corner-53.menu-1",
+          "states": ["New visitor", "Inside this building"],
+          "placements": ["sight:southern-corner-53"],
           "actions": [
             {
               "id": "walk",
@@ -7131,7 +7159,7 @@
             "In custody",
             "Equipment and rentals available"
           ],
-          "placements": ["actor:southern-corner-129-neighbor", "actor:southern-corner-53-neighbor"],
+          "placements": ["actor:southern-corner-129-neighbor"],
           "actions": [
             {
               "id": "npc.walk",
@@ -7158,6 +7186,81 @@
         "npc.examine",
         "service.neighborhood-pottery.service:[\"wheel\"]",
         "service.neighborhood-pottery.service:[\"glaze\"]"
+      ]
+    },
+    "actor:southern-corner-53-neighbor": {
+      "id": "actor:southern-corner-53-neighbor",
+      "name": "The Mill Barista",
+      "category": "npc",
+      "kind": "person",
+      "description": "The barista pours coffee and wraps sandwiches at the counter.",
+      "menus": [
+        {
+          "id": "actor:southern-corner-53-neighbor.menu-1",
+          "states": [
+            "New visitor",
+            "Monkey quest: accepted",
+            "Monkey quest: carrying",
+            "Monkey quest: completed",
+            "Sunglasses found",
+            "Evidence certified",
+            "Permit issued",
+            "Bayonet collected",
+            "All aliens defeated",
+            "Alien quest complete",
+            "Raptor quest: escaped",
+            "Raptor quest: carrying",
+            "Raptor quest: completed",
+            "Aboard the Pequod",
+            "Kraken defeated, aboard",
+            "Kraken reward collected",
+            "Guild applicant",
+            "Guild member",
+            "Illuminati initiate",
+            "Motorcycle rented",
+            "AI lab employee",
+            "iPhone owned, put away",
+            "iPhone equipped",
+            "Robotaxi owned",
+            "Software pitch pending",
+            "Carrying a conservation letter",
+            "Conservation letter delivered",
+            "Founder funding claimed",
+            "All shop hats owned",
+            "Airship rented by another player",
+            "Airship prepaid",
+            "Airship reserved by another player",
+            "Dog surfing: judging",
+            "In custody",
+            "Equipment and rentals available"
+          ],
+          "placements": ["actor:southern-corner-53-neighbor"],
+          "actions": [
+            {
+              "id": "npc.walk",
+              "action": "npc.walk",
+              "label": "Walk here {name}"
+            },
+            {
+              "id": "npc.talk",
+              "action": "npc.talk",
+              "label": "Talk-To {name}"
+            },
+            {
+              "id": "npc.examine",
+              "action": "npc.examine",
+              "label": "Examine {name}"
+            }
+          ]
+        }
+      ],
+      "dialogues": ["actor:southern-corner-53-neighbor.dialogue-1"],
+      "capabilities": [
+        "npc.walk",
+        "npc.talk",
+        "npc.examine",
+        "service.neighborhood-the-mill.service:[\"sandwich\"]",
+        "service.neighborhood-the-mill.service:[\"coffee\"]"
       ]
     },
     "sight:windmill": {
@@ -8063,7 +8166,7 @@
     },
     "actor:lucindas-deli-diner-0": {
       "id": "actor:lucindas-deli-diner-0",
-      "name": "Rich Table Diner",
+      "name": "Lucinda's Deli Diner",
       "category": "npc",
       "kind": "person",
       "description": "Contemplating a small plate with the seriousness usually reserved for a lunar landing.",
@@ -8107,12 +8210,7 @@
             "In custody",
             "Equipment and rentals available"
           ],
-          "placements": [
-            "actor:lucindas-deli-diner-0",
-            "actor:lucindas-deli-diner-1",
-            "actor:shanghai-kelly-diner-0",
-            "actor:shanghai-kelly-diner-1"
-          ],
+          "placements": ["actor:lucindas-deli-diner-0"],
           "actions": [
             {
               "id": "npc.walk",
@@ -8140,6 +8238,228 @@
       "dialogues": ["actor:lucindas-deli-diner-0.dialogue-1"],
       "capabilities": ["npc.walk", "npc.talk", "npc.attack", "npc.examine"]
     },
+    "actor:lucindas-deli-diner-1": {
+      "id": "actor:lucindas-deli-diner-1",
+      "name": "Lucinda's Deli Diner",
+      "category": "npc",
+      "kind": "person",
+      "description": "Contemplating a small plate with the seriousness usually reserved for a lunar landing.",
+      "menus": [
+        {
+          "id": "actor:lucindas-deli-diner-1.menu-1",
+          "states": [
+            "New visitor",
+            "Monkey quest: accepted",
+            "Monkey quest: carrying",
+            "Monkey quest: completed",
+            "Sunglasses found",
+            "Evidence certified",
+            "Permit issued",
+            "Bayonet collected",
+            "All aliens defeated",
+            "Alien quest complete",
+            "Raptor quest: escaped",
+            "Raptor quest: carrying",
+            "Raptor quest: completed",
+            "Aboard the Pequod",
+            "Kraken defeated, aboard",
+            "Kraken reward collected",
+            "Guild applicant",
+            "Guild member",
+            "Illuminati initiate",
+            "Motorcycle rented",
+            "AI lab employee",
+            "iPhone owned, put away",
+            "iPhone equipped",
+            "Robotaxi owned",
+            "Software pitch pending",
+            "Carrying a conservation letter",
+            "Conservation letter delivered",
+            "Founder funding claimed",
+            "All shop hats owned",
+            "Airship rented by another player",
+            "Airship prepaid",
+            "Airship reserved by another player",
+            "Dog surfing: judging",
+            "In custody",
+            "Equipment and rentals available"
+          ],
+          "placements": ["actor:lucindas-deli-diner-1"],
+          "actions": [
+            {
+              "id": "npc.walk",
+              "action": "npc.walk",
+              "label": "Walk here {name}"
+            },
+            {
+              "id": "npc.talk",
+              "action": "npc.talk",
+              "label": "Talk-To {name} (Level {level})"
+            },
+            {
+              "id": "npc.attack",
+              "action": "npc.attack",
+              "label": "Attack {name} (Level {level})"
+            },
+            {
+              "id": "npc.examine",
+              "action": "npc.examine",
+              "label": "Examine {name}"
+            }
+          ]
+        }
+      ],
+      "dialogues": ["actor:lucindas-deli-diner-1.dialogue-1"],
+      "capabilities": ["npc.walk", "npc.talk", "npc.attack", "npc.examine"]
+    },
+    "actor:shanghai-kelly-diner-0": {
+      "id": "actor:shanghai-kelly-diner-0",
+      "name": "Shanghai Kelly's Diner",
+      "category": "npc",
+      "kind": "person",
+      "description": "Contemplating a small plate with the seriousness usually reserved for a lunar landing.",
+      "menus": [
+        {
+          "id": "actor:shanghai-kelly-diner-0.menu-1",
+          "states": [
+            "New visitor",
+            "Monkey quest: accepted",
+            "Monkey quest: carrying",
+            "Monkey quest: completed",
+            "Sunglasses found",
+            "Evidence certified",
+            "Permit issued",
+            "Bayonet collected",
+            "All aliens defeated",
+            "Alien quest complete",
+            "Raptor quest: escaped",
+            "Raptor quest: carrying",
+            "Raptor quest: completed",
+            "Aboard the Pequod",
+            "Kraken defeated, aboard",
+            "Kraken reward collected",
+            "Guild applicant",
+            "Guild member",
+            "Illuminati initiate",
+            "Motorcycle rented",
+            "AI lab employee",
+            "iPhone owned, put away",
+            "iPhone equipped",
+            "Robotaxi owned",
+            "Software pitch pending",
+            "Carrying a conservation letter",
+            "Conservation letter delivered",
+            "Founder funding claimed",
+            "All shop hats owned",
+            "Airship rented by another player",
+            "Airship prepaid",
+            "Airship reserved by another player",
+            "Dog surfing: judging",
+            "In custody",
+            "Equipment and rentals available"
+          ],
+          "placements": ["actor:shanghai-kelly-diner-0"],
+          "actions": [
+            {
+              "id": "npc.walk",
+              "action": "npc.walk",
+              "label": "Walk here {name}"
+            },
+            {
+              "id": "npc.talk",
+              "action": "npc.talk",
+              "label": "Talk-To {name} (Level {level})"
+            },
+            {
+              "id": "npc.attack",
+              "action": "npc.attack",
+              "label": "Attack {name} (Level {level})"
+            },
+            {
+              "id": "npc.examine",
+              "action": "npc.examine",
+              "label": "Examine {name}"
+            }
+          ]
+        }
+      ],
+      "dialogues": ["actor:shanghai-kelly-diner-0.dialogue-1"],
+      "capabilities": ["npc.walk", "npc.talk", "npc.attack", "npc.examine"]
+    },
+    "actor:shanghai-kelly-diner-1": {
+      "id": "actor:shanghai-kelly-diner-1",
+      "name": "Shanghai Kelly's Diner",
+      "category": "npc",
+      "kind": "person",
+      "description": "Contemplating a small plate with the seriousness usually reserved for a lunar landing.",
+      "menus": [
+        {
+          "id": "actor:shanghai-kelly-diner-1.menu-1",
+          "states": [
+            "New visitor",
+            "Monkey quest: accepted",
+            "Monkey quest: carrying",
+            "Monkey quest: completed",
+            "Sunglasses found",
+            "Evidence certified",
+            "Permit issued",
+            "Bayonet collected",
+            "All aliens defeated",
+            "Alien quest complete",
+            "Raptor quest: escaped",
+            "Raptor quest: carrying",
+            "Raptor quest: completed",
+            "Aboard the Pequod",
+            "Kraken defeated, aboard",
+            "Kraken reward collected",
+            "Guild applicant",
+            "Guild member",
+            "Illuminati initiate",
+            "Motorcycle rented",
+            "AI lab employee",
+            "iPhone owned, put away",
+            "iPhone equipped",
+            "Robotaxi owned",
+            "Software pitch pending",
+            "Carrying a conservation letter",
+            "Conservation letter delivered",
+            "Founder funding claimed",
+            "All shop hats owned",
+            "Airship rented by another player",
+            "Airship prepaid",
+            "Airship reserved by another player",
+            "Dog surfing: judging",
+            "In custody",
+            "Equipment and rentals available"
+          ],
+          "placements": ["actor:shanghai-kelly-diner-1"],
+          "actions": [
+            {
+              "id": "npc.walk",
+              "action": "npc.walk",
+              "label": "Walk here {name}"
+            },
+            {
+              "id": "npc.talk",
+              "action": "npc.talk",
+              "label": "Talk-To {name} (Level {level})"
+            },
+            {
+              "id": "npc.attack",
+              "action": "npc.attack",
+              "label": "Attack {name} (Level {level})"
+            },
+            {
+              "id": "npc.examine",
+              "action": "npc.examine",
+              "label": "Examine {name}"
+            }
+          ]
+        }
+      ],
+      "dialogues": ["actor:shanghai-kelly-diner-1.dialogue-1"],
+      "capabilities": ["npc.walk", "npc.talk", "npc.attack", "npc.examine"]
+    },
     "actor:rich-table-diner-0": {
       "id": "actor:rich-table-diner-0",
       "name": "Rich Table Diner",
@@ -8150,7 +8470,7 @@
         {
           "id": "actor:rich-table-diner-0.menu-1",
           "states": ["New visitor"],
-          "placements": ["actor:rich-table-diner-0", "actor:rich-table-diner-1"],
+          "placements": ["actor:rich-table-diner-0"],
           "actions": [
             {
               "id": "npc.talk",
@@ -8170,7 +8490,40 @@
           ]
         }
       ],
-      "dialogues": ["actor:lucindas-deli-diner-0.dialogue-1"],
+      "dialogues": ["actor:rich-table-diner-0.dialogue-1"],
+      "capabilities": ["npc.talk", "npc.walk", "npc.examine"]
+    },
+    "actor:rich-table-diner-1": {
+      "id": "actor:rich-table-diner-1",
+      "name": "Rich Table Diner",
+      "category": "npc",
+      "kind": "person",
+      "description": "He says he is amused by the amuse bouche; surely the first person to ever make that joke.",
+      "menus": [
+        {
+          "id": "actor:rich-table-diner-1.menu-1",
+          "states": ["New visitor"],
+          "placements": ["actor:rich-table-diner-1"],
+          "actions": [
+            {
+              "id": "npc.talk",
+              "action": "npc.talk",
+              "label": "Talk-To {name}"
+            },
+            {
+              "id": "npc.walk",
+              "action": "npc.walk",
+              "label": "Walk here {name}"
+            },
+            {
+              "id": "npc.examine",
+              "action": "npc.examine",
+              "label": "Examine {name}"
+            }
+          ]
+        }
+      ],
+      "dialogues": ["actor:rich-table-diner-1.dialogue-1"],
       "capabilities": ["npc.talk", "npc.walk", "npc.examine"]
     },
     "place:rose": {
@@ -13989,7 +14342,7 @@
     },
     "sight:southern-corner-53": {
       "id": "sight:southern-corner-53",
-      "definition": "sight:southern-corner-129",
+      "definition": "sight:southern-corner-53",
       "actor": false,
       "source": "sights",
       "position": {
@@ -14017,7 +14370,7 @@
     },
     "actor:southern-corner-53-neighbor": {
       "id": "actor:southern-corner-53-neighbor",
-      "definition": "actor:southern-corner-129-neighbor",
+      "definition": "actor:southern-corner-53-neighbor",
       "actor": true,
       "source": "merchants",
       "position": {
@@ -14295,7 +14648,7 @@
     },
     "actor:lucindas-deli-diner-1": {
       "id": "actor:lucindas-deli-diner-1",
-      "definition": "actor:lucindas-deli-diner-0",
+      "definition": "actor:lucindas-deli-diner-1",
       "actor": true,
       "source": "restaurantDiners",
       "position": {
@@ -14324,7 +14677,7 @@
     },
     "actor:rich-table-diner-1": {
       "id": "actor:rich-table-diner-1",
-      "definition": "actor:rich-table-diner-0",
+      "definition": "actor:rich-table-diner-1",
       "actor": true,
       "source": "restaurantDiners",
       "position": {
@@ -14338,7 +14691,7 @@
     },
     "actor:shanghai-kelly-diner-0": {
       "id": "actor:shanghai-kelly-diner-0",
-      "definition": "actor:lucindas-deli-diner-0",
+      "definition": "actor:shanghai-kelly-diner-0",
       "actor": true,
       "source": "restaurantDiners",
       "position": {
@@ -14353,7 +14706,7 @@
     },
     "actor:shanghai-kelly-diner-1": {
       "id": "actor:shanghai-kelly-diner-1",
-      "definition": "actor:lucindas-deli-diner-0",
+      "definition": "actor:shanghai-kelly-diner-1",
       "actor": true,
       "source": "restaurantDiners",
       "position": {

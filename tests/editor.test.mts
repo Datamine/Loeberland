@@ -103,6 +103,64 @@ test('the eight cows have separately editable examine text under a shared defini
   );
 });
 
+test('restaurant diners and the former shared pottery placements have independent editor definitions', async () => {
+  const source = await readContent();
+  const catalog = projectCatalog(source);
+  const names = new Map([
+    ['actor:lucindas-deli-diner-0', "Lucinda's Deli Diner"],
+    ['actor:lucindas-deli-diner-1', "Lucinda's Deli Diner"],
+    ['actor:shanghai-kelly-diner-0', "Shanghai Kelly's Diner"],
+    ['actor:shanghai-kelly-diner-1', "Shanghai Kelly's Diner"],
+    ['actor:rich-table-diner-0', 'Rich Table Diner'],
+    ['actor:rich-table-diner-1', 'Rich Table Diner'],
+    ['sight:southern-corner-129', 'Palmetto Pottery'],
+    ['sight:southern-corner-53', 'The Mill'],
+    ['actor:southern-corner-129-neighbor', 'Palmetto Pottery Shopkeeper'],
+    ['actor:southern-corner-53-neighbor', 'The Mill Barista'],
+  ]);
+  const records = catalog.records.filter(({ key }) => names.has(key));
+  assert.equal(records.length, names.size);
+  assert.equal(groupEditorRecords(records).length, names.size);
+  for (const record of records) {
+    assert.equal(record.definitionId, record.key);
+    assert.equal(record.name, names.get(record.key));
+    assert.equal(catalog.records.filter((r) => r.definitionId === record.definitionId).length, 1);
+    for (const variant of record.dialogues) {
+      assert.deepEqual(source.dialogues.variants[variant.id].placements, [record.key]);
+    }
+  }
+
+  const shopkeeper = requiredFixture(
+    records.find(({ key }) => key === 'actor:southern-corner-53-neighbor'),
+  );
+  const peer = requiredFixture(
+    records.find(({ key }) => key === 'actor:southern-corner-129-neighbor'),
+  );
+  const changedIntro = 'Welcome to my cafe.';
+  const next = planEditorWrite(catalog, source, [
+    {
+      record: shopkeeper.key,
+      path: ['name'],
+      before: shopkeeper.name,
+      after: 'Cafe Manager',
+    },
+    {
+      record: shopkeeper.key,
+      path: ['dialogues', 0, 'dialogue', 'intro'],
+      before: requiredFixture(shopkeeper.dialogues[0].dialogue?.intro),
+      after: changedIntro,
+    },
+  ]);
+  const updated = projectCatalog(next).records;
+  const edited = requiredFixture(updated.find(({ key }) => key === shopkeeper.key));
+  assert.equal(edited.name, 'Cafe Manager');
+  assert.equal(edited.dialogues[0].dialogue?.intro, changedIntro);
+  assert.deepEqual(
+    updated.find(({ key }) => key === peer.key),
+    peer,
+  );
+});
+
 test('duplicate NPC names can be filtered with or without matching examine text', () => {
   const records = [
     { group: 'npc', name: 'Cow', description: 'Brown spots.' },

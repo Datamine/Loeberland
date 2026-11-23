@@ -121,7 +121,7 @@
       "format": "esm"
     },
     "src/types/ui.ts": {
-      "bytes": 11288,
+      "bytes": 11350,
       "imports": [],
       "format": "esm"
     },
@@ -136,7 +136,7 @@
       "format": "esm"
     },
     "content/entities.json": {
-      "bytes": 459041,
+      "bytes": 470663,
       "imports": [],
       "format": "esm",
       "with": {
@@ -144,7 +144,7 @@
       }
     },
     "content/dialogues.json": {
-      "bytes": 435431,
+      "bytes": 445528,
       "imports": [],
       "format": "esm",
       "with": {
@@ -173,7 +173,7 @@
       "format": "esm"
     },
     "content/texts.json": {
-      "bytes": 148934,
+      "bytes": 150347,
       "imports": [],
       "format": "esm",
       "with": {
@@ -4834,7 +4834,7 @@
       "format": "esm"
     },
     "src/config/neighborhood-services.ts": {
-      "bytes": 2850,
+      "bytes": 2959,
       "imports": [
         {
           "path": "src/config/dialogue.ts",
@@ -4906,7 +4906,7 @@
       "format": "esm"
     },
     "src/southern-craft.ts": {
-      "bytes": 19575,
+      "bytes": 19970,
       "imports": [
         {
           "path": "src/types/assert.ts",
@@ -6340,7 +6340,7 @@
       "format": "esm"
     },
     "src/southern-neighborhood.ts": {
-      "bytes": 11379,
+      "bytes": 11989,
       "imports": [
         {
           "path": "src/legacy-software-layout.ts",
@@ -10099,7 +10099,7 @@
       "imports": [],
       "exports": [],
       "inputs": {},
-      "bytes": 9275646
+      "bytes": 9308206
     },
     "explore.js": {
       "imports": [],
@@ -10167,10 +10167,10 @@
           "bytesInOutput": 1568
         },
         "content/entities.json": {
-          "bytesInOutput": 272231
+          "bytesInOutput": 279288
         },
         "content/dialogues.json": {
-          "bytesInOutput": 259047
+          "bytesInOutput": 265969
         },
         "content/dialogues/tweet-derived/chains.json": {
           "bytesInOutput": 121052
@@ -10182,7 +10182,7 @@
           "bytesInOutput": 236
         },
         "content/texts.json": {
-          "bytesInOutput": 124530
+          "bytesInOutput": 125751
         },
         "content/world-messages.json": {
           "bytesInOutput": 88774
@@ -10800,7 +10800,7 @@
           "bytesInOutput": 501046
         },
         "src/config/neighborhood-services.ts": {
-          "bytesInOutput": 1320
+          "bytesInOutput": 1397
         },
         "src/neighborhood-palette.ts": {
           "bytesInOutput": 718
@@ -10812,7 +10812,7 @@
           "bytesInOutput": 3768
         },
         "src/southern-craft.ts": {
-          "bytesInOutput": 10441
+          "bytesInOutput": 10730
         },
         "src/cupertino-gardens.ts": {
           "bytesInOutput": 2473
@@ -10974,7 +10974,7 @@
           "bytesInOutput": 7092
         },
         "src/southern-neighborhood.ts": {
-          "bytesInOutput": 4900
+          "bytesInOutput": 5210
         },
         "src/regional-road.ts": {
           "bytesInOutput": 9279
@@ -11160,7 +11160,7 @@
           "bytesInOutput": 1701
         }
       },
-      "bytes": 4280142
+      "bytes": 4296018
     }
   }
 }

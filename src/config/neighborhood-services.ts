@@ -25,6 +25,10 @@ const SERVICE_EFFECTS: Record<string, ServiceEffect[]> = {
     { id: 'coffee', price: 1, heal: 1 },
     { id: 'bus-tables', reward: 1, cooldownMs: 180000 },
   ],
+  'the-mill': [
+    { id: 'sandwich', price: 2, sandwich: 1 },
+    { id: 'coffee', price: 1, heal: 1 },
+  ],
   'dog-pony': [{ id: 'watch', price: DOG_PONY_SHOW.price, showMs: DOG_PONY_SHOW.durationMs }],
   tea: [
     {

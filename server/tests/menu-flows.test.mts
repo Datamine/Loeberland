@@ -11,7 +11,11 @@ import { dialogueFixture } from '../../tests/helpers/dialogue-fixture.mts';
 import { npcContextActions, npcOffersAttack } from '../../src/npc-interactions.ts';
 import { neighborhoodShopDialogue } from '../../src/neighborhood-interactions.ts';
 import { compileEntityDialogue } from '../../src/content-game.ts';
-import { MENOTTIS_SITE_ID } from '../../src/southern-craft.ts';
+import {
+  MENOTTIS_SITE_ID,
+  PALMETTO_POTTERY_SITE_ID,
+  THE_MILL_SITE_ID,
+} from '../../src/southern-craft.ts';
 import { NEIGHBORHOOD_SERVICES } from '../../src/config/neighborhood-services.ts';
 import { HAT_CATALOG } from '../../src/hat-catalog.ts';
 import { haberdasherDialogue } from '../../src/haberdashery.ts';
@@ -1214,15 +1218,15 @@ test('every authored actor has usable context actions, protected actors have no 
     ...geometry.expeditions.cows,
     ...geometry.wilderness.actors,
   ];
-  const valid = new Set([
-    'talk',
-    'attack',
-    'pet',
-    'examine',
-    'walk',
-    'duel',
-    'follow',
-  ] satisfies [string, string, string, string, string, string, string]);
+  const valid = new Set(['talk', 'attack', 'pet', 'examine', 'walk', 'duel', 'follow'] satisfies [
+    string,
+    string,
+    string,
+    string,
+    string,
+    string,
+    string,
+  ]);
   for (const actor of actors) {
     const actions = npcContextActions(actor);
     assert.ok(actions.length, actor.id);
@@ -1285,6 +1289,47 @@ test('Menotti’s is the Ocean Esplanade café, with coffee, a paid chore, and p
     );
     await choose(a, person, [chore.label]);
     assert.equal(a.p.inventory.economy.state.coins, coins);
+  } finally {
+    stop(a);
+  }
+});
+
+test('The Mill sells sandwiches and coffee at its converted storefront', async () => {
+  const shop = requiredFixture(
+    geometry.southernNeighborhood.craftSites.find((site) => site.id === THE_MILL_SITE_ID),
+  );
+  assert.equal(shop.label, 'The Mill');
+  assert.equal(shop.neighborhoodService, 'the-mill');
+  const pottery = requiredFixture(
+    geometry.southernNeighborhood.craftSites.find((site) => site.id === PALMETTO_POTTERY_SITE_ID),
+  );
+  assert.equal(pottery.label, 'Palmetto Pottery');
+  assert.equal(pottery.neighborhoodService, 'pottery');
+
+  const barista = npc((n) => n.siteId === shop.id);
+  const a = await visitor();
+  try {
+    atNPC(a, barista);
+    a.p.hp = a.p.max - 1;
+    const purse = a.p.inventory.economy.state;
+    const coins = purse.coins;
+    const sandwiches = a.p.inventory.meta.sandwiches;
+    const person = compileEntityDialogue(
+      neighborhoodShopDialogue(barista, (id, offer) =>
+        act(a, 'playerAction', { verb: 'neighborhoodService', id, offer }),
+      ),
+      'actor:' + barista.id,
+    );
+    assert.deepEqual(
+      person.choices?.map((choice) => choice.id),
+      ['sandwich', 'coffee'],
+    );
+    await choose(a, person, ['Buy a sandwich · 2 coins']);
+    assert.equal(purse.coins, coins - 2);
+    assert.equal(a.p.inventory.meta.sandwiches, sandwiches + 1);
+    await choose(a, person, ['Buy a coffee · 1 coin']);
+    assert.equal(purse.coins, coins - 3);
+    assert.equal(a.p.hp, a.p.max);
   } finally {
     stop(a);
   }
@@ -2039,7 +2084,10 @@ test('the factory sells all five seats and a Noe Valley stroller parent buys the
     assert.equal((await trade(chairs[0], 'buy')).ok, false);
     assert.equal((await trade(chairs[0], 'sell')).ok, false);
     assert.equal(a.p.inventory.economy.state.coins, 999400);
-    for (const [id, price] of [['marshmallow-sofa', 3000], ['ovalia-chair', 6000]] as const) {
+    for (const [id, price] of [
+      ['marshmallow-sofa', 3000],
+      ['ovalia-chair', 6000],
+    ] as const) {
       const purse = a.p.inventory.economy.state;
       const funds = purse.coins;
       purse.coins = price - 1;

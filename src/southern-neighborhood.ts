@@ -33,6 +33,10 @@ import { inSouthernCraft } from './southern-craft-layout.ts';
 import {
   MENOTTIS,
   MENOTTIS_SITE_ID,
+  PALMETTO_POTTERY,
+  PALMETTO_POTTERY_SITE_ID,
+  THE_MILL,
+  THE_MILL_SITE_ID,
   defaultCraftShop,
   drawSouthernCraftSite,
   drawSouthernPocketGardens,
@@ -90,19 +94,29 @@ export function populateSouthernNeighborhood({
   const houses: Partial<WorldObject>[] = [],
     craftSites: import('./types/world.ts').RenderedSite[] = [],
     diners: Diner[] = [];
+  let millSite: ReturnType<typeof drawSouthernCraftSite> | undefined;
   for (const [i, p] of SOUTHERN_HOUSING.entries()) {
     // Match the Ocean Esplanade lot, whose storefront faces the coast near (15, 146).
     const menottis = Math.hypot(p.x - 16.67, p.z - 146.15) < 0.25;
+    const mill = Math.hypot(p.x - 31.48, p.z - 145.52) < 0.25;
+    const pottery = 'id' in p && p.id === 'peninsula-settlement-5';
+    const storefront = menottis
+      ? { id: MENOTTIS_SITE_ID, shop: MENOTTIS }
+      : mill
+        ? { id: THE_MILL_SITE_ID, shop: THE_MILL }
+        : pottery
+          ? { id: PALMETTO_POTTERY_SITE_ID, shop: PALMETTO_POTTERY }
+          : null;
     if (isWizardHousePlot(p) || isSearchHousePlot(p)) continue;
-    if (!menottis && !p.settlement && inEstateDistrict(p.x, p.z)) {
+    if (!storefront && !p.settlement && inEstateDistrict(p.x, p.z)) {
       const house = makeEstateHouse(mesh, p, terrain);
       registerEstate(house);
       houses.push(house);
-    } else if (!menottis && p.lowRiseStyle) {
+    } else if (!storefront && p.lowRiseStyle) {
       const home = makeSuburbanHome(mesh, p, terrain);
       registerEstate(home);
       houses.push(home);
-    } else if (!menottis && p.infill && p.w >= 3.15 && i % 11 === 3) {
+    } else if (!storefront && p.infill && p.w >= 3.15 && i % 11 === 3) {
       const entry = [
           p.x - Math.sin(p.rotation || 0) * (p.d / 2 + 0.28),
           p.z + Math.cos(p.rotation || 0) * (p.d / 2 + 0.28),
@@ -126,13 +140,14 @@ export function populateSouthernNeighborhood({
         );
       craftSites.push(site);
       houses.push({ ...site, houses: [], homes: 0 });
-    } else if (menottis || p.shop || (p.infill && p.w >= 3.15 && i % 4 === 1)) {
-      const shop = menottis ? MENOTTIS : defaultCraftShop(craftSites.length),
+    } else if (storefront || p.shop || (p.infill && p.w >= 3.15 && i % 4 === 1)) {
+      const index = craftSites.length,
+        shop = storefront?.shop ?? defaultCraftShop(index),
         plot: CraftPlot = {
           ...p,
           rotation: p.rotation || 0,
-          index: craftSites.length,
-          id: menottis ? MENOTTIS_SITE_ID : 'southern-corner-' + i,
+          index,
+          id: storefront?.id ?? 'southern-corner-' + i,
           kind: shop.kind,
           palette: ['#a4b8a1', '#d5ad90', '#9fbabc', '#c2a7b0', '#ddc58e'] satisfies [
             string,
@@ -148,7 +163,8 @@ export function populateSouthernNeighborhood({
         ];
       plot.entry = { x: entry[0] - 0.5, y: entry[1] - 0.5 };
       const site = drawSouthernCraftSite(mesh, plot, terrain, signs, shop);
-      craftSites.push(site);
+      if (mill) millSite = site;
+      else craftSites.push(site);
       diners.push(...site.diners);
       houses.push({ ...site, houses: [], homes: 0 });
     } else
@@ -170,6 +186,7 @@ export function populateSouthernNeighborhood({
   craftSites.push(...drawSouthernPocketGardens(mesh, terrain, signs));
   const bayGardens = drawSouthBayPublicSpaces(mesh, { terrain, tree });
   craftSites.push(...bayGardens.sites);
+  if (millSite) craftSites.push(millSite);
   // Coastal pines and broadleaf trees frame the streets and hill contours.
   // Every tree inherits the terrain below it; none brings a square of turf.
   const trees = [];

@@ -979,7 +979,9 @@
         },
         {
           "id": "buy-grapple",
-          "label": { "text": "service.airship.buy-grapple.label" },
+          "label": {
+            "text": "service.airship.buy-grapple.label"
+          },
           "action": "buyGrapple"
         },
         {
@@ -1731,6 +1733,39 @@
         }
       ],
       "id": "service.neighborhood-menottis.root"
+    },
+    "neighborhood-the-mill": {
+      "intro": {
+        "text": "service.neighborhood-the-mill.root.intro"
+      },
+      "repeat": true,
+      "choices": [
+        {
+          "id": "sandwich",
+          "label": {
+            "text": "service.neighborhood-the-mill.root.sandwich.label"
+          },
+          "action": "service",
+          "args": ["sandwich"],
+          "receipt": {
+            "text": "service.neighborhood-the-mill.root.sandwich.receipt"
+          },
+          "serverReceipt": true
+        },
+        {
+          "id": "coffee",
+          "label": {
+            "text": "service.neighborhood-the-mill.root.coffee.label"
+          },
+          "action": "service",
+          "args": ["coffee"],
+          "receipt": {
+            "text": "service.neighborhood-the-mill.root.coffee.receipt"
+          },
+          "serverReceipt": true
+        }
+      ],
+      "id": "service.neighborhood-the-mill.root"
     }
   },
   "variants": {
@@ -2008,7 +2043,9 @@
             },
             {
               "id": "buy-grapple",
-              "label": { "text": "service.airship.buy-grapple.label" },
+              "label": {
+                "text": "service.airship.buy-grapple.label"
+              },
               "action": "service.airship.buyGrapple:[]"
             },
             {
@@ -2127,7 +2164,9 @@
             },
             {
               "id": "buy-grapple",
-              "label": { "text": "service.airship.buy-grapple.label" },
+              "label": {
+                "text": "service.airship.buy-grapple.label"
+              },
               "action": "service.airship.buyGrapple:[]"
             },
             {
@@ -8820,7 +8859,7 @@
         "In custody",
         "Equipment and rentals available"
       ],
-      "placements": ["actor:southern-corner-129-neighbor", "actor:southern-corner-53-neighbor"],
+      "placements": ["actor:southern-corner-129-neighbor"],
       "root": "service.neighborhood-pottery.root",
       "nodes": {
         "service.neighborhood-pottery.root": {
@@ -8829,20 +8868,20 @@
             {
               "id": "wheel",
               "label": {
-                "text": "wheel.label"
+                "text": "placement.southern-corner-129-neighbor.wheel.label"
               },
               "receipt": {
-                "text": "wheel.receipt"
+                "text": "placement.southern-corner-129-neighbor.wheel.receipt"
               },
               "action": "service.neighborhood-pottery.service:[\"wheel\"]"
             },
             {
               "id": "glaze",
               "label": {
-                "text": "glaze.label"
+                "text": "placement.southern-corner-129-neighbor.glaze.label"
               },
               "receipt": {
-                "text": "glaze.receipt"
+                "text": "placement.southern-corner-129-neighbor.glaze.receipt"
               },
               "action": "service.neighborhood-pottery.service:[\"glaze\"]"
             }
@@ -8850,7 +8889,7 @@
           "repeat": true,
           "skipIntro": false,
           "intro": {
-            "text": "service.neighborhood-pottery.root.intro"
+            "text": "placement.southern-corner-129-neighbor.service.neighborhood-pottery.root.intro"
           },
           "question": "",
           "decline": "Leave"
@@ -8951,6 +8990,84 @@
           "softwareResalePrice": 20,
           "phonePrice": 100,
           "robotaxiPrice": 100
+        }
+      }
+    },
+    "actor:southern-corner-53-neighbor.dialogue-1": {
+      "id": "actor:southern-corner-53-neighbor.dialogue-1",
+      "states": [
+        "New visitor",
+        "Monkey quest: accepted",
+        "Monkey quest: carrying",
+        "Monkey quest: completed",
+        "Sunglasses found",
+        "Evidence certified",
+        "Permit issued",
+        "Bayonet collected",
+        "All aliens defeated",
+        "Alien quest complete",
+        "Raptor quest: escaped",
+        "Raptor quest: carrying",
+        "Raptor quest: completed",
+        "Aboard the Pequod",
+        "Kraken defeated, aboard",
+        "Kraken reward collected",
+        "Guild applicant",
+        "Guild member",
+        "Illuminati initiate",
+        "Motorcycle rented",
+        "AI lab employee",
+        "iPhone owned, put away",
+        "iPhone equipped",
+        "Robotaxi owned",
+        "Software pitch pending",
+        "Carrying a conservation letter",
+        "Conservation letter delivered",
+        "Founder funding claimed",
+        "All shop hats owned",
+        "Airship rented by another player",
+        "Airship prepaid",
+        "Airship reserved by another player",
+        "Dog surfing: judging",
+        "In custody",
+        "Equipment and rentals available"
+      ],
+      "placements": ["actor:southern-corner-53-neighbor"],
+      "root": "service.neighborhood-the-mill.root",
+      "nodes": {
+        "service.neighborhood-the-mill.root": {
+          "id": "service.neighborhood-the-mill.root",
+          "choices": [
+            {
+              "id": "sandwich",
+              "label": {
+                "text": "service.neighborhood-the-mill.root.sandwich.label"
+              },
+              "receipt": {
+                "text": "service.neighborhood-the-mill.root.sandwich.receipt"
+              },
+              "action": "service.neighborhood-the-mill.service:[\"sandwich\"]",
+              "serverReceipt": true
+            },
+            {
+              "id": "coffee",
+              "label": {
+                "text": "service.neighborhood-the-mill.root.coffee.label"
+              },
+              "receipt": {
+                "text": "service.neighborhood-the-mill.root.coffee.receipt"
+              },
+              "action": "service.neighborhood-the-mill.service:[\"coffee\"]",
+              "serverReceipt": true
+            }
+          ],
+          "repeat": true,
+          "skipIntro": false,
+          "intro": {
+            "text": "service.neighborhood-the-mill.root.intro"
+          },
+          "question": "",
+          "decline": "Leave"
         }
       }
     },
@@ -10701,14 +10818,212 @@
         "Dog surfing: judging",
         "Equipment and rentals available"
       ],
-      "placements": [
-        "actor:lucindas-deli-diner-0",
-        "actor:lucindas-deli-diner-1",
-        "actor:rich-table-diner-0",
-        "actor:rich-table-diner-1",
-        "actor:shanghai-kelly-diner-0",
-        "actor:shanghai-kelly-diner-1"
+      "placements": ["actor:lucindas-deli-diner-0"],
+      "shared": true
+    },
+    "actor:lucindas-deli-diner-1.dialogue-1": {
+      "id": "actor:lucindas-deli-diner-1.dialogue-1",
+      "states": [
+        "New visitor",
+        "Monkey quest: accepted",
+        "Monkey quest: carrying",
+        "Monkey quest: completed",
+        "Sunglasses found",
+        "Evidence certified",
+        "Permit issued",
+        "Bayonet collected",
+        "All aliens defeated",
+        "Alien quest complete",
+        "Raptor quest: escaped",
+        "Raptor quest: carrying",
+        "Raptor quest: completed",
+        "Aboard the Pequod",
+        "Kraken defeated, aboard",
+        "Kraken reward collected",
+        "Guild applicant",
+        "Guild member",
+        "Illuminati initiate",
+        "Motorcycle rented",
+        "AI lab employee",
+        "iPhone owned, put away",
+        "iPhone equipped",
+        "Robotaxi owned",
+        "Software pitch pending",
+        "Carrying a conservation letter",
+        "Conservation letter delivered",
+        "Founder funding claimed",
+        "All shop hats owned",
+        "Airship rented by another player",
+        "Airship prepaid",
+        "Airship reserved by another player",
+        "Dog surfing: judging",
+        "Equipment and rentals available"
       ],
+      "placements": ["actor:lucindas-deli-diner-1"],
+      "shared": true
+    },
+    "actor:shanghai-kelly-diner-0.dialogue-1": {
+      "id": "actor:shanghai-kelly-diner-0.dialogue-1",
+      "states": [
+        "New visitor",
+        "Monkey quest: accepted",
+        "Monkey quest: carrying",
+        "Monkey quest: completed",
+        "Sunglasses found",
+        "Evidence certified",
+        "Permit issued",
+        "Bayonet collected",
+        "All aliens defeated",
+        "Alien quest complete",
+        "Raptor quest: escaped",
+        "Raptor quest: carrying",
+        "Raptor quest: completed",
+        "Aboard the Pequod",
+        "Kraken defeated, aboard",
+        "Kraken reward collected",
+        "Guild applicant",
+        "Guild member",
+        "Illuminati initiate",
+        "Motorcycle rented",
+        "AI lab employee",
+        "iPhone owned, put away",
+        "iPhone equipped",
+        "Robotaxi owned",
+        "Software pitch pending",
+        "Carrying a conservation letter",
+        "Conservation letter delivered",
+        "Founder funding claimed",
+        "All shop hats owned",
+        "Airship rented by another player",
+        "Airship prepaid",
+        "Airship reserved by another player",
+        "Dog surfing: judging",
+        "Equipment and rentals available"
+      ],
+      "placements": ["actor:shanghai-kelly-diner-0"],
+      "shared": true
+    },
+    "actor:shanghai-kelly-diner-1.dialogue-1": {
+      "id": "actor:shanghai-kelly-diner-1.dialogue-1",
+      "states": [
+        "New visitor",
+        "Monkey quest: accepted",
+        "Monkey quest: carrying",
+        "Monkey quest: completed",
+        "Sunglasses found",
+        "Evidence certified",
+        "Permit issued",
+        "Bayonet collected",
+        "All aliens defeated",
+        "Alien quest complete",
+        "Raptor quest: escaped",
+        "Raptor quest: carrying",
+        "Raptor quest: completed",
+        "Aboard the Pequod",
+        "Kraken defeated, aboard",
+        "Kraken reward collected",
+        "Guild applicant",
+        "Guild member",
+        "Illuminati initiate",
+        "Motorcycle rented",
+        "AI lab employee",
+        "iPhone owned, put away",
+        "iPhone equipped",
+        "Robotaxi owned",
+        "Software pitch pending",
+        "Carrying a conservation letter",
+        "Conservation letter delivered",
+        "Founder funding claimed",
+        "All shop hats owned",
+        "Airship rented by another player",
+        "Airship prepaid",
+        "Airship reserved by another player",
+        "Dog surfing: judging",
+        "Equipment and rentals available"
+      ],
+      "placements": ["actor:shanghai-kelly-diner-1"],
+      "shared": true
+    },
+    "actor:rich-table-diner-0.dialogue-1": {
+      "id": "actor:rich-table-diner-0.dialogue-1",
+      "states": [
+        "New visitor",
+        "Monkey quest: accepted",
+        "Monkey quest: carrying",
+        "Monkey quest: completed",
+        "Sunglasses found",
+        "Evidence certified",
+        "Permit issued",
+        "Bayonet collected",
+        "All aliens defeated",
+        "Alien quest complete",
+        "Raptor quest: escaped",
+        "Raptor quest: carrying",
+        "Raptor quest: completed",
+        "Aboard the Pequod",
+        "Kraken defeated, aboard",
+        "Kraken reward collected",
+        "Guild applicant",
+        "Guild member",
+        "Illuminati initiate",
+        "Motorcycle rented",
+        "AI lab employee",
+        "iPhone owned, put away",
+        "iPhone equipped",
+        "Robotaxi owned",
+        "Software pitch pending",
+        "Carrying a conservation letter",
+        "Conservation letter delivered",
+        "Founder funding claimed",
+        "All shop hats owned",
+        "Airship rented by another player",
+        "Airship prepaid",
+        "Airship reserved by another player",
+        "Dog surfing: judging",
+        "Equipment and rentals available"
+      ],
+      "placements": ["actor:rich-table-diner-0"],
+      "shared": true
+    },
+    "actor:rich-table-diner-1.dialogue-1": {
+      "id": "actor:rich-table-diner-1.dialogue-1",
+      "states": [
+        "New visitor",
+        "Monkey quest: accepted",
+        "Monkey quest: carrying",
+        "Monkey quest: completed",
+        "Sunglasses found",
+        "Evidence certified",
+        "Permit issued",
+        "Bayonet collected",
+        "All aliens defeated",
+        "Alien quest complete",
+        "Raptor quest: escaped",
+        "Raptor quest: carrying",
+        "Raptor quest: completed",
+        "Aboard the Pequod",
+        "Kraken defeated, aboard",
+        "Kraken reward collected",
+        "Guild applicant",
+        "Guild member",
+        "Illuminati initiate",
+        "Motorcycle rented",
+        "AI lab employee",
+        "iPhone owned, put away",
+        "iPhone equipped",
+        "Robotaxi owned",
+        "Software pitch pending",
+        "Carrying a conservation letter",
+        "Conservation letter delivered",
+        "Founder funding claimed",
+        "All shop hats owned",
+        "Airship rented by another player",
+        "Airship prepaid",
+        "Airship reserved by another player",
+        "Dog surfing: judging",
+        "Equipment and rentals available"
+      ],
+      "placements": ["actor:rich-table-diner-1"],
       "shared": true
     },
     "actor:rowan-zero.dialogue-1": {

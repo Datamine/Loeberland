@@ -15,11 +15,25 @@ import type { SignAtlas } from './types/world.ts';
 import type { Diner } from './restaurants.ts';
 
 export const MENOTTIS_SITE_ID = 'menottis-cafe';
+export const THE_MILL_SITE_ID = 'southern-corner-53';
+export const PALMETTO_POTTERY_SITE_ID = 'southern-corner-129';
+export const THE_MILL = {
+  label: 'The Mill',
+  sign: 'THE MILL',
+  kind: 'arcade',
+  line: 'Fresh sandwiches and hot coffee are served at the counter.',
+};
 export const MENOTTIS = {
   label: contentText('southern-craft.module.label-3', {}),
   sign: "MENOTTI'S",
   kind: 'arcade',
   line: 'A seaside café with a little pavement terrace and an espresso machine that rarely gets a rest.',
+};
+export const PALMETTO_POTTERY = {
+  label: contentText('southern-craft.module.label-2', {}),
+  sign: 'PALMETTO POTTERY',
+  kind: 'studio',
+  line: 'Every mug is a little different. The one with the wobble is about the nature of certainty.',
 };
 const GARDEN_MARKET = {
   label: contentText('southern-craft.module.label-4', {}),
@@ -35,12 +49,7 @@ export const CRAFT_SHOPS = Object.freeze([
     kind: 'market',
     line: 'The fog is an excellent proving drawer. The sourdough has lived here longer than I have.',
   },
-  {
-    label: contentText('southern-craft.module.label-2', {}),
-    sign: 'PALMETTO POTTERY',
-    kind: 'studio',
-    line: 'Every mug is a little different. The one with the wobble is about the nature of certainty.',
-  },
+  PALMETTO_POTTERY,
   MENOTTIS,
   GARDEN_MARKET,
   {
@@ -62,7 +71,10 @@ export const CRAFT_SHOPS = Object.freeze([
     line: 'These are for somebody, even if that somebody turns out to be you.',
   },
 ]);
-export const SOUTHERN_CRAFT_SIGNS = Object.freeze(CRAFT_SHOPS.map((s) => s.sign));
+export const SOUTHERN_CRAFT_SIGNS = Object.freeze([
+  ...CRAFT_SHOPS.map((s) => s.sign),
+  THE_MILL.sign,
+]);
 export function defaultCraftShop(index: number) {
   const shop = CRAFT_SHOPS[index % CRAFT_SHOPS.length];
   return shop === MENOTTIS ? GARDEN_MARKET : shop;
@@ -517,7 +529,9 @@ export function drawSouthernCraftSite(
       ? null
       : shop === MENOTTIS
         ? 'menottis'
-        : neighborhoodServiceFor(shop.label),
+        : shop === THE_MILL
+          ? 'the-mill'
+          : neighborhoodServiceFor(shop.label),
     label: garden ? 'Neighborhood garden' : shop.label,
     kind: garden ? 'neighborhood-garden' : 'neighborhood-shop',
     neighborLine: garden
