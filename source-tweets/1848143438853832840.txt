@@ -1,4 +1,4 @@
 NPC: I was talking with my Uber driver...
-NPC: I’m paying $47 
-NPC: He’s getting paid $10
-NPC: I don’t think this can last
+NPC: I'm paying $47 
+NPC: He's getting paid $10
+NPC: I don't think this can last

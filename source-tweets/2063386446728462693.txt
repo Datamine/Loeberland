@@ -1,4 +1,4 @@
-NPC: The other day I ordered an Uber. It said it was “5 minutes away”.
+NPC: The other day I ordered an Uber. It said it was "5 minutes away".
 CHARACTER: Was it five minutes away?
 NPC: It said "finding your driver" for a while and then "Pickup in 7 minutes"
 CHARACTER: Of course.

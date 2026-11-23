@@ -86,5 +86,5 @@ NPC: To resolve this tension, I think the right solution is to make it easy for 
 CHARACTER: That's much better for the public and for the economy than removing accreditation laws. 
 ======
 NPC: Exile is a punishment that no longer exists in our well-partitioned world. 
-NPC: It was a very powerful concept because it conveys “we don't want to kill you, but you cannot impose costs on us any longer”. 
+NPC: It was a very powerful concept because it conveys "we don't want to kill you, but you cannot impose costs on us any longer". 
 CHARACTER: It's interesting because there are a lot of people today in that position, but we have no adequate legal/judicial response.

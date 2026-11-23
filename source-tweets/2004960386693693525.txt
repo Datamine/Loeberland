@@ -1,3 +1,3 @@
 NPC: On the wealth tax: you should be *extremely worried* that California is running record budget deficits during the *good part* of the economic cycle 
-CHARACTER: California has a massive spending problem. The state’s public finances are being robbed.
-NPC: More taxes won’t fix a bottomless pit.
+CHARACTER: California has a massive spending problem. The state's public finances are being robbed.
+NPC: More taxes won't fix a bottomless pit.

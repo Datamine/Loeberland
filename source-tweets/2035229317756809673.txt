@@ -7,11 +7,11 @@ NPC: When I got to the University of Chicago, known for its life of the mind in 
 CHARACTER: Why do you think that is? 
 NPC: Partially, it's because I got lucky with my teachers. They were the best we had. Maybe I didn't get so lucky with my professors.
 NPC: But today I may have figured it out: I think the actual reason is that my professors at UChicago were, in a sense, winners on an academic career ladder. 
-NPC: It’s an extremely competitive environment, and they had somehow made it to the top. By definition, this is a tremendously powerful filter. 
+NPC: It's an extremely competitive environment, and they had somehow made it to the top. By definition, this is a tremendously powerful filter. 
 NPC: And I think this had actually filtered against a whole group of people whom I consider interesting. 
 NPC: This has become especially clear over the last few years, as a lot of traditional academia has been losing prestige rapidly: people are trusting the kind of professorial expert class less and less and less. 
 NPC: It turned out that professors of ethics and sociology are just as unethical and susceptible to groupthink as the general public. 
 CHARACTER: And the general conformity of ideology and thought in academia is now well-known. 
 NPC: These professional humanities academics may publish papers that are respected or even highly esteemed within their own niche communities, but this particular value system has long since been removed from what I consider interesting, or, in many cases, even related to the pursuit of truth.
-NPC: Reflecting on it, the heart of the matter is that those teachers in high school were unconstrained by convention and had been allowed to fully lean into their interests —  kind of like the platonic dream of academia... 
+NPC: Reflecting on it, the heart of the matter is that those teachers in high school were unconstrained by convention and had been allowed to fully lean into their interests --  kind of like the platonic dream of academia... 
 NPC: Whereas the professors I encountered in university, even when very successful, had been conformed by the academia-industry pressure cooker and their work sanitized, professionalized, and ultimately made uninteresting under the constraints.
