@@ -54,11 +54,12 @@ test('an NPC chathead uses the head and outfit of the rendered actor', () => {
   drawCharacter(expected, 0, 0, 0, Math.PI / 2, 0, false, renderedSkin, undefined, {
     ...appearance,
     mode: 'idle',
-    headOnly: true,
+    headOnly: 'portrait',
   });
   assert.ok(portrait.data.length > 0);
   assert.deepEqual(portrait.data, expected.data);
-  assert.ok(portrait.data.every((value, i) => i % 11 !== 1 || value > 1.4));
+  assert.ok(portrait.data.some((value, i) => i % 11 === 1 && value < 1.4));
+  assert.ok(portrait.data.every((value, i) => i % 11 !== 1 || value > 1.33));
 });
 
 test('loose long hair frames the visible neck in NPC and player portraits', () => {

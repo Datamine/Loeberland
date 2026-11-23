@@ -42,10 +42,10 @@ interface AdminElements {
   'equipment-hint': HTMLParagraphElement;
 }
 declare const __ADMIN_READ_ONLY__: boolean;
-declare const __ADMIN_RESTARTS_GAME__: boolean;
+declare const __ADMIN_LIVE_EDITS__: boolean;
 const token = '__ADMIN_TOKEN__';
 const readOnly = __ADMIN_READ_ONLY__;
-const restartsGame = __ADMIN_RESTARTS_GAME__;
+const liveEdits = __ADMIN_LIVE_EDITS__;
 const $ = <K extends keyof AdminElements>(id: K) => requiredElement<AdminElements[K]>(id);
 let records: AdminRow[] = [],
   selected: AdminRow | null = null,
@@ -226,7 +226,6 @@ async function load(row: AdminRow) {
   }
 }
 $('save').onclick = async () => {
-  if (restartsGame && !confirm('Save this edit and briefly restart the game?')) return;
   busy = true;
   controls();
   draw();
@@ -237,11 +236,11 @@ $('save').onclick = async () => {
       body: JSON.stringify({ ...selected, original, value }),
     });
     original = data.raw;
-    baseline = JSON.stringify(value, null, 2);
+    baseline = JSON.stringify(JSON.parse(data.raw), null, 2);
     $('editor').value = baseline;
     status(
-      restartsGame
-        ? 'Saved. The game is restarting.'
+      liveEdits
+        ? 'Saved and applied to the running game.'
         : 'Saved. Restart the game server to load this change.',
       'success',
     );

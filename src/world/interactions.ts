@@ -121,6 +121,7 @@ import { TAHOE_PELTS, TAHOE_PELT_PRICES } from '../config/tahoe-pelts.ts';
 import { WINDSURF_LAUNCH } from '../windsurfing.ts';
 import { SURF_TRICKS } from '../surfing.ts';
 import { BURNING_MAN, burningManDialogue, type BurningManAction } from '../burning-man.ts';
+import { RICH_TABLE_CHEF } from '../config/npcs.ts';
 
 /** Interactions services for the browser scene.
  * Dependencies are explicit live scene bindings, preserving initialization
@@ -1156,7 +1157,7 @@ export function createInteractions(context: WorldContext) {
   function approachNPC(
     npc: Actor | null | undefined,
     begin: () => void,
-    { distance = 1.8, approach = context.merchantApproach } = {},
+    { distance = 1.8, approach = context.merchantApproach, requireClearPath = false } = {},
   ): boolean {
     if (!npc) return false;
     const open = () => {
@@ -1181,8 +1182,10 @@ export function createInteractions(context: WorldContext) {
     return approachMovingTarget({
       target: () => (npc.hp === 0 || npc.expeditionDead ? null : npc),
       inReach: () =>
-        distance === Infinity ||
-        Math.hypot(context.player.x + 0.5 - npc.x, context.player.y + 0.5 - npc.z) < distance,
+        (distance === Infinity ||
+          Math.hypot(context.player.x + 0.5 - npc.x, context.player.y + 0.5 - npc.z) < distance) &&
+        (!requireClearPath ||
+          context.canTravel(context.player.x, context.player.y, npc.x - 0.5, npc.z - 0.5, true)),
       approach: () => {
         const goal = approach(npc);
         return goal && Math.hypot(goal.x + 0.5 - npc.x, goal.y + 0.5 - npc.z) < distance
@@ -1675,6 +1678,12 @@ export function createInteractions(context: WorldContext) {
   }
 
   function talkMerchant(npc: Actor) {
+    if (npc.kind === RICH_TABLE_CHEF)
+      return approachNPC(
+        npc,
+        () => openNPCDialogue({ ...configuredDialogue(RICH_TABLE_CHEF, npc), contentResolved: true }),
+        { requireClearPath: true },
+      );
     if (npc.kind === 'airship-agent') return talkAirshipAttendant(npc);
     if (npc.kind === 'yohji') return talkYohji(npc);
     if (npc.kind === 'hiking-supplier')

@@ -546,18 +546,21 @@ export async function createGame({
       return true;
     });
   }
-  async function connect(hello: ClientHello, transport: PlayerTransport) {
+  async function connect(hello: ClientHello, transport: PlayerTransport, resumed?: ServerPlayer) {
     if (closing) throw Error('Server restarting');
     if (
-      hello?.protocol !== MP_PROTOCOL ||
-      typeof hello.token !== 'string' ||
-      !/^[a-f0-9]{64}$/.test(hello.token)
+      !resumed &&
+      (hello?.protocol !== MP_PROTOCOL ||
+        typeof hello.token !== 'string' ||
+        !/^[a-f0-9]{64}$/.test(hello.token))
     )
       throw Error('Invalid session credentials or protocol.');
-    const owner = await accounts.ownerFor(hello.token, () => {
-      if (closing) throw Error('Server restarting');
-      if (players.size >= maxPlayers) throw Error('The world is full. Please try again soon.');
-    });
+    const owner =
+      resumed?.owner ??
+      (await accounts.ownerFor(hello.token as string, () => {
+        if (closing) throw Error('Server restarting');
+        if (players.size >= maxPlayers) throw Error('The world is full. Please try again soon.');
+      }));
     if (players.size >= maxPlayers && !identities.has(owner))
       throw Error('The world is full. Please try again soon.');
     while (authenticating.has(owner)) await authenticating.get(owner);
@@ -644,9 +647,10 @@ export async function createGame({
       const hitpoints = skillStatus(profile.playerState.skills.hitpoints.xp),
         hpXP = hitpoints.xp,
         maxHP = hitpointMaximum(hpXP);
-      const id = ++serial,
+      const id = resumed?.id ?? ++serial,
         spawn = geometry.spawn,
         position = profile.position;
+      serial = Math.max(id, serial);
       const fallback = {
         x: spawn.x + 0.5,
         z: spawn.y + 0.5,
@@ -670,6 +674,7 @@ export async function createGame({
       const p: ServerPlayer = {
         owner,
         id,
+        characterPlaying: resumed?.characterPlaying,
         hasCharacterPassword,
         profile,
         inventory,
@@ -1838,6 +1843,8 @@ export async function createGame({
     return store.inMemory ? enqueueMutation(prepare) : prepare();
   }
   return {
+    restoreConnection: (player: ServerPlayer, transport: PlayerTransport) =>
+      connect({}, transport, player),
     connect: store.inMemory
       ? (hello: ClientHello, transport: PlayerTransport) =>
           enqueueMutation(() => connect(hello, transport))

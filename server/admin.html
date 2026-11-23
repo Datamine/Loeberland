@@ -951,7 +951,7 @@
   // server/admin-ui.ts
   var token = "__ADMIN_TOKEN__";
   var readOnly = __ADMIN_READ_ONLY__;
-  var restartsGame = __ADMIN_RESTARTS_GAME__;
+  var liveEdits = __ADMIN_LIVE_EDITS__;
   var $ = (id) => requiredElement(id);
   var records = [];
   var selected = null;
@@ -1116,7 +1116,6 @@
     }
   }
   $("save").onclick = async () => {
-    if (restartsGame && !confirm("Save this edit and briefly restart the game?")) return;
     busy = true;
     controls();
     draw();
@@ -1127,10 +1126,10 @@
         body: JSON.stringify({ ...selected, original, value })
       });
       original = data.raw;
-      baseline = JSON.stringify(value, null, 2);
+      baseline = JSON.stringify(JSON.parse(data.raw), null, 2);
       $("editor").value = baseline;
       status(
-        restartsGame ? "Saved. The game is restarting." : "Saved. Restart the game server to load this change.",
+        liveEdits ? "Saved and applied to the running game." : "Saved. Restart the game server to load this change.",
         "success"
       );
       try {

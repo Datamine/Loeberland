@@ -1878,13 +1878,13 @@
     "template": "You cannot carry any more Uni."
   },
   "world-message.uni.visit-rich-table": {
-    "template": "Speak to the chef at Rich Table to sell your Uni."
+    "template": "Move a little closer to sell your uni."
   },
   "world-message.uni.none": {
-    "template": "The Rich Table chef offers {price} coins per Uni. You don’t have any to sell."
+    "template": "Looks like you’re out of uni. Bring me some and I’ll pay {price} coins apiece."
   },
   "world-message.uni.sold": {
-    "template": "The Rich Table chef buys one Uni for {price} coins."
+    "template": "I’ll take that for the kitchen. Here’s {price} coins."
   },
   "world-message.berkeley-lab.sand-full": {
     "template": "You cannot carry any more sand."

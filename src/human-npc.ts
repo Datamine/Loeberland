@@ -141,6 +141,8 @@ export function merchantHeadAppearance(npc: Partial<Actor>): CharacterAppearance
     cap: npc.kind === 'crew' || !!npc.cap,
     topHat: npc.topHat || npc.kind === 'tax',
     chef: npc.kind === 'chef' || npc.kind === RICH_TABLE_CHEF,
+    turtleneck: npc.kind === 'biomed-entrepreneur',
+    trim: npc.kind === 'biomed-entrepreneur' ? npc.shirt : undefined,
   };
 }
 

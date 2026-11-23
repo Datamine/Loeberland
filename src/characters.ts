@@ -2385,7 +2385,7 @@ export function getCharacterMesh(appearance: CharacterAppearance = {}) {
     cloakBottom: !!appearance.cloakBottom || appearance.legs === 'decorative-robe-bottom',
     robeTop: appearance.torso === 'decorative-robe-top',
     robeBottom: appearance.legs === 'decorative-robe-bottom',
-    turtleneck: appearance.torso === 'cashmere-turtleneck',
+    turtleneck: !!appearance.turtleneck || appearance.torso === 'cashmere-turtleneck',
     gooseShirt: appearance.torso === 'goose-corp-shirt',
   };
   const key = Object.values(flags)
@@ -2620,13 +2620,7 @@ export function drawCharacter(
     v = mesh.vertices,
     work = mesh.deformed;
   const palette = characterPalette(appearance, skin, shirt),
-    // Keep the neck in loose-haired portraits so the back layer sits behind it.
-    indices = characterIndices(
-      mesh,
-      appearance.headOnly === 'portrait' && !appearance.longHair && appearance.hairstyle !== 'curly'
-        ? true
-        : appearance.headOnly,
-    );
+    indices = characterIndices(mesh, appearance.headOnly);
   if (
     appearance.boots === 'party-boots' &&
     !appearance.headOnly &&

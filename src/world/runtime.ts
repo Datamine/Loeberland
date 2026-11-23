@@ -38,6 +38,7 @@ import '../characters.ts';
 import { raycastNightlife } from '../nightlife.ts';
 import type { Ray } from '../types/geometry.ts';
 import { SOUTH_BEACH_PIER, onSouthBeachPier } from '../south-beach.ts';
+import { inSaltFlats } from '../salt-layout.ts';
 
 const CAMERA_FAR = 850;
 
@@ -831,6 +832,7 @@ export function createRuntime(context: WorldContext) {
       if (!ground || near < ground.distance + 0.1) return tower;
     }
     const t = tileAt(sx, sy);
+    if (inSaltFlats(t.x + 0.5, t.y + 0.5)) return context.sightById('salt-flats');
     if (context.pondValue(t.x + 0.5, t.y + 0.5) < 1.3) return context.sightById('ducks');
     if (context.palaceWater(t.x + 0.5, t.y + 0.5) < 1.2) return context.sightById('palace');
     return null;

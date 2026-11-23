@@ -723,7 +723,7 @@ export function createGeneration(context: WorldContext) {
         female: true,
         longHair: true,
         hair: '#e6c77e',
-        shirt: '#444f67',
+        shirt: '#1d1c1e',
         pants: '#373d48',
         skin: '#d6a786',
         regional: true,
@@ -1359,11 +1359,27 @@ export function createGeneration(context: WorldContext) {
     const [patioX, patioZ] = restaurantPoint(richTable, -0.65, richTable.d / 2 + 0.78);
     const richChef = near(patioX, patioZ);
     if (!richChef) throw new Error('Rich Table needs a reachable chef');
+    const [frontX, frontZ] = restaurantPoint(richTable, -0.65, richTable.d / 2 + 1.7);
+    const chefApproach = context.nearestNavigation(
+      frontX - 0.5,
+      frontZ - 0.5,
+      2,
+      (a, b) => {
+        const distance = Math.hypot(a - richChef.x, b - richChef.y);
+        return (
+          distance > 0.7 &&
+          distance < 1.5 &&
+          context.navigationRegionAt(a, b) === region &&
+          context.canTravel(a, b, richChef.x, richChef.y, true)
+        );
+      },
+    );
     const x = richChef.x + 0.5,
       z = richChef.y + 0.5;
     context.merchants.push({
       ...merchant(RICH_TABLE_CHEF, x, z, characterGround(x, z)),
       id: RICH_TABLE_CHEF,
+      approach: chefApproach ?? undefined,
       angle: (richTable.rotation || 0) + Math.PI / 2,
       stationary: true,
       coat: true,

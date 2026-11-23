@@ -30,12 +30,13 @@ if (args[0] === 'run' && args.at(-1) === '--help') {
 if (args[0] === 'run' && !values.some(value => value.endsWith('/admin.compose.yaml'))) process.exit(19);
 if (args[0] === 'run' && args.at(-1) === '--check-auth') process.exit(process.env.MOCK_AUTH_FAIL === '1' ? 18 : 0);
 if (args[0] === process.env.MOCK_FAIL) process.exit(17);
-if (args[0] === 'ps' && process.env.MOCK_STOPPED !== '1') console.log('game-container');
+if (args[0] === 'ps' && args.at(-1) === 'game' && process.env.MOCK_STOPPED !== '1') console.log('game-container');
 `,
     { mode: 0o755 },
   );
-  const { SCRIPT_VIEW, ...envOptions } = options;
-  const result = spawnSync('bash', [script, ...(SCRIPT_VIEW === '1' ? ['--view'] : [])], {
+  const { SCRIPT_VIEW, SCRIPT_OFFLINE, ...envOptions } = options;
+  const mode = SCRIPT_VIEW === '1' ? ['--view'] : SCRIPT_OFFLINE === '1' ? ['--offline'] : [];
+  const result = spawnSync('bash', [script, ...mode], {
     cwd: dir,
     env: {
       ...process.env,
@@ -65,7 +66,7 @@ if (args[0] === 'ps' && process.env.MOCK_STOPPED !== '1') console.log('game-cont
   return { ...result, calls, commands: calls.map((args) => args[0]) };
 }
 
-test('Compose editor stops the running game, publishes only on loopback, and restarts after editing', async (t) => {
+test('Compose editor applies changes live and publishes only on loopback', async (t) => {
   const result = await run(t, { ADMIN_PORT: '9876' });
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(result.commands, [
@@ -75,15 +76,15 @@ test('Compose editor stops the running game, publishes only on loopback, and res
     'run',
     'up',
     'ps',
-    'stop',
+    'ps',
     'run',
-    'start',
-  ] satisfies [string, string, string, string, string, string, string, string, string]);
+  ] satisfies [string, string, string, string, string, string, string, string]);
   const args = result.calls.find((args) => args[0] === 'run' && args.at(-1) === 'admin.mjs');
   assert.ok(args.includes('127.0.0.1:9876:9876'));
   assert.ok(args.includes('ADMIN_HOST=0.0.0.0'));
   assert.ok(args.includes('ADMIN_PORT=9876'));
-  assert.ok(args.includes('ADMIN_READ_ONLY=0'));
+  assert.ok(args.includes('ADMIN_READ_ONLY=1'));
+  assert.ok(args.includes('ADMIN_QUEUE_EDITS=1'));
   assert.ok(!JSON.stringify(result.calls).includes('test-only-secret'));
   assert.deepEqual(args.slice(-3), ['game', 'node', 'admin.mjs'] satisfies [
     string,
@@ -93,10 +94,10 @@ test('Compose editor stops the running game, publishes only on loopback, and res
   assert.match(result.stdout, /127\.0\.0\.1:9876/);
 });
 
-test('Compose editor restarts the game after an editor failure or interrupted stop', async (t) => {
+test('the offline Compose editor restarts the game after an editor failure or interrupted stop', async (t) => {
   for (const command of ['run', 'stop'] satisfies [string, string]) {
     await t.test(command, async (t) => {
-      const result = await run(t, { MOCK_FAIL: command });
+      const result = await run(t, { MOCK_FAIL: command, SCRIPT_OFFLINE: '1' });
       assert.equal(result.status, 17, result.stderr);
       assert.equal(result.commands.at(-1), 'start');
       if (command === 'stop') assert.ok(!result.calls.some((args) => args.at(-1) === 'admin.mjs'));
@@ -114,8 +115,9 @@ test('Compose editor leaves an already stopped game stopped', async (t) => {
     'run',
     'up',
     'ps',
+    'ps',
     'run',
-  ] satisfies [string, string, string, string, string, string, string]);
+  ] satisfies [string, string, string, string, string, string, string, string]);
 });
 
 test('read-only Compose inspection leaves a running game running and enforces read-only mode', async (t) => {
@@ -124,6 +126,7 @@ test('read-only Compose inspection leaves a running game running and enforces re
   assert.ok(!result.commands.includes('stop'));
   assert.ok(!result.commands.includes('start'));
   assert.ok(result.calls.find((args) => args.at(-1) === 'admin.mjs').includes('ADMIN_READ_ONLY=1'));
+  assert.ok(result.calls.find((args) => args.at(-1) === 'admin.mjs').includes('ADMIN_QUEUE_EDITS=0'));
 });
 
 test('missing or invalid credentials fail before interrupting the game', async (t) => {
