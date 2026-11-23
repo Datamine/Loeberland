@@ -1,4 +1,4 @@
-import type { CheckpointStore } from '../src/types/storage.ts';
+import type { CheckpointStore, GameplayStore, RamGameStore } from '../src/types/storage.ts';
 import type { ServerGeometry, ServerPlayer, PlayerTransport } from '../src/types/server.ts';
 import type { Socket } from 'node:net';
 import { createServer as createControlSocket } from 'node:net';
@@ -14,6 +14,10 @@ interface ServerOptions {
   checkpointIntervalMs?: number;
   shutdownTimeoutMs?: number;
   logger?: Pick<Console, 'error'>;
+}
+interface LiveSession {
+  player: ServerPlayer | null;
+  transport: PlayerTransport;
 }
 import { watchContent } from '../content/server.mts';
 import { applyWorldEdits } from '../src/world-edits.ts';
@@ -85,15 +89,8 @@ export async function startServer({
   const store = providedStore || (await createStore());
   let checkpoints: Awaited<ReturnType<typeof createCheckpointManager>>,
     game: Awaited<ReturnType<typeof createGame>>;
-  try {
-    checkpoints = await createCheckpointManager({
-      store,
-      intervalMs: checkpointIntervalMs,
-      shutdownTimeoutMs,
-      logger,
-    });
-    const ram = checkpoints.openGame('world');
-    game = await createGame({
+  const createSimulation = (ram: GameplayStore) =>
+    createGame({
       geometry,
       store: ram,
       maxPlayers,
@@ -101,6 +98,14 @@ export async function startServer({
       googleChatAvailable: !!googleChat,
       ...chatPolicy,
     });
+  try {
+    checkpoints = await createCheckpointManager({
+      store,
+      intervalMs: checkpointIntervalMs,
+      shutdownTimeoutMs,
+      logger,
+    });
+    game = await createSimulation(checkpoints.openGame('world'));
     checkpoints.attach('world', { prepare: game.prepareCheckpoint, drain: game.close });
   } catch (error) {
     await store.close();
@@ -138,6 +143,7 @@ export async function startServer({
   resourceTimer.unref();
   let draining = false,
     healthy = true;
+  let reloading: Promise<void> | null = null;
   function permitted(origin: string | undefined) {
     if (!origin) return true;
     if (allowedOrigins.includes(origin)) return true;
@@ -151,7 +157,16 @@ export async function startServer({
       return false;
     }
   }
-  const googleChatRoutes = createGoogleChatRoutes(googleChat, game);
+  const googleChatRoutes = createGoogleChatRoutes(googleChat, {
+    async canStartChatUnlock(...args) {
+      if (reloading) await reloading;
+      return game.canStartChatUnlock(...args);
+    },
+    async grantChatUnlock(...args) {
+      if (reloading) await reloading;
+      return game.grantChatUnlock(...args);
+    },
+  });
   const http = createServer(async (req, res) => {
     const url = new URL(req.url || '/', 'http://localhost');
     if (url.pathname.startsWith('/auth/google/chat/') && (await googleChatRoutes(req, res, url)))
@@ -264,12 +279,12 @@ export async function startServer({
     sockets.handleUpgrade(req, socket, head, (ws) => sockets.emit('connection', ws, req));
   });
   const aliveClients = new WeakSet<WebSocket>();
+  const sessions = new Set<LiveSession>();
   sockets.on('connection', (ws) => {
-    let player: ServerPlayer | null = null,
-      authenticating = false;
+    let authenticating = false;
     aliveClients.add(ws);
     const deadline = setTimeout(() => {
-      if (!player) ws.close(4003, 'Authentication timeout');
+      if (!session.player) ws.close(4003, 'Authentication timeout');
     }, 10_000);
     deadline.unref();
     const socket = (ws as WebSocket & { _socket?: Socket })._socket;
@@ -293,10 +308,13 @@ export async function startServer({
       close: (code: number | undefined, reason: string | Buffer<ArrayBufferLike> | undefined) =>
         ws.close(code, reason),
     };
+    const session: LiveSession = { player: null, transport };
+    sessions.add(session);
     ws.on('error', () => {});
     ws.on('pong', () => aliveClients.add(ws));
     ws.on('message', async (data, binary) => {
-      if (draining || store.leaseHealthy === false) return;
+      if (reloading) await reloading;
+      if (draining || !transport.open || store.leaseHealthy === false) return;
       if (binary) {
         ws.close(4002, 'Client messages must be JSON');
         return;
@@ -308,7 +326,7 @@ export async function startServer({
         ws.close(4002, 'Invalid JSON');
         return;
       }
-      if (!player) {
+      if (!session.player) {
         if (authenticating) return;
         if (!isRecord(message) || message.type !== 'hello') {
           ws.close(4003, 'Authenticate first');
@@ -316,19 +334,21 @@ export async function startServer({
         }
         authenticating = true;
         try {
-          player = await game.connect(message, transport);
+          session.player = await game.connect(message, transport);
           clearTimeout(deadline);
-          if (ws.readyState !== WebSocket.OPEN) game.disconnect(player);
+          if (!transport.open && !reloading) game.disconnect(session.player);
         } catch (error) {
           ws.close(4003, errorMessage(error).slice(0, 120));
         }
         return;
       }
-      game.receive(player, message);
+      game.receive(session.player, message);
     });
-    ws.on('close', () => {
+    ws.on('close', async () => {
       clearTimeout(deadline);
-      if (player) game.disconnect(player);
+      if (reloading) await reloading;
+      sessions.delete(session);
+      if (session.player) game.disconnect(session.player);
     });
   });
   const tickSeconds = 1 / MP_TICK_HZ,
@@ -342,6 +362,10 @@ export async function startServer({
       return;
     }
     const current = performance.now();
+    if (reloading) {
+      previous = current;
+      return;
+    }
     game.metrics.observe('loopGapMs', current - previous);
     accumulator += Math.min(0.25, (current - previous) / 1000);
     previous = current;
@@ -391,6 +415,92 @@ export async function startServer({
     `Loeberland: http://${host}:${address.port}/ · WebSocket /ws · ${store.kind} · capacity ${maxPlayers}`,
   );
   checkpoints.start();
+  async function stageSimulation(ram: RamGameStore) {
+    const actors = new Set([
+      ...(geometry.merchants || []),
+      ...(geometry.lives || []).flatMap((life) => life?.people || []),
+    ]);
+    const actorSnapshots = [...actors].map((actor) => ({
+      actor,
+      previous: { ...actor },
+      roam: actor.roam && { ...actor.roam },
+    }));
+    const airship = geometry.airship?.state;
+    const previousAirship = airship && structuredClone(airship);
+    function abort() {
+      for (const { actor, previous, roam } of actorSnapshots) {
+        for (const key of Object.keys(actor))
+          if (!Object.hasOwn(previous, key)) Reflect.deleteProperty(actor, key);
+        Object.assign(actor, previous);
+        if (roam && actor.roam) Object.assign(actor.roam, roam);
+      }
+      if (airship && previousAirship) Object.assign(airship, previousAirship);
+    }
+    try {
+      const next = await createSimulation(ram);
+      const transfers: {
+        session: LiveSession;
+        player: ServerPlayer;
+        output: (string | ArrayBuffer)[];
+      }[] = [];
+      // Stage welcomes until Redis commits the edit. The same sockets
+      // then receive fresh authoritative state and keep their player IDs.
+      for (const session of sessions) {
+        const previous = session.player;
+        if (!previous || !session.transport.open || game.players.get(previous.id) !== previous)
+          continue;
+        const output: (string | ArrayBuffer)[] = [];
+        const player = await next.restoreConnection(previous, {
+          get open() {
+            return session.transport.open;
+          },
+          get bufferedAmount() {
+            return session.transport.bufferedAmount;
+          },
+          send: (data) => { output.push(data); },
+          close: () => {},
+        });
+        transfers.push({ session, player, output });
+      }
+      return {
+        prepare: next.prepareCheckpoint,
+        drain: next.close,
+        abort,
+        install() {
+          game = next;
+          previousBytes = next.metrics.bytes;
+          previousFrames = next.metrics.frames;
+          for (const { session, player, output } of transfers) {
+            session.player = player;
+            player.transport = session.transport;
+            for (const message of output) session.transport.send(message);
+          }
+        },
+      };
+    } catch (error) {
+      abort();
+      throw error;
+    }
+  }
+  let checkingAdmin = false;
+  const adminTimer = store.hasAdminEdit && store.applyAdminEdit
+    ? setInterval(async () => {
+        if (checkingAdmin || draining) return;
+        checkingAdmin = true;
+        try {
+          if (!(await store.hasAdminEdit?.()) || draining) return;
+          reloading = checkpoints.reloadAdminEdit('world', stageSimulation)
+            .catch((error) => logger.error('Unable to reload an admin edit:', error));
+          await reloading;
+        } catch (error) {
+          logger.error('Unable to check for an admin edit:', error);
+        } finally {
+          reloading = null;
+          checkingAdmin = false;
+        }
+      }, 1000)
+    : null;
+  adminTimer?.unref();
   const stopContent = await watchContent({
     root,
     onChange: () => applyWorldEdits(geometry),
@@ -414,8 +524,10 @@ export async function startServer({
     clearInterval(loop);
     clearInterval(heartbeat);
     clearInterval(resourceTimer);
+    if (adminTimer) clearInterval(adminTimer);
     delay.disable();
     closing = (async () => {
+      if (reloading) await reloading;
       const saving = checkpoints.shutdown();
       const httpClosed = new Promise((resolve) => http.close(resolve));
       http.closeIdleConnections();
@@ -440,12 +552,11 @@ export async function startServer({
   return {
     http,
     sockets,
-    game,
+    get game() { return game; },
     checkpoints,
     port: address.port,
     close,
     announceUpdate,
-    hasAdminEdit: store.hasAdminEdit,
   };
 }
 
@@ -503,23 +614,5 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     control.on('error', (error) => console.error('Deployment notice socket:', error));
     control.listen(noticePath);
     server.http.once('close', () => control.close());
-  }
-  if (server.hasAdminEdit) {
-    const hasAdminEdit = server.hasAdminEdit;
-    let checking = false;
-    const timer = setInterval(async () => {
-      if (checking || server.checkpoints.stopping) return;
-      checking = true;
-      try {
-        if ((await hasAdminEdit()) && !server.checkpoints.stopping)
-          process.kill(process.pid, 'SIGTERM');
-      } catch (error) {
-        console.error('Unable to check for an admin edit:', error);
-      } finally {
-        checking = false;
-      }
-    }, 1000);
-    timer.unref();
-    server.http.once('close', () => clearInterval(timer));
   }
 }

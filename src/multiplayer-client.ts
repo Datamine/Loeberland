@@ -378,6 +378,7 @@ export function createMultiplayerClient({
         updateExpectedUntil = 0;
         state.following = null;
         selfSamples.length = 0;
+        peers.clear();
         state.connected = true;
         state.id = message.id;
         state.name = message.name;
@@ -415,6 +416,7 @@ export function createMultiplayerClient({
           if (appliedAwards.has(award.id)) pendingAcks.add(award.id);
         state.instance = message.instance || { id: 'world', kind: 'world', layer: 0 };
         state.level = message.level || 1;
+        state.inventory = undefined;
         acceptInventory(message.inventory, false);
         clearTimeout(settleTimer ?? undefined);
         firstResolve(message);

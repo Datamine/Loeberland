@@ -680,5 +680,74 @@ test(
     assert.equal((await manager.shutdown()).flushed, true);
     await update;
     assert.deepEqual(JSON.parse(await editor.get('player', 'alice')), playerAfter);
+
+    const { startServer } = await import('../index.mts');
+    const { fixtureGeometry } = await import('./fixtures.mts');
+    const { MP_PROTOCOL } = await import('../../src/multiplayer-protocol.ts');
+    const { WebSocket } = await import('ws');
+    const live = await startServer({
+      port: 0,
+      geometry: fixtureGeometry(),
+      store: await createStore({ redisURL, queueAdminEdits: true }),
+      checkpointIntervalMs: 50,
+    });
+    const sockets: InstanceType<typeof WebSocket>[] = [];
+    try {
+      async function connect(digit: string) {
+        const ws = new WebSocket('ws://127.0.0.1:' + live.port + '/ws');
+        sockets.push(ws);
+        const messages: import('../../src/types/network.ts').ServerEvent[] = [];
+        ws.on('message', (data, binary) => {
+          if (!binary) messages.push(JSON.parse(data.toString()));
+        });
+        await new Promise<void>((resolve, reject) => {
+          ws.once('open', resolve);
+          ws.once('error', reject);
+        });
+        ws.send(JSON.stringify({ type: 'hello', token: digit.repeat(64), protocol: MP_PROTOCOL }));
+        const welcome = await waitFor(() => messages.find((m) => m.type === 'welcome'));
+        return { ws, messages, welcome };
+      }
+      async function waitFor<T>(read: () => T) {
+        for (let i = 0; i < 250; i++) {
+          const value = read();
+          if (value) return value;
+          await new Promise((resolve) => setTimeout(resolve, 20));
+        }
+        throw new Error('Timed out waiting for the live game.');
+      }
+      const a = await connect('4'), b = await connect('5');
+      const owner = requiredFixture(live.game.players.get(a.welcome.id)).owner;
+      await live.checkpoints.checkpoint('world');
+      const original = await editor.get('player', owner);
+      const draft = JSON.parse(original);
+      assert.equal(draft.state.debugTeleport, false);
+      a.ws.send(JSON.stringify({type:'command', request:50, action:'beginPlay', args:{}}));
+      await waitFor(() => live.game.players.get(a.welcome.id)?.characterPlaying);
+      await editor.save('player', owner, original, {
+        ...draft,
+        state: { ...draft.state, debugTeleport: true },
+      });
+      const updated = requiredFixture(live.game.players.get(a.welcome.id));
+      assert.equal(updated.profile.debugTeleport, true);
+      assert.equal(updated.profile.hasPlayed, true);
+      assert.equal(updated.characterPlaying, true);
+      assert.equal(live.game.players.get(b.welcome.id)?.profile.debugTeleport, false);
+      assert.equal(a.ws.readyState, WebSocket.OPEN);
+      assert.equal(b.ws.readyState, WebSocket.OPEN);
+      await waitFor(() => a.messages.some(m => m.type === 'welcome' && m.debug));
+      a.ws.send(JSON.stringify({type:'command', request:51, action:'teleport', args:{x:85,z:53}}));
+      await waitFor(() => a.messages.some(m => m.type === 'result' && m.request === 51 && m.ok));
+      assert.equal(updated.x, 85);
+      const world = await editor.get('state', 'world');
+      const savedWorld = JSON.parse(world);
+      await editor.save('state', 'world', world, { ...savedWorld, serial: savedWorld.serial + 50 });
+      assert.equal(live.game.serial, savedWorld.serial + 50);
+      assert.equal(a.ws.readyState, WebSocket.OPEN);
+      assert.equal(b.ws.readyState, WebSocket.OPEN);
+    } finally {
+      for (const ws of sockets) ws.terminate();
+      await live.close();
+    }
   },
 );

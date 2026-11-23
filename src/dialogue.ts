@@ -250,7 +250,7 @@ export function createDialogue({
     face.className = 'sf-chat-portrait';
     const canvas = document.createElement('canvas');
     canvas.width = 160;
-    canvas.height = 180;
+    canvas.height = 188;
     canvas.setAttribute('aria-hidden', 'true');
     if (player || drawNPC) {
       face.append(canvas);

@@ -14,6 +14,7 @@ interface CheckpointRuntime {
   };
   persistedVersion: number;
   writing: Promise<void> | null;
+  reloading?: boolean;
   prepare: <T>(capture: () => T) => T | Promise<T>;
   drain: () => unknown | Promise<unknown>;
   adapter?: RamGameStore;
@@ -54,7 +55,7 @@ export async function createCheckpointManager({
     disposed = false,
     shutdownPromise: Promise<{ flushed: boolean; timedOut: boolean }> | null = null;
 
-  function restore(document: GameCheckpoint) {
+  function materialize(document: GameCheckpoint): CheckpointRuntime {
     if (
       document.schema !== 1 ||
       !validId(document.id) ||
@@ -72,14 +73,17 @@ export async function createCheckpointManager({
       records: new Map(copy(document.records)),
       names: new Map(copy(document.names).map((row) => [row.owner, row])),
     };
-    const runtime: CheckpointRuntime = {
+    return {
       state,
       persistedVersion: document.version,
       writing: null,
       prepare: (capture) => capture(),
       drain: async () => {},
-    };
-    games.set(state.id, runtime);
+    } satisfies CheckpointRuntime;
+  }
+  function restore(document: GameCheckpoint) {
+    const runtime = materialize(document);
+    games.set(runtime.state.id, runtime);
     return runtime;
   }
   for (const document of await store.loadGames()) {
@@ -106,6 +110,9 @@ export async function createCheckpointManager({
     }
     if (game.state.status === 'completed')
       throw new Error('Game ' + id + ' is completed and cannot be resumed.');
+    return ramStore(game);
+  }
+  function ramStore(game: CheckpointRuntime) {
     if (game.adapter) return game.adapter;
     const changed = () => {
       if (game.state.version >= Number.MAX_SAFE_INTEGER)
@@ -161,12 +168,13 @@ export async function createCheckpointManager({
     if (prepare) game.prepare = prepare;
     if (drain) game.drain = drain;
   }
-  function checkpoint(id: string) {
+  function checkpoint(id: string, force = false) {
     const game = games.get(id);
     if (!game) throw new Error('Unknown game: ' + id);
     if (disposed) return Promise.reject(new Error('Checkpoint storage is closed.'));
     if (game.writing) return game.writing;
-    if (game.state.version <= game.persistedVersion) return Promise.resolve();
+    if (!force && (game.reloading || game.state.version <= game.persistedVersion))
+      return Promise.resolve();
     // Assign the promise before prepare runs: another cycle cannot enqueue
     // a second snapshot while this game's writer is busy.
     game.writing = Promise.resolve()
@@ -199,13 +207,43 @@ export async function createCheckpointManager({
       });
     return game.writing;
   }
+  async function reloadAdminEdit(
+    id: string,
+    stage: (store: RamGameStore) => Promise<Pick<CheckpointRuntime, 'prepare' | 'drain'> & {
+      install: () => void;
+      abort?: () => void;
+    }>,
+  ) {
+    const game = games.get(id);
+    if (!game || !store.applyAdminEdit || stopping || game.reloading) return;
+    game.reloading = true;
+    try {
+      if (game.writing) await game.writing.catch(() => {});
+      await checkpoint(id, true);
+      await store.applyAdminEdit(async (document) => {
+        const next = materialize(document);
+        const simulation = await stage(ramStore(next));
+        next.prepare = simulation.prepare;
+        next.drain = simulation.drain;
+        return {
+          install() {
+            games.set(id, next);
+            simulation.install();
+          },
+          abort: simulation.abort,
+        };
+      });
+    } finally {
+      game.reloading = false;
+    }
+  }
   async function cycle() {
     if (stopping) return;
     // Skip busy writers rather than accumulating a queue or promise
     // callbacks. The next cycle captures whatever version is latest then.
     await Promise.allSettled(
       [...games]
-        .filter(([, g]) => !g.writing && g.state.version > g.persistedVersion)
+        .filter(([, g]) => !g.writing && !g.reloading && g.state.version > g.persistedVersion)
         .map(([id]) => checkpoint(id)),
     );
   }
@@ -294,6 +332,7 @@ export async function createCheckpointManager({
     attach,
     checkpoint,
     cycle,
+    reloadAdminEdit,
     start,
     shutdown,
     intervalMs,

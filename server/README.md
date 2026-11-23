@@ -253,18 +253,13 @@ stop or restart the game. For an editing session, exit inspection and run:
 bash server/edit-state.sh
 ```
 
-The launcher validates authentication before interrupting gameplay, starts
-Redis if necessary, stops the game to flush its final checkpoint, and opens
-the editor. Change a record's JSON and click **Save changes**. Press Ctrl+C in
-the terminal to close the editor; the launcher restarts the game if it was
-running before the session, including when the editor exits with an error.
-If it was already off, it stays off.
+The launcher starts the editor with live Redis saves while the game is running.
+Change a record’s JSON and click **Save changes**. The server applies the edited
+fields to its latest checkpoint and updates its in-memory state without
+closing connections. If an edited field has changed in the meantime, reload
+the record before trying again. To stop the game for manual maintenance instead,
+launch the editor with `--offline`.
 
-**Only edit usefully while the game is stopped.** The simulation holds its state
-in RAM and can overwrite database edits. Redis saves also reject an active
-simulation ownership lease; after an ungraceful stop, allow up to 15 seconds
-for that lease to expire. Restart after saving to load the changed state.
-Take a backup first. Saves reject stale records; reload them before retrying.
 Username edits preserve the owner ID and enforce name validation/uniqueness.
 This is a JSON editor, so keep existing record structure and value types intact.
 
@@ -274,7 +269,8 @@ For a Redis server reachable directly from Node:
 REDIS_URL=redis://127.0.0.1:6379 ADMIN_READ_ONLY=1 npm --prefix server run admin
 ```
 
-Stop the game and remove `ADMIN_READ_ONLY=1` for an editing session. For SQLite,
+Set `ADMIN_QUEUE_EDITS=1` on both the game and editor to enable live Redis editing
+with this command. For SQLite, stop the game and remove `ADMIN_READ_ONLY=1`. Then
 leave `REDIS_URL` unset and set `STATE_FILE` to the existing database. The default
 is `server/data/world.sqlite`; a missing file is an error. For example:
 

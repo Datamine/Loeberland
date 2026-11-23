@@ -376,7 +376,7 @@ export async function openAdminStore({
       },
       async save(kind: string, id: string, original: string, value: object) {
         const { raw, document } = await read();
-        const conflict = editCheckpoint(document, { kind, key: id, original, value });
+        const conflict = editCheckpoint(document, { kind, key: id, original, value }, !!enqueue);
         if (conflict) throw fail(409, conflict);
         if (enqueue) return enqueue(kind, id, original, value);
         await backend.save('state', key, raw, document);
@@ -470,11 +470,11 @@ export async function startAdmin({
   const html = (await readFile(new URL('./admin.html', import.meta.url), 'utf8'))
     .replace('__ADMIN_TOKEN__', token)
     .replace('__ADMIN_READ_ONLY__', JSON.stringify(inspectionOnly))
-    .replace('__ADMIN_RESTARTS_GAME__', JSON.stringify(queueEdits))
+    .replace('__ADMIN_LIVE_EDITS__', JSON.stringify(queueEdits))
     .replace(
       '__ADMIN_NOTICE__',
       queueEdits
-        ? 'Saving checkpoints and restarts the game. Players will briefly disconnect.'
+        ? 'Saving applies the edited fields to the running game through Redis.'
         : inspectionOnly
           ? 'Read-only inspection. The game can keep running. Stop it before opening an editing session.'
           : 'Stop the game server before editing. After saving, restart the game server to load your changes.',
@@ -594,7 +594,7 @@ export async function startAdmin({
           throw fail(400, 'Choose an existing record.');
         if (isAccountKey(body.key)) throw fail(404, 'Record not found.');
         await store.save(body.kind, body.key, body.original, body.value);
-        send(200, { raw: JSON.stringify(body.value) });
+        send(200, { raw: await store.get(body.kind, body.key) });
         return;
       }
       throw fail(404, 'Not found.');
@@ -620,6 +620,7 @@ export async function startAdmin({
     server,
     origin,
     token,
+    liveEdits: queueEdits,
     async close() {
       await new Promise<void>((resolve, reject) =>
         server.close((error) => (error ? reject(error) : resolve())),
@@ -632,7 +633,7 @@ export async function startAdmin({
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   if (process.argv.includes('--help')) {
     console.log(
-      'Usage: node server/admin.mjs [--check-auth]\n\nLoads server/.env automatically; ADMIN_ENV_FILE selects another env file.\nADMIN_USERNAME and ADMIN_PASSWORD are required for HTTP Basic Auth.\nADMIN_READ_ONLY=1 allows inspection without writes while the game runs.\nStop the game server before editing; restart it to load changes.\nSTATE_FILE selects an existing SQLite database (default: server/data/world.sqlite).\nREDIS_URL selects Redis instead. ADMIN_PORT defaults to 8788.\nADMIN_HOST defaults to 127.0.0.1; use 0.0.0.0 inside a container with a loopback-only published port.',
+      'Usage: node server/admin.mjs [--check-auth]\n\nLoads server/.env automatically; ADMIN_ENV_FILE selects another env file.\nADMIN_USERNAME and ADMIN_PASSWORD are required for HTTP Basic Auth.\nADMIN_READ_ONLY=1 allows safe access while the game runs. Set ADMIN_QUEUE_EDITS=1 on both the game and editor to enable live Redis saves in this mode.\nFor offline editing, stop the game before saving.\nSTATE_FILE selects an existing SQLite database (default: server/data/world.sqlite).\nREDIS_URL selects Redis instead. ADMIN_PORT defaults to 8788.\nADMIN_HOST defaults to 127.0.0.1; use 0.0.0.0 inside a container with a loopback-only published port.',
     );
   } else {
     try {
@@ -651,7 +652,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
         'Database editor: ' +
           admin.origin +
           '\nHTTP Basic Auth is required.\n' +
-          (process.env.ADMIN_READ_ONLY === '1'
+          (admin.liveEdits
+            ? 'Edits apply to the running game through Redis.'
+            : process.env.ADMIN_READ_ONLY === '1'
             ? 'Read-only inspection; the game can keep running.'
             : 'Stop the game server before editing. Restart it after saving to load changes.') +
           '\nPress Ctrl+C to close the editor.',

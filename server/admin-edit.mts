@@ -1,4 +1,6 @@
 import type { GameCheckpoint, NameReservation } from '../src/types/storage.ts';
+import { isDeepStrictEqual } from 'node:util';
+import { isRecord } from '../src/types/json.ts';
 
 export const pendingAdminEdit = 'loeberland:admin-edit:pending';
 export const adminEditResult = (id: string) => 'loeberland:admin-edit:result:' + id;
@@ -28,11 +30,45 @@ export function checkpointRecord(document: GameCheckpoint, kind: string, key: st
     : document.names.find((row) => row.owner === key);
 }
 
-/** Apply only the edited record to the latest checkpoint. */
-export function editCheckpoint(document: GameCheckpoint, edit: Omit<AdminEdit, 'id' | 'owner'>) {
-  const { kind, key, original, value } = edit;
-  if (JSON.stringify(checkpointRecord(document, kind, key)) !== original)
-    return 'This record changed or was deleted. Reload it before saving.';
+const stale = 'This record changed or was deleted. Reload it before saving.';
+
+function mergeEdit(original: unknown, value: unknown, current: unknown): unknown {
+  if (isDeepStrictEqual(original, value)) return current;
+  if (isDeepStrictEqual(original, current) || isDeepStrictEqual(value, current)) return value;
+  if (!isRecord(original) || !isRecord(value) || !isRecord(current)) throw new Error(stale);
+  const entries = new Map(Object.entries(current));
+  for (const key of new Set([...Object.keys(original), ...Object.keys(value)])) {
+    const merged = mergeEdit(
+      Object.hasOwn(original, key) ? original[key] : undefined,
+      Object.hasOwn(value, key) ? value[key] : undefined,
+      entries.get(key),
+    );
+    if (merged === undefined) entries.delete(key);
+    else entries.set(key, merged);
+  }
+  return Object.fromEntries(entries);
+}
+
+/** Offline edits use whole-record CAS. Live edits keep changes to fields the
+ * editor did not touch and reject conflicting writes to the edited fields. */
+export function editCheckpoint(
+  document: GameCheckpoint,
+  edit: Omit<AdminEdit, 'id' | 'owner'>,
+  live = false,
+) {
+  const { kind, key, original } = edit;
+  const current = checkpointRecord(document, kind, key);
+  let value = edit.value;
+  if (JSON.stringify(current) !== original) {
+    if (!live || current === undefined) return stale;
+    try {
+      const merged = mergeEdit(JSON.parse(original), value, current);
+      if (!isRecord(merged)) return stale;
+      value = merged;
+    } catch {
+      return stale;
+    }
+  }
   if (document.version >= Number.MAX_SAFE_INTEGER) return 'Game state version exhausted.';
   const player = kind === 'player' ? (value as OwnerRecord) : null;
   const name = kind === 'usernames' ? (value as NameReservation) : player?.username;

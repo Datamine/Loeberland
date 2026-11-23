@@ -932,16 +932,24 @@ test('sea urchins spawn on the beach south of Bolinas and Rich Table buys their 
     assert.ok(a.p.hp < before);
     const sale = () => act(a, 'inventory', { op: 'trade', kind: 'sell-uni' });
     assert.equal(a.p.inventory.receive({ lootKind: 'uni', amount: 2 }).ok, true);
-    assert.equal((await sale()).ok, false);
+    const tooFar = await sale();
+    assert.equal(tooFar.ok, false);
+    assert.equal(tooFar.message, 'Move a little closer to sell your uni.');
     const chef = npc((actor) => actor.id === RICH_TABLE_CHEF);
     assert.ok(geometry.pathTo(chef.x - 0.5, chef.z - 0.5, geometry.spawn));
     atNPC(a, chef);
+    const dialogue = configuredDialogue(RICH_TABLE_CHEF, chef);
+    assert.match(String(dialogue.intro), /I’ll buy it from you/);
     const coins = a.p.inventory.economy.state.coins;
-    await choose(a, configuredDialogue(RICH_TABLE_CHEF, chef), ['Sell Uni · 40 coins'], {
-      message: /chef buys one Uni for 40 coins/,
+    await choose(a, dialogue, ['Sell Uni · 40 coins'], {
+      message: /I’ll take that for the kitchen\. Here’s 40 coins\./,
     });
     assert.equal(a.p.inventory.snapshot().uni, 1);
     assert.equal(a.p.inventory.economy.state.coins, coins + 40);
+    assert.equal((await sale()).ok, true);
+    const none = await sale();
+    assert.equal(none.ok, false);
+    assert.match(none.message ?? '', /Bring me some and I’ll pay 40 coins apiece/);
   } finally {
     stop(a);
   }

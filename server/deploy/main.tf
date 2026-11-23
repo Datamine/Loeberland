@@ -235,7 +235,7 @@ locals {
     "MAX_PLAYERS=${var.max_players}",
     "PREBUILT_CLIENT=1",
     "ADMIN_ENV_FILE=/etc/loeberland/admin.env",
-    "ADMIN_QUEUE_EDITS=${var.game_domain == "" ? 0 : 1}",
+    "ADMIN_QUEUE_EDITS=1",
     "BACKUP_DIR=/var/lib/loeberland/backups",
     "",
   ])

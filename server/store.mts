@@ -9,7 +9,7 @@ import type {
   NameReservation,
 } from '../src/types/storage.ts';
 import type { SQLiteOperations, SQLiteResponse } from '../src/types/sqlite.ts';
-import '../src/types/json.ts';
+import { errorMessage } from '../src/types/json.ts';
 import {
   adminEditResult,
   editCheckpoint,
@@ -221,33 +221,65 @@ export async function createStore({
     };
     if (queueAdminEdits) {
       const world = prefix + gameKey('world');
-      const finishEdit = async (pending: string, raw: string | null, edit: AdminEdit) => {
+      const finishEdit = async (
+        pending: string,
+        raw: string | null,
+        edit: AdminEdit,
+        stage?: Parameters<NonNullable<CheckpointStore['applyAdminEdit']>>[0],
+      ) => {
         const checkpoint = raw ? (JSON.parse(raw) as GameCheckpoint) : null;
-        const conflict =
+        let conflict =
           edit.owner !== owner
             ? 'The game restarted before confirming this edit. Reload the record before saving.'
             : checkpoint?.status === 'active'
-              ? editCheckpoint(checkpoint, edit)
+              ? editCheckpoint(checkpoint, edit, !!stage)
               : 'An active world checkpoint is required.';
-        const result = await client.eval(
-          `
-          if redis.call('GET', KEYS[1]) ~= ARGV[1] then return 0 end
-          if redis.call('GET', KEYS[2]) ~= ARGV[2] then return 1 end
-          if ARGV[5] == 'ok' then
-            if (redis.call('GET', KEYS[3]) or '') ~= ARGV[3] then return 0 end
-            redis.call('SET', KEYS[3], ARGV[4])
-          end
-          redis.call('SET', KEYS[4], ARGV[5], 'EX', 300)
-          redis.call('DEL', KEYS[2])
-          return 1
-          `,
-          {
-            keys: [lease, pendingAdminEdit, world, adminEditResult(edit.id)],
-            arguments: [owner, pending, raw ?? '', JSON.stringify(checkpoint), conflict ?? 'ok'],
-          },
-        );
-        if (result !== 1)
-          throw new Error('World checkpoint or ownership changed during admin edit.');
+        let staged: { install: () => void; abort?: () => void } | undefined;
+        if (!conflict && checkpoint && stage)
+          try {
+            staged = await stage(checkpoint);
+          } catch (error) {
+            conflict = 'The edit was rejected by the running game: ' + errorMessage(error);
+          }
+        let installed = false;
+        try {
+          const result = await client.eval(
+            `
+            if redis.call('GET', KEYS[1]) ~= ARGV[1] then return 0 end
+            if redis.call('GET', KEYS[2]) ~= ARGV[2] then return 2 end
+            if ARGV[5] == 'ok' then
+              if (redis.call('GET', KEYS[3]) or '') ~= ARGV[3] then return 0 end
+              redis.call('SET', KEYS[3], ARGV[4])
+            end
+            if ARGV[6] ~= 'live' or ARGV[5] ~= 'ok' then
+              redis.call('SET', KEYS[4], ARGV[5], 'EX', 300)
+            end
+            redis.call('DEL', KEYS[2])
+            return 1
+            `,
+            {
+              keys: [lease, pendingAdminEdit, world, adminEditResult(edit.id)],
+              arguments: [
+                owner,
+                pending,
+                raw ?? '',
+                JSON.stringify(checkpoint),
+                conflict ?? 'ok',
+                staged ? 'live' : 'offline',
+              ],
+            },
+          );
+          if (result === 2) return;
+          if (result !== 1)
+            throw new Error('World checkpoint or ownership changed during admin edit.');
+          if (staged && !conflict) {
+            staged.install();
+            installed = true;
+            await client.set(adminEditResult(edit.id), 'ok', { EX: 300 });
+          }
+        } finally {
+          if (!installed) staged?.abort?.();
+        }
       };
       adapter.hasAdminEdit = async () => {
         const pending = await client.get(pendingAdminEdit);
@@ -257,9 +289,9 @@ export async function createStore({
         await finishEdit(pending, null, edit);
         return false;
       };
-      adapter.applyAdminEdit = async () => {
+      adapter.applyAdminEdit = async (stage) => {
         const [pending, raw] = await client.mGet([pendingAdminEdit, world]);
-        if (pending) await finishEdit(pending, raw, JSON.parse(pending) as AdminEdit);
+        if (pending) await finishEdit(pending, raw, JSON.parse(pending) as AdminEdit, stage);
       };
     }
     return adapter;

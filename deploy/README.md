@@ -52,7 +52,7 @@ After you approve the first plan, the script asks EC2 to create a key pair and s
 ./deploy/aws.sh admin
 ```
 
-On a custom domain, open `/admin/` over HTTPS and sign in with the credentials in **`.deploy/aws-admin.env`**. An AWS deploy saves the current credentials there on first use. You can also use the SSH tunnel to open **http://127.0.0.1:8788/**. Saving an edit flushes the active world to Redis, applies the edit if that record is still unchanged, and restarts the game. Players briefly disconnect.
+On a custom domain, open `/admin/` over HTTPS and sign in with the credentials in **`.deploy/aws-admin.env`**. An AWS deploy saves the current credentials there on first use. You can also use the SSH tunnel to open **http://127.0.0.1:8788/**. Saving queues the edited fields in Redis. The running game applies them to a fresh checkpoint and reloads its state while keeping player connections open. Edits to fields that changed since you opened the record are rejected.
 
 To grant debug teleport, select the character, check **Allow debug teleport**, and save. Clear the checkbox and save to revoke it.
 

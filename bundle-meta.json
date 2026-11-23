@@ -144,7 +144,7 @@
       }
     },
     "content/dialogues.json": {
-      "bytes": 435435,
+      "bytes": 435431,
       "imports": [],
       "format": "esm",
       "with": {
@@ -181,7 +181,7 @@
       }
     },
     "content/world-messages.json": {
-      "bytes": 98333,
+      "bytes": 98331,
       "imports": [],
       "format": "esm",
       "with": {
@@ -442,7 +442,7 @@
       "format": "esm"
     },
     "src/multiplayer-client.ts": {
-      "bytes": 27421,
+      "bytes": 27481,
       "imports": [
         {
           "path": "src/types/json.ts",
@@ -709,7 +709,7 @@
       "format": "esm"
     },
     "src/characters.ts": {
-      "bytes": 86395,
+      "bytes": 86202,
       "imports": [
         {
           "path": "src/wearable-models.ts",
@@ -3206,7 +3206,7 @@
       "format": "esm"
     },
     "src/world/runtime.ts": {
-      "bytes": 34870,
+      "bytes": 35002,
       "imports": [
         {
           "path": "src/berkeley-lab.ts",
@@ -3337,6 +3337,11 @@
           "path": "src/south-beach.ts",
           "kind": "import-statement",
           "original": "../south-beach.ts"
+        },
+        {
+          "path": "src/salt-layout.ts",
+          "kind": "import-statement",
+          "original": "../salt-layout.ts"
         }
       ],
       "format": "esm"
@@ -3390,7 +3395,7 @@
       "format": "esm"
     },
     "src/human-npc.ts": {
-      "bytes": 6299,
+      "bytes": 6421,
       "imports": [
         {
           "path": "src/config/npcs.ts",
@@ -6741,7 +6746,7 @@
       "format": "esm"
     },
     "src/world/generation.ts": {
-      "bytes": 253176,
+      "bytes": 253715,
       "imports": [
         {
           "path": "src/backyard-details.ts",
@@ -8204,7 +8209,7 @@
       }
     },
     "src/world/interactions.ts": {
-      "bytes": 201102,
+      "bytes": 201540,
       "imports": [
         {
           "path": "src/backyard-details.ts",
@@ -8599,6 +8604,11 @@
           "path": "src/burning-man.ts",
           "kind": "import-statement",
           "original": "../burning-man.ts"
+        },
+        {
+          "path": "src/config/npcs.ts",
+          "kind": "import-statement",
+          "original": "../config/npcs.ts"
         }
       ],
       "format": "esm"
@@ -10089,7 +10099,7 @@
       "imports": [],
       "exports": [],
       "inputs": {},
-      "bytes": 9452828
+      "bytes": 9454627
     },
     "explore.js": {
       "imports": [],
@@ -10160,7 +10170,7 @@
           "bytesInOutput": 336345
         },
         "content/dialogues.json": {
-          "bytesInOutput": 259048
+          "bytesInOutput": 259047
         },
         "content/dialogues/tweet-derived/chains.json": {
           "bytesInOutput": 121052
@@ -10175,7 +10185,7 @@
           "bytesInOutput": 124116
         },
         "content/world-messages.json": {
-          "bytesInOutput": 88632
+          "bytesInOutput": 88639
         },
         "content/world-message-sources.ts": {
           "bytesInOutput": 96
@@ -10220,7 +10230,7 @@
           "bytesInOutput": 1287
         },
         "src/multiplayer-client.ts": {
-          "bytesInOutput": 16828
+          "bytesInOutput": 16865
         },
         "src/server-connection.ts": {
           "bytesInOutput": 2853
@@ -10286,7 +10296,7 @@
           "bytesInOutput": 930
         },
         "src/characters.ts": {
-          "bytesInOutput": 43906
+          "bytesInOutput": 43841
         },
         "src/surfing.ts": {
           "bytesInOutput": 7614
@@ -10622,7 +10632,7 @@
           "bytesInOutput": 1874
         },
         "src/world/runtime.ts": {
-          "bytesInOutput": 21949
+          "bytesInOutput": 22008
         },
         "src/burning-man-models.ts": {
           "bytesInOutput": 5335
@@ -10634,7 +10644,7 @@
           "bytesInOutput": 3432
         },
         "src/human-npc.ts": {
-          "bytesInOutput": 2974
+          "bytesInOutput": 3073
         },
         "src/rendering/dynamic-buffer.ts": {
           "bytesInOutput": 971
@@ -11000,7 +11010,7 @@
           "bytesInOutput": 4035
         },
         "src/world/generation.ts": {
-          "bytesInOutput": 158524
+          "bytesInOutput": 158868
         },
         "src/minimap-layers.ts": {
           "bytesInOutput": 3872
@@ -11084,7 +11094,7 @@
           "bytesInOutput": 1477
         },
         "src/world/interactions.ts": {
-          "bytesInOutput": 135675
+          "bytesInOutput": 135944
         },
         "src/ai-lab.ts": {
           "bytesInOutput": 3137
@@ -11150,7 +11160,7 @@
           "bytesInOutput": 1701
         }
       },
-      "bytes": 4342474
+      "bytes": 4343223
     }
   }
 }

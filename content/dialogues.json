@@ -319,7 +319,7 @@
     },
     "rich-table-chef": {
       "id": "service.rich-table-chef.root",
-      "intro": "I buy fresh uni for the kitchen. Bring me any sea urchin roe you find along the coast.",
+      "intro": "If you find any fresh uni along the coast, I’ll buy it from you for the kitchen.",
       "repeat": true,
       "choices": [
         {
