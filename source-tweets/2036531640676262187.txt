@@ -1,0 +1,6 @@
+NPC: Given the PyPI supply chain attack, I recommend keeping a canary in the coalmine...
+NPC: I have a bitcoin private key containing $100 of BTC in my .bashrc. It's clearly labelled.
+NPC: If my system is ever compromised by some bad package, the BTC will get stolen, and I'll see the move on-chain. And that'll tell me that I need to rotate every single other secret.
+NPC: There are even services that will send you an alert (text, email, whatsapp...) if a given bitcoin address moves funds. It's good to have a burglar alarm, especially when time is of the essence.
+CHARACTER: If you label it too obviously, won't a careful attacker just skip it on purpose to stay quiet longer?
+NPC: Most attackers are not going to play that level of 3D chess, especially if the key has $100+ on it. 

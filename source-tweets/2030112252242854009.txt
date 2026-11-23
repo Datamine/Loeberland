@@ -1,0 +1,3 @@
+NPC: I was reading about UChicago. In 1929, the 30-year-old dean of Yale Law School, Robert Maynard Hutchins, became president.
+NPC:  Can you imagine a 30-year-old being dean of Yale Law School today? Totally impossible. 
+CHARACTER: Our society of the young and dynamic has become a society of the old.

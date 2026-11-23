@@ -1,0 +1,11 @@
+NPC: It's funny how dated ~2015 startup culture feels now. "We have beer on tap! We're a fun company!"
+CHARACTER: Today there are no startups with beer on tap. To most young engineers, the idea of even drinking alcohol in general seems strange and suboptimal. 
+NPC: I haven't seen a ping-pong table in an office in years.
+CHARACTER: A lot of current startup culture is highly performative -- virtually none of the people who claim to work 996 actually do, most of the office bunkbeds are never used, etc. But the culture is still a lot more ambitious and concrete than it was ten years ago. 
+NPC: There was a lot of woo-ish bullshit in the early 2010s. Companies had ambitions to change the world, but with stuff like a Yoga-Centric Social Network or Cat-Sitting Apps. 
+NPC: This crop of startups seems to have died out and been replaced with a much more hardcore and optimized views -- laser-focused on big TAMs, shifting economic value from labor to technology, and summoning the Machine God. 
+CHARACTER: It may feel like there's a lot of startup grift these days -- and there is -- but that's just because of the sheer size of the ecosystem now. Some of the froth bubbles over. 
+NPC: But on a whole it feels far more serious, ambitious, and actually world-changing than when I arrived ten years ago. Silicon Valley is out of its teenage years and in adulthood now.
+CHARACTER: there's probably some extent to which this is a washing out of the "tech weirdo" culture, and a replacement by a more professionalized culture. 
+NPC: Tech today is no longer as Burning Man adjacent, fewer engineers are misfits elsewhere, and it's also less accessible to bootcamps and the like. 
+CHARACTER: Product Managers today would've been Investment Bankers 15 years ago. It's like a game where the metagame has slowly become figured out, and what was once fringe is now mainstream.

@@ -1,0 +1,14 @@
+NPC: When I was a child, I thought that landfills were terrible. 
+NPC: Just dumping everything in one spot seems so messy and contrary to the legibility and order that we think of as good. 
+CHARACTER: Not to mention the environment: isn't it bad just to put all the garbage in the ground? 
+NPC: In my childish mind, everything should have been cleanly sorted for recycling. Is seemed so dumb to just dump it on one big pile on the ground.
+NPC: Now it turns out that this is probably optimal. 
+CHARACTER: Right. We've learned that most "recycling" is a scam, where garbage gets sold and resold between recycling venues until finally it ends up with somebody who just dumps it into the Pacific ocean.
+NPC: On the other hand, putting stuff in a landfill is cheap and scalable. 
+NPC: It's easy to fit a lot of stuff in a landfill, and ensure that it doesn't spread everywhere -- when you're done, you can cover it. 
+CHARACTER: What's most interesting is that a landfill is fully recoverable. 
+NPC: When there's any kind of materials shortage, you can in fact just go to the landfill and start mining it, which has started happening over the last couple of years. 
+CHARACTER: Enterprising governments/people are mining their landfills for rare earth metals, and it's working. 
+NPC: Which really just makes the landfill a kind of a temporary deposit structure before eventually recycling or reusing those materials in a more efficient way. 
+NPC: That seems pretty good!
+NPC: Maybe this is one of those "worse is better" cases.

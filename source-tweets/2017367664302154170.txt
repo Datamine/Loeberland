@@ -1,0 +1,8 @@
+NPC: You can instantly drop off the hedonic-financial treadmill by changing your social context. 
+NPC: In SF I spend tons of money on, and have impossibly high standards for, meals. 
+NPC: When I'm with my parents, I eat boiled potatoes with salt.
+====
+NPC: An airport is an interesting social environment in that it's basically totally crime-free. 
+CHARACTER: Why is this? 
+NPC: Surveillance? The security check? A socioeconomic filter in having purchased a ticket? 
+CHARACTER: "Why are there no pickpockets at an airport" sounds like a banal question, but I think there's some depth to it.

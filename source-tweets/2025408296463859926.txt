@@ -1,0 +1,6 @@
+NPC: It is very sad that Spotify is fundamentally not an app for people who like music. 
+NPC: Oftentimes I want to search through my Spotify library. It's like 10,000 songs and I want to grab all the ones that I added in the summer of 21. 
+NPC: Can't do that. Maybe I want to grab all the ones with samples from Michael Jackson. Can't do that. Maybe I want to grab all the ones with a particular lyric. Can't do that. 
+NPC: Maybe I want to find all the albums with red cover art. Or find all albums I liked that came out in 2020. Nope!
+CHARACTER: We have AI now. The search and ability to curate could be so good! 
+NPC: If I download all of my Spotify data, I can build all of the search myself. I'm just so disappointed that the Spotify team has never bothered enabling a better search.

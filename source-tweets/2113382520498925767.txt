@@ -1,0 +1,12 @@
+NPC: I'm noticing the growing possibility that Europe becomes very poor in the course of the next 10-20 years. You have the following factors:
+NPC: 1. Heavy industry totally uncompetitive against China, automakers etc. rapidly losing ground
+NPC: 2. Services industry totally uncompetitive against AI
+NPC: 3. No natural resources, or regulatory hurdles making their extraction impossible
+NPC: 4. No access to the new economy (no AI, no data centers, uncompetitive energy sector)
+NPC: 5. Client states caught in one-way welfare ratchets, spend reallocation + investment well-nigh impossible
+CHARACTER: This seems under-contemplated. 
+NPC: And we're talking really, seriously dirt poor: taken to its logical conclusion, many countries will have much, much smaller services and manufacturing industries -- economies may become much more heavily skewed toward natural resources and energy markets, where Europe has made it impossible for itself to compete.
+NPC: And I'm not saying that this is likely to happen, it's an extreme case. But the probability is greater than zero and appears to be growing. 
+NPC: The EV of that is so negative that it's surprising to me that it's not coming up more.
+CHARACTER: But what about tourism? Like, consider the Mediterreanean waterfront as a natural resource
+NPC: Arguably the nicest Mediterranean weather in the world is in Cape Town, but South Africa is so far gone that they can no longer make productive use of it.

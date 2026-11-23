@@ -1,0 +1,5 @@
+NPC: My dad bought a book on Carl Jung from Amazon
+NPC: He’s a few pages in, telling me how bad it is 
+NPC: I look. The cover looks like Dall-E. The text formatting has messy white space. The introduction’s third sentence is “Jung was not X, he was Y.”
+NPC: The entire book is ChatGPT generated!
+CHARACTER: Self-published, print-on-demand in 2026... what do we expect?

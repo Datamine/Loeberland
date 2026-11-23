@@ -1,0 +1,13 @@
+NPC: Let me tell you about renovations. Never start.
+NPC: Some people go crazy renovating their homes. After having done this for a few months, I understand why:
+NPC: First of all, it trains you to be hyperaware of errors. Your contractors are inevitably going to try to cut corners, and you want to both get your fair money's worth and have your vision executed, so you have to really pay attention, to things that normally you never would...
+NPC: Was that scratch there before? Is this cabinet level? 
+NPC: Of course, once you're trained in this way, your hypervigilance extends to everything, even far outside your contractors' work: there's a half-inch gap between the doorframe and the floor? Sacrilege! Doesn't matter if it's been there for 40 years.
+CHARACTER: A home is a complex thing with lots of detail, so inevitably, no matter where you look, the flaws will be endless.
+NPC: Secondly, the other thing you learn is that whatever problems you see, you can fix them! Don't like it? Tear it out and do it again. If renting, you treat things as fixed -- but a house turns out to be shockingly malleable. 
+NPC: Literally everything can be changed. You can move lights, pipes, doors, tear out walls, there are no limits.
+NPC: These are the two core learnings of doing renovations, and combined, they are very dangerous: for people who are not used to saying "good enough, whatever", this becomes an endless perfectionist loop. 
+CHARACTER: I see. They'll have you changing stuff forever until you either run out of money or sanity. 
+NPC: Worse, you'll find that changing one thing often implies changing another thing...
+NPC: I have a painting that looks like it's not level even though it is. Why? It's not aligned with the doorframe. Why? The doorframe itself isn't level. Why? The floor itself isn't level because it's 100 years old. But you can't live there while you're redoing the floors, of course. 
+CHARACTER: This is a scope-creep, yak-shaving classic: all you wanted was to hang your painting straight and now you live in a storage unit. Beware.

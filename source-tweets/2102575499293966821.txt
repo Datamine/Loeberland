@@ -1,0 +1,11 @@
+NPC: I've been thinking a lot about AI disintermediating human relationships. This seems like a real challenge to me, and I'm not sure how to feel about it.
+NPC: Thanks to AI, in the long run there will be no need for me to ask anyone else for help with anything, and consequently, there will be no opportunity for people to feel useful and appreciated when they provide a service. 
+CHARACTER: That give-and-take between people is the core of our social fabric. 
+NPC: And it has already been fraying for a long time, even pre-AI.
+CHARACTER: Many optimists say things like "AI will automate all the rote work so people can focus on their passions and being together" -- but there is no "being together" without some shared struggle or objective. 
+NPC: There is no building trust without need -- and in an AI-induced age of abundance, there may just not be any need.
+CHARACTER: Social fabric is woven by countless daily small, necessary interactions with other people -- and those interactions may simply go away because your AI agent of choice ends up being your interface to the world around yourself. 
+NPC: Not because of any shortcoming, like being lazy or complacent, but because AI will be a better interface. 
+NPC: Why ask your friend for advice when AI will be more patient, less judgmental, and understand you better? What's left for parents to teach their children if AI is a better tutor in all respects? And so forth. 
+CHARACTER: Many incipient changes or risks due to AI do not worry me much. I am very optimistic about what AI can bring to our future. But this one challenge bothers me; it seems like it could spell a fundamental reorganization of our society, isolating the individual much more greatly than ever before. 
+NPC: The consequences of this are not clear to me, but it doesn't look great -- generally, it seems that "isolating the individual" has not been good for either those individuals or their societies. And I don't think enough time or thought is being spent on what we want our social lives post-AGI to look like.

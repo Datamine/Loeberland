@@ -1,0 +1,3 @@
+NPC: If you know a lot about software, then you will recognize how poorly most of it is built. 
+NPC: But it's not poor by happenstance, it is poor by choice. And the choice of the software publisher is that they don't care about you. 
+NPC: This is just so sad.

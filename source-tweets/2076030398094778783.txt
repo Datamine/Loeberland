@@ -1,0 +1,109 @@
+NPC: Coffee shops will play music. Bars will sometimes play sports games, or even TV or movies. 
+NPC: But I've never been to any establishment that plays a podcast.
+======
+NPC: The 2005-onwards "fuel efficiency" era of cars has resulted in incredibly ugly vehicles. 
+CHARACTER: Regulatory standards and pressure for aerodynamics have turned everything on four wheels into giant bloblike hatchbacks. 
+NPC: Take a good look at one of these things. Horrendous. 
+CHARACTER: Once we get electric power + EVs at scale, we can go back to having vehicles that look good. 
+=====
+NPC: I often think of J Robert Oppenheimer's retreat to St John's in the US Virgin Islands in the 1950s. 
+NPC: Imagine you're the most important nuclear physicist on earth, you've gone through staggering political drama, and then you peace out to a little pre-industrial island with no telephone or radio and sit on the beach for a couple weeks or months at a time. 
+CHARACTER: Talk about a detox.
+=====
+NPC: I saw an old clip of the Simpsons, where they visit a lawyer to execute a will. It's in-person in an office. 
+NPC: Sign of the times, today this would be done over Zoom and DocuSign. 
+CHARACTER: The more valuable the profession by the hour, the more it is done virtually!
+NPC: Modern media struggles to capture a world in which your entire life happens on a screen.
+======
+NPC: It would be good for everyone to spend a few days working in construction, tilling a field, cleaning streets, or manufacturing garments to appreciate (1) what goes on in our economy and (2) the benefits of modern technology. 
+CHARACTER: People do not know how good they have it. 
+NPC: There are a lot of anti-capitalists romanticizing pre-industrial life. People need to be inoculated against these illusions.
+CHARACTER: The biggest item is to spend a week washing clothes by hand: you will never look at a washing machine the same way again.
+======
+NPC: Many places are named after some heritage (e.g. New York), a landmark, or a person. But a lot of places are just named after money. 
+NPC: It's uncommon in English, but if you start translating, it's everywhere: Puerto Rico? Rich Port!
+CHARACTER: Argentina!
+======
+NPC: I suspect that a lot of AI applications are already subtly Infinite Jest machines, encouraging the user to use them more and more, hooking them on the *feeling of productivity* more so than on actual productivity. 
+NPC: There's a big bill and rude awakening coming to some of these users. If you didn't like social media because it maximizes engagement, you've seen nothing yet. 
+CHARACTER: The true engagement-maximizer, vastly smarter than you, billed by the token, is just in its infancy now.
+======
+NPC: Nice hotels are like real-life Pinterest boards. At some point you're not paying for amenities but for curation and inspiration. 
+CHARACTER: Like paying an interior designer for a few hours to sample a fully executed vision for a feeling of living.
+======
+NPC: Reviews for nice hotels are funny because people are so religious about them. 
+NPC: I was recently picking between Hotel A and B, and looking at the reviews on Reddit: half of them are "A sucks, B is the only way to go" and the other half is the exact opposite. 
+NPC: As far as I can tell, these hotels are basically the same. 
+CHARACTER: The tyranny of small differences is everywhere!
+======
+NPC: Cookie popups are so dumb. This is a real policy-meets-technology failure. 
+CHARACTER: Your cookie settings should be sent as a default browser header. 
+NPC: But maybe that didn't get implemented because it'd make it too easy to reject them all. 
+CHARACTER: Economic-political forces at work...
+======
+NPC: I've tried reading the Odyssey a few times. I've always struggled with classical verse, I lose concentration too easily with it. 
+NPC: I'm now listening to the Odyssey as an audiobook, and it's working a lot better. 
+CHARACTER: Perhaps unsurprisingly: the old epics are meant to be read aloud!
+=======
+NPC: There's nothing more annoying than motorized trunk hatches on cars. 
+NPC: I want to throw in my bags and shut the trunk -- and so I put my hand on the license plate, and push -- it resists, starts beeping, and then the world's slowest motor begins whirring, it opens back up, i have to click some dumb small button with a hatch/door icon on it, and then it begins closing with a speed of maybe one inch per second. 
+CHARACTER: Pathetic. 
+NPC: I have to stand there, waiting to make sure the damn thing is closing, feeling the seconds of my life leave my body.
+=======
+NPC: It is continuously amusing to me that the Bush family consists of the biggest WASPs there ever were, truly New Englanders incarnate, and then they decided to remake themselves as humble Texans
+=======
+NPC: Looking back, it's interesting how "thin" the machine learning skill tree is now. LSTMs, Random Forests, SVMs, etc. etc. have turned out to be ~irrelevant. 
+NPC: Depth along one particularly powerful set of techniques beats all breadth.
+CHARACTER: Yep! There are a few remarkable things about rapidly climbing the exponential curve, one of them is that the playing field resets with some regularity.
+======
+NPC: History is a strong quality filter for media: Herodotus, Chaucer, Shakespeare, etc. were the best of their time, most other stuff simply didn't survive because it had to be manually replicated, and that's a high bar. 
+NPC: Now we have a non-stop explosion of new cultural artifacts, not just due to AI, but internet-era connectedness in the first place. 
+CHARACTER: I wonder if (1) it's possible to measure the outputs on a relative scale, e.g. every year we produce more cultural media than we have remaining from 2000BC to 1900AD combined, and...
+CHARACTER: (2) if there's a similar filter in the modern day -- like, there's so much ephemeral output that the act of reviewing, recommending, or replicating something carries a huge amount of weight.
+=======
+NPC: If you're sending an email to ask someone for something, the probability of getting a reply is far-and-away maximized if you only ask for one thing as clearly as possible. 
+======
+NPC: I keep a lot of notes on things to write about, but it feels like many of them are rapidly becoming irrelevant under changes due to AI. 
+CHARACTER: Just as parents often raise their children for the prior generation, writers publish for a world that has already disappeared. 
+NPC: It takes great discipline to write for the present or the future. 
+=====
+NPC: It appears that PPT slideshows and PDF decks are going away, in favor of AI-generated HTML websites. 
+CHARACTER: Just as good to present, and way more flexible. 
+NPC: It's interesting how AI means more centralization on the most common standards.
+======
+NPC: What exactly is "affordable healthcare"? What standard of care are we really talking about? 
+CHARACTER: All the politics and debate, and I'm not sure if people even agree on a definition here.
+======
+NPC: The great challenge with dentistry is that any operation removes all evidence that the procedure was necessary. 
+CHARACTER: You can see how this creates misaligned incentives.
+=====
+NPC: Sometimes I wonder about the difference between history and fiction. In many cases, our understanding of past events is probably way off. 
+CHARACTER: Does it matter? 
+NPC: Being able to tell a grand narrative of humanity is important to our sense of identity and philosophical self-actualization, but to what extent is truth important to that narrative? 
+CHARACTER: It matters if we want to use the narrative to understand ourselves today.
+NPC: But beyond that, I want to say that there is intrinsic value in truth, but I struggle to make a really persuasive case to myself.
+======
+NPC: David Foster Wallace writing Infinite Jest in response to (fundamentally) cable television of the '80s and '90s -- stuff that we would consider simply dull today -- is just incredible. To him this was already a colossally overwhelming force of entertainment, shaking the very foundations of what it means to be a human being. 
+CHARACTER: If he could see what we have today... 
+======
+NPC: Under Donald Trump's second term, the concept of a "First Lady" has almost entirely disappeared.
+======
+NPC: I think that Bitcoin and LLMs feel like they were switched in the order in which they should have arisen.
+NPC: AI provides abundance, eliminating scarcity. What's scarce, and thereby valuable, in that AI era? Well, Bitcoin provides one thing: provable scarcity. 
+CHARACTER: Perhaps it arriving fifteen-plus years before its time and then languishing is like the 2010s all over again. 
+NPC: Right. There may come to be a rhyme to this history. And consider how many of the problems surfaced by AI -- authenticity, provenance, et cetera -- are solved by crypto, by having some personal private key and the ability to stake money on a statement.
+CHARACTER: It felt like the crypto wave of the 2020s was a set of solutions in search of problems, and now we're finally getting those problems.
+NPC: It really feels like the timeline was inverted here.
+======
+NPC: Sometimes I think about the 100 Prisoners Problem. This really blew my mind when I encountered it over a decade ago: it feels magical that there can be mathematical order like this in the world, that you wouldn't see at all unless you have the training. 
+CHARACTER: Like a secret hidden in plain sight.
+======
+NPC: Honor Codes That Work always feel remarkable to me, like a pinnacle of civilization. 
+CHARACTER: There is great comfort in being able to trust the honesty of others, that people will do what they say they're going to do. 
+NPC: This may be a big part of our story: humans have been successful in part because they bias toward cooperation, even when defecting might be more rational.
+CHARACTER: Conversely, I feel great unease when I see these honor/trust-systems weakened, and I suspect there is much more loss there than appears at first glance. 
+======
+NPC: I am continuously surprised that restaurants don't copy each other better. For example, why do cafes serve bad sandwiches? 
+CHARACTER: It's easy to learn how to make a good sandwich! 
+NPC: And ingredients are obviously a readily available commodity. 
+CHARACTER: "Efficient Markets" hypothesis blown out.

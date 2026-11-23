@@ -1,0 +1,7 @@
+NPC: I’m always stunned by this asymmetry:
+NPC: Eating 400 calories is extremely easy, a snickers two-pack. Just a little snack
+NPC: Losing 400 calories requires a serious,  sweaty, half hour workout (or longer)
+CHARACTER: Just existing for 4 hours also burns 400 calories
+NPC: Correct, but I cannot add another four hours to my day
+CHARACTER: If you want the flavor of chocolate but not the calories, maybe just put it in your mouth and then spit it out.
+NPC: I get it, but no.

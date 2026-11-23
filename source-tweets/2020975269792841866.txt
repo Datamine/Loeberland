@@ -1,0 +1,5 @@
+NPC: Unless we hit the software singularity, the way AI-enabled engineering is going to play out is something like this:
+NPC: 1. Codebases are going to 10-100x in size and complexity, thanks to the AI's prolific ability to write code. Why? Most codebases are wildly under-built, with endless bugs to fix and backlogs of features to add.
+NPC: 2. The size/complexity expansion eventually hits some scaling limit in size/taste -- not for fault of the AI, but for fault of the engineer's ability to correctly specify *what they want* initially -- and then engineering skill + intuitition matters again, just at a much larger scale of codebase/abstraction.
+NPC: 3. Right now is a weird spot in the engineering meta where people are having AI write 1x-size codebases and saying "wow this is so easy, totally different skillset" but not realizing that most codebases are bad. 1x is not the benchmark for work completion: 10x is the benchmark now.
+NPC: 4. Gaining leverage is the story of software engineering over the last sixty years. I can write in Python in a twenty minutes what would take me two weeks in pure C. AI adds a similar leverage multiplier.

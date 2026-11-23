@@ -1,0 +1,90 @@
+NPC: Recruiters have picked up on that "out of distribution" is the cool new term, much better than "cracked". 
+NPC: They're emailing me "out of distribution" candidates but all I want is to be out of their distribution email lists.
+======
+NPC: It's incredible how much people anthropomorphize LLMs, and the way in which they describe them tells you a lot about how people think of the product. 
+NPC: I'm used to hearing "According to Wikipedia" or "According to ChatGPT", or "A cursory Google Search suggests..." but recently I heard "Claude claims..." which just carries a totally different set of implications. 
+CHARACTER: And frankly, that also speaks to the strength of Anthropic's branding: a human name works!
+======
+NPC: Monty Python achieved generational fame by making what would today be compilations of TikTok skits. 
+CHARACTER: Often, being great means being early. 
+======
+NPC: On Elon being the first trillionaire, part of his magic is that he's the world's greatest capital raiser. 
+CHARACTER: Even his haters will admit that.
+NPC: He's an extremely talented financier. Warren Buffett is also an extremely talented financier, but in a raw minimax, i-win-every-deal way, and much less inspiring when you consider his investments: coca cola, cigarettes... 
+CHARACTER: It's not the same as building rockets or moving electric vehicles forward by a decade. 
+NPC: You don't have to like Elon to admit that it's pretty cool for our first trillionaire to get there by creating the cutting edge rather than being some kind of merchant.
+=======
+NPC: Physical books of provable age are going to become quite valuable in the future. 
+NPC: Digital books are unreliable: new ones could be AI slop, copies of old ones could be altered by AI -- and then you don't know what the original is. 
+CHARACTER: I used to throw out physical books in favor of PDFs, but no more.
+========
+NPC: A big problem for paid online journalism is that it's faster for me to bypass the paywall than it is to check if I have an account there, log in, perhaps purchase a subscription, etc. 
+CHARACTER: Even if you have a subscription, all these journals are quite similar, so it's easy to forget what exactly you even have access to.
+NPC: Netflix killed torrenting by ease-of-use, and I wonder if an aggregator like Substack may have the same effect.
+======
+NPC: At Manifest, moral philosopher Richard Chappell said that it is important that it is okay for us to sometimes not act on our moral beliefs. 
+NPC: There are practical constraints and trade-offs to our efforts -- "we can only be so good". 
+NPC: Society frowns upon hypocrisy, but it is exceedingly difficult, if not impossible, to be fully internally consistent. 
+CHARACTER: Acceptance of imperfect moral action is also a natural brake against getting carried away with a crazy moral belief.
+=======
+NPC: The fact that people listen to sports broadcasts on the radio is proof of the power of imagination
+======
+NPC: For many months, I saw Ed Zitron posting his fingers numb about the "impending AI crash", while those businesses speedran their way to the moon.
+NPC: I model folks like Zitron or Peter Schiff not really as genuine opinion-havers interested in being right, but as what Sebastian Bensusan would call participants in the "Market for Takes"...
+NPC: There's an audience out there that demand bearish-on-AI takes, and Mr. Zitron supplies them, no matter how wrong or embarrassing. 
+CHARACTER: I suppose that debasing yourself for money is sort of the world's oldest industry.
+=======
+NPC: The password-protected PDF was a terrible invention.
+CHARACTER: These are my least favorite things to receive. 
+NPC: Totally insecure because they are trivial to bruteforce, but still annoying for me to hunt through my email inbox looking for the password. 
+=======
+NPC: HTML5 has now for many years been as good and capable as Flash back in the day, probably even more so, but we still have nothing like the Flash games ecosystem. 
+CHARACTER: I wonder why. 
+NPC: Maybe it's just less technically accessible than Flash? 
+=======
+NPC: Bitcoin is an interesting AI trade for a couple of reasons, but one of them is that it's an answer to "what is scarce in our age of abundance?" 
+CHARACTER: Everyone keeps asking this question as if the scarce thing is going to be some kind of expert labor or secret (dubious), when there's already a machine out there that provides provable scarcity. 
+======
+NPC: One of the most common failure modes of people interviewing with me is that I'll ask them a question, and they try to match it to their closest prepared script -- and they don't answer my actual question. 
+NPC: I'll ask "what are your areas of technical expertise? where do you go deepest?" and they'll go in chronological order over everything they've ever worked on. 
+======
+NPC: Paul Graham's "Hackers and Painters" feels much less relevant now than it did a decade ago. 
+NPC: Modern software founders are usually not really hackers. 
+CHARACTER: We have way more hard-working, conventional high achievers now. 
+NPC: The metaphor to the painter -- artist -- no longer holds very well. The founder archetype of Silicon Valley has been slowly changing. 
+CHARACTER: Gone like the beer-on-tap and the ping-pong tables of 2015...
+=======
+NPC: Years ago, I spent some time studying the finance industry of the 70s and 80s. Wild west days. 
+CHARACTER: Lots of totally underprofessionalized subsectors. 
+NPC: Guys like Lou Ranieri literally worked their way up from the mail room -- they couldn't even get a job on wall street today. 
+CHARACTER: I wondered then what it'd be like to show up as an unpolished hustler and get to pick all these low-hanging fruit. 
+NPC: We're seeing it again today with AI.
+======
+NPC: The microprocessor is the most complicated single thing we make. 
+NPC: Knowing nothing else, you might expect we make very few of them -- but the real magic is that they're pretty much the most common objects on earth. 
+CHARACTER: The most complicated thing is the most important thing and it is also the most abundant thing. 
+NPC: Reminds a bit of Jevons paradox, it's a similar type of counter-intuition.
+======
+NPC: Sometimes people discuss IQ numbers like 100, 70, 145, etc. But these are (literally!) just labels on a normal distribution: it'd be more useful to say "50th percentile" or "4 standard deviations out". 
+NPC: It's a little weird that we wound up with this "IQ score" nomenclature -- most likely just because of a lack of statistical literacy? 
+CHARACTER: A little ironic, don't you think?
+=======
+NPC: There are two types of video games: those with increasing difficulty, and those with constant difficulty, but more stuff, as you proceed.
+NPC: The former is played for achievement and fun, the latter is a numbing agent.
+======
+{MALE NPC ONLY}
+NPC: I don't think anyone told me that one of the joys of childhood is never having to shave. 
+NPC: Rosy smooth cheeks -- nobody ever said "enjoy it while lasts, one day you'll be permanently covered in stubble"
+======
+NPC: Public markets and accredited investor laws interact in interesting ways. 
+NPC: Public markets were regulated to protect retail investors with laws on what financial data must be reported, what accounting standards are acceptable, and so on. 
+NPC: This proved too onerous, so companies stayed private longer. 
+CHARACTER: But retail investors still want access, so some people want to shred the accredited investor laws altogether. 
+NPC: But that seems like the worst of both worlds: the opacity and pay-to-play of private markets, mixed with the lack of common standards and regulatory watchdogs of public markets. 
+CHARACTER: I'm sure that retail would largely lose money, as they did in crypto. 
+NPC: To resolve this tension, I think the right solution is to make it easy for private companies to go public earlier. 
+CHARACTER: That's much better for the public and for the economy than removing accreditation laws. 
+======
+NPC: Exile is a punishment that no longer exists in our well-partitioned world. 
+NPC: It was a very powerful concept because it conveys “we don't want to kill you, but you cannot impose costs on us any longer”. 
+CHARACTER: It's interesting because there are a lot of people today in that position, but we have no adequate legal/judicial response.
