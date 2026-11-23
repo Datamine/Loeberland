@@ -284,7 +284,7 @@ export function drawGoblinRamp(
     kind: ATV_RAMP_KIND,
     label: 'ATV Ramp',
     description:
-      'Click the roof or its flags while riding an ATV to line up and jump. Press R to roll or T to spin in the air.',
+      'Click the roof or its flags while riding an ATV to line up and jump. Press Esc then R to roll, or Esc then S to spin in the air.',
     entry: { x: lane.x - 0.5, y: lane.start - 0.5 },
     solid: false,
     start,

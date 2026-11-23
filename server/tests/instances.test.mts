@@ -1,4 +1,10 @@
-import { storedPlayerFixture, fixtureGeometry, player, latestResult } from './fixtures.mts';
+import {
+  storedPlayerFixture,
+  storedWorldFixture,
+  fixtureGeometry,
+  player,
+  latestResult,
+} from './fixtures.mts';
 import type { TestGame, TestPlayer, CapturedMessage } from './fixtures.mts';
 import { requiredFixture } from '../../tests/helpers/required.mts';
 import '../../src/jurassic-layout.ts';
@@ -356,6 +362,22 @@ test('boarding Ahab creates a personal instance and returning leaves the private
   const { game } = await fixture(),
     a = await member(game, 510),
     b = await member(game, 511);
+  const refused = await act(game, a, 'instanceEnter', { kind: 'kraken' });
+  assert.equal(refused?.ok, false);
+  assert.match(refused?.message || '', /Character.*Gear.*Weapon/);
+  assert.equal(a.p.instance.kind, 'world');
+  assert.equal(
+    (
+      await act(game, a, 'saveCharacter', {
+        look: { weapon: 'railgun' },
+        name: a.p.name,
+        phone: false,
+        pvp: false,
+      })
+    )?.ok,
+    true,
+  );
+  await act(game, b, 'equipAppearance', { look: { weapon: 'railgun' } });
   assert.equal(requiredFixture(await act(game, a, 'instanceEnter', { kind: 'kraken' })).ok, true);
   assert.equal(a.p.instance.kind, 'kraken');
   assert.equal(requiredFixture(await act(game, b, 'instanceEnter', { kind: 'kraken' })).ok, true);
@@ -374,6 +396,7 @@ test('Ahab sails to the kraken and returns to the saved beach with only authorit
   t.after(() => game.close());
   const a = await member(game, 515),
     shore = { x: a.p.x, y: a.p.y, z: a.p.z };
+  await act(game, a, 'equipAppearance', { look: { weapon: 'railgun' } });
   assert.equal(requiredFixture(await act(game, a, 'instanceEnter', { kind: 'kraken' })).ok, true);
   assert.equal(a.p.x, requiredFixture(requiredFixture(geometry.expeditions).ship.home).x);
   assert.equal(a.p.y, PEQUOD.deck);
@@ -400,9 +423,13 @@ test('Ahab sails to the kraken and returns to the saved beach with only authorit
     'the attack uses the deck position rather than a stale player coordinate',
   );
   assert.equal(a.p.inventory.meta.railgunCharge, 24);
-  await act(game, a, 'equipAppearance', { look: { weapon: 'railgun' } });
   await act(game, a, 'equipAppearance', { look: { weapon: 'unarmed' } });
   assert.equal(game.personal.runtime(a.p).expeditions.state.target, null);
+  assert.equal(
+    (await act(game, a, 'playerAction', { verb: 'attackKraken', weapon: 'railgun' }))?.ok,
+    false,
+  );
+  assert.equal(a.p.inventory.meta.railgunCharge, 24);
   assert.equal(
     requiredFixture(await act(game, a, 'playerAction', { verb: 'returnShip' })).ok,
     true,
@@ -432,10 +459,25 @@ test('Ahab rejects completed hunts before entering an instance instead of silent
   assert.deepEqual({ x: a.p.x, z: a.p.z }, shore);
 });
 
+test('Ahab recognizes an equipped loaner but waits on shore until the raptor is defeated', async (t) => {
+  const { game } = await fixture();
+  t.after(() => game.close());
+  const a = await player(game, 518, {
+    'sf-expeditions-v1': '{"raptor":"escaped","railgun":true,"equipped":false}',
+    'sf-character-v1': '{"weapon":"railgun"}',
+  });
+  assert.equal(a.p.appearance.weapon, 'railgun');
+  const result = await act(game, a, 'instanceEnter', { kind: 'kraken' });
+  assert.equal(result?.ok, false);
+  assert.match(result?.message || '', /on loan.*Velociraptor/);
+  assert.equal(a.p.instance.kind, 'world');
+});
+
 test('a Kraken death leaves time for the collapse aboard and does not announce an early respawn', async (t) => {
   const { game, advance, geometry } = await fixture();
   t.after(() => game.close());
   const a = await member(game, 517);
+  await act(game, a, 'equipAppearance', { look: { weapon: 'railgun' } });
   assert.equal(requiredFixture(await act(game, a, 'instanceEnter', { kind: 'kraken' })).ok, true);
   a.p.hp = 1;
   for (let i = 0; i < 250 && a.p.hp > 0; i++) game.tick(0.05);
@@ -530,4 +572,51 @@ test('Berkeley lab requires both icy pieces and supports movement, combat and lo
   assert.equal(p.instance.kind, 'world');
   assert.equal(p.x, trapdoor.x + 0.5);
   assert.equal((await command('attack', { id: scientist.id, weapon: 'unarmed' }))?.ok, false);
+});
+
+test('the restored Madder Scientist pursues and bombs the player after a long-range hit', async (t) => {
+  const { LAB_ENTRANCE, LAB_SPAWNS, LAB_INSTANCE } = await import('../../src/berkeley-lab.ts');
+  const { HOT_TRAPDOOR } = await import('../../src/berkeley-campus.ts');
+  const scientist = requiredFixture(LAB_SPAWNS.find((n) => n.combatKind === 'madder-scientist'));
+  const geometry = fixtureGeometry();
+  geometry.sights = [
+    { id: HOT_TRAPDOOR, kind: 'hot-trapdoor', label: 'Hot trapdoor', entry: geometry.spawn },
+  ];
+  geometry.wilderness = { actors: [scientist] };
+  const store = createMemoryStore();
+  await store.batch([
+    [
+      'world',
+      {
+        shared: { clock: 3601, wilderness: [{ ...scientist, hp: 600, max: 700, attackAt: 3602 }] },
+      },
+    ],
+  ]);
+  const game = await createGame({ geometry, store, random: () => 0.5 });
+  t.after(() => game.close());
+  const person = await player(game, 619, {
+    'sf-purse-v1': JSON.stringify({ ownedEquipment: ['ice-top', 'ice-pants', 'missile-launcher'] }),
+  });
+  const { p } = person;
+  Object.assign(p.appearance, { iceTop: true, icePants: true });
+  assert.equal((await act(game, person, 'instanceEnter', { kind: LAB_INSTANCE.kind }))?.ok, true);
+  assert.equal(p.z, LAB_ENTRANCE.z);
+  p.hp = p.max = 200;
+  p.inventory.meta.missiles = 1;
+  const target = game.shared.wilderness.actors[0];
+  assert.equal(target.hp, 600);
+  const result = requiredFixture(
+    await act(game, person, 'attack', { id: scientist.id, weapon: 'missile-launcher' }),
+  );
+  assert.ok(result.ok && (result.damage ?? 0) > 0);
+  for (let i = 0; i < 65; i++) game.tick(0.05);
+  assert.notEqual(target.z, scientist.z, 'retaliation closes the gap from the entrance');
+  const launch = person.messages.findIndex((m) => m.type === 'scientistExplosive');
+  const impact = person.messages.findIndex((m) => m.type === 'damage' && m.attacker === target.id);
+  assert.ok(launch >= 0 && impact > launch);
+  assert.ok(p.hp < p.max);
+  await game.flush();
+  const saved = requiredFixture((await storedWorldFixture(store, 'world')).shared.wilderness[0]);
+  assert.equal(saved.hp, target.hp);
+  assert.ok(!Object.hasOwn(saved, 'attackAt'));
 });

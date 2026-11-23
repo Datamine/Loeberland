@@ -374,12 +374,16 @@ export function serializeDialogue(
       .map((c) => ({
         id: c.contentNodeId || c.id || c.actionId || null,
         action:
-          typeof c.accept === 'function' ? c.actionId || null : c.trade ? 'trade:' + c.trade : null,
+          typeof c.accept === 'function' || c.amount
+            ? c.actionId || null
+            : c.trade
+              ? 'trade:' + c.trade
+              : null,
         textBindings: fields(c),
         label: c.label,
         receipt: string(c.receipt),
         trade: c.trade || null,
-        binding: c.accept?.toString() || null,
+        binding: (c.accept || c.amount?.submit)?.toString() || null,
         serverReceipt: !!c.serverReceipt,
         sharedPool: !!c.ambientConversation,
         next: c.ambientConversation

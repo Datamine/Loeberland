@@ -65,7 +65,12 @@ function suburbanRoof(
 }
 /** Single-storey houses occupy part of the lot. Garden paths and lawns remain
  * traversable; the house and garage alone enter the shared collision plan. */
-export function makeSuburbanHome(m: Mesh, p: Readonly<Parcel>, terrain: ParcelTerrain) {
+export function makeSuburbanHome(
+  m: Mesh,
+  p: Readonly<Parcel>,
+  terrain: ParcelTerrain,
+  paintOverride?: string,
+) {
   const start = m.data.length,
     plan = suburbanPlan(p),
     r = plan.house,
@@ -92,7 +97,7 @@ export function makeSuburbanHome(m: Mesh, p: Readonly<Parcel>, terrain: ParcelTe
         string,
       ],
     },
-    paint = palettes[plan.style as keyof typeof palettes][variant],
+    paint = paintOverride ?? palettes[plan.style as keyof typeof palettes][variant],
     trim = plan.style === 'craftsman' ? '#d8c8a7' : '#e6ddc5';
   const point = (x: number, z: number) => {
       const a = p.rotation || 0;

@@ -43,17 +43,32 @@ export function rollWeaponDamage(
     ? 0
     : range.min + Math.floor(combatRandom(random) * (range.max - range.min + 1));
 }
-export function rollEnemyDamage(base: number, level = 1, random = Math.random, defense = 0) {
+export function enemyDamageRange(base: number, level = 1): ReturnType<typeof weaponDamageRange> {
   // Broader individual hits, with roughly the same average as the former
   // half-to-full damage roll. Strength still reduces the whole range.
-  const power = Math.max(2, base - Math.floor((combatLevel(level) - 1) / 3)),
-    min = Math.max(1, Math.floor(power * GAMEPLAY.monsterMinMultiplier)),
-    max = Math.ceil(power * GAMEPLAY.monsterMaxMultiplier);
+  const power = Math.max(2, base - Math.floor((combatLevel(level) - 1) / 3));
+  return {
+    min: Math.max(1, Math.floor(power * GAMEPLAY.monsterMinMultiplier)),
+    max: Math.ceil(power * GAMEPLAY.monsterMaxMultiplier),
+    accuracy: GAMEPLAY.monsterHitChance,
+  };
+}
+export function rollEnemyDamage(base: number, level = 1, random = Math.random, defense = 0) {
+  const { min, max, accuracy } = enemyDamageRange(base, level);
   const hit =
-    combatRandom(random) >= GAMEPLAY.monsterHitChance
-      ? 0
-      : min + Math.floor(combatRandom(random) * (max - min + 1));
+    combatRandom(random) >= accuracy ? 0 : min + Math.floor(combatRandom(random) * (max - min + 1));
   return Math.max(0, hit - (Number.isFinite(defense) ? Math.max(0, Math.floor(defense)) : 0));
+}
+
+export function averageAttackDamage(
+  { min, max, accuracy }: ReturnType<typeof enemyDamageRange>,
+  defense = 0,
+) {
+  const armor = Number.isFinite(defense) ? Math.max(0, Math.floor(defense)) : 0;
+  const first = Math.max(min, armor + 1);
+  if (first > max) return 0;
+  const count = max - first + 1;
+  return (accuracy * count * ((first + max) / 2 - armor)) / (max - min + 1);
 }
 
 /** Combat runs on elapsed simulation time, independently of rendering speed. */

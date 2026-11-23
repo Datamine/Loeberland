@@ -6,6 +6,9 @@ import { createFerrari } from '../src/ferrari.ts';
 import { createRegionalRoad } from '../src/regional-road.ts';
 import { ALIEN_SITE_SIGNS, createEsotericCampus } from '../src/alien-sites.ts';
 import { LAB_SIGN } from '../src/berkeley-lab.ts';
+import { createCityLife } from '../src/life.ts';
+import { drawCharacter } from '../src/characters.ts';
+import { drawBicycle } from '../src/bicycle-model.ts';
 
 import {
   BERKELEY_CHURCH_ROOM,
@@ -176,6 +179,64 @@ test('the neighborhood has two connected blocks and clear grass at the former hi
         Math.min(c, xx) - Math.max(a, x) < 1e-7 || Math.min(d, zz) - Math.max(b, z) < 1e-7,
         'street meshes meet at their edges',
       );
+});
+
+test('Crescent Playground and its irregular street blocks share the neighborhood navigation', () => {
+  const mesh = new Mesh();
+  const playground = campus.drawPlayground(mesh);
+  assert.ok(playground.count > 0);
+  assert.ok(campus.path(campus.gate, playground.entry, () => null));
+  assert.equal(campus.surfaceType(playground.entry.x + 0.5, playground.entry.y + 0.5), 'sidewalk');
+  const facings = new Set(BERKELEY_NEIGHBORHOOD.map((home) => home.facing));
+  for (const facing of ['north', 'south', 'east', 'west'] as const) assert.ok(facings.has(facing));
+  for (const strip of campus.layout.crookedRoads) {
+    const center = campus.point(
+      strip.reduce((sum, [u]) => sum + u, 0) / strip.length,
+      strip.reduce((sum, [, v]) => sum + v, 0) / strip.length,
+    );
+    assert.equal(campus.surfaceType(center.x, center.z), 'road');
+  }
+});
+
+test('cyclists circle the new blocks while children and dog walkers use clear park routes', () => {
+  const life = createCityLife({
+    routes: [],
+    authoredRoutes: campus.lifeRoutes,
+    surfaceType: campus.surfaceType,
+    lamps: campus.lampPosts,
+    terrainHeight: campus.ground,
+    scale: 1,
+    human: drawCharacter,
+    bicycle: drawBicycle,
+    waterTraffic: false,
+  });
+  assert.equal(life.people.filter((person) => person.rider).length, 3);
+  assert.equal(life.people.filter((person) => person.child).length, 2);
+  assert.equal(life.people.filter((person) => person.dogWalker).length, 2);
+  for (const person of life.people) {
+    for (const [i, [x, z]] of person.points.entries()) {
+      assert.ok(campus.contains(x, z), person.id);
+      if (person.rider) assert.equal(campus.surfaceType(x, z), 'road');
+      if (i) {
+        const [ax, az] = person.points[i - 1];
+        assert.ok(
+          campus.segment({ x: ax - 0.5, y: az - 0.5 }, { x: x - 0.5, y: z - 0.5 }),
+          person.id,
+        );
+      }
+    }
+  }
+  const cyclist = requiredFixture(life.people.find((person) => person.rider));
+  life.update(0);
+  const start = [cyclist.x, cyclist.z];
+  life.update(1);
+  assert.notDeepEqual([cyclist.x, cyclist.z], start);
+  life.update(cyclist.length / 1.8 - 1);
+  assert.ok(Math.hypot(cyclist.x - start[0], cyclist.z - start[1]) < 1e-8);
+  const park = campus.point(...campus.layout.playground.entry);
+  const targets: string[] = [];
+  life.draw(new Mesh(), 0, [park.x, park.z], false, (_, actor) => targets.push(actor.id));
+  assert.equal(targets.filter((id) => id.endsWith('-dog')).length, 2);
 });
 
 test('residential lights glow over the street and verge fixtures leave sidewalks clear', () => {

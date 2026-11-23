@@ -51,6 +51,23 @@ test('held melee weapons rise overhead, strike down and recover with planted fee
   assert.ok(rendered.data.some((value, index) => index % 11 === 1 && value > 2.15));
 });
 
+test('the missile launcher braces both hands, kicks back, and recovers with planted feet', () => {
+  const { rightHand, leftHand, leftFoot, rightFoot } = CHARACTER_BONES;
+  const stance = sampleCharacterPose('idle', 0);
+  const held = sampleCharacterPose('idle', 0, { launcher: true });
+  const fire = (actionT: number) =>
+    sampleCharacterPose('idle', 0, { launcher: true, action: 'attack', actionT });
+  const recoil = fire(0.14);
+  for (const hand of [leftHand, rightHand]) {
+    assert.ok(joint(held, hand)[1] > joint(stance, hand)[1] + 0.4);
+    assert.ok(joint(recoil, hand)[2] < joint(held, hand)[2] - 0.07);
+  }
+  assert.ok(recoil.matrices[rightHand * 12 + 6] > held.matrices[rightHand * 12 + 6] + 0.12);
+  for (const foot of [leftFoot, rightFoot])
+    assert.ok(distance(joint(recoil, foot), joint(held, foot)) < 1e-5);
+  assert.deepEqual(fire(1).matrices, held.matrices);
+});
+
 test('petting crouches with planted feet, a lowered hand and an exact return to idle', () => {
   const idle = sampleCharacterPose('idle', 0, { motion: 0, time: 0 }),
     rest = new Float32Array(idle.joints),

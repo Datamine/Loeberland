@@ -435,15 +435,27 @@ test('professor quest branches come from the actual dispatcher without modifying
   );
 });
 
-test('industrial armorer inspection includes the production ammo offer and quest stock states', async () => {
+test('industrial armorer inspection includes both quantity offers and quest stock states', async () => {
   const world = fixture(),
     npc = { id: 'industrial-armorer', label: 'Armorer', questRole: 'armorer', x: 1, z: 1 };
   world.merchants = [npc];
   const r = await inspectTarget(world, record(npc));
   assert.ok(
-    r.dialogues.every((v) =>
-      requiredFixture(v.dialogue).choices.some((c) => c.label === 'Buy 20 akimbo rounds · 5 coins'),
-    ),
+    r.dialogues.every((variant) => {
+      const choices = requiredFixture(variant.dialogue).choices;
+      return (
+        choices.some(
+          (choice) =>
+            choice.label === 'Buy Akimbo ammo · 5 coins per 20 rounds' &&
+            choice.action === 'world.interactions.offer.action-2:buyAmmo',
+        ) &&
+        choices.some(
+          (choice) =>
+            choice.label === 'Buy missiles · 50 coins each' &&
+            choice.action === 'combat-supplies.armorer.buy-missiles',
+        )
+      );
+    }),
   );
   assert.ok(
     requiredFixture(

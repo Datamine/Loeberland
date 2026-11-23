@@ -1,5 +1,8 @@
 import { setupCombatSimulator } from './combat-simulator.ts';
 import { isFiniteNumber, errorMessage } from '../src/types/json.ts';
+import { averageAttackDamage, enemyDamageRange } from '../src/combat.ts';
+import { monsterProjectileFlight } from '../src/config/gameplay.ts';
+import { MONSTER_STATS } from '../src/config/monster-drops.ts';
 
 import type {
   BoundRecord,
@@ -641,6 +644,7 @@ function renderDetail() {
   main.append(header);
   if (state.edit) renderIdentityEditor(main, r);
   main.append(field('Examine text', r.key, ['description'], { className: 'description' }));
+  if (display.group === 'npc') renderCombatStats(main, r);
   const tabs = element('div', 'tabs');
   tabs.setAttribute('role', 'tablist');
   for (const [id, label, count] of [
@@ -697,6 +701,71 @@ function renderDetail() {
     dl.append(element('dt', '', label), element('dd', '', value));
   source.append(dl);
   main.append(source);
+}
+
+function renderCombatStats(main: HTMLElement, record: EditorRecord) {
+  const stats = Object.hasOwn(MONSTER_STATS, record.kind) ? MONSTER_STATS[record.kind] : null;
+  if (
+    !stats &&
+    !record.actions.some((menu) => menu.actions.some((action) => action.binding === 'npc.attack'))
+  )
+    return;
+  const section = element('section', 'npc-combat');
+  section.append(element('h3', '', 'Combat stats'));
+  main.append(section);
+  if (!stats) {
+    section.append(element('p', 'muted', 'Attacking this NPC alerts the police.'));
+    return;
+  }
+  const rows: [string, string][] = [
+    ['Level', String(stats.level)],
+    ['Hitpoints', String(stats.hp)],
+  ];
+  if (!stats.damage) rows.push(['Attack', 'Passive']);
+  else {
+    const roll = enemyDamageRange(stats.damage);
+    const interval = stats.interval ?? 1.25;
+    rows.push(
+      ['Base damage', String(stats.damage)],
+      ['Damage on hit', roll.min + '–' + roll.max],
+      ['Accuracy', Math.round(roll.accuracy * 100) + '%'],
+      ['Attack interval', interval + ' s'],
+      ['Sustained DPS', (averageAttackDamage(roll) / interval).toFixed(2)],
+    );
+    if (record.kind !== 'kraken')
+      rows.push([
+        'Range',
+        (stats.attackRange ?? (record.kind === 'raptor' ? 1.15 : 1.6)) + ' tiles',
+      ]);
+  }
+  if (stats.attackEffect) {
+    const effects = {
+      explosive: 'Thrown explosive',
+      akimbo: 'Akimbo projectiles',
+      'robocop-laser': 'Laser',
+      bind: 'May bind the target',
+    };
+    rows.push(['Attack effect', effects[stats.attackEffect]]);
+    const flight = monsterProjectileFlight(stats.attackEffect);
+    if (flight) rows.push(['Projectile travel time', flight + ' s']);
+  }
+  if (stats.reflectDamage)
+    rows.push(['Damage reflected', Math.round(stats.reflectDamage * 100) + '%']);
+  if (stats.enrageAt && stats.enrageInterval)
+    rows.push([
+      'Enrage',
+      `${stats.enrageAt * 100}% HP · +${stats.enrageDamageBonus ?? 0} base damage · ${stats.enrageInterval} s interval`,
+    ]);
+  if (stats.respawn) rows.push(['Respawn', stats.respawn + ' s']);
+  const list = element('dl');
+  for (const [label, value] of rows) {
+    const stat = element('div');
+    stat.append(element('dt', '', label), element('dd', '', value));
+    list.append(stat);
+  }
+  section.append(list);
+  if (stats.damage)
+    section.append(element('p', 'muted', 'Damage and DPS shown against Strength 1 with no armor.'));
 }
 function renderIdentityEditor(main: HTMLElement, r: EditorRecord) {
   const panel = element('section', 'identity-editor');

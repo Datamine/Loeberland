@@ -79,6 +79,7 @@ export function drawRemotePlayer(
   )
     Object.assign(outfit, {
       railgun: false,
+      launcher: false,
       akibo: false,
       battleaxe: false,
       rollingPin: false,

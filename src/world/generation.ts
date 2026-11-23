@@ -2137,6 +2137,7 @@ export function createGeneration(context: WorldContext) {
         id: 'orin-house',
         name: contentText('world.generation.setupRegionalWorld.name-50', {}),
         label: contentText('world.generation.setupRegionalWorld.label-51', {}),
+        signText: "Orin's house",
         kind: 'wizard-house',
         activityBuilding: true,
         x: wh.x - wh.w / 2,
@@ -2344,6 +2345,7 @@ export function createGeneration(context: WorldContext) {
     context.streetLights.push(...context.esotericCampus.drawStreetlights(context.highwayMesh));
     for (const home of context.esotericCampus.drawHomes(context.highwayMesh))
       register(home, context.highwayMesh);
+    register(context.esotericCampus.drawPlayground(context.highwayMesh), context.highwayMesh);
     register(
       context.esotericCampus.drawChurch(context.highwayMesh, context.signs),
       context.highwayMesh,
@@ -2386,6 +2388,7 @@ export function createGeneration(context: WorldContext) {
         { count: 6, contains: (x, z) => context.esotericCampus.local(x, z).v > 0 },
       ],
       maxRiders: 0,
+      authoredRoutes: context.esotericCampus.lifeRoutes,
       waterTraffic: false,
       prefix: 'berkeley-scholar',
       regional: true,

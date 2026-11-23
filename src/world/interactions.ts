@@ -14,7 +14,7 @@ import type {
   Actor,
 } from '../types/world.ts';
 
-import { hasSiteEntry, isLootTarget } from '../interaction-sights.ts';
+import { groundPickupsOnTile, hasSiteEntry, isLootTarget } from '../interaction-sights.ts';
 import { isFiniteNumber } from '../types/json.ts';
 import { requiredValue } from '../types/assert.ts';
 
@@ -61,9 +61,9 @@ import {
   selectedWeapon,
   equipmentOwned,
   ownsIronArmorPiece,
-  MISSILE_PRICE,
   isProjectileWeapon,
 } from '../item-stats.ts';
+import { COMBAT_SUPPLY_OFFERS, type CombatSupplyPurchase } from '../combat-supply-shop.ts';
 import { besideBear, bearPettingApproach } from '../wilderness.ts';
 import { softwareSalesDialogue } from '../sales-conference.ts';
 import { techMerchantDialogue } from '../tech-ventures.ts';
@@ -127,6 +127,23 @@ import { RICH_TABLE_CHEF } from '../config/npcs.ts';
  * Dependencies are explicit live scene bindings, preserving initialization
  * order without globals. This module only reads bindings when a method runs. */
 export function createInteractions(context: WorldContext) {
+  function supplyPurchase(op: CombatSupplyPurchase, labelTextId: string, promptTextId: string) {
+    const { price, units } = COMBAT_SUPPLY_OFFERS[op];
+    const values = { price, units };
+    return {
+      label: contentText(labelTextId, values),
+      labelTextId,
+      labelTextValues: values,
+      amount: {
+        prompt: contentText(promptTextId, values),
+        invalidMessage: contentText('world-message.combat-supplies.quantity'),
+        submit: (amount: number) =>
+          serverCommand(context.multiplayer, 'inventory', { op, amount }),
+      },
+      repeat: true,
+    };
+  }
+
   function openNPCDialogue(person: RuntimeDialogue & Partial<Actor>) {
     const speaker =
       context.approachingNPC ??
@@ -144,24 +161,33 @@ export function createInteractions(context: WorldContext) {
       person = { ...person, editorKey: owner };
       applyEntityEdits(person, owner);
     }
-    const offer = (label: string, op: string) => ({
-      label,
-      accept: () => serverCommand(context.multiplayer, 'inventory', { op }),
-      contentNodeId: 'world.interactions.offer.node-1',
-      actionId: 'world.interactions.offer.action-2' + ':' + [op].join(':'),
-    });
     if (person.questRole === 'armorer')
       person = {
         ...person,
-        choices: [...dialogueChoices(person), offer('Buy 20 akimbo rounds · 5 coins', 'buyAmmo')],
+        choices: [
+          ...dialogueChoices(person),
+          {
+            ...supplyPurchase(
+              'buyAmmo',
+              'combat-supplies.ammo.label',
+              'combat-supplies.ammo.prompt',
+            ),
+            contentNodeId: 'world.interactions.offer.node-1',
+            actionId: 'world.interactions.offer.action-2:buyAmmo',
+          },
+          {
+            ...supplyPurchase(
+              'buyMissile',
+              'combat-supplies.missile.label',
+              'combat-supplies.missile.prompt',
+            ),
+            contentNodeId: 'combat-supplies.armorer.missiles',
+            actionId: 'combat-supplies.armorer.buy-missiles',
+          },
+        ],
         contentNodeId: 'world.interactions.openNPCDialogue.node-3',
       };
     const dialogue = compileEntityDialogue(person, owner || '', context);
-    if (person.questRole === 'armorer')
-      dialogue.choices = [
-        ...dialogueChoices(dialogue),
-        { ...offer('Buy 1 missile · ' + MISSILE_PRICE + ' coins', 'buyMissile'), repeat: true },
-      ];
     if (context.quests.state.stochasticParrot === 'proof' && person.id && proofPrice(person.id)) {
       const id = person.id;
       dialogue.choices = [
@@ -333,7 +359,6 @@ export function createInteractions(context: WorldContext) {
       context.updateAdventureUI();
     }
     if (e.type === 'death') beginCapture('alien', respawnAtHospital);
-    if (e.type === 'cape') context.updateCapeControl();
   }
 
   function talkExpeditionNPC(npc: Actor) {
@@ -356,7 +381,7 @@ export function createInteractions(context: WorldContext) {
       openNPCDialogue(
         npc.expeditionRole === 'scientist'
           ? scientistDialogue(npc, context.expeditions)
-          : ahabDialogue(npc, context.expeditions),
+          : ahabDialogue(npc, context.expeditions, playerWeapon() === 'railgun'),
       );
     if (context.expeditions.ship.aboard && npc === context.ahabNPC) {
       open();
@@ -425,20 +450,58 @@ export function createInteractions(context: WorldContext) {
       const floor = item.base ?? context.characterGround(item.x, item.z);
       return distance < 1.5 && Math.abs(context.playerGround() - floor) < 2.5 ? collect() : false;
     }
-    if (
-      distance < 1.5 &&
-      (item.lootKind !== 'raptor' ||
-        context.canTravel(context.player.x, context.player.y, item.x - 0.5, item.z - 0.5))
-    )
-      return collect();
-    const point = nearestExpeditionPoint(
-      item.x - 0.5,
-      item.z - 0.5,
-      1.3,
-      (x: number, y: number) =>
-        context.landClearAt(x, y) && (item.lootKind !== 'raptor' || !!context.pathTo(x, y)),
+    return approachPickup(
+      () => context.expeditions.state.loot.find((loot) => loot.id === item.id) ?? null,
+      () => {
+        const result = context.expeditions.collect(item);
+        context.updateAdventureUI();
+        return 'promise' in result && result.promise
+          ? result.promise.then(({ ok, retryApproach }: CommandResult) => ({ ok, retryApproach }))
+          : result;
+      },
+      item.lootKind === 'raptor'
+        ? (from, to) => context.canTravel(from.x - 0.5, from.z - 0.5, to.x - 0.5, to.z - 0.5)
+        : undefined,
     );
-    return point ? walkTo(point.x, point.y, collect) : false;
+  }
+
+  function approachPickup(
+    target: () => WorldPoint | null,
+    perform: MovingInteraction['perform'],
+    canTakeFrom?: (from: WorldPoint, to: WorldPoint) => boolean,
+  ) {
+    const sameTile = (x: number, z: number, item: WorldPoint) =>
+      Math.floor(x) === Math.floor(item.x) && Math.floor(z) === Math.floor(item.z);
+    const nearItem = (point: WorldPoint, item: WorldPoint) =>
+      Math.hypot(point.x - item.x, point.z - item.z) < 1.5 && canTakeFrom?.(point, item) !== false;
+    return approachMovingTarget({
+      target,
+      inReach: (item, goal) => {
+        const player = { x: context.player.x + 0.5, z: context.player.y + 0.5 };
+        const onTile = sameTile(player.x, player.z, item);
+        if (!nearItem(player, item)) return false;
+        if (!goal) return onTile;
+        return (
+          Math.hypot(player.x - goal.x, player.z - goal.z) < 0.12 &&
+          (onTile || !sameTile(goal.x, goal.z, item))
+        );
+      },
+      approach: (item) => {
+        const near = (x: number, y: number) => nearItem({ x: x + 0.5, z: y + 0.5 }, item);
+        return (
+          actorWalkPoint(item, (x, y) => sameTile(x + 0.5, y + 0.5, item) && near(x, y)) ??
+          actorWalkPoint(item, near)
+        );
+      },
+      acceptGoal: nearItem,
+      routeFailed: (result) =>
+        announce(
+          result?.message ??
+            contentText('world-message.server.movement.there-is-no-reachable-ground-nearby'),
+          'Loot',
+        ),
+      perform,
+    });
   }
 
   function releaseTiger() {
@@ -742,6 +805,7 @@ export function createInteractions(context: WorldContext) {
       );
       menu.append(button);
     }
+    if (floor) appendTilePickups(menu, floor, undefined, true);
     promoteWalkAction(menu);
     revealContextMenu(menu, sx, sy);
     return true;
@@ -1063,9 +1127,12 @@ export function createInteractions(context: WorldContext) {
 
   type MovingInteraction = {
     target: () => WorldPoint | null;
-    inReach: (target: WorldPoint) => boolean;
+    inReach: (target: WorldPoint, goal?: WorldPoint) => boolean;
     approach: (target: WorldPoint) => Point | null;
-    perform: () => void | Promise<CommandResult>;
+    perform: () => void | CommandResult | Promise<CommandResult>;
+    acceptGoal?: (goal: WorldPoint, target: WorldPoint) => boolean;
+    routeFailed?: (result?: CommandResult) => void;
+    goal?: WorldPoint;
     lastTarget?: WorldPoint;
     nextPlan: number;
     retryAfter: number;
@@ -1090,7 +1157,7 @@ export function createInteractions(context: WorldContext) {
       cancelMovingInteraction();
       return;
     }
-    if (now >= interaction.retryAfter && interaction.inReach(target)) {
+    if (now >= interaction.retryAfter && interaction.inReach(target, interaction.goal)) {
       interaction.pending = true;
       context.destination = null;
       if (serverConnected(context.multiplayer) && (interaction.lastTarget || context.player.moving))
@@ -1100,6 +1167,7 @@ export function createInteractions(context: WorldContext) {
         if (result?.retryApproach) {
           interaction.pending = false;
           interaction.lastTarget = undefined;
+          interaction.goal = undefined;
           interaction.retryAfter = performance.now() + 200;
           interaction.nextPlan = 0;
         } else {
@@ -1122,7 +1190,13 @@ export function createInteractions(context: WorldContext) {
       return;
     interaction.nextPlan = now + 350;
     const goal = interaction.approach(target);
-    if (!goal) return;
+    if (!goal) {
+      if (interaction.routeFailed) {
+        cancelMovingInteraction();
+        interaction.routeFailed();
+      }
+      return;
+    }
     interaction.lastTarget = { x: target.x, z: target.z };
     if (
       !walkTo(goal.x, goal.y, null, (x, z) => {
@@ -1130,6 +1204,15 @@ export function createInteractions(context: WorldContext) {
         context.multiplayerWorld.moveTo(x, z, (result) => {
           interaction.routing = false;
           if (movingInteraction !== interaction || interaction.pending) return;
+          if (
+            interaction.routeFailed &&
+            (!result.ok || !result.goal || interaction.acceptGoal?.(result.goal, target) === false)
+          ) {
+            cancelMovingInteraction(result.ok);
+            interaction.routeFailed(result);
+            return;
+          }
+          interaction.goal = result.ok ? result.goal : undefined;
           context.destination =
             result.ok && result.goal ? { x: result.goal.x - 0.5, y: result.goal.z - 0.5 } : null;
         });
@@ -1141,7 +1224,7 @@ export function createInteractions(context: WorldContext) {
   function approachMovingTarget(
     options: Omit<
       MovingInteraction,
-      'nextPlan' | 'retryAfter' | 'pending' | 'routing' | 'lastTarget'
+      'nextPlan' | 'retryAfter' | 'pending' | 'routing' | 'lastTarget' | 'goal'
     >,
   ) {
     cancelMovingInteraction();
@@ -2565,9 +2648,7 @@ export function createInteractions(context: WorldContext) {
       return false;
     closeMenu();
     if (context.bike.riding) parkBike();
-    const collect = () => {
-      const result = context.sunglasses.pickUp();
-      announce(result.message, 'You');
+    const finish = (result: CommandResult) => {
       if (result.ok) {
         context.player.gesture = {
           name: contentText('world.interactions.collect.name-24', {}),
@@ -2577,12 +2658,18 @@ export function createInteractions(context: WorldContext) {
         const quest = context.quests.theyLive.start();
         if (quest.ok) announce(quest.message, 'They Live');
       }
-      return result.ok;
+      return result;
     };
     const e = context.sunglassesSite.entry;
-    return Math.hypot(context.player.x - e.x, context.player.y - e.y) < 1
-      ? collect()
-      : walkTo(e.x, e.y, collect);
+    return approachPickup(
+      () => (context.sunglasses.state.owned ? null : { x: e.x + 0.5, z: e.y + 0.5 }),
+      () => {
+        const result = context.sunglasses.pickUp();
+        return 'promise' in result && result.promise
+          ? result.promise.then((receipt) => finish({ ...receipt, message: undefined }))
+          : finish(result);
+      },
+    );
   }
 
   function petBunny() {
@@ -3326,21 +3413,24 @@ export function createInteractions(context: WorldContext) {
       return approachNPC(npc, () =>
         openNPCDialogue({
           ...npc,
-          intro: contentText('world.interactions.interactCitizen.intro-27', {}),
+          intro: contentText('world.interactions.interactCitizen.intro-27', {
+            price: COMBAT_SUPPLY_OFFERS.buyBattery.price,
+          }),
           choices: [
             {
-              label: contentText('world.interactions.interactCitizen.label-30', {}),
-              accept: () => serverCommand(context.multiplayer, 'inventory', { op: 'buyBattery' }),
+              ...supplyPurchase(
+                'buyBattery',
+                'world.interactions.interactCitizen.label-30',
+                'combat-supplies.battery.prompt',
+              ),
               contentNodeId: 'world.interactions.interactCitizen.node-29',
-              labelTextId: 'world.interactions.interactCitizen.label-30',
-              labelTextValues: {},
               actionId: 'world.interactions.interactCitizen.action-31',
             },
           ],
           decline: contentText('world.interactions.interactCitizen.decline-28', {}),
           contentNodeId: 'world.interactions.interactCitizen.node-26',
           introTextId: 'world.interactions.interactCitizen.intro-27',
-          introTextValues: {},
+          introTextValues: { price: COMBAT_SUPPLY_OFFERS.buyBattery.price },
           declineTextId: 'world.interactions.interactCitizen.decline-28',
           declineTextValues: {},
         }),
@@ -4172,16 +4262,17 @@ export function createInteractions(context: WorldContext) {
     }
   }
 
-  function actorWalkPoint(npc: { x: number; z: number }) {
+  function actorWalkPoint(npc: WorldPoint, canStand = (_x: number, _y: number) => true) {
     const requested = { x: npc.x - 0.5, y: npc.z - 0.5 };
     if (!Number.isFinite(requested.x) || !Number.isFinite(requested.y)) return null;
-    if (context.clearAt(requested.x, requested.y) && context.pathTo(requested.x, requested.y))
-      return requested;
+    const reachable = (x: number, y: number) =>
+      canStand(x, y) && context.clearAt(x, y) && context.pathTo(x, y);
+    if (reachable(requested.x, requested.y)) return requested;
     for (let r = 0.25; r <= 1.75; r += 0.25)
       for (let i = 0; i < 16; i++) {
         const x = requested.x + Math.cos((i * Math.PI) / 8) * r,
           y = requested.y + Math.sin((i * Math.PI) / 8) * r;
-        if (context.clearAt(x, y) && context.pathTo(x, y)) return { x, y };
+        if (reachable(x, y)) return { x, y };
       }
     return null;
   }
@@ -4220,6 +4311,7 @@ export function createInteractions(context: WorldContext) {
     sx: number,
     sy: number,
     pressed?: { npc: InteractiveActor | null; sight: InteractionSight | null },
+    mode: 'primary' | 'context' = 'primary',
   ) {
     const picked = context.pick?.(sx, sy);
     const npc =
@@ -4228,7 +4320,10 @@ export function createInteractions(context: WorldContext) {
         ? picked?.npc ||
           (!picked?.sight || picked.sight.kind === 'guest' ? context.hitCitizen(sx, sy) : null)
         : null);
-    const sight = pressed?.sight || (!npc ? context.hitSight?.(sx, sy) : null) || picked?.sight;
+    const nearbySight = !pressed?.sight && !npc ? context.hitSight?.(sx, sy) : null;
+    const itemTolerance =
+      mode === 'context' && (nearbySight?.kind === 'loot' || nearbySight?.kind === 'sunglasses');
+    const sight = pressed?.sight || (itemTolerance ? null : nearbySight) || picked?.sight;
     const useLoot = sight?.kind === 'loot' && !npc?.networkPlayer && !npc?.police;
     const guest = npc && npc === context.niaCitizen ? sightById(npc.id) : null;
     const selectedNPC = useLoot || guest ? null : npc;
@@ -4418,8 +4513,8 @@ export function createInteractions(context: WorldContext) {
       case 'house-storage':
         return action('interaction.8', 'Search ' + label);
       case 'unusual-church':
-        return action('church.search', 'Read the CHURCH NOTICEBOARD', () => searchChurch(sight), {
-          label: 'CHURCH NOTICEBOARD',
+        return action('church.search', 'Read the Church Noticeboard', () => searchChurch(sight), {
+          label: 'Church Noticeboard',
           kind: 'object',
         });
       case 'lore-book':
@@ -4715,7 +4810,7 @@ export function createInteractions(context: WorldContext) {
     if (context.surf.state.jump) return false;
     if (context.tahoe.state.mode !== 'ground' || context.multiplayerWorld?.selfMode === 'atv')
       return false;
-    const target = worldTarget(sx, sy);
+    const target = worldTarget(sx, sy, undefined, 'context');
     if (target.sight?.kind === 'airship-rope' && context.airship.state.active)
       return showRopeMenu(sx, sy);
     if (
@@ -5027,7 +5122,41 @@ export function createInteractions(context: WorldContext) {
       const examine = menu.querySelector('[data-action-id="npc.examine"]');
       if (examine) menu.insertBefore(seize, examine);
     }
+    const directLoot = s && isLootTarget(s) ? s : null;
+    const directPickupId =
+      (directLoot || s?.kind === 'sunglasses') &&
+      menu.querySelector(
+        directLoot ? '[data-action-id="interaction.10"]' : '[data-action-id="interaction.16"]',
+      )
+        ? s?.id
+        : undefined;
+    appendTilePickups(menu, directLoot || { x: t.x + 0.5, z: t.y + 0.5 }, directPickupId);
     revealContextMenu(menu, sx, sy);
+  }
+
+  function appendTilePickups(
+    menu: HTMLDivElement,
+    point: WorldPoint,
+    existingId?: string,
+    onDeck = false,
+  ) {
+    const afterPrimary = menu.querySelector('button')?.nextSibling ?? null;
+    for (const item of groundPickupsOnTile(context.dynamicTargets ?? [], point, onDeck)) {
+      if (item.id === existingId || (item.kind === 'sunglasses' && context.sunglasses.state.owned))
+        continue;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.actionId = 'loot.take:' + item.id;
+      button.setAttribute('role', 'menuitem');
+      setActionText(button, 'Take ' + item.label, [{ label: item.label, kind: 'item' }]);
+      button.addEventListener('click', (e) =>
+        clicked(e.clientX, e.clientY, () => {
+          closeMenu();
+          return goToSight(item);
+        }),
+      );
+      menu.insertBefore(button, afterPrimary);
+    }
   }
 
   function editMenuLabels(

@@ -416,7 +416,8 @@
         "npc.examine",
         "world.interactions.offer.action-2:buyAmmo",
         "they-live.theyLiveDialogue.action-60",
-        "they-live.theyLiveDialogue.action-52"
+        "they-live.theyLiveDialogue.action-52",
+        "combat-supplies.armorer.buy-missiles"
       ]
     },
     "sight:personal-b2": {
@@ -833,7 +834,7 @@
       "name": "Bicycle",
       "category": "npc",
       "kind": "bike",
-      "description": "A red city bicycle. Ride it along Market Street and through the park. Press B to ride or park it; dismount automatically at shop doors.",
+      "description": "A red city bicycle. Ride it along Market Street and through the park. Press Esc then B to ride or park it; dismount automatically at shop doors.",
       "menus": [
         {
           "id": "sight:bicycle.menu-1",
@@ -1532,7 +1533,8 @@
         "actor:captain-ahab.dialogue-2",
         "actor:captain-ahab.dialogue-3",
         "actor:captain-ahab.dialogue-4",
-        "actor:captain-ahab.dialogue-5"
+        "actor:captain-ahab.dialogue-5",
+        "actor:captain-ahab.dialogue-6"
       ],
       "capabilities": [
         "npc.walk",
@@ -12185,7 +12187,7 @@
       "name": "ATV Ramp",
       "category": "object",
       "kind": "atv-ramp",
-      "description": "Click the roof or its flags while riding an ATV to line up and jump. Press R to roll or T to spin in the air.",
+      "description": "Click the roof or its flags while riding an ATV to line up and jump. Press Esc then R to roll, or Esc then S to spin in the air.",
       "menus": [],
       "dialogues": [],
       "capabilities": []
@@ -12195,7 +12197,7 @@
       "name": "ATV Ramp",
       "category": "object",
       "kind": "atv-ramp",
-      "description": "Click the roof or its flags while riding an ATV to line up and jump. Press R to roll or T to spin in the air.",
+      "description": "Click the roof or its flags while riding an ATV to line up and jump. Press Esc then R to roll, or Esc then S to spin in the air.",
       "menus": [],
       "dialogues": [],
       "capabilities": []
@@ -12205,7 +12207,7 @@
       "name": "ATV Ramp",
       "category": "object",
       "kind": "atv-ramp",
-      "description": "Click the roof or its flags while riding an ATV to line up and jump. Press R to roll or T to spin in the air.",
+      "description": "Click the roof or its flags while riding an ATV to line up and jump. Press Esc then R to roll, or Esc then S to spin in the air.",
       "menus": [],
       "dialogues": [],
       "capabilities": []
@@ -13535,7 +13537,7 @@
       "name": "Scapegoat",
       "category": "npc",
       "kind": "scapegoat",
-      "description": "An ordinary goat with an extraordinary talent for returning half the damage it takes.",
+      "description": "An ordinary goat with an extraordinary purpose.",
       "menus": [],
       "dialogues": [],
       "capabilities": []

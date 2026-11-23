@@ -17,11 +17,11 @@ import {
   ITEM_STATS,
   normalizeBoots,
   equipmentOwned,
-  equipmentDefense,
+  ownedEquipmentDefense,
+  selectedWeapon,
   weaponAttackInterval,
 } from '../item-stats.ts';
 import { ownedHat } from '../hat-catalog.ts';
-import { KRAKEN_CAPE_TEXT } from '../jurassic-layout.ts';
 import { equipmentOptions, fillEquipmentSelect } from '../equipment-options.ts';
 import { PROOF_ITEM } from '../stochastic-parrot.ts';
 import { playerLevel, skillStatus } from '../progression.ts';
@@ -122,13 +122,13 @@ export function createHud(context: WorldContext) {
     button.disabled =
       context.rocket.state.active ||
       mode === 'gondola' ||
-      (mode === 'ski' && context.tahoe.state.airTime <= 0);
+      (mode === 'ski' && (context.tahoe.state.airTime <= 0 || context.tahoe.state.flipping));
     const label =
       mode === 'gondola'
         ? 'Riding gondola…'
         : mode === 'ski'
           ? context.tahoe.state.airTime > 0
-            ? 'Flip · Space'
+            ? 'Flip · Esc Space'
             : 'Skiing…'
           : Math.hypot(
                 context.player.x + 0.5 - TAHOE.peak.x,
@@ -275,7 +275,7 @@ export function createHud(context: WorldContext) {
       (!context.multiplayer?.state.connected && !!context.multiplayer);
     $('sf-bomber-bomb').textContent = bombSeconds
       ? 'Reloading · ' + bombSeconds + 's'
-      : 'Drop bomb · Space';
+      : 'Drop bomb · Esc Space';
     $('sf-bomber-land').disabled = parachuting;
     $('sf-bomber-roll').disabled =
       parachuting || context.secretWorld?.bomber.state.rollElapsed !== null;
@@ -411,7 +411,7 @@ export function createHud(context: WorldContext) {
       context.rocket.state.active
     );
     skate.setAttribute('aria-pressed', String(context.skateboard.riding));
-    const skateText = context.skateboard.riding ? 'Put away board · K' : 'Skateboard · K';
+    const skateText = context.skateboard.riding ? 'Put away board · Esc K' : 'Skateboard · Esc K';
     updateActionLabel(skate, skateText, context.skateboard.riding ? 'board' : 'Skateboard', 'item');
     $('sf-skate-tricks').hidden = !context.skateboard.riding;
     for (const button of context.world.querySelectorAll<HTMLButtonElement>('[data-skate-trick]'))
@@ -552,10 +552,6 @@ export function createHud(context: WorldContext) {
     input.disabled = !context.economy.state.iphoneOwned;
     input.closest('label')!.hidden = !context.economy.state.iphoneOwned;
     input.checked = context.economy.state.iphoneEquipped;
-    $('sf-iphone-hint').hidden = !context.economy.state.iphoneOwned;
-    $('sf-iphone-hint').textContent = context.economy.state.iphoneOwned
-      ? 'Equip or put away your iPhone.'
-      : '';
   }
 
   function wardrobeOptions() {
@@ -572,7 +568,6 @@ export function createHud(context: WorldContext) {
       wardrobeOptions().hat,
       context.playerLook.hat,
     );
-    $('sf-hat-hint').textContent = '';
   }
 
   function wearHat(id: string) {
@@ -600,44 +595,28 @@ export function createHud(context: WorldContext) {
         look[key] = options[key][0].value;
     }
     context.playerLook = normalizeCharacter(look);
-    context.playerLook.cape = context.playerLook.back === 'cape';
-    const weapon = context.playerWeapon(),
-      stats = ITEM_STATS[weapon],
-      range = weaponDamageRange(
-        context.strength.status.level,
-        weapon,
-        context.inebriation.state.percent,
-      ),
-      armor = [
-        ITEM_STATS[context.playerLook.torso]?.name,
-        ITEM_STATS[context.playerLook.legs]?.name,
-        context.playerLook.boots === 'party-boots'
-          ? ITEM_STATS['party-boots'].name
-          : context.playerLook.boots && 'Combat boots',
-      ].filter(Boolean);
-    $('sf-equipment-hint').textContent =
-      'Armor: ' +
-      (armor.join(', ') || 'Regular clothing') +
-      ' · Defense: ' +
-      equipmentDefense(context.playerLook) +
-      '\nWeapon: ' +
-      stats.name +
-      ' · Max hit: ' +
-      range.max +
-      '\nAccuracy: ' +
-      Math.round(range.accuracy * 100) +
-      '% · Attack speed: ' +
-      weaponAttackInterval(weapon, context.economy.state).toFixed(2) +
-      's' +
-      '\nMovement speed: ' +
-      context.WALK_SPEED +
-      ' tiles/s';
   }
 
-  function updateCapeControl() {
-    const hint = $('sf-cape-hint');
-    hint.hidden = !context.expeditions.state.cape;
-    hint.textContent = context.expeditions.state.cape ? KRAKEN_CAPE_TEXT : '';
+  function updateEquipmentStats() {
+    const look = normalizeCharacter(readCharacterLook());
+    const purse = context.economy.state;
+    const weapon = selectedWeapon(look.weapon, purse);
+    const damage = weaponDamageRange(
+      context.strength.status.level,
+      weapon,
+      context.inebriation.state.percent,
+    );
+    const stats = {
+      'sf-equipment-defense': String(ownedEquipmentDefense(purse, look)),
+      'sf-equipment-max-hit': String(damage.max),
+      'sf-equipment-accuracy': Math.round(damage.accuracy * 100) + '%',
+      'sf-equipment-attack-interval': weaponAttackInterval(weapon, purse).toFixed(2) + 's',
+      'sf-equipment-range': (ITEM_STATS[weapon].range ?? ITEM_STATS.unarmed.range) + ' tiles',
+    };
+    for (const [id, value] of Object.entries(stats)) {
+      const stat = $(id);
+      if (stat.textContent !== value) stat.textContent = value;
+    }
   }
 
   function playerRocketHop() {
@@ -743,6 +722,8 @@ export function createHud(context: WorldContext) {
   function changeCharacter(field: HTMLInputElement | HTMLSelectElement) {
     if (field.dataset.character === 'gender')
       updateHairstyleControl(field.value === 'woman' ? 'woman' : 'man');
+    if (field instanceof HTMLSelectElement && field.closest('.sf-character-gear'))
+      updateEquipmentStats();
   }
 
   function showPasswordStatus(hasPassword: boolean) {
@@ -752,14 +733,7 @@ export function createHud(context: WorldContext) {
       : 'Set a password';
   }
 
-  async function saveCharacter() {
-    const save = $('sf-character-done');
-    const status = $('sf-character-save-status');
-    if (save.disabled || $('sf-character').hidden) return;
-    if (!context.multiplayer?.state.connected) {
-      status.textContent = 'Connect to the game to save your character.';
-      return;
-    }
+  function readCharacterLook() {
     const look = { ...context.playerLook };
     for (const field of context.world.querySelectorAll<HTMLInputElement | HTMLSelectElement>(
       '[data-character]',
@@ -774,10 +748,21 @@ export function createHud(context: WorldContext) {
             : field.value;
       Object.assign(look, { [key]: value });
     }
+    return look;
+  }
+
+  async function saveCharacter() {
+    const save = $('sf-character-done');
+    const status = $('sf-character-save-status');
+    if (save.disabled || $('sf-character').hidden) return;
+    if (!context.multiplayer?.state.connected) {
+      status.textContent = 'Connect to the game to save your character.';
+      return;
+    }
     save.disabled = true;
     try {
       const result = await context.multiplayer.command('saveCharacter', {
-        look,
+        look: readCharacterLook(),
         name: $('sf-username').value.trim(),
         phone: $('sf-iphone-equipped').checked,
         pvp: $('sf-pvp-enabled').checked,
@@ -823,8 +808,8 @@ export function createHud(context: WorldContext) {
         field.checked = !!context.playerLook[key];
       else field.value = String(context.playerLook[key]);
     }
-    updateCapeControl();
     updateEquipmentControl();
+    updateEquipmentStats();
     $('sf-character').hidden = false;
     $('sf-reader-shade').hidden = false;
     $('sf-username').value = context.multiplayer.state.name;
@@ -877,9 +862,7 @@ export function createHud(context: WorldContext) {
     updatePhoneControl,
     updateHatControl,
     wearHat,
-    updateCapeControl,
     playerRocketHop,
-    canRocketHop,
     hopRocket,
     lightDecorativeRocket,
     changeCharacter,

@@ -309,7 +309,7 @@
     "template": "Speak to Ray at the Freemasons’ Guild first."
   },
   "world-message.server.instances.board-with-captain-ahab-on-the-beach-carrying-your-railgun": {
-    "template": "Board with Captain Ahab on the beach, carrying your railgun."
+    "template": "Speak to Captain Ahab on the beach to board the Pequod."
   },
   "world-message.server.instances.board-your-personal-b-2-first": {
     "template": "Board your personal B-2 first."
@@ -372,7 +372,7 @@
     "template": "You return to the city."
   },
   "world-message.server.instances.you-take-your-personal-b-2-out-over-the-pacific-click-to-fly-h": {
-    "template": "You take your personal B-2 out over the Pacific. Click to fly; hold Shift for rocket speed. R performs a barrel roll. Space drops a bomb. Land by parachuting out."
+    "template": "You take your personal B-2 out over the Pacific. Click to fly; hold Shift for rocket speed. Esc then R performs a barrel roll. Esc then Space drops a bomb. Land by parachuting out."
   },
   "world-message.server.instances.your-b-2-returns-to-its-underground-hangar": {
     "template": "Your B-2 returns to its underground hangar."
@@ -405,7 +405,7 @@
     "template": "Your rental still has time left. Click the parked ATV to mount it."
   },
   "world-message.server.movement.click-to-drive-right-click-for-the-roof-jump-donuts-and-air-tr": {
-    "template": "Click the ground to drive or click a flagged ramp to line up and jump. Press R to roll or T to spin in the air."
+    "template": "Click the ground to drive or click a flagged ramp to line up and jump. Press Esc then R to roll, or Esc then S to spin in the air."
   },
   "world-message.server.movement.drive-closer-to-the-goblin-village-ramps": {
     "template": "Drive closer to the goblin village ramps."
@@ -771,7 +771,7 @@
     "template": "You have already searched this. There is nothing else inside."
   },
   "world-message.server.residential-search.you-light-the-rocket-it-gives-you-a-little-lift-press-space-to": {
-    "template": "You light the rocket. It gives you a little lift! Press Space to hop again while it burns."
+    "template": "You light the rocket. It gives you a little lift! Press Esc then J to hop again while it burns."
   },
   "world-message.server.residential-search.you-search-the-and-find": {
     "template": "You search the {value1} and find {value2}."
@@ -1245,7 +1245,7 @@
     "template": "Click the kraken to fire. Stronger hunters hit harder."
   },
   "world-message.src.jurassic.equip-your-railgun-to-fight-the-kraken": {
-    "template": "Equip a railgun, Akimbos, or a missile launcher to fight the Kraken."
+    "template": "Equip a ranged weapon under Character → Gear → Weapon to fight the Kraken."
   },
   "world-message.src.jurassic.railgun-issued-the-gate-is-opening-follow-the-velociraptor-sou": {
     "template": "Railgun issued on loan for the Velociraptor hunt. Chase it south of the lab."
@@ -1287,7 +1287,7 @@
     "template": "There is no active target."
   },
   "world-message.src.jurassic.this-was-a-good-test-of-the-raptor-escape-and-emergency-recove": {
-    "template": "“This was a good test of the raptor escape and emergency recovery protocol.” Quest complete. You keep the railgun."
+    "template": "This was a good test of the raptor escape and emergency recovery protocol. Quest complete. You keep the railgun."
   },
   "world-message.src.jurassic.you-collect-100-coins-and-a-commemorative-cape-equip-it-in-cha": {
     "template": "You collect 100 coins and a commemorative cape. Equip it in Character settings."
@@ -1449,7 +1449,7 @@
     "template": "Alien defeated ({length}/{value2}). {value3}"
   },
   "world-message.src.they-live.quest-complete-they-live-the-clerk-thanks-you-and-gives-you-a": {
-    "template": "Quest complete: They Live! The clerk thanks you and gives you a skateboard. Ride it with K or the Skateboard button. You keep the sunglasses. The American Industrial Center’s full stock is now unlocked."
+    "template": "Quest complete: They Live! The clerk thanks you and gives you a skateboard. Ride it with Esc, then K, or use the Skateboard button. You keep the sunglasses. The American Industrial Center’s full stock is now unlocked."
   },
   "world-message.src.they-live.quest-started-they-live": {
     "template": "Quest started: They Live."
@@ -1554,7 +1554,7 @@
     "template": "Equal coin stakes and a fair 50–50 flip. Both players must agree here at the arena."
   },
   "world-message.src.world.interactions.equip-your-railgun-to-fight-the-kraken": {
-    "template": "Equip a railgun, Akimbos, or a missile launcher to fight the Kraken."
+    "template": "Equip a ranged weapon under Character → Gear → Weapon to fight the Kraken."
   },
   "world-message.src.world.interactions.find-a-place-on-foot-before-sitting-down": {
     "template": "Find a place on foot before sitting down."
@@ -1623,7 +1623,7 @@
     "template": "The guild admits members only."
   },
   "world-message.src.world.interactions.the-motorcycle-is-yours-to-ride-click-it-or-press-m-to-get-on": {
-    "template": "The motorcycle is yours to ride. Click it or press M to get on."
+    "template": "The motorcycle is yours to ride. Click it or press Esc then M to get on."
   },
   "world-message.src.world.interactions.there-is-no-clear-route-to-the-sutro-tower-ladder": {
     "template": "There is no clear route to the Sutro Tower ladder."
@@ -1722,7 +1722,7 @@
     "template": "You have reached the maximum strength level, 50."
   },
   "world-message.src.world.interactions.you-hop-on-the-bicycle-click-to-ride-press-b-to-park": {
-    "template": "You hop on the bicycle. Click to ride; press B to park."
+    "template": "You hop on the bicycle. Click to ride; press Esc then B to park."
   },
   "world-message.src.world.interactions.you-launch-from-crissy-field-click-the-bay-to-windsurf-f-retur": {
     "template": "You launch from Crissy Field. Click the bay to windsurf; F returns you to shore."
@@ -1731,7 +1731,7 @@
     "template": "You launch your board over the humpback whale!"
   },
   "world-message.src.world.interactions.you-paddle-out-from-pacifica-click-the-water-to-paddle-space-c": {
-    "template": "You paddle out from Pacifica. Click the water to paddle; Space catches a wave. 1 / 2 / 3 perform tricks while riding. U returns to the beach."
+    "template": "You paddle out from Pacifica. Click the water to paddle; Esc then Space catches a wave. While riding, press Esc then 1, 2, or 3 for tricks. Esc then F returns you to the beach."
   },
   "world-message.src.world.interactions.you-park-the-bicycle-it-will-be-waiting-here": {
     "template": "You park the bicycle. It will be waiting here."
@@ -1752,7 +1752,7 @@
     "template": "You pick up your skateboard."
   },
   "world-message.src.world.interactions.you-push-off-click-to-steer-and-press-space-while-airborne-to": {
-    "template": "You push off. Click to steer and press Space while airborne to flip!"
+    "template": "You push off. Click to steer and press Esc then Space while airborne to flip!"
   },
   "world-message.src.world.interactions.you-sail-into-position-to-jump-the-humpback": {
     "template": "You sail into position to jump the humpback."
@@ -1761,7 +1761,7 @@
     "template": "You scatter one bag of grain. Quack! The mallards and ducklings paddle over to investigate."
   },
   "world-message.src.world.interactions.you-set-down-your-skateboard-click-to-skate-k-puts-it-away": {
-    "template": "You set down your skateboard. Click to skate; K puts it away."
+    "template": "You set down your skateboard. Click to skate. Press Esc, then K to put it away, or Esc, then 1, 2, or 3 for tricks."
   },
   "world-message.src.world.interactions.you-start-climbing-down-sutro-tower": {
     "template": "You start climbing down Sutro Tower."
@@ -1794,7 +1794,7 @@
     "template": "Your skis are ready. Use Ski down to begin your descent."
   },
   "world-message.src.world.network.you-reach-the-upper-platform-of-sutro-tower-use-the-arrows-to": {
-    "template": "You reach the upper platform of Sutro Tower. Use the arrows to look around; Climb down or E returns to the ground."
+    "template": "You reach the upper platform of Sutro Tower. Use the arrows to look around. Choose Climb down, or press Esc then E for exit options."
   },
   "world-message.src.world.network.you-step-off-the-sutro-tower-ladder-and-return-to-the-trail": {
     "template": "You step off the Sutro Tower ladder and return to the trail."
@@ -1893,7 +1893,7 @@
     "template": "Walk up to the hot trapdoor."
   },
   "world-message.berkeley-lab.too-hot": {
-    "template": "The trapdoor is too hot. Equip both pieces of icy clothing to descend."
+    "template": "The trapdoor is too hot."
   },
   "world-message.berkeley-lab.use-stairs": {
     "template": "Use the stairs near the laboratory entrance."
@@ -1918,6 +1918,9 @@
   },
   "world-message.loot.item-full": {
     "template": "You cannot carry any more of that item."
+  },
+  "world-message.loot.sandwich-stack-partial": {
+    "template": "You take {taken}. {remaining} left on the ground."
   },
   "world-message.iron-armor.visit": {
     "template": "Speak to the Enterprising Industrialist at the American Industrial Center."
@@ -1996,5 +1999,17 @@
   },
   "world-message.securities-investigator.arrives": {
     "template": "A Securities Investigator is coming for you about that listing."
+  },
+  "world-message.combat-supplies.quantity": {
+    "template": "Enter a positive whole number."
+  },
+  "world-message.combat-supplies.cost": {
+    "template": "You need {price} coins for that order."
+  },
+  "world-message.combat-supplies.purchased": {
+    "template": "You buy {amount} {item} for {price} coins."
+  },
+  "world-message.jurassic.equip-railgun-to-board": {
+    "template": "Equip a railgun under Character → Gear → Weapon before boarding the Pequod."
   }
 }

@@ -27,7 +27,6 @@ export interface GameElements {
   'sf-stop-construction': HTMLElementTagNameMap['button'];
   'sf-exit-streetcar': HTMLElementTagNameMap['button'];
   'sf-exit-swing': HTMLElementTagNameMap['button'];
-  'sf-cape-hint': HTMLElementTagNameMap['small'];
   'sf-character-tab': HTMLElementTagNameMap['button'];
   'sf-character-tabs': HTMLElementTagNameMap['div'];
   'sf-strength-progress': HTMLElementTagNameMap['progress'];
@@ -42,7 +41,7 @@ export interface GameElements {
   'sf-character-password-label': HTMLElementTagNameMap['span'];
   'sf-character-save-status': HTMLElementTagNameMap['small'];
   'sf-character-done': HTMLElementTagNameMap['button'];
-  'sf-character-level': HTMLElementTagNameMap['p'];
+  'sf-character-level': HTMLElementTagNameMap['span'];
   'sf-charge-railgun': HTMLElementTagNameMap['button'];
   'sf-click-marker': HTMLElementTagNameMap['div'];
   'sf-climb-button': HTMLElementTagNameMap['button'];
@@ -85,14 +84,17 @@ export interface GameElements {
   'sf-duel-title': HTMLElementTagNameMap['h2'];
   'sf-eat-sandwich': HTMLElementTagNameMap['button'];
   'sf-enemy-health': HTMLElementTagNameMap['span'];
-  'sf-equipment-hint': HTMLElementTagNameMap['small'];
+  'sf-equipment-defense': HTMLElementTagNameMap['dd'];
+  'sf-equipment-max-hit': HTMLElementTagNameMap['dd'];
+  'sf-equipment-accuracy': HTMLElementTagNameMap['dd'];
+  'sf-equipment-attack-interval': HTMLElementTagNameMap['dd'];
+  'sf-equipment-range': HTMLElementTagNameMap['dd'];
   'sf-fuel-can-button': HTMLElementTagNameMap['button'];
   'sf-fuel-card': HTMLElementTagNameMap['div'];
   'sf-fuel-meter': HTMLElementTagNameMap['meter'];
   'sf-fuel-text': HTMLElementTagNameMap['span'];
   'sf-grapple-button': HTMLElementTagNameMap['button'];
   'sf-growth-ticker': HTMLElementTagNameMap['div'];
-  'sf-hat-hint': HTMLElementTagNameMap['small'];
   'sf-help': HTMLElementTagNameMap['section'];
   'sf-help-button': HTMLElementTagNameMap['button'];
   'sf-hitpoints-text': HTMLElementTagNameMap['span'];
@@ -112,7 +114,6 @@ export interface GameElements {
   'sf-interview-time': HTMLElementTagNameMap['strong'];
   'sf-interview-title': HTMLElementTagNameMap['h2'];
   'sf-iphone-equipped': HTMLElementTagNameMap['input'];
-  'sf-iphone-hint': HTMLElementTagNameMap['small'];
   'sf-light-decorative-rocket': HTMLElementTagNameMap['button'];
   'sf-loading': HTMLElementTagNameMap['div'];
   'sf-loading-name': HTMLElementTagNameMap['input'];

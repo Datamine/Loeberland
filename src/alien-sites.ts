@@ -27,9 +27,12 @@ import {
   BERKELEY_NEIGHBORHOOD,
   BERKELEY_INSTITUTE_ROOM,
   BERKELEY_HOMES,
+  BERKELEY_LIFE_ROUTES,
   MAD_HOUSE,
   HOT_TRAPDOOR,
   drawBerkeleyCampus,
+  drawBerkeleyPlayground,
+  berkeleyHomeFront,
 } from './berkeley-campus.ts';
 
 const CHURCH_NOTICEBOARD = 'CHURCH NOTICEBOARD';
@@ -141,6 +144,11 @@ export function createEsotericCampus(
   const point = (u: number, v: number) => ({ x: p.x + u * c - v * s, z: p.z + u * s + v * c });
   const inRect = (u: number, v: number, [a, b, d, e]: number[], pad = 0) =>
     u >= a - pad - 1e-8 && u <= d + pad + 1e-8 && v >= b - pad - 1e-8 && v <= e + pad + 1e-8;
+  const inStrip = (u: number, v: number, strip: number[][]) =>
+    strip.every(([a, b], i) => {
+      const [x, z] = strip[(i + 1) % strip.length];
+      return (x - a) * (v - b) - (z - b) * (u - a) <= 1e-8;
+    });
   const roomWalls = [MAD_HOUSE, BERKELEY_CHURCH_ROOM].map((room) => ({
     room,
     walls: [0, 1, 2, 3].flatMap((side) => instituteWallRects(room, side)),
@@ -266,11 +274,18 @@ export function createEsotericCampus(
       .map(({ x, z, w, d }) => footprint([room.x + x, room.z + z, room.x + x + w, room.z + z + d]));
   const groundQuads = layout.grounds.map(quad);
   const quads = [...groundQuads, quad(layout.paths[0]), quad(layout.roads[0])];
+  const stripQuad = (polygon: number[][]) =>
+    polygon.map(([u, v]) => {
+      const q = point(u, v);
+      return [q.x, ground(), q.z];
+    });
   const mapFeatures = [
     ...groundQuads.map((polygon) => ({ polygon, color: '#879c78' })),
     ...layout.parks.map((rect) => ({ polygon: quad(rect), color: '#729063' })),
-    ...layout.roads.map((rect) => ({ polygon: quad(rect), color: '#727573' })),
     ...layout.paths.map((rect) => ({ polygon: quad(rect), color: '#c8c6b1' })),
+    ...layout.crookedWalks.map((strip) => ({ polygon: stripQuad(strip), color: '#c8c6b1' })),
+    ...layout.roads.map((rect) => ({ polygon: quad(rect), color: '#727573' })),
+    ...layout.crookedRoads.map((strip) => ({ polygon: stripQuad(strip), color: '#727573' })),
     ...layout.buildings.map((b) => ({ polygon: quad(b.rect), color: b.color })),
   ];
   function raycast(ray: Ray) {
@@ -381,6 +396,27 @@ export function createEsotericCampus(
       drawStreetLamp(m, x, ground(), z, angle, style),
     );
   }
+  function drawPlayground(m: Mesh) {
+    const start = m.data.length;
+    pose(m, p.x, base, p.z, p.angle, () => drawBerkeleyPlayground(m));
+    const entry = point(...layout.playground.entry);
+    return alienSiteBounds(m, start, {
+      id: layout.playground.id,
+      kind: 'park',
+      label: layout.playground.label,
+      description: 'A little neighborhood playground with swings, a yellow slide and a sandpit.',
+      entry: { x: entry.x - 0.5, y: entry.z - 0.5 },
+      solid: false,
+      base,
+    });
+  }
+  const lifeRoutes = BERKELEY_LIFE_ROUTES.map((route) => ({
+    ...route,
+    points: route.points.map(([u, v]) => {
+      const world = point(u, v);
+      return [world.x, world.z];
+    }),
+  }));
   const homesWithFlags = new Set([
     'bay-victorian-blue',
     'bay-victorian-coral',
@@ -390,17 +426,23 @@ export function createEsotericCampus(
     const homes: import('./types/world.ts').RenderedSite[] = [];
     for (const [i, home] of [...BERKELEY_HOMES, ...BERKELEY_NEIGHBORHOOD].entries()) {
       const start = m.data.length;
-      const [left, front, right, back] = home.rect,
-        x = (left + right) / 2,
-        z = (front + back) / 2;
-      const w = right - left,
-        d = back - front,
-        roof = i % 2 ? '#596966' : '#824f46';
+      const [west, north, east, south] = home.rect,
+        x = (west + east) / 2,
+        z = (north + south) / 2;
+      const sideways = home.facing === 'east' || home.facing === 'west',
+        w = sideways ? south - north : east - west,
+        d = sideways ? east - west : south - north,
+        left = x - w / 2,
+        right = x + w / 2,
+        front = z - d / 2,
+        back = z + d / 2,
+        roof = ['#596966', '#824f46', '#605b55', '#5b666e'][i % 4];
       const isLab = home.id === MAD_HOUSE.id;
       const style = home.style;
       const lowRise = style === 'bungalow' || style === 'craftsman' || style === 'eichler';
       const victorian = style === 'victorian';
-      const stories = victorian ? 2.83 : 1.75;
+      const stories = victorian ? 2.75 + (i % 3) * 0.1 : 1.75;
+      const roofRise = victorian ? 0.62 + (i % 3) * 0.13 : 0.78;
       const parts: import('./types/interiors.ts').InteriorSection[] = [];
       let interiorStart = 0,
         interiorEnd = 0;
@@ -432,7 +474,7 @@ export function createEsotericCampus(
             const bay = x + (i % 2 ? -0.51 : 0.51);
             const step = x - (i % 2 ? -0.51 : 0.51);
             m.box(left - 0.035, 0.13, front - 0.028, w + 0.07, 0.34, 0.08, '#948875', 'stone');
-            for (const y of [1.51, 2.84]) {
+            for (const y of [1.51, stories + 0.01]) {
               m.box(left - 0.05, y, front - 0.035, w + 0.1, 0.09, 0.12, trim, 'wood');
               for (let u = left + 0.12; u < right - 0.06; u += 0.21)
                 m.box(u, y - 0.15, front - 0.078, 0.058, 0.16, 0.097, trim, 'wood');
@@ -445,7 +487,7 @@ export function createEsotericCampus(
                 y: y + 0.065,
                 w: 0.42,
                 h: 0.69,
-                style: 'office',
+                far: true,
                 trim,
                 seed: i,
               });
@@ -475,11 +517,13 @@ export function createEsotericCampus(
               y: 1.75,
               w: 0.52,
               h: 0.67,
-              style: 'office',
+              far: true,
               trim,
               seed: i + 1,
             });
             m.box(step - 0.27, 0.42, front - 0.047, 0.54, 1.0, 0.072, '#584e47', 'wood');
+            m.box(step - 0.195, 1.01, front - 0.055, 0.39, 0.32, 0.032, '#879c9b', 'glass');
+            m.sphere(step + 0.16, 0.86, front - 0.063, 0.027, 0.027, 0.027, '#bb9a59', 8, 5);
             m.box(step - 0.34, 1.42, front - 0.25, 0.68, 0.11, 0.31, trim, 'wood');
             for (let n = 0; n < 3; n++)
               m.box(
@@ -500,25 +544,51 @@ export function createEsotericCampus(
                 angle: Math.PI,
                 width: 0.67,
               });
-            const atticY = stories + 0.25;
+            const atticY = stories + 0.24;
             drawFacadeWindow(m, {
               plane: front - 0.019,
               along: x,
               y: atticY,
               w: 0.35,
               h: 0.34,
-              style: 'office',
+              far: true,
               trim,
               seed: i + 2,
             });
             for (const side of [-1, 1])
               m.rod(
                 [x + side * (w / 2 + 0.14), stories + 0.14, front - 0.14],
-                [x, stories + 0.92, front - 0.14],
+                [x, stories + 0.12 + roofRise, front - 0.14],
                 0.03,
                 trim,
                 6,
               );
+            for (const [plane, far] of [
+              [left - 0.012, true],
+              [right + 0.012, false],
+            ] as const)
+              for (const y of [0.65, 1.76])
+                drawFacadeWindow(m, {
+                  isX: true,
+                  plane,
+                  along: z + 0.35,
+                  y,
+                  w: 0.44,
+                  h: 0.63,
+                  far,
+                  trim,
+                  seed: i,
+                });
+            for (const dx of [-0.49, 0.49])
+              drawFacadeWindow(m, {
+                plane: back + 0.012,
+                along: x + dx,
+                y: 1.76,
+                w: 0.46,
+                h: 0.63,
+                trim,
+                seed: i,
+              });
           }
           if (style === 'commune') {
             for (const dx of [-1.45, 1.45])
@@ -580,8 +650,8 @@ export function createEsotericCampus(
             m.quad(
               [edge, roofY, front - 0.2],
               [edge, roofY, back + (victorian ? 0.045 : 0.16)],
-              [x, roofY + 0.78, back + (victorian ? 0.045 : 0.16)],
-              [x, roofY + 0.78, front - 0.2],
+              [x, roofY + roofRise, back + (victorian ? 0.045 : 0.16)],
+              [x, roofY + roofRise, front - 0.2],
               roof,
               'shingles',
             );
@@ -590,7 +660,7 @@ export function createEsotericCampus(
             m.tri(
               [left, roofY, edge],
               [right, roofY, edge],
-              [x, roofY + 0.77, edge],
+              [x, roofY + roofRise - 0.01, edge],
               home.color,
               'clapboard',
             );
@@ -632,6 +702,7 @@ export function createEsotericCampus(
           }
         }
       };
+      const doorway = berkeleyHomeFront(home, isLab ? 0.44 : 0.64);
       pose(m, p.x, base, p.z, p.angle, () => {
         if (lowRise)
           makeSuburbanHome(
@@ -642,15 +713,21 @@ export function createEsotericCampus(
               w,
               d,
               seed: 0.13 + (i % 7) * 0.107,
-              rotation: home.facesNorth ? Math.PI : 0,
+              rotation: doorway.rotation,
               lowRiseStyle: style,
             },
             { height: () => 0, cutPlot: () => {} },
+            home.color,
           );
-        else if (isLab || home.facesNorth) drawHouse();
-        else pose(m, 2 * x, 0, 2 * z, Math.PI, drawHouse);
+        else if (isLab) drawHouse();
+        else {
+          const turn = doorway.rotation + Math.PI;
+          const c = Math.cos(turn),
+            s = Math.sin(turn);
+          pose(m, x - x * c + z * s, 0, z - x * s - z * c, turn, drawHouse);
+        }
       });
-      const approach = point(x, home.facesNorth ? front - 0.64 : back + (isLab ? 0.44 : 0.64)),
+      const approach = point(doorway.u, doorway.v),
         inside = point(x, back - 0.68);
       const site = alienSiteBounds(m, start, {
         id: home.id,
@@ -803,8 +880,8 @@ export function createEsotericCampus(
   const residents: import('./types/world.ts').Actor[] = BERKELEY_HOMES.map((home, i) => {
     const [left, north, right, south] = home.rect;
     const u = (left + right) / 2 - 0.84;
-    const front = home.facesNorth ? north : south;
-    const direction = home.facesNorth ? -1 : 1;
+    const front = home.facing === 'north' ? north : south;
+    const direction = home.facing === 'north' ? -1 : 1;
     const approach = point(u + 0.55, front + direction * 1.08);
     const female = i % 2 === 0;
     return {
@@ -861,14 +938,19 @@ export function createEsotericCampus(
     };
   });
   const surfaceType = (x: number, z: number) => {
-    const q = local(x, z);
-    return !clearLocal(q.u, q.v)
-      ? 'building'
-      : layout.paths.some((r) => inRect(q.u, q.v, r))
-        ? 'sidewalk'
-        : layout.roads.some((r) => inRect(q.u, q.v, r))
-          ? 'road'
-          : 'grass';
+    const { u, v } = local(x, z);
+    if (!clearLocal(u, v)) return 'building';
+    if (
+      layout.roads.some((rect) => inRect(u, v, rect)) ||
+      layout.crookedRoads.some((strip) => inStrip(u, v, strip))
+    )
+      return 'road';
+    if (
+      layout.paths.some((rect) => inRect(u, v, rect)) ||
+      layout.crookedWalks.some((strip) => inStrip(u, v, strip))
+    )
+      return 'sidewalk';
+    return 'grass';
   };
   return {
     gate,
@@ -883,6 +965,7 @@ export function createEsotericCampus(
     draw,
     drawChurch,
     drawHomes,
+    drawPlayground,
     drawStreetlights,
     lampPosts,
     madScientistSpawn,
@@ -894,6 +977,7 @@ export function createEsotericCampus(
     quads,
     mapFeatures,
     routes,
+    lifeRoutes,
     surfaceType,
     layout,
     graph,

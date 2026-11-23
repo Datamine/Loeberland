@@ -35,6 +35,7 @@ export interface RuntimeChoice extends DialogueTextBindings {
   next?: RuntimeDialogue;
   amount?: {
     prompt: string;
+    invalidMessage?: string;
     submit: (amount: number) => ActionReceipt | Promise<ActionReceipt>;
   };
   accept?: (() => ActionReceipt | Promise<ActionReceipt> | void) | null;

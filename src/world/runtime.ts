@@ -779,7 +779,7 @@ export function createRuntime(context: WorldContext) {
         return rope.sight;
     }
     if (hit?.sight) return hit.sight;
-    // Small vials and coins get a few screen pixels of tolerance, while
+    // Small pickups get screen-space tolerance, while
     // an actual visibility ray prevents selecting items through walls.
     let item = null,
       score = Infinity;
@@ -811,7 +811,7 @@ export function createRuntime(context: WorldContext) {
             at.distance <= 0 ||
             (fishing
               ? Math.max(dx, dy) > 45
-              : distance > Math.max(9, (project(o.hi[0], anchor[1], o.hi[2]).x - at.x) * 1.3)) ||
+              : distance > Math.max(16, (project(o.hi[0], anchor[1], o.hi[2]).x - at.x) * 1.3)) ||
             distance >= score ||
             pick(at.x, at.y) !== o
           )

@@ -39,6 +39,16 @@ test('map inputs exclude UI, dialogue, networking and artwork; layout edits chan
     return file === 'src/geography.ts' ? source + '\nexport const auditLayoutRevision=1;' : source;
   };
   assert.notEqual(await worldInputVersion({ readSource: layout }), version);
+  const editSign = (addSlot: boolean) => async (file: string) => {
+    const source = await readFile(new URL(file, root), 'utf8');
+    if (file !== 'content/texts.json') return source;
+    const labels: { texts: Record<string, { template: string }> } = JSON.parse(source);
+    const key = addSlot ? 'world-label.sign.New%20Sign' : 'world-label.sign.Mazarine%20Coffee';
+    labels.texts[key] = { template: 'New lettering' };
+    return JSON.stringify(labels);
+  };
+  assert.equal(await worldInputVersion({ readSource: editSign(false) }), version);
+  assert.notEqual(await worldInputVersion({ readSource: editSign(true) }), version);
 });
 
 test('UI frame requests coalesce at 10 Hz while event refreshes apply immediately', () => {

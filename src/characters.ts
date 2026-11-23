@@ -3,6 +3,7 @@ import type { Appearance } from './types/content.ts';
 import { drawWearableAccessories } from './wearable-models.ts';
 import { hatById } from './hat-catalog.ts';
 import { ITEM_STATS, isIronArmorTorso } from './item-stats.ts';
+import { IRON_ARMOR_COLORS } from './iron-armor-appearance.ts';
 import { getHatGeometry } from './hat-models.ts';
 import type { Mesh } from './geometry.ts';
 import { rgb } from './geometry.ts';
@@ -36,6 +37,7 @@ export interface CharacterAppearance extends Appearance {
   carryingFish?: boolean;
   pushingStroller?: boolean;
   railgun?: boolean;
+  launcher?: boolean;
   akibo?: boolean;
   chef?: boolean;
   backpack?: boolean;
@@ -310,6 +312,10 @@ export function sampleCharacterPose(
   const gesture = options.action,
     gestureT = charClamp(options.actionT || 0, 0, 1),
     gestureWeight = gestureT === 0 || gestureT === 1 ? 0 : Math.sin(Math.PI * gestureT);
+  const launcherKick =
+    options.launcher && gesture === 'attack'
+      ? charEase(gestureT / 0.14) * (1 - charEase((gestureT - 0.14) / 0.59))
+      : 0;
   const meleeSwing =
     gesture === 'attack' &&
     (options.bayonet || options.crowbar || options.battleaxe || options.rollingPin);
@@ -485,6 +491,7 @@ export function sampleCharacterPose(
     lean += run * motion * 0.14;
   }
   lean += 0.009 * Math.sin(time * 1.7) * (1 - motion);
+  lean -= 0.08 * launcherKick;
   if (gesture === 'zombie') {
     lean += 0.13;
     roll += 0.055 * Math.sin(phase);
@@ -588,6 +595,14 @@ export function sampleCharacterPose(
     charFrame(out, footBone, leg.end, charEuler(feet[side].pitch, side ? -0.045 : 0.045, 0));
     feet[side].point = leg.end;
   }
+  const launcherRotation = options.launcher ? charEuler(-0.035 - 0.17 * launcherKick) : null;
+  const launcherGrip = launcherRotation
+    ? [
+        out.joints[CHARACTER_BONES.chest * 3] + 0.258,
+        out.joints[CHARACTER_BONES.chest * 3 + 1] + 0.015 + 0.036 * launcherKick,
+        0.22 - 0.085 * launcherKick,
+      ]
+    : null;
   for (let side = 0; side < 2; side++) {
     const arm = side ? 7 : 4,
       forearm = arm + 1,
@@ -697,6 +712,10 @@ export function sampleCharacterPose(
         charMix(0.81, 1.7, raise),
         charMix(0.04, 0.12, raise),
       ] satisfies [number, number, number];
+    } else if (launcherGrip && launcherRotation) {
+      const support = charRotate(launcherRotation, [-0.085, 0.068, 0.17]);
+      wrist = side ? launcherGrip : launcherGrip.map((value, i) => value + support[i]);
+      pole = [sign * 0.8, -0.62, -0.2];
     } else if (options.akibo)
       wrist = [sign * 0.24, 1.14, 0.46 - gestureWeight * 0.07] satisfies [number, number, number];
     else if (options.railgun)
@@ -775,9 +794,11 @@ export function sampleCharacterPose(
         out,
         hand,
         limb.end,
-        options.railgun && side && !options.akibo
-          ? charEuler()
-          : charEuler(-1.05, 0, side ? 0.12 : -0.12),
+        launcherRotation && side
+          ? launcherRotation
+          : options.railgun && side && !options.akibo
+            ? charEuler()
+            : charEuler(-1.05, 0, side ? 0.12 : -0.12),
       );
     } else {
       const swing = Math.cos(cycle * CHAR_TAU) * sign * charMix(walk.arm, jog.arm, run) * motion;
@@ -1222,10 +1243,6 @@ function charBuildMesh({
   uniform,
   sunglasses,
   alien,
-  bayonet,
-  battleaxe,
-  rollingPin,
-  crowbar,
   akibo,
   boots,
   iceTop,
@@ -2097,25 +2114,6 @@ function charBuildMesh({
       m.box(side * 0.147 - 0.017, 1.01, 0.116, 0.034, 0.27, 0.02, S.bag, charTorsoRig, 0.8);
     m.box(-0.09, 1.04, -0.294, 0.18, 0.1, 0.025, S.bag, 1, 0.85);
   }
-  if (bayonet) {
-    m.box(0.223, 0.59, -0.027, 0.044, 0.18, 0.055, S.belt, 9);
-    m.box(0.177, 0.765, -0.039, 0.136, 0.018, 0.078, S.metal, 9);
-    m.box(0.232, 0.783, -0.012, 0.027, 0.27, 0.033, S.metal, 9);
-    m.tri(
-      [0.232, 1.053, -0.012] satisfies [number, number, number],
-      [0.259, 1.053, -0.012] satisfies [number, number, number],
-      [0.245, 1.15, 0.004] satisfies [number, number, number],
-      S.white,
-      9,
-    );
-    m.tri(
-      [0.259, 1.053, 0.021] satisfies [number, number, number],
-      [0.232, 1.053, 0.021] satisfies [number, number, number],
-      [0.245, 1.15, 0.004] satisfies [number, number, number],
-      S.metal,
-      9,
-    );
-  }
   if (akibo)
     for (const side of [-1, 1] satisfies [number, number]) {
       const x = side * 0.245,
@@ -2125,92 +2123,6 @@ function charBuildMesh({
       m.box(x - 0.025, 0.365, -0.02, 0.05, 0.028, 0.07, S.eye, hand);
       m.box(x - 0.012, 0.36, 0.057, 0.024, 0.04, 0.01, S.white, hand);
     }
-  if (rollingPin) {
-    m.loft(
-      [
-        [0.245, 0.355, 0.005, 0.022, 0.022],
-        [0.245, 0.61, 0.005, 0.025, 0.025],
-      ],
-      S.bag,
-      9,
-      12,
-    );
-    m.loft(
-      [
-        [0.245, 0.59, 0.005, 0.029, 0.029],
-        [0.245, 0.635, 0.005, 0.075, 0.075],
-        [0.245, 0.962, 0.005, 0.075, 0.075],
-        [0.245, 1.005, 0.005, 0.03, 0.03],
-      ],
-      S.metal,
-      9,
-      16,
-    );
-    m.loft(
-      [
-        [0.245, 1.002, 0.005, 0.021, 0.021],
-        [0.245, 1.095, 0.005, 0.021, 0.021],
-      ],
-      S.bag,
-      9,
-      12,
-    );
-  }
-  if (crowbar) {
-    m.box(0.224, 0.375, -0.017, 0.043, 0.72, 0.045, S.rainbow, 9);
-    m.loft(
-      [
-        [0.245, 1.065, 0.005, 0.027, 0.023],
-        [0.231, 1.14, 0.005, 0.035, 0.023],
-        [0.164, 1.168, 0.005, 0.048, 0.023],
-        [0.102, 1.124, 0.005, 0.033, 0.019],
-        [0.089, 1.068, 0.005, 0.028, 0.012],
-      ],
-      S.metal,
-      9,
-      8,
-    );
-    m.box(0.217, 0.35, -0.022, 0.057, 0.049, 0.054, S.metal, 9);
-  }
-  if (battleaxe) {
-    m.box(0.224, 0.48, -0.022, 0.044, 0.83, 0.045, S.bag, 9);
-    m.loft(
-      [
-        [0.245, 1.12, 0, 0.035, 0.04] satisfies [number, number, number, number, number],
-        [0.245, 1.28, 0, 0.045, 0.05] satisfies [number, number, number, number, number],
-      ],
-      S.metal,
-      9,
-      8,
-    );
-    for (const sign of [-1, 1] satisfies [number, number]) {
-      const x = 0.245;
-      m.quad(
-        [x, 1.28, -0.025] satisfies [number, number, number],
-        [x + sign * 0.25, 1.39, -0.025] satisfies [number, number, number],
-        [x + sign * 0.3, 1.12, -0.025] satisfies [number, number, number],
-        [x, 1.17, -0.025] satisfies [number, number, number],
-        S.metal,
-        9,
-      );
-      m.quad(
-        [x, 1.17, 0.025] satisfies [number, number, number],
-        [x + sign * 0.3, 1.12, 0.025] satisfies [number, number, number],
-        [x + sign * 0.25, 1.39, 0.025] satisfies [number, number, number],
-        [x, 1.28, 0.025] satisfies [number, number, number],
-        S.metal,
-        9,
-      );
-      m.quad(
-        [x + sign * 0.25, 1.39, -0.025] satisfies [number, number, number],
-        [x + sign * 0.3, 1.12, -0.025] satisfies [number, number, number],
-        [x + sign * 0.3, 1.12, 0.025] satisfies [number, number, number],
-        [x + sign * 0.25, 1.39, 0.025] satisfies [number, number, number],
-        S.white,
-        9,
-      );
-    }
-  }
   if (cloakBottom) {
     const drape = (p: number[]) =>
       charBlend(0, p[0] < 0 ? 12 : 15, Math.max(0, Math.min(1, (0.86 - p[1]) / 0.79)));
@@ -2370,10 +2282,6 @@ export function getCharacterMesh(appearance: CharacterAppearance = {}) {
     uniform: !!appearance.uniform,
     sunglasses: !!appearance.sunglasses,
     alien: !!appearance.alien,
-    bayonet: !!appearance.bayonet,
-    battleaxe: !!appearance.battleaxe,
-    rollingPin: !!appearance.rollingPin,
-    crowbar: !!appearance.crowbar,
     akibo: !!appearance.akibo,
     boots: appearance.boots || false,
     iceTop: !!appearance.iceTop,
@@ -2405,7 +2313,7 @@ export function characterPalette(appearance: CharacterAppearance, skin: string, 
     colors = [
       appearance.alien ? '#a4b797' : skin,
       ironTop
-        ? '#505862'
+        ? IRON_ARMOR_COLORS.plate
         : appearance.tinfoil
           ? '#c5d0d2'
           : appearance.torso === 'decorative-robe-top'
@@ -2420,7 +2328,7 @@ export function characterPalette(appearance: CharacterAppearance, skin: string, 
                     ? ITEM_STATS['ice-top'].color
                     : shirt,
       ironLegs
-        ? '#505862'
+        ? IRON_ARMOR_COLORS.plate
         : appearance.tinfoil
           ? '#b1bec2'
           : appearance.legs === 'decorative-robe-bottom'
@@ -2435,7 +2343,7 @@ export function characterPalette(appearance: CharacterAppearance, skin: string, 
       ironTop
         ? appearance.torso === 'gold-trimmed-iron-armor'
           ? '#dbab4c'
-          : '#737f8a'
+          : IRON_ARMOR_COLORS.trim
         : appearance.iceTop
           ? ITEM_STATS['ice-top'].trim
           : appearance.torso === 'cashmere-turtleneck'
@@ -2443,7 +2351,7 @@ export function characterPalette(appearance: CharacterAppearance, skin: string, 
             : appearance.trim || '#c9c7b4',
       '#282c29',
       '#e1dfca',
-      ironLegs ? '#747e89' : '#c7aa67',
+      ironLegs ? IRON_ARMOR_COLORS.knee : '#c7aa67',
       '#45483c',
       appearance.bag || '#886d4b',
       ...(hat?.colors || (['#888888', '#aaaaaa', '#cccccc'] satisfies [string, string, string])),
@@ -2533,6 +2441,8 @@ export function drawCharacter(
   shirt = '#707b4b',
   appearance: CharacterAppearance = {},
 ) {
+  if (appearance.launcher === undefined && appearance.weapon === 'missile-launcher')
+    appearance = { ...appearance, launcher: true };
   // These clips need both hands. Stowed equipment must not replace their
   // handlebars, ladder grips, exercise poses or board-balancing arms.
   if (
@@ -2565,18 +2475,19 @@ export function drawCharacter(
     appearance = {
       ...appearance,
       railgun: false,
+      launcher: false,
       akibo: false,
       battleaxe: false,
       rollingPin: false,
       bayonet: false,
       phone: false,
     };
-  if (appearance.railgun) {
+  if (appearance.railgun || appearance.launcher) {
     if (
       appearance.carryingFish ||
       ['caught', 'drink', 'eat', 'fish', 'work'].includes(appearance.action || '')
     )
-      appearance = { ...appearance, railgun: false };
+      appearance = { ...appearance, railgun: false, launcher: false };
     else if (appearance.phone) appearance = { ...appearance, phone: false };
   }
   const mesh = getCharacterMesh(appearance),
@@ -2606,6 +2517,7 @@ export function drawCharacter(
           carryingFish: appearance.carryingFish,
           pushingStroller: appearance.pushingStroller,
           railgun: appearance.railgun,
+          launcher: appearance.launcher,
           akibo: appearance.akibo,
           bayonet: appearance.bayonet,
           battleaxe: appearance.battleaxe,

@@ -20,6 +20,7 @@ import { MONSTER_STATS } from './monster-drops.ts';
 import { drawBison } from './bison-model.ts';
 import { attackPulse } from './creature-attack-pose.ts';
 import { GOBLIN_INCUBATOR } from './goblin-town.ts';
+import { IRON_ARMOR_COLORS } from './iron-armor-appearance.ts';
 import type { Actor } from './types/world.ts';
 
 export function goblinModelVariant(
@@ -43,6 +44,33 @@ export function goblinModelVariant(
 function goblinSkin(kind: string) {
   if (kind === 'goblin-veteran') return '#536e48';
   return kind === 'goblin-guard' ? '#82944b' : '#6f9554';
+}
+
+const goblinIron = { metal: 0.68 };
+
+function drawGoblinIronPlates(
+  m: Mesh,
+  x: number,
+  y: number,
+  z: number,
+  rings: readonly [height: number, widthRadius: number, depthRadius: number][],
+  color: string,
+) {
+  const sides = 12;
+  const meshRings = rings.map(([height, width, depth]) =>
+    Array.from({ length: sides }, (_, side) => {
+      const angle = (side * Math.PI * 2) / sides;
+      return [x + width * Math.cos(angle), y + height, z + depth * Math.sin(angle)];
+    }),
+  );
+  for (let ring = 1; ring < meshRings.length; ring++) {
+    const lower = meshRings[ring - 1];
+    const upper = meshRings[ring];
+    for (let side = 0; side < sides; side++) {
+      const next = (side + 1) % sides;
+      m.quad(lower[next], lower[side], upper[side], upper[next], color, goblinIron);
+    }
+  }
 }
 
 export function drawGoblinHead(m: Mesh, actor: MonsterPose) {
@@ -97,20 +125,19 @@ export function drawGoblinHead(m: Mesh, actor: MonsterPose) {
         });
     }
     if (guard || veteran) {
-      const metal = { metal: 0.68 };
-      m.sphere(
+      const { plate, trim } = IRON_ARMOR_COLORS;
+      m.sphere(0, 1.19, -0.011, 0.254, 0.135, 0.218, plate, 16, 8, goblinIron);
+      drawGoblinIronPlates(
+        m,
         0,
-        1.192,
-        -0.018,
-        0.254,
-        0.133,
-        0.205,
-        veteran ? '#6e8b82' : '#889592',
-        16,
-        8,
-        metal,
+        1.158,
+        -0.011,
+        [
+          [0, 0.245, 0.211],
+          [0.036, 0.258, 0.224],
+        ],
+        trim,
       );
-      m.rod([-0.197, 1.178, 0.09], [0.199, 1.178, 0.09], 0.033, '#515e59', 9, metal);
     }
   });
 }
@@ -700,6 +727,7 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0, reduced =
     pose(m, actor.x, actor.base, actor.z, actor.angle - Math.PI / 2, () => {
       const guard = actor.combatKind === 'goblin-guard',
         veteran = actor.combatKind === 'goblin-veteran',
+        armored = guard || veteran,
         plumber = actor.modelVariant === 'plumber',
         green = goblinSkin(actor.combatKind),
         cloth =
@@ -716,10 +744,52 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0, reduced =
                     : '#83634a',
         step = Math.sin(actor.phase || 0) * (actor.motion || 0) * 0.12;
       m.sphere(0, 0.67 - 0.07 * load, shoulderLean * 0.48, 0.25, 0.28, 0.17, cloth, 14, 8);
-      for (let i = 0; i < 4; i++) {
-        const y = 0.49 + i * 0.079;
-        m.rod([-0.19, y, 0.109], [-0.12, y + 0.032, 0.155], 0.01, '#bf9a6c', 5);
-        m.rod([0.12, y + 0.032, 0.155], [0.19, y, 0.109], 0.01, '#c1a07a', 5);
+      const { plate, trim, knee } = IRON_ARMOR_COLORS;
+      if (armored) {
+        const chestY = 0.67 - 0.07 * load;
+        const chestZ = shoulderLean * 0.48;
+        drawGoblinIronPlates(
+          m,
+          0,
+          chestY,
+          chestZ,
+          [
+            [-0.05, 0.247, 0.178],
+            [0.035, 0.26, 0.198],
+            [0.142, 0.263, 0.193],
+            [0.207, 0.214, 0.157],
+            [0.252, 0.136, 0.115],
+          ],
+          plate,
+        );
+        drawGoblinIronPlates(
+          m,
+          0,
+          chestY,
+          chestZ,
+          [
+            [-0.053, 0.252, 0.182],
+            [-0.024, 0.258, 0.19],
+          ],
+          trim,
+        );
+        drawGoblinIronPlates(
+          m,
+          0,
+          chestY,
+          chestZ,
+          [
+            [0.228, 0.181, 0.139],
+            [0.253, 0.139, 0.12],
+          ],
+          trim,
+        );
+      } else {
+        for (let i = 0; i < 4; i++) {
+          const y = 0.49 + i * 0.079;
+          m.rod([-0.19, y, 0.109], [-0.12, y + 0.032, 0.155], 0.01, '#bf9a6c', 5);
+          m.rod([0.12, y + 0.032, 0.155], [0.19, y, 0.109], 0.01, '#c1a07a', 5);
+        }
       }
       m.sphere(0, 0.89, -0.028, 0.171, 0.08, 0.155, '#c4a170', 13, 7);
       m.sphere(0, 0.585, 0, 0.247, 0.063, 0.174, '#423c2b', 14, 7, 'canvasWeave');
@@ -746,10 +816,69 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0, reduced =
         m.sphere(handX, handY, handZ, 0.082, 0.086, 0.065, '#8ca968', 10, 7);
         m.rod([s * 0.142, 0.08, s * step], [s * 0.14, 0.265, s * step], 0.091, '#313433', 10);
         m.sphere(s * 0.14, 0.094, s * step + 0.062, 0.095, 0.082, 0.152, '#2a2b2b', 12, 7);
-        for (const y of [0.12, 0.22] satisfies [number, number])
-          m.box(s * 0.14 - 0.055, y, s * step + 0.195, 0.11, 0.035, 0.018, '#c4ced1', {
-            metal: 0.8,
-          });
+        if (armored) {
+          const [shoulderX, shoulderY, shoulderZ] = shoulder;
+          const pauldronX = shoulderX + s * 0.035;
+          drawGoblinIronPlates(
+            m,
+            pauldronX,
+            shoulderY,
+            shoulderZ,
+            [
+              [-0.059, 0.11, 0.106],
+              [0.008, 0.132, 0.127],
+              [0.066, 0.1, 0.097],
+              [0.097, 0.045, 0.049],
+              [0.1, 0, 0],
+            ],
+            plate,
+          );
+          drawGoblinIronPlates(
+            m,
+            pauldronX,
+            shoulderY,
+            shoulderZ,
+            [
+              [-0.064, 0.114, 0.111],
+              [-0.038, 0.123, 0.118],
+            ],
+            trim,
+          );
+
+          const shinZ = s * step;
+          m.sphere(s * 0.14, 0.228, shinZ + 0.041, 0.089, 0.122, 0.09, plate, 10, 6, goblinIron);
+          m.sphere(
+            s * 0.14,
+            0.325,
+            shinZ * 0.58 + 0.066,
+            0.077,
+            0.059,
+            0.063,
+            knee,
+            10,
+            6,
+            goblinIron,
+          );
+          if (veteran) {
+            m.sphere(
+              s * 0.132,
+              0.445,
+              shinZ * 0.28 + 0.025,
+              0.089,
+              0.105,
+              0.086,
+              plate,
+              10,
+              6,
+              goblinIron,
+            );
+          }
+        } else {
+          for (const y of [0.12, 0.22] satisfies [number, number])
+            m.box(s * 0.14 - 0.055, y, s * step + 0.195, 0.11, 0.035, 0.018, '#c4ced1', {
+              metal: 0.8,
+            });
+        }
       }
       if (actor.modelVariant === 'mechanic' || plumber) {
         for (const side of [-1, 1])
@@ -768,8 +897,7 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0, reduced =
       if (actor.modelVariant === 'scientist') {
         m.box(-0.177, 0.6, 0.123, 0.116, 0.14, 0.032, '#827698', 'wood');
       }
-      if (guard || veteran) {
-        const metal = { metal: 0.68 };
+      if (armored) {
         m.sphere(
           -0.293,
           0.57,
@@ -782,11 +910,7 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0, reduced =
           8,
           'wood',
         );
-        m.sphere(-0.293, 0.565, 0.195, 0.064, 0.06, 0.034, '#c3a476', 10, 6, metal);
-        for (const side of [-1, 1]) {
-          m.sphere(side * 0.216, 0.81, 0.023, 0.14, 0.088, 0.134, '#81938e', 12, 6, metal);
-          m.rod([side * 0.195, 0.75, 0.148], [side * 0.098, 0.56, 0.19], 0.025, '#b49769', 7);
-        }
+        m.sphere(-0.293, 0.565, 0.195, 0.064, 0.06, 0.034, '#c3a476', 10, 6, goblinIron);
       }
       if (actor.combatKind === 'goblin-maker') {
         m.box(-0.149, 0.45, 0.134, 0.298, 0.36, 0.047, '#b7814e', 'canvasWeave');

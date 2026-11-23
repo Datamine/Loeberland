@@ -5,6 +5,7 @@ import type { WorldObject, Place } from './types/world.ts';
 // CONTENT-BINDINGS-MIGRATED
 import { contentText } from './content-runtime.ts';
 import { drawBicycle } from './bicycle-model.ts';
+import { drawNeighborhoodTree } from './neighborhood-tree.ts';
 import { inSearchHousePlot } from './southern-layout.ts';
 import { drawSearchHouseInterior } from './search-house-models.ts';
 import { drawPiercedWall } from './wall-openings.ts';
@@ -933,8 +934,8 @@ export function createModels({
           palm(m, px, pz, h);
           return;
         }
-        m.cylinder(px, h, pz, 0.075, 1.45, '#806044', 7, 0.05);
         if (kind === true || kind === 1) {
+          m.cylinder(px, h, pz, 0.075, 1.45, '#806044', 7, 0.05);
           for (let i = 0; i < 4; i++)
             m.cylinder(
               px,
@@ -946,33 +947,7 @@ export function createModels({
               8,
               0,
             );
-        } else {
-          for (const [dx, dz, dy] of [
-            [-0.35, 0.12, 1.45] satisfies [number, number, number],
-            [0.34, -0.12, 1.7] satisfies [number, number, number],
-            [0.05, 0.3, 1.9] satisfies [number, number, number],
-            [-0.08, -0.24, 2.08] satisfies [number, number, number],
-          ]) {
-            m.rod(
-              [px, h + 1, pz] satisfies [number, number, number],
-              [px + dx, h + dy, pz + dz] satisfies [number, number, number],
-              0.035,
-              '#806044',
-              5,
-            );
-            m.sphere(
-              px + dx,
-              h + dy + 0.2,
-              pz + dz,
-              0.5 + seed * 0.12,
-              kind === 3 ? 0.25 : 0.43,
-              0.48,
-              seed > 0.5 ? '#739053' : '#69894e',
-              8,
-              4,
-            );
-          }
-        }
+        } else drawNeighborhoodTree(m, px, h, pz, seed, 1, kind === 3);
       },
       true,
     );

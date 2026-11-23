@@ -2345,8 +2345,17 @@
             },
             {
               "id": "world.interactions.offer.node-1",
-              "label": "Buy 20 akimbo rounds · 5 coins",
+              "label": {
+                "text": "combat-supplies.ammo.label"
+              },
               "action": "world.interactions.offer.action-2:buyAmmo"
+            },
+            {
+              "id": "combat-supplies.armorer.missiles",
+              "label": {
+                "text": "combat-supplies.missile.label"
+              },
+              "action": "combat-supplies.armorer.buy-missiles"
             }
           ],
           "repeat": false,
@@ -2364,7 +2373,14 @@
         "world.interactions.openNPCDialogue.node-3:intro": {},
         "world.interactions.openNPCDialogue.node-3:question": {},
         "they-live.theyLiveDialogue.node-56.choice:label": {},
-        "they-live.theyLiveDialogue.node-56.choice:receipt": {}
+        "they-live.theyLiveDialogue.node-56.choice:receipt": {},
+        "world.interactions.offer.node-1:label": {
+          "units": 20,
+          "price": 5
+        },
+        "combat-supplies.armorer.missiles:label": {
+          "price": 50
+        }
       }
     },
     "actor:industrial-armorer.dialogue-2": {
@@ -2387,8 +2403,17 @@
             },
             {
               "id": "world.interactions.offer.node-1",
-              "label": "Buy 20 akimbo rounds · 5 coins",
+              "label": {
+                "text": "combat-supplies.ammo.label"
+              },
               "action": "world.interactions.offer.action-2:buyAmmo"
+            },
+            {
+              "id": "combat-supplies.armorer.missiles",
+              "label": {
+                "text": "combat-supplies.missile.label"
+              },
+              "action": "combat-supplies.armorer.buy-missiles"
             }
           ],
           "repeat": false,
@@ -2406,7 +2431,14 @@
         "world.interactions.openNPCDialogue.node-3:intro": {},
         "world.interactions.openNPCDialogue.node-3:question": {},
         "they-live.theyLiveDialogue.node-56.choice:label": {},
-        "they-live.theyLiveDialogue.node-56.choice:receipt": {}
+        "they-live.theyLiveDialogue.node-56.choice:receipt": {},
+        "world.interactions.offer.node-1:label": {
+          "units": 20,
+          "price": 5
+        },
+        "combat-supplies.armorer.missiles:label": {
+          "price": 50
+        }
       },
       "when": {
         "any": [
@@ -2494,8 +2526,17 @@
             },
             {
               "id": "world.interactions.offer.node-1",
-              "label": "Buy 20 akimbo rounds · 5 coins",
+              "label": {
+                "text": "combat-supplies.ammo.label"
+              },
               "action": "world.interactions.offer.action-2:buyAmmo"
+            },
+            {
+              "id": "combat-supplies.armorer.missiles",
+              "label": {
+                "text": "combat-supplies.missile.label"
+              },
+              "action": "combat-supplies.armorer.buy-missiles"
             }
           ],
           "repeat": false,
@@ -2513,7 +2554,14 @@
         "world.interactions.openNPCDialogue.node-3:intro": {},
         "world.interactions.openNPCDialogue.node-3:question": {},
         "they-live.theyLiveDialogue.node-56.choice:label": {},
-        "they-live.theyLiveDialogue.node-56.choice:receipt": {}
+        "they-live.theyLiveDialogue.node-56.choice:receipt": {},
+        "world.interactions.offer.node-1:label": {
+          "units": 20,
+          "price": 5
+        },
+        "combat-supplies.armorer.missiles:label": {
+          "price": 50
+        }
       },
       "when": {
         "all": [
@@ -2566,8 +2614,17 @@
             },
             {
               "id": "world.interactions.offer.node-1",
-              "label": "Buy 20 akimbo rounds · 5 coins",
+              "label": {
+                "text": "combat-supplies.ammo.label"
+              },
               "action": "world.interactions.offer.action-2:buyAmmo"
+            },
+            {
+              "id": "combat-supplies.armorer.missiles",
+              "label": {
+                "text": "combat-supplies.missile.label"
+              },
+              "action": "combat-supplies.armorer.buy-missiles"
             }
           ],
           "repeat": false,
@@ -2585,7 +2642,14 @@
         "world.interactions.openNPCDialogue.node-3:intro": {},
         "world.interactions.openNPCDialogue.node-3:question": {},
         "they-live.theyLiveDialogue.node-56.choice:label": {},
-        "they-live.theyLiveDialogue.node-56.choice:receipt": {}
+        "they-live.theyLiveDialogue.node-56.choice:receipt": {},
+        "world.interactions.offer.node-1:label": {
+          "units": 20,
+          "price": 5
+        },
+        "combat-supplies.armorer.missiles:label": {
+          "price": 50
+        }
       },
       "when": {
         "any": [
@@ -2679,8 +2743,17 @@
             },
             {
               "id": "world.interactions.offer.node-1",
-              "label": "Buy 20 akimbo rounds · 5 coins",
+              "label": {
+                "text": "combat-supplies.ammo.label"
+              },
               "action": "world.interactions.offer.action-2:buyAmmo"
+            },
+            {
+              "id": "combat-supplies.armorer.missiles",
+              "label": {
+                "text": "combat-supplies.missile.label"
+              },
+              "action": "combat-supplies.armorer.buy-missiles"
             }
           ],
           "repeat": false,
@@ -2701,7 +2774,14 @@
           "v0": 50
         },
         "they-live.theyLiveDialogue.node-53:label": {},
-        "they-live.theyLiveDialogue.node-53:receipt": {}
+        "they-live.theyLiveDialogue.node-53:receipt": {},
+        "world.interactions.offer.node-1:label": {
+          "units": 20,
+          "price": 5
+        },
+        "combat-supplies.armorer.missiles:label": {
+          "price": 50
+        }
       },
       "when": {
         "all": [
@@ -2901,9 +2981,13 @@
         }
       },
       "sampleValues": {
-        "world.interactions.interactCitizen.node-26:intro": {},
+        "world.interactions.interactCitizen.node-26:intro": {
+          "price": 20
+        },
         "world.interactions.interactCitizen.node-26:decline": {},
-        "world.interactions.interactCitizen.node-29:label": {}
+        "world.interactions.interactCitizen.node-29:label": {
+          "price": 20
+        }
       }
     },
     "actor:bolinas-grocer.dialogue-1": {
@@ -3162,7 +3246,7 @@
     },
     "actor:captain-ahab.dialogue-2": {
       "id": "actor:captain-ahab.dialogue-2",
-      "states": ["Raptor quest: escaped", "Raptor quest: carrying", "Raptor quest: completed"],
+      "states": ["Railgun equipped, Velociraptor defeated"],
       "placements": ["actor:captain-ahab"],
       "root": "jurassic.ahabDialogue.node-46",
       "nodes": {
@@ -3224,18 +3308,34 @@
         "jurassic.ahabDialogue.node-53.choice:label": {}
       },
       "when": {
-        "any": [
+        "all": [
           {
-            "path": "quests.expeditions.raptor",
-            "eq": "escaped"
+            "path": "activities.aboard",
+            "eq": false
           },
           {
-            "path": "quests.expeditions.raptor",
-            "eq": "carrying"
+            "path": "quests.expeditions.krakenReward",
+            "eq": false
           },
           {
-            "path": "quests.expeditions.raptor",
-            "eq": "completed"
+            "path": "inventory.economy.ownedEquipment",
+            "contains": "railgun"
+          },
+          {
+            "path": "appearance.weapon",
+            "eq": "railgun"
+          },
+          {
+            "any": [
+              {
+                "path": "quests.expeditions.raptorDefeated",
+                "eq": true
+              },
+              {
+                "path": "quests.expeditions.raptor",
+                "in": ["carrying", "completed"]
+              }
+            ]
           }
         ]
       }
@@ -3372,8 +3472,16 @@
         "jurassic.ahabDialogue.node-37.choice:receipt": {}
       },
       "when": {
-        "path": "quests.expeditions.krakenReward",
-        "eq": true
+        "all": [
+          {
+            "path": "activities.aboard",
+            "eq": false
+          },
+          {
+            "path": "quests.expeditions.krakenReward",
+            "eq": true
+          }
+        ]
       }
     },
     "actor:city-hall-clerk.dialogue-1": {
@@ -14726,6 +14834,59 @@
       ],
       "placements": ["actor:monkey-zookeeper"],
       "shared": true
+    },
+    "actor:captain-ahab.dialogue-6": {
+      "id": "actor:captain-ahab.dialogue-6",
+      "states": ["Railgun equipped, Velociraptor undefeated"],
+      "placements": ["actor:captain-ahab"],
+      "root": "jurassic.ahabDialogue.railgun-on-loan",
+      "nodes": {
+        "jurassic.ahabDialogue.railgun-on-loan": {
+          "id": "jurassic.ahabDialogue.railgun-on-loan",
+          "choices": [],
+          "intro": {
+            "text": "jurassic.ahabDialogue.railgun-on-loan"
+          },
+          "question": "",
+          "decline": "Leave",
+          "repeat": false,
+          "skipIntro": false
+        }
+      },
+      "when": {
+        "all": [
+          {
+            "path": "activities.aboard",
+            "eq": false
+          },
+          {
+            "path": "quests.expeditions.krakenReward",
+            "eq": false
+          },
+          {
+            "path": "inventory.economy.ownedEquipment",
+            "contains": "railgun"
+          },
+          {
+            "path": "appearance.weapon",
+            "eq": "railgun"
+          },
+          {
+            "not": {
+              "any": [
+                {
+                  "path": "quests.expeditions.raptorDefeated",
+                  "eq": true
+                },
+                {
+                  "path": "quests.expeditions.raptor",
+                  "in": ["carrying", "completed"]
+                }
+              ]
+            }
+          }
+        ]
+      }
     }
   }
 }

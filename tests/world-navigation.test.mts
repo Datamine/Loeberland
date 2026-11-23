@@ -21,6 +21,8 @@ import assert from 'node:assert/strict';
 import { createWorldModel } from '../src/world.ts';
 import { buildingNPCService } from '../src/building-interactions.ts';
 import { BILLBOARD_ART } from '../src/billboards.ts';
+import { RESEARCH_ART } from '../src/research-art.ts';
+import { authoredSignSlots, signAtlasLayout } from '../src/materials.ts';
 import { auditWorldNavigation } from '../src/navigation-audit.ts';
 import {
   buildTileNavigation,
@@ -61,6 +63,27 @@ import type { Parcel } from '../src/types/parcels.ts';
 // One real production layout per process. No browser, WebGL, image loading,
 // snapshots, substitute cityPath, or simulated walking is involved.
 const world = createWorldModel({ retainInteriors: true });
+
+test('renamed destinations have facade meshes mapped to their editable signs', () => {
+  const { signs } = signAtlasLayout(authoredSignSlots([]), [...BILLBOARD_ART, ...RESEARCH_ART]);
+  for (const [id, slot] of [
+    ['home', "John's Place"],
+    ['writing', 'City Lights - Essays'],
+    ['books', 'Main Library - Bookshelf'],
+    ['press', 'The Newsstand'],
+    ['venture', 'Demo Day Hall'],
+    ['etc', 'Curiosity Shop'],
+    ['orin-house', "Orin's house"],
+  ]) {
+    const place = requiredFixture(world.places.find((p) => p.id === id));
+    const mesh = requiredFixture(place.object?.mesh);
+    const corners = requiredFixture(signs.get(slot));
+    let vertices = 0;
+    for (let i = 0; i < mesh.data.length; i += 11)
+      if (corners.some(([u, v]) => mesh.data[i + 9] === u && mesh.data[i + 10] === v)) vertices++;
+    assert.equal(vertices, 12, slot + ' has a front and side plaque');
+  }
+});
 
 test('neighboring rival institutes and the dog and pony show have connected native entrances and clear props', () => {
   const [a, b] = RESEARCH_CAMPUSES;

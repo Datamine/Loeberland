@@ -154,8 +154,7 @@ export const MONSTER_STATS = defineMonsterStats({
     roamSpeed: 0.48,
     height: 1.17,
     model: 'goat',
-    description:
-      'An ordinary goat with an extraordinary talent for returning half the damage it takes.',
+    description: 'An ordinary goat with an extraordinary purpose.',
   },
   ...Object.fromEntries(
     FIGHTER_LEVELS.map((level, i) => [

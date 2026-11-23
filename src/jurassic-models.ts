@@ -1,11 +1,17 @@
 import type { Actor, SignAtlas } from './types/world.ts';
-import { ENERGY_BOLT_SECONDS, SCIENTIST_EXPLOSIVE } from './config/gameplay.ts';
+import {
+  ENERGY_BOLT_SECONDS,
+  MISSILE_BURST_SECONDS,
+  MISSILE_FLIGHT_SECONDS,
+  SCIENTIST_EXPLOSIVE,
+} from './config/gameplay.ts';
 import { drawBisonHide } from './bison-model.ts';
 import { drawJurassicArchitecture, drawRaptorEnclosureGate } from './jurassic-architecture.ts';
 import type { Mesh } from './geometry.ts';
 import { pose } from './geometry.ts';
 import { drawHatModel } from './hat-models.ts';
 import { drawPeptideVial } from './guild-models.ts';
+import { drawDroppedMeleeWeapon, hasMeleeWeaponModel } from './melee-weapon-models.ts';
 import './windows.ts';
 import { drawPlaque } from './southern-district.ts';
 import { COW_PEN, KRAKEN_CAPE_LINES } from './jurassic-layout.ts';
@@ -390,26 +396,73 @@ export function drawBeam(m: Mesh, beam: import('./types/expeditions.ts').Expedit
     return;
   }
   if (beam.weapon === 'missile-launcher') {
-    const t = Math.max(0, Math.min(1, 1 - beam.ttl / 0.22));
+    if (beam.ttl <= MISSILE_BURST_SECONDS) {
+      const fade = beam.ttl / MISSILE_BURST_SECONDS;
+      const spread = 0.12 + 0.28 * (1 - fade);
+      const core = 0.08 + 0.11 * fade;
+      m.sphere(b.x, b.y, b.z, core, core, core, '#fff0ad', 12, 7, { emissive: fade });
+      for (let i = 0; i < 6; i++) {
+        const angle = (i * Math.PI) / 3;
+        const puff = spread * 0.48;
+        m.sphere(
+          b.x + Math.cos(angle) * spread,
+          b.y + (i % 2 ? 0.58 : -0.2) * spread,
+          b.z + Math.sin(angle) * spread,
+          puff,
+          puff,
+          puff,
+          fade > 0.4 ? '#ff9250' : '#928476',
+          8,
+          5,
+          { emissive: fade },
+        );
+      }
+      return;
+    }
+    const dx = b.x - a.x;
+    const dz = b.z - a.z;
+    const distance = Math.hypot(dx, dz);
+    const forward = Math.min(0.56, distance * 0.42);
+    const right = Math.min(0.26, distance * 0.2);
+    const fromX = a.x + (dx * forward + dz * right) / (distance || 1);
+    const fromZ = a.z + (dz * forward - dx * right) / (distance || 1);
+    const fromY = a.y + 0.27;
+    const distanceFromMuzzle = Math.hypot(b.x - fromX, b.y - fromY, b.z - fromZ);
+    const bodyLength = Math.min(0.25, 0.34 / distanceFromMuzzle);
+    const t = Math.max(
+      0,
+      Math.min(1, 1 - (beam.ttl - MISSILE_BURST_SECONDS) / MISSILE_FLIGHT_SECONDS),
+    );
     const position = (f: number): [number, number, number] => [
-      a.x + (b.x - a.x) * f,
-      a.y + (b.y - a.y) * f + Math.sin(Math.PI * f) * 0.28,
-      a.z + (b.z - a.z) * f,
+      fromX + (b.x - fromX) * f,
+      fromY + (b.y - fromY) * f + Math.sin(Math.PI * f) * 0.42,
+      fromZ + (b.z - fromZ) * f,
     ];
-    const nose = position(t),
-      tail = position(Math.max(0, t - 0.07));
-    if (t > 0.001) m.rod(tail, nose, 0.055, '#a09981', 9, { metal: 0.42 });
-    m.sphere(...tail, 0.075, 0.075, 0.075, '#eead62', 10, 6, { emissive: 0.96 });
-    for (let i = 1; i <= 4; i++)
+    const nose = position(t);
+    const tail = position(t - bodyLength);
+    m.rod(tail, nose, 0.081, '#c8b99d', 12, { metal: 0.45 });
+    m.sphere(...nose, 0.089, 0.089, 0.089, '#ff934e', 10, 6, { emissive: 0.8 });
+    m.sphere(...tail, 0.108, 0.105, 0.108, '#ff7142', 10, 6, { emissive: 1 });
+    m.sphere(...position(t - bodyLength * 1.21), 0.072, 0.072, 0.072, '#fff0a2', 8, 5, {
+      emissive: 1,
+    });
+    for (let i = 1; i <= 8; i++) {
+      const behind = t - bodyLength * (1 + i * 0.54);
+      if (behind < 0) break;
+      const puff = position(behind);
+      const radius = 0.09 + i * 0.012;
       m.sphere(
-        ...position(Math.max(0, t - 0.07 - i * 0.025)),
-        0.04 + i * 0.017,
-        0.045 + i * 0.014,
-        0.04 + i * 0.017,
-        '#a29484',
+        puff[0],
+        puff[1] + i * 0.009,
+        puff[2],
+        radius,
+        radius,
+        radius,
+        i < 4 ? '#d4c7ae' : '#a79a88',
         8,
-        4,
+        5,
       );
+    }
     return;
   }
   if (beam.weapon === 'robocop-laser') {
@@ -509,6 +562,8 @@ export function drawExpeditionLoot(
   } else if (item.lootKind === 'sand-bucket') {
     m.cylinder(x, base, z, 0.086, 0.17, '#879a9b', 10, 0.12, { metal: 0.44 });
     m.sphere(x, base + 0.165, z, 0.106, 0.026, 0.106, '#d3b27d', 8, 4);
+  } else if (item.lootKind === 'equipment' && hasMeleeWeaponModel(item.itemId)) {
+    drawDroppedMeleeWeapon(m, item.itemId, x, base, z);
   } else if (item.lootKind === 'equipment' && item.itemId === 'missile-launcher') {
     m.rod([x - 0.3, base + 0.08, z], [x + 0.3, base + 0.08, z], 0.075, '#55614b', 10, {
       metal: 0.45,

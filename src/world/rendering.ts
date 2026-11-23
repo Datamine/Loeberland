@@ -293,7 +293,11 @@ export function createRendering(context: WorldContext) {
     context.gl.clearColor(0.56, 0.7, 0.73, 1);
     const names = authoredSignSlots(context.signNames());
     context.atlasTexture = createSignTexture(context.gl, names, context.signs, {
-      preserveCase: [...RESTAURANTS.map((r) => r.name), 'California high-speed rail'],
+      preserveCase: [
+        ...RESTAURANTS.map((r) => r.name),
+        'California high-speed rail',
+        'CHURCH NOTICEBOARD',
+      ],
       artwork: [...BILLBOARD_ART, ...RESEARCH_ART],
       billboardController: context.signTextureControls,
       revealed: context.playerLook.sunglasses,
@@ -691,7 +695,7 @@ export function createRendering(context: WorldContext) {
       const start = m.data.length;
       drawVelociraptor(m, r, t);
       addTarget(start, { npc: r });
-      if (r.phase === 'loose' && r.prey?.isPlayer)
+      if (r.phase === 'loose' && (game.state.raptor === 'escaped' || r.prey?.isPlayer))
         context.actorTags.push({ ...r, height: 1.6, chasing: true });
     }
     for (const cow of game.cows)
@@ -1203,6 +1207,13 @@ export function createRendering(context: WorldContext) {
           rocketBurnUntil:
             context.multiplayer?.state.inventory?.decorativeRocket?.burningUntil || 0,
           serverTime: Date.now() + (context.multiplayer?.state.serverOffset || 0),
+          launcher:
+            context.playerWeapon() === 'missile-launcher' &&
+            !context.ferrari?.state.riding &&
+            !context.skateboard.riding &&
+            !context.fishing.state.active &&
+            !context.flying() &&
+            !rocketPose,
           battleaxe:
             context.playerWeapon() === 'battleaxe' &&
             !rolling &&
@@ -2713,7 +2724,7 @@ export function createRendering(context: WorldContext) {
     }
   }
 
-  const groundItemLabels = new Map<string, HTMLButtonElement>();
+  const groundItemLabels = new Map<string, { button: HTMLButtonElement; sight: InteractionSight }>();
   function drawGroundItemLabels() {
     if (!context.world.hasAttribute('data-show-ground-items')) return;
     const visible = new Set<string>();
@@ -2736,26 +2747,32 @@ export function createRendering(context: WorldContext) {
       )
         continue;
       visible.add(sight.id);
-      let label = groundItemLabels.get(sight.id);
-      if (!label) {
-        label = document.createElement('button');
-        label.type = 'button';
-        setActionText(label, 'Take ' + sight.label, [{ label: sight.label, kind: 'item' }]);
-        label.addEventListener('click', (event) =>
-          context.clicked(event.clientX, event.clientY, () => context.goToSight(sight)),
+      let entry = groundItemLabels.get(sight.id);
+      if (!entry) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        const created = { button, sight };
+        button.addEventListener('click', (event) =>
+          context.clicked(event.clientX, event.clientY, () => context.goToSight(created.sight)),
         );
-        context.$('sf-ground-items').append(label);
-        groundItemLabels.set(sight.id, label);
+        context.$('sf-ground-items').append(button);
+        groundItemLabels.set(sight.id, created);
+        entry = created;
       }
+      entry.sight = sight;
+      const label = entry.button;
+      const text = 'Take ' + sight.label;
+      if (label.textContent !== text)
+        setActionText(label, text, [{ label: sight.label, kind: 'item' }]);
       const key = Math.round(at.x / 90) + ':' + Math.round(at.y / 24);
       const row = rows.get(key) || 0;
       rows.set(key, row + 1);
       label.style.left = Math.max(48, Math.min(context.width - 48, at.x)) + 'px';
       label.style.top = Math.max(24, at.y - row * 23) + 'px';
     }
-    for (const [id, label] of groundItemLabels)
+    for (const [id, { button }] of groundItemLabels)
       if (!visible.has(id)) {
-        label.remove();
+        button.remove();
         groundItemLabels.delete(id);
       }
   }

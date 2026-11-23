@@ -1,12 +1,10 @@
 import { contentText } from '../src/content-runtime.ts';
 import { isFiniteNumber } from '../src/types/json.ts';
 import type { ServerPlayer } from '../src/types/server.ts';
-import { equipmentOwned, MISSILE_PRICE } from '../src/item-stats.ts';
+import { equipmentOwned } from '../src/item-stats.ts';
+import { COMBAT_SUPPLY_OFFERS, isCombatSupplyPurchase } from '../src/combat-supply-shop.ts';
 import { mayFireRailgun } from '../src/jurassic.ts';
-export const AMMO_PACK_ROUNDS = 20,
-  AMMO_PACK_PRICE = 5,
-  BATTERY_PRICE = 20,
-  BATTERY_SHOTS = 25;
+export const BATTERY_SHOTS = 25;
 export function railgunRestriction(p: ServerPlayer, weapon: unknown, atRaptor = false) {
   if (weapon === 'railgun' && !mayFireRailgun(p.profile.playerState.quests.expeditions, atRaptor))
     return contentText('world-message.jurassic.railgun-on-loan');
@@ -44,6 +42,7 @@ export function combatSupplyAction(
     nearBatterySeller,
     nearChef,
   }: { nearArmorer: boolean; nearBatterySeller: boolean; nearChef: boolean },
+  quantity: unknown = 1,
 ) {
   const meta = p.inventory.meta,
     purse = p.inventory.economy.state;
@@ -62,72 +61,43 @@ export function combatSupplyAction(
       };
     meta.railgunBatteries--;
     meta.railgunCharge = BATTERY_SHOTS;
-  } else if (op === 'buyAmmo') {
-    if (!nearArmorer)
+  } else if (isCombatSupplyPurchase(op)) {
+    const battery = op === 'buyBattery';
+    if (!(battery ? nearBatterySeller : nearArmorer))
       return {
         ok: false,
         message: contentText(
-          'world-message.server.combat-supplies.visit-the-industrial-center-armorer',
+          battery
+            ? 'world-message.server.combat-supplies.visit-the-battery-seller'
+            : 'world-message.server.combat-supplies.visit-the-industrial-center-armorer',
         ),
       };
-    if (purse.coins < AMMO_PACK_PRICE)
-      return {
-        ok: false,
-        message: contentText('world-message.server.combat-supplies.you-need-5-coins'),
-      };
-    if (meta.akimboAmmo > 1000000 - AMMO_PACK_ROUNDS)
-      return {
-        ok: false,
-        message: contentText('world-message.server.combat-supplies.you-cannot-carry-more-ammo'),
-      };
-    purse.coins -= AMMO_PACK_PRICE;
-    meta.akimboAmmo += AMMO_PACK_ROUNDS;
-  } else if (op === 'buyMissile') {
-    if (!nearArmorer)
+    if (typeof quantity !== 'number' || !Number.isSafeInteger(quantity) || quantity < 1)
+      return { ok: false, message: contentText('world-message.combat-supplies.quantity') };
+    const offer = COMBAT_SUPPLY_OFFERS[op];
+    const available = meta[offer.inventoryKey] ?? 0;
+    if (quantity > Math.floor((1_000_000 - available) / offer.units))
       return {
         ok: false,
         message: contentText(
-          'world-message.server.combat-supplies.visit-the-industrial-center-armorer',
+          battery
+            ? 'world-message.server.combat-supplies.you-cannot-carry-more-batteries'
+            : 'world-message.server.combat-supplies.you-cannot-carry-more-ammo',
         ),
       };
-    if (purse.coins < MISSILE_PRICE)
-      return {
-        ok: false,
-        message: contentText('world-message.missiles.cost', { price: MISSILE_PRICE }),
-      };
-    if ((meta.missiles ?? 0) >= 1_000_000)
-      return {
-        ok: false,
-        message: contentText('world-message.server.combat-supplies.you-cannot-carry-more-ammo'),
-      };
-    purse.coins -= MISSILE_PRICE;
-    meta.missiles = (meta.missiles ?? 0) + 1;
+    const price = offer.price * quantity;
+    if (purse.coins < price)
+      return { ok: false, message: contentText('world-message.combat-supplies.cost', { price }) };
+    const amount = quantity * offer.units;
+    const item = amount === 1 && 'singular' in offer ? offer.singular : offer.item;
+    purse.coins -= price;
+    meta[offer.inventoryKey] = available + amount;
     p.inventory.save();
     return {
       ok: true,
       inventory: p.inventory.snapshot(),
-      message: contentText('world-message.missiles.purchased', { price: MISSILE_PRICE }),
+      message: contentText('world-message.combat-supplies.purchased', { amount, item, price }),
     };
-  } else if (op === 'buyBattery') {
-    if (!nearBatterySeller)
-      return {
-        ok: false,
-        message: contentText('world-message.server.combat-supplies.visit-the-battery-seller'),
-      };
-    if (purse.coins < BATTERY_PRICE)
-      return {
-        ok: false,
-        message: contentText('world-message.server.combat-supplies.you-need-20-coins'),
-      };
-    if (meta.railgunBatteries >= 1000000)
-      return {
-        ok: false,
-        message: contentText(
-          'world-message.server.combat-supplies.you-cannot-carry-more-batteries',
-        ),
-      };
-    purse.coins -= BATTERY_PRICE;
-    meta.railgunBatteries++;
   } else if (op === 'buyTinfoil') {
     if (!nearChef)
       return {
@@ -158,13 +128,9 @@ export function combatSupplyAction(
     message:
       op === 'chargeRailgun'
         ? contentText('world-message.server.combat-supplies.you-fit-a-fresh-battery')
-        : op === 'buyAmmo'
-          ? contentText('world-message.server.combat-supplies.you-buy-20-rounds')
-          : op === 'buyBattery'
-            ? contentText('world-message.server.combat-supplies.you-buy-a-spare-battery')
-            : contentText(
-                'world-message.server.combat-supplies.the-chef-folds-an-extravagant-roll-of-foil-into-a-full-suit-eq',
-              ),
+        : contentText(
+            'world-message.server.combat-supplies.the-chef-folds-an-extravagant-roll-of-foil-into-a-full-suit-eq',
+          ),
   };
 }
 

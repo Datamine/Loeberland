@@ -141,11 +141,9 @@ export function createSecretAdventures({
   }
   async function boardKraken(game: {
     ship: { aboard: boolean };
-    state: { krakenReward: boolean };
-    hasRailgun: () => boolean;
   }) {
     if (!serverConnected(client)) return serverCommand(client, 'instanceEnter', { kind: 'kraken' });
-    if (boardPending || game.ship.aboard || !game.hasRailgun() || game.state.krakenReward)
+    if (boardPending || game.ship.aboard)
       return {
         ok: false,
         message: contentText('world-message.src.secret-adventures.the-pequod-is-not-ready-to-sail'),

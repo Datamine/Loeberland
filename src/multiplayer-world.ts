@@ -1,5 +1,9 @@
 import { MONSTER_STATS } from './monster-drops.ts';
-import { ENERGY_BOLT_SECONDS, SCIENTIST_EXPLOSIVE } from './config/gameplay.ts';
+import {
+  ENERGY_BOLT_SECONDS,
+  MISSILE_EFFECT_SECONDS,
+  SCIENTIST_EXPLOSIVE,
+} from './config/gameplay.ts';
 import type { RemoteActor, Actor, LocalPlayer, SignAtlas } from './types/world.ts';
 import type {
   SharedSnapshot,
@@ -421,7 +425,7 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
         expeditions.state.beams.push({
           from: message.from,
           to: message.to,
-          ttl: 0.22,
+          ttl: message.weapon === 'missile-launcher' ? MISSILE_EFFECT_SECONDS : ENERGY_BOLT_SECONDS,
           weapon: message.weapon,
         });
       if (message.attacker === client.state.id) {
@@ -432,6 +436,8 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
           duration: 450,
         };
         combatFeedback.show(player, health.state.hp, health.state.max);
+      } else if (message.weapon === 'missile-launcher') {
+        remoteActors.get(message.attacker)?.animation?.trigger('attack', performance.now());
       }
       if (message.hp === 0) {
         const peer = client.peers.get(message.target);
@@ -464,7 +470,7 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
         expeditions.state.beams.push({
           from: message.from,
           to: message.to,
-          ttl: 0.22,
+          ttl: message.weapon === 'missile-launcher' ? MISSILE_EFFECT_SECONDS : ENERGY_BOLT_SECONDS,
           weapon: message.weapon,
         });
       if (message.attacker === client.state.id) {

@@ -192,6 +192,32 @@ input::placeholder {
   gap: 5px;
   margin: 14px 0;
 }
+.npc-combat {
+  margin-block: 18px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.npc-combat h3 {
+  margin: 0 0 10px;
+}
+.npc-combat dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+  gap: 10px 16px;
+  margin: 0;
+}
+.npc-combat dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+.npc-combat dd {
+  margin: 3px 0 0;
+  font-variant-numeric: tabular-nums;
+}
+.npc-combat p {
+  margin-bottom: 0;
+}
 .filters button {
   font-size: 12px;
   padding: 7px 9px;

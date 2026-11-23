@@ -74,6 +74,7 @@ import {
   sandwichCapacity,
   weaponAttackInterval,
   weaponOwned,
+  selectedWeapon,
 } from '../src/item-stats.ts';
 import { nearbyServiceNPC, fuelCarInRange } from '../src/interaction-access.ts';
 import { NEIGHBORHOOD_SERVICES } from '../src/config/neighborhood-services.ts';
@@ -488,11 +489,16 @@ export function createPlayerState({
     r.deli.state.sandwiches = p.inventory.meta.sandwiches;
     let result;
     if (['buyAmmo', 'buyMissile', 'buyBattery', 'chargeRailgun', 'buyTinfoil'].includes(op)) {
-      result = combatSupplyAction(p, op, {
-        nearArmorer: !!npc(p, (n) => n.questRole === 'armorer'),
-        nearBatterySeller: !!byKind(p, 'battery-seller'),
-        nearChef: !!byKind(p, 'chef'),
-      });
+      result = combatSupplyAction(
+        p,
+        op,
+        {
+          nearArmorer: !!npc(p, (n) => n.questRole === 'armorer'),
+          nearBatterySeller: !!byKind(p, 'battery-seller'),
+          nearChef: !!byKind(p, 'chef'),
+        },
+        args.amount,
+      );
     } else if (op === 'eat') {
       r.deli.state.sandwiches = p.inventory.meta.sandwiches;
       result = r.deli.eat();
@@ -1134,7 +1140,10 @@ export function createPlayerState({
     } else if (verb === 'skateboard') result = r.quests.theyLive.reward();
     else if (verb === 'pickSunglasses') {
       if (!near(p, geometry.sunglassesSite, 2))
-        return deny(contentText('world-message.server.player-state.walk-to-the-sunglasses'));
+        return {
+          ...deny(contentText('world-message.server.player-state.walk-to-the-sunglasses')),
+          retryApproach: !!geometry.sunglassesSite,
+        };
       result = r.sunglasses.pickUp();
       if (result.ok) r.quests.theyLive.start();
     } else if (verb === 'claimFunding') result = r.strength.claim(p.inventory.economy);
@@ -1436,7 +1445,7 @@ export function createPlayerState({
         return deny(contentText('world-message.server.player-state.board-the-pequod-first'));
       result = r.expeditions.attack(
         r.expeditions.kraken,
-        typeof args.weapon === 'string' ? args.weapon : 'railgun',
+        selectedWeapon(p.appearance.weapon, p.inventory.economy.state),
       );
     } else if (verb === 'collectPersonal') {
       const item = r.expeditions.state.loot.find((n) => n.id === args.id);

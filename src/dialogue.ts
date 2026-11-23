@@ -227,12 +227,12 @@ export function createDialogue({
       }
       draft.value = input.value;
       const text = input.value.trim();
-      const coins = Number(text);
-      if (!/^\d+$/.test(text) || !Number.isSafeInteger(coins) || coins < 1) {
-        render(contentText('world-message.biomed.amount'));
+      const quantity = Number(text);
+      if (!/^\d+$/.test(text) || !Number.isSafeInteger(quantity) || quantity < 1) {
+        render(entry.invalidMessage || contentText('world-message.biomed.amount'));
         return;
       }
-      commit(draft.choice, () => entry.submit(coins));
+      commit(draft.choice, () => entry.submit(quantity));
     });
     return form;
   }

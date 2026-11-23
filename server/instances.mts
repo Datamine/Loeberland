@@ -2,7 +2,8 @@ import { LAB_ENTRANCE, LAB_FLOOR, LAB_INSTANCE } from '../src/berkeley-lab.ts';
 import { HOT_TRAPDOOR } from '../src/berkeley-campus.ts';
 import { contentText } from '../src/content-runtime.ts';
 import type { SimulationServices, ServerPlayer } from '../src/types/server.ts';
-import { equipmentOwned, weaponOwned } from '../src/item-stats.ts';
+import { equipmentOwned, selectedWeapon } from '../src/item-stats.ts';
+import { mayFireRailgun } from '../src/jurassic.ts';
 import {
   PUBLIC_INSTANCE,
   ILLUMINATI_INSTANCE,
@@ -191,12 +192,7 @@ export function createServerInstances({
         const captain = geometry.merchants?.find((n) => n.id === 'captain-ahab'),
           home = geometry.expeditions?.ship.home;
         const expedition = p.profile.playerState.quests.expeditions;
-        if (
-          !weaponOwned(p.inventory.economy.state, 'railgun') ||
-          !captain ||
-          !home ||
-          Math.hypot(p.x - captain.x, p.z - captain.z) > 3
-        )
+        if (!captain || !home || Math.hypot(p.x - captain.x, p.z - captain.z) > 3)
           return {
             ok: false,
             message: contentText(
@@ -210,6 +206,10 @@ export function createServerInstances({
               'world-message.server.instances.you-have-already-claimed-the-krakens-spoils-ahab-is-still-writ',
             ),
           };
+        if (selectedWeapon(p.appearance.weapon, p.inventory.economy.state) !== 'railgun')
+          return { ok: false, message: contentText('world-message.jurassic.equip-railgun-to-board') };
+        if (!mayFireRailgun(expedition))
+          return { ok: false, message: contentText('world-message.jurassic.railgun-on-loan') };
         p.instanceReturn = position(p);
         transition(p, privateMapInstance('kraken', p.owner, home), {
           ...position(p),

@@ -413,12 +413,11 @@ test('Ahab waits for boarding authorization and displays a refusal instead of un
   let resolve!: (value: import('../src/types/world.ts').ActionReceipt) => void;
   const game = {
     state: {},
-    hasRailgun: () => true,
     ship: { aboard: false },
     board: () => new Promise<import('../src/types/world.ts').ActionReceipt>((r) => (resolve = r)),
   };
   try {
-    f.dialogue.open(ahabDialogue({ name: 'Ahab' }, game));
+    f.dialogue.open(ahabDialogue({ name: 'Ahab' }, game, true));
     f.advance();
     f.click('What happened to Moby Dick?');
     f.advance();
@@ -432,7 +431,7 @@ test('Ahab waits for boarding authorization and displays a refusal instead of un
     assert.doesNotMatch(f.element.textContent, /unfurls/);
     f.advance();
     assert.equal(f.dialogue.active, false);
-    f.dialogue.open(ahabDialogue({ name: 'Ahab' }, { ...game, state: { krakenReward: true } }));
+    f.dialogue.open(ahabDialogue({ name: 'Ahab' }, { ...game, state: { krakenReward: true } }, true));
     f.advance();
     assert.ok(!f.buttons().some((b) => /Board the Pequod/.test(b.textContent)));
   } finally {

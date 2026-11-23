@@ -8,7 +8,7 @@ import {
 import { isYardFighter } from '../src/fighter-yard-layout.ts';
 import { hasFighterYardPass } from './fighter-yard.mts';
 import { contentText } from '../src/content-runtime.ts';
-import { GAMEPLAY, ENERGY_BOLT_SECONDS, SCIENTIST_EXPLOSIVE } from '../src/config/gameplay.ts';
+import { GAMEPLAY, monsterProjectileFlight } from '../src/config/gameplay.ts';
 import { isFiniteNumber } from '../src/types/json.ts';
 import type { WildernessPerson, WildernessActor } from '../src/types/monsters.ts';
 import type { CommandResult, AirshipSnapshot } from '../src/types/network.ts';
@@ -62,6 +62,7 @@ import {
   groundItemDeadline,
   groundItemExpired,
   GROUND_ITEM_LIFETIME_SECONDS,
+  sandwichStackLabel,
 } from '../src/ground-items.ts';
 
 const LOOT_OWNER_CLAIM_SECONDS = 15;
@@ -377,13 +378,14 @@ export function createSharedWorld({
     onDamage: (p: ServerPlayer, amount: number, actor: WildernessActor) => {
       if (amount <= 0) return;
       const effect = MONSTER_STATS[actor.combatKind].attackEffect;
-      if (effect !== 'explosive' && effect !== 'akimbo' && effect !== 'robocop-laser') {
+      const flight = monsterProjectileFlight(effect);
+      if (!flight) {
         hitFromWilderness(p, amount, actor);
         return;
       }
       const explosive = effect === 'explosive';
       const impact = {
-        at: clock + (explosive ? SCIENTIST_EXPLOSIVE.flight : ENERGY_BOLT_SECONDS),
+        at: clock + flight,
         target: p,
         instanceId: p.instance.id,
         actor,
@@ -405,7 +407,8 @@ export function createSharedWorld({
       for (const observer of players.values()) {
         if (observer.instance.id !== p.instance.id || near(observer, actor) >= 45) continue;
         if (explosive) send(observer, { type: 'scientistExplosive', from, to });
-        else send(observer, { type: 'robotShot', weapon: effect, from, to });
+        else if (effect === 'akimbo' || effect === 'robocop-laser')
+          send(observer, { type: 'robotShot', weapon: effect, from, to });
       }
     },
     onReflect: (attacker, amount, actor) => {
@@ -474,6 +477,8 @@ export function createSharedWorld({
         hp: isFiniteNumber(n.hp) ? restoredMonsterHealth(n.hp, n.max, actor.max) : actor.hp,
         enemy: null,
         enemyPosition: undefined,
+        // The wilderness clock starts at zero each session.
+        attackAt: 0,
         attackAnimation: undefined,
         returning: false,
         chaseUntil: 0,
@@ -1007,11 +1012,16 @@ export function createSharedWorld({
       if (
         !(eligible(p) || (p.hp > 0 && p.airship && item.ship)) ||
         inBerkeleyLab(item.x, item.z) !== labPlayer(p) ||
-        near(p, item) > 1.8 ||
         Math.abs(p.y - (item.base ?? p.y)) > 2.5
       )
         return {
           ok: false,
+          message: contentText('world-message.server.shared-world.walk-closer-to-the-loot'),
+        };
+      if (near(p, item) > 1.8)
+        return {
+          ok: false,
+          retryApproach: !item.ship,
           message: contentText('world-message.server.shared-world.walk-closer-to-the-loot'),
         };
       if (item.owner && item.owner !== p.owner && clock < item.unlockAt)
@@ -1039,23 +1049,34 @@ export function createSharedWorld({
           message: definition.pickupMessageId && contentText(definition.pickupMessageId),
         };
       }
-      const grant = p.inventory?.receive(item);
-      if (grant && !grant.ok) return grant;
-      loot.delete(item.id);
+      const space = item.lootKind === 'sandwich' ? p.inventory.sandwichSpace() : item.amount;
+      const pickup = space > 0 && space < item.amount ? { ...item, amount: space } : item;
+      const grant = p.inventory.receive(pickup);
+      if (!grant.ok) return grant;
+      const remaining = item.amount - pickup.amount;
+      if (remaining > 0) {
+        item.amount = remaining;
+        item.label = sandwichStackLabel(remaining);
+      } else loot.delete(item.id);
       return {
         ok: true,
         award: {
           kind: item.lootKind,
-          amount: item.amount,
+          amount: pickup.amount,
           hatId: item.hatId,
-          inventory: grant && 'inventory' in grant ? grant.inventory : undefined,
+          inventory: 'inventory' in grant ? grant.inventory : undefined,
         },
         message:
-          item.lootKind === 'sandwich'
-            ? undefined
-            : contentText('world-message.server.shared-world.you-collect', {
-                value1: String(item.label.toLowerCase()),
-              }),
+          remaining > 0
+            ? contentText('world-message.loot.sandwich-stack-partial', {
+                taken: sandwichStackLabel(pickup.amount),
+                remaining: item.label,
+              })
+            : item.lootKind === 'sandwich' && !item.transfer
+              ? undefined
+              : contentText('world-message.server.shared-world.you-collect', {
+                  value1: String(item.label.toLowerCase()),
+                }),
       };
     }
     if (action === 'airshipBoard') {
@@ -1757,7 +1778,10 @@ export function createSharedWorld({
     persist: () => ({
       clock,
       lootSerial,
-      wilderness: wilderness.snapshot().filter((n) => n.dispatchedFor === undefined),
+      wilderness: wilderness
+        .snapshot()
+        .filter((n) => n.dispatchedFor === undefined)
+        .map(({ attackAt: _attackAt, ...actor }) => actor),
       nextPeptideAt,
       tiger: tiger.snapshot(),
       airship: { ...airship.state },

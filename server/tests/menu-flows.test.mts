@@ -1749,9 +1749,19 @@ test('Ahab’s menu boards a private hunt, arrives at the boss, collects the cap
   try {
     atNPC(a, captain);
     const shore = { x: a.p.x, y: a.p.y, z: a.p.z };
+    const saved = await act(a, 'saveCharacter', {
+      look: { weapon: 'railgun' },
+      name: a.p.name,
+      phone: false,
+      pvp: false,
+    });
+    assert.equal(saved.ok, true);
     await choose(
       a,
-      ahabDialogue(captain, expeditions),
+      compileEntityDialogue(ahabDialogue(captain, expeditions, a.p.appearance.weapon === 'railgun'), 'actor:captain-ahab', {
+        playerLook: a.p.appearance,
+        multiplayer: { state: { playerState: a.p.profile.playerState } },
+      }),
       ['What happened to Moby Dick?', 'Board the Pequod'] satisfies [string, string],
       { message: /unfurls the sails/ },
     );
@@ -1793,12 +1803,12 @@ test('Ahab’s menu boards a private hunt, arrives at the boss, collects the cap
       requiredFixture(await act(a, 'playerAction', { verb: 'collectPersonal', id: loot.id })).ok,
       false,
     );
-    await choose(a, ahabDialogue(captain, expeditions), ['Sail back to shore']);
+    await choose(a, ahabDialogue(captain, expeditions, true), ['Sail back to shore']);
     for (let i = 0; i < 102; i++) tick();
     assert.equal(a.p.instance.kind, 'world');
     assert.deepEqual({ x: a.p.x, y: a.p.y, z: a.p.z }, shore);
-    assert.ok(!ahabDialogue(captain, expeditions).choices);
-    assert.match(ahabDialogue(captain, expeditions).intro, /already claimed/);
+    assert.ok(!ahabDialogue(captain, expeditions, true).choices);
+    assert.match(ahabDialogue(captain, expeditions, true).intro, /already claimed/);
   } finally {
     stop(a);
   }

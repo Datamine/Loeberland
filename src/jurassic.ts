@@ -21,6 +21,7 @@ import type {
 import { contentText } from './content-runtime.ts';
 import { MONSTER_STATS, rollMonsterDrops } from './monster-drops.ts';
 import { ITEM_STATS, weaponOwned, isProjectileWeapon, weaponAttackInterval } from './item-stats.ts';
+import { ENERGY_BOLT_SECONDS, MISSILE_EFFECT_SECONDS } from './config/gameplay.ts';
 import { JURASSIC, cowSpawns, PEQUOD, KRAKEN_CAPE_TEXT } from './jurassic-layout.ts';
 import { rollWeaponDamage, rollEnemyDamage } from './combat.ts';
 import { groundItemDeadline, groundItemExpired } from './ground-items.ts';
@@ -267,7 +268,6 @@ export function createExpeditions({
       };
     state.raptor = 'escaped';
     state.railgun = true;
-    if (!retry) state.equipped = false;
     Object.assign(raptor, {
       x: JURASSIC.cage.x,
       z: JURASSIC.cage.z,
@@ -480,7 +480,7 @@ export function createExpeditions({
           y: (target.base || 0) + (target.combatKind === 'kraken' ? 1.35 : 0.9),
           z: target.z,
         },
-        ttl: 0.22,
+        ttl: weapon === 'missile-launcher' ? MISSILE_EFFECT_SECONDS : ENERGY_BOLT_SECONDS,
       });
     state.splats.push({ target, damage, ttl: 0.8 });
     event('shot', null, {
@@ -798,7 +798,6 @@ export function createExpeditions({
     ship,
     kraken,
     startQuest,
-    hasRailgun,
     recover,
     finishQuest,
     setHarbor,
@@ -909,11 +908,11 @@ export function ahabDialogue(
   npc: RuntimeDialogue | undefined,
   game: {
     state: Partial<Pick<ExpeditionState, 'krakenReward'>>;
-    hasRailgun: () => boolean;
     ship: { aboard: boolean; phase?: string };
     returnShip?: ExpeditionDialogueController['returnShip'];
     board: ExpeditionDialogueController['board'];
   },
+  railgunEquipped: boolean,
 ) {
   if (game.ship.aboard)
     return {
@@ -964,7 +963,7 @@ export function ahabDialogue(
       receiptTextId: 'jurassic.ahabDialogue.receipt-40',
       receiptTextValues: {},
     };
-  if (!game.hasRailgun())
+  if (!railgunEquipped)
     return {
       ...npc,
       intro: contentText('jurassic.ahabDialogue.intro-42', {}),

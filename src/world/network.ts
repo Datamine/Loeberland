@@ -50,7 +50,7 @@ export function createNetwork(context: WorldContext) {
       if (!travel) return;
       context.player.waymoCab = travel.waymo;
       const rocketPhase = context.rocket.state.active ? context.rocket.state.phase : null,
-        tahoeMode = context.tahoe.state.mode;
+        { mode: tahoeMode, airTime, flipping } = context.tahoe.state;
       const presentedRocket = rocketPresentation.sample();
       if (presentedRocket) Object.assign(context.rocket.state, presentedRocket);
       else context.rocket.state.active = false;
@@ -58,7 +58,12 @@ export function createNetwork(context: WorldContext) {
       else context.tahoe.state.mode = 'ground';
       if (rocketPhase !== (context.rocket.state.active ? context.rocket.state.phase : null))
         context.updateRocketControls();
-      if (tahoeMode !== context.tahoe.state.mode) context.updateTahoeButton();
+      if (
+        tahoeMode !== context.tahoe.state.mode ||
+        (airTime > 0) !== (context.tahoe.state.airTime > 0) ||
+        flipping !== context.tahoe.state.flipping
+      )
+        context.updateTahoeButton();
       const wasActive = context.sutroClimb.state.active,
         phase = context.sutroClimb.state.phase;
       if (travel.sutro?.active && travel.sutro.position && travel.sutro.pose)

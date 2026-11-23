@@ -187,6 +187,7 @@ export interface PlayerContentContext {
     };
   } | null;
   economy?: { state: Partial<PlayerDocument['inventory']['economy']> };
+  playerLook?: PlayerDocument['appearance'];
   quests?: {
     state: { monkey?: MonkeyStage; theyLive?: Partial<PlayerDocument['quests']['theyLive']> };
   };
@@ -218,13 +219,15 @@ export function playerDocumentFromContext(
   const economy = context.economy?.state || {};
   const quests = context.quests?.state || {};
   merge(state.inventory.economy, economy);
+  if (context.playerLook) merge(state.appearance, context.playerLook);
   if (quests.monkey) state.quests.monkey.stage = quests.monkey;
   if (quests.theyLive) merge(state.quests.theyLive, quests.theyLive);
-  for (const key of Object.keys(
-    defaults.quests.expeditions,
-  ) as (keyof PlayerDocument['quests']['expeditions'])[])
-    if (context.expeditions?.state?.[key] !== undefined)
-      set(state, 'quests.expeditions.' + key, context.expeditions.state[key]);
+  if (!context.multiplayer?.state.playerState)
+    for (const key of Object.keys(
+      defaults.quests.expeditions,
+    ) as (keyof PlayerDocument['quests']['expeditions'])[])
+      if (context.expeditions?.state?.[key] !== undefined)
+        set(state, 'quests.expeditions.' + key, context.expeditions.state[key]);
   const guild = context.multiplayer?.state.guild;
   state.quests.illuminatus.guild = guild ? { ...guild } : state.quests.illuminatus.guild;
   state.quests.illuminatus.initiated =

@@ -224,6 +224,39 @@ test('PvP loot transfers do not multiply coins through the iPhone earnings boost
   assert.equal(b.p.inventory.economy.state.coins, 0);
   await game.close();
 });
+
+test('collecting an oversized sandwich stack fills available slots and preserves the rest', async (t) => {
+  const { game, store } = await fixture();
+  t.after(() => game.close());
+  const first = await player(game, 228, { 'sf-purse-v1': '{"ownedEquipment":["backpack"]}' });
+  const second = await player(game, 229, { 'sf-deli-v1': '{"sandwiches":3,"pending":true}' });
+  const [id] = game.shared.dropInventory(first.p, null, [{ lootKind: 'sandwich', amount: 97 }]);
+  const initial = { ...requiredFixture(game.shared.loot.get(id)) };
+
+  await act(game, first.p, 'collect', { id });
+  const receipt = requiredResult(first.messages);
+  assert.equal(receipt.ok, true);
+  assert.equal(receipt.award?.amount, 20);
+  assert.match(receipt.message || '', /20 sandwiches.*77 sandwiches/);
+  assert.equal(first.p.inventory.meta.sandwiches, 20);
+  assert.deepEqual(game.shared.loot.get(id), { ...initial, amount: 77, label: '77 sandwiches' });
+
+  await act(game, first.p, 'collect', { id });
+  assert.equal(requiredResult(first.messages).ok, false);
+  assert.equal(game.shared.loot.get(id)?.amount, 77);
+
+  Object.assign(second.p, { x: first.p.x, y: first.p.y, z: first.p.z });
+  second.p.inventory.meta.deliveryPending = true;
+  await act(game, second.p, 'collect', { id });
+  assert.equal(requiredResult(second.messages).award?.amount, 1);
+  assert.equal(second.p.inventory.meta.sandwiches, 4);
+  assert.equal(game.shared.loot.get(id)?.amount, 76);
+  assert.equal(
+    (await storedWorldFixture(store, 'world')).shared.loot.find((item) => item.id === id)?.amount,
+    76,
+  );
+});
+
 test('inventory operations settle in order and pending client balances cannot overrule death epochs', async () => {
   const { game } = await fixture(),
     a = await player(game, 211, { 'sf-purse-v1': '{"coins":200}' });
@@ -251,12 +284,13 @@ test('inventory operations settle in order and pending client balances cannot ov
   await game.close();
 });
 
-test('a non-player death drops only coins, phone and sandwiches and waits for the collapse', async () => {
-  const { game, advance } = await fixture(),
+test('a non-player death drops coins, phone and sandwiches that can be reclaimed after respawn', async (t) => {
+  const { game, advance, store } = await fixture(),
     a = await player(game, 212, {
       'sf-purse-v1': '{"coins":80,"iphoneOwned":true,"ownedHats":["paper"]}',
       'sf-deli-v1': '{"sandwiches":2}',
     });
+  t.after(() => game.close());
   await enable(game, a);
   // Browser HP claims cannot cause or undo death. The server applies the
   // personal encounter damage, then authorizes the hospital respawn.
@@ -277,5 +311,24 @@ test('a non-player death drops only coins, phone and sandwiches and waits for th
     'iphone',
     'sandwich',
   ] satisfies [string, string, string]);
-  await game.close();
+
+  const coins = requiredFixture([...game.shared.loot.values()].find((i) => i.lootKind === 'coins'));
+  const food = requiredFixture(
+    [...game.shared.loot.values()].find((i) => i.lootKind === 'sandwich'),
+  );
+  await act(game, a.p, 'collect', { id: coins.id });
+  assert.equal(requiredResult(a.messages).retryApproach, true);
+  assert.ok(game.shared.loot.has(coins.id));
+  await act(game, a.p, 'teleport', { x: coins.x, z: coins.z });
+  assert.equal(requiredResult(a.messages).ok, true);
+  await act(game, a.p, 'collect', { id: coins.id });
+  assert.equal(requiredResult(a.messages).award?.inventory?.purse.coins, 80);
+  await act(game, a.p, 'collect', { id: food.id });
+  assert.equal(requiredResult(a.messages).award?.inventory?.sandwiches, 2);
+  assert.equal(requiredResult(a.messages).message, 'You collect 2 sandwiches.');
+  assert.equal(a.p.inventory.economy.state.coins, 80);
+  assert.equal(a.p.inventory.meta.sandwiches, 2);
+  const saved = await storedPlayerFixture(store, 'player:' + a.p.owner);
+  assert.equal(saved.playerState.inventory.economy.coins, 80);
+  assert.equal(saved.playerState.inventory.ledger?.sandwiches, 2);
 });

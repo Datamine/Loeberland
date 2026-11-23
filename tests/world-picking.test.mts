@@ -4,6 +4,7 @@ import { Mesh } from '../src/geometry.ts';
 import { hitProjectedRope } from '../src/airship-rope.ts';
 import { createInteractions } from '../src/world/interactions.ts';
 import { createRuntime } from '../src/world/runtime.ts';
+import { groundPickupsOnTile } from '../src/interaction-sights.ts';
 import type { WorldContext } from '../src/world/scene.ts';
 
 function view(height: number) {
@@ -64,6 +65,43 @@ test('a missed ground ray cannot submit an invalid movement command', () => {
   const { walkTo } = createInteractions(context as unknown as WorldContext);
   assert.equal(walkTo(NaN, 50), false);
   assert.equal(walkTo(50, Infinity), false);
+});
+
+test('tile pickup matching includes overlapping stacks once and keeps ground and deck separate', () => {
+  const loot = (id: string, x: number, z: number) => ({
+    sight: {
+      id,
+      x,
+      z,
+      kind: 'loot',
+      lootKind: id,
+      label: id,
+      amount: 1,
+      description: '',
+      expires: 60,
+    },
+    lo: [x - 0.1, 0, z - 0.1],
+    hi: [x + 0.1, 0.2, z + 0.1],
+  });
+  const coins = loot('coins', 6.95, -0.85);
+  const sandwiches = loot('sandwich', 6.06, -0.04);
+  const adjacent = loot('iphone', 7.01, -0.2);
+  const deck = loot('deck-coins', 6.5, -0.5);
+  const targets = [
+    coins,
+    sandwiches,
+    coins,
+    adjacent,
+    { ...deck, sight: { ...deck.sight, ship: true, deck: { x: -1.1, z: 0.3 } } },
+  ];
+  assert.deepEqual(
+    groundPickupsOnTile(targets, { x: 6.2, z: -0.99 }).map((item) => item.id),
+    ['coins', 'sandwich'],
+  );
+  assert.deepEqual(
+    groundPickupsOnTile(targets, { x: -1.25, z: 0.8 }, true).map((item) => item.id),
+    ['deck-coins'],
+  );
 });
 
 test('the airship rope hit area follows its full visible length', () => {

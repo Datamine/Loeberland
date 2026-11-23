@@ -10,6 +10,7 @@ import { inSquareConstruction } from '../src/square-construction-layout.ts';
 import { timesSquareWalkable } from '../src/southern-layout.ts';
 import { Mesh } from '../src/geometry.ts';
 import { drawCharacter, getCharacterMesh, sampleCharacterPose } from '../src/characters.ts';
+import { createCharacterBatch } from '../src/rendering/character-gpu.ts';
 import { drawPlayerSkateboard } from '../src/skateboard.ts';
 const clerk = { questRole: 'clerk' },
   professor = { questRole: 'esoteric' },
@@ -167,7 +168,13 @@ test('the square has usable public conversations and all native props block thei
 
 test('revealed skulls, hand-rigged bayonets and pushing skate poses have finite inexpensive meshes', () => {
   assert.notEqual(getCharacterMesh({ alien: true }), getCharacterMesh({ alien: false }));
-  assert.notEqual(getCharacterMesh({ bayonet: true }), getCharacterMesh({ bayonet: false }));
+  const character = new Mesh();
+  character.characters = createCharacterBatch();
+  drawCharacter(character, 0, 0, 0, 0, 0, false, '#b38f6d', '#789b87', { bayonet: true });
+  const blade = requiredFixture(
+    character.characters.records.find(({ mesh }) => mesh.cacheKey === 'held-bayonet'),
+  );
+  assert.ok(blade.mesh.bonesA.every((bone) => bone === 9));
   for (const alien of [true, false] satisfies [boolean, boolean])
     for (const t of [0, 0.25, 0.5, 0.75, 1] satisfies [number, number, number, number, number]) {
       const m = new Mesh();

@@ -70,6 +70,14 @@ export async function worldInputs({
   const pending = ['src/world/generation.ts', 'src/world/navigation.ts'] satisfies [string, string],
     seen = new Set<string>(),
     inputs = new Map<string, string>();
+  // The map stores atlas UVs. Lettering can change live, but moving or adding slots changes UVs.
+  const labels: { texts: Record<string, unknown> } = JSON.parse(
+    await readSource('content/texts.json'),
+  );
+  inputs.set(
+    'content/texts.json#sign-slots',
+    JSON.stringify(Object.keys(labels.texts).filter((key) => key.startsWith('world-label.sign.'))),
+  );
   const composition = parse(executableSource(await readSource('src/world/scene.ts')), {
     ecmaVersion: 'latest',
     sourceType: 'module',

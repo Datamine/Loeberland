@@ -8,6 +8,14 @@ interface LifeRoute {
   seed: number;
   rider: boolean;
   street?: string;
+  loop?: boolean;
+}
+interface AuthoredLifeRoute {
+  id: string;
+  role: 'cyclist' | 'child' | 'dog-walker';
+  points: readonly (readonly number[])[];
+  seed: number;
+  loop?: boolean;
 }
 export interface LifeActor extends Omit<Actor, 'points' | 'phase' | 'seed' | 'rider'>, LifeRoute {
   phase: number;
@@ -44,6 +52,7 @@ interface CityLifeOptions {
   canTravel?: (ax: number, az: number, bx: number, bz: number) => boolean;
   visible?: (x: number, z: number, base: number) => boolean;
   preparedPeople?: LifeActor[] | null;
+  authoredRoutes?: readonly AuthoredLifeRoute[];
 }
 // CONTENT-BINDINGS-MIGRATED
 import { contentText } from './content-runtime.ts';
@@ -149,6 +158,7 @@ export function createCityLife({
   canTravel = () => true,
   visible = () => true,
   preparedPeople = null,
+  authoredRoutes = [],
 }: CityLifeOptions) {
   const candidates: LifeRoute[] = [],
     gulls: { x: number; z: number; y: number; angle: number; bank: number; flap: number }[] = [],
@@ -271,7 +281,50 @@ export function createCityLife({
         motion: 0,
       }),
     );
+    for (const route of authoredRoutes) {
+      const points = [Array.from(route.points[0])];
+      let length = 0;
+      for (const [i, [x, z]] of route.points.slice(1).entries()) {
+        const [ax, az] = route.points[i];
+        const distance = Math.hypot(x - ax, z - az);
+        const count = Math.ceil(distance / 0.2);
+        length += distance;
+        for (let j = 1; j <= count; j++)
+          points.push([ax + ((x - ax) * j) / count, az + ((z - az) * j) / count]);
+      }
+      const child = route.role === 'child';
+      const movement = {
+        points,
+        length,
+        seed: route.seed,
+        loop: route.loop,
+        rider: route.role === 'cyclist',
+      };
+      people.push({
+        ...movement,
+        id: prefix + '-' + route.id,
+        child,
+        dogWalker: route.role === 'dog-walker',
+        label: child
+          ? contentText('life.createCityLife.label-1.yes', {})
+          : people.length % 2
+            ? contentText('life.createCityLife.label-1.no.yes', {})
+            : contentText('life.createCityLife.label-1.no.no', {}),
+        regional: typeof regional === 'function' ? regional(movement) : regional,
+        elapsed: 0,
+        hold: 0,
+        phase: route.seed * Math.PI * 2,
+        motion: 0,
+        x: points[0][0],
+        z: points[0][1],
+      });
+    }
   }
+  const speedOf = (p: LifeActor) => (p.rider ? 1.8 : 0.75 + p.seed * 0.25);
+  const phaseOf = (p: LifeActor, time: number) =>
+    p.loop
+      ? { fraction: (p.seed + (time * speedOf(p)) / p.length) % 1, direction: 1, moving: true }
+      : routePhase(time, p.length, speedOf(p), p.seed);
   let networkControlled = false;
   function update(dt: number) {
     if (networkControlled) return;
@@ -279,8 +332,8 @@ export function createCityLife({
       const held = p.hold > 0 || p.waiting;
       if (held) p.hold = Math.max(0, p.hold - dt);
       else p.elapsed += dt;
-      const speed = p.rider ? 1.8 : 0.75 + p.seed * 0.25,
-        state = routePhase(p.elapsed, p.length, speed, p.seed),
+      const speed = speedOf(p),
+        state = phaseOf(p, p.elapsed),
         at = pointOn(p.points, state.fraction),
         moving = state.moving && !held;
       p.x = at.x;
@@ -361,12 +414,7 @@ export function createCityLife({
     const seconds = reduced ? 12 : time * 0.001;
     for (const [i, p] of people.entries()) {
       if (p.expeditionDead || (networkControlled && !p.networkVisible)) continue;
-      const state = routePhase(
-          reduced && !p.networked ? 12 : p.elapsed,
-          p.length,
-          p.rider ? 1.8 : 0.75 + p.seed * 0.25,
-          p.seed,
-        ),
+      const state = phaseOf(p, reduced && !p.networked ? 12 : p.elapsed),
         at = p.networked ? { x: p.x, z: p.z, angle: p.angle! } : pointOn(p.points, state.fraction);
       if (!p.networked) {
         p.x = at.x;

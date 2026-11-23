@@ -183,7 +183,7 @@
         },
         {
           "label": "Any advice for the descent?",
-          "receipt": "Click to steer, stay on the snow, and press Space to flip while airborne. If you’d rather keep your feet off the ground, the gondola will take you back down."
+          "receipt": "Click to steer, stay on the snow, and press Esc then Space to flip while airborne. If you’d rather keep your feet off the ground, the gondola will take you back down."
         }
       ]
     },
@@ -279,7 +279,7 @@
       "choices": [
         {
           "label": "Where is my motorcycle?",
-          "receipt": "Press M to find your parked motorcycle or get on it. Your rental remains valid."
+          "receipt": "Press Esc then M to find your parked motorcycle or get on it. Your rental remains valid."
         }
       ]
     },

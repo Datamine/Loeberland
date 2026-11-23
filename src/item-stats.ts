@@ -1,6 +1,7 @@
 import type { Appearance, EconomyState } from './types/content.ts';
 import { isOneOf } from './types/json.ts';
 import { ITEM_STATS, EQUIPMENT_IDS } from './config/item-stats.ts';
+import { sandwichStackLabel } from './ground-items.ts';
 
 export { ITEM_STATS, EQUIPMENT_IDS };
 export { MISSILE_PRICE } from './config/item-stats.ts';
@@ -93,7 +94,12 @@ export function itemLoot(id: string, amount = 1) {
     ...(EQUIPMENT_IDS.includes(id) ? { itemId: id } : {}),
     ...(item?.slot === 'hat' ? { hatId: item.hatId } : {}),
     amount,
-    label: id === 'coins' ? amount + ' coins' : item?.name || id,
+    label:
+      id === 'coins'
+        ? amount + ' coins'
+        : id === 'sandwich' && amount > 1
+          ? sandwichStackLabel(amount)
+          : item?.name || id,
     description: item?.description || 'A well-made piece of equipment.',
   };
 }

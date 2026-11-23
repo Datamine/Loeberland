@@ -295,7 +295,6 @@ test('Ahab boarding awaits the server, exposes rejections, permits retries, and 
     ship = { aboard: false },
     game = {
       state: { krakenReward: false },
-      hasRailgun: () => true,
       ship,
       board() {
         assert.fail('client cannot start authoritative travel');

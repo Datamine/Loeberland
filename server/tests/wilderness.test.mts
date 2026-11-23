@@ -247,6 +247,38 @@ test('both robots broadcast shots from range and only fire with a clear line', a
   }
 });
 
+test('a restored Mad Scientist retaliates on the new combat clock', async () => {
+  const geometry = fixtureGeometry();
+  const spawn = { id: 'berkeley-mad-scientist', combatKind: 'mad-scientist', x: 150, z: -7 };
+  geometry.wilderness = { actors: [spawn] };
+  const store = createMemoryStore();
+  await store.batch([
+    [
+      'world',
+      {
+        shared: { clock: 3601, wilderness: [{ ...spawn, hp: 500, max: 575, attackAt: 3602 }] },
+      },
+    ],
+  ]);
+  const game = await createGame({ geometry, store, random: () => 0.5 });
+  try {
+    const scientist = game.shared.wilderness.actors[0];
+    const a = await player(game, 782);
+    Object.assign(a.p, { x: 150, z: -6, y: scientist.base });
+    assert.equal(scientist.hp, 500);
+    const result = requiredFixture(
+      await act(game, a, 'attack', { id: scientist.id, weapon: 'railgun' }),
+    );
+    assert.ok(result.ok && (result.damage ?? 0) > 0);
+    for (let i = 0; i < 14; i++) game.tick(0.05);
+    assert.ok(a.messages.some((message) => message.type === 'scientistExplosive'));
+    assert.equal(a.p.hp, a.p.max, 'the explosive has not landed yet');
+    for (let i = 0; i < 12; i++) game.tick(0.05);
+    assert.ok(a.p.hp < a.p.max, 'the first explosive damages the player after travel time');
+  } finally {
+    await game.close();
+  }
+});
 test('shared bear kill has one peptide roll, a first-claim owner and durable collection', async () => {
   const { game, store } = await setup(),
     a = await player(game, 701),

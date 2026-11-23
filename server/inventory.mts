@@ -16,6 +16,7 @@ import { discoverCollection } from './collection.mts';
 import { EQUIPMENT_IDS, sandwichCapacity } from '../src/item-stats.ts';
 import { tabletCounts } from '../src/teleport-tablets.ts';
 import { isTahoePelt, TAHOE_PELTS } from '../src/config/tahoe-pelts.ts';
+import { sandwichStackLabel } from '../src/ground-items.ts';
 
 const inventoryParse = (value: string | undefined): Record<string, unknown> => {
   try {
@@ -120,12 +121,10 @@ export function createInventoryAccount(profile: PlayerProfile) {
       tablets: { ...meta.tablets },
     };
   }
+  const sandwichSpace = () =>
+    Math.max(0, sandwichCapacity(economy.state) - meta.sandwiches - (meta.deliveryPending ? 1 : 0));
   function canReceive(item: InventoryGrant) {
-    if (
-      item.lootKind === 'sandwich' &&
-      meta.sandwiches + item.amount + (meta.deliveryPending ? 1 : 0) >
-        sandwichCapacity(economy.state)
-    )
+    if (item.lootKind === 'sandwich' && item.amount > sandwichSpace())
       return {
         ok: false,
         message: contentText('world-message.server.inventory.your-sandwich-bag-is-full', {
@@ -222,7 +221,7 @@ export function createInventoryAccount(profile: PlayerProfile) {
       items.push({
         lootKind: 'sandwich',
         amount: meta.sandwiches,
-        label: meta.sandwiches + ' sandwich' + (meta.sandwiches === 1 ? '' : 'es'),
+        label: sandwichStackLabel(meta.sandwiches),
       });
     if (purse.iphoneOwned) items.push({ lootKind: 'iphone', amount: 1, label: 'iPhone' });
     purse.coins = 0;
@@ -258,5 +257,15 @@ export function createInventoryAccount(profile: PlayerProfile) {
     save();
   }
   save(false);
-  return { economy, meta, snapshot, canReceive, receive, deathDrops, save, installTrade };
+  return {
+    economy,
+    meta,
+    snapshot,
+    sandwichSpace,
+    canReceive,
+    receive,
+    deathDrops,
+    save,
+    installTrade,
+  };
 }

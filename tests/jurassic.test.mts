@@ -6,6 +6,8 @@ import { dialogueChoices } from '../src/dialogue-choices.ts';
 import { createHitpoints } from '../src/combat.ts';
 import { createEconomy } from '../src/economy.ts';
 import { createDeli } from '../src/deli.ts';
+import { ITEM_STATS } from '../src/item-stats.ts';
+import { MISSILE_EFFECT_SECONDS, MISSILE_BURST_SECONDS } from '../src/config/gameplay.ts';
 import { JURASSIC, PEQUOD, KRAKEN_CAPE_TEXT } from '../src/jurassic-layout.ts';
 import { Mesh, rayTriangleAt } from '../src/geometry.ts';
 import {
@@ -289,7 +291,7 @@ test('Ahab requires an unlocked railgun; 140 boss hits deplete 1,400 HP and yiel
   g.update(5);
   assert.equal(g.ship.aboard, false);
   assert.equal(g.ship.x, 0);
-  assert.match(ahabDialogue({ name: 'Ahab' }, setup().game).intro, /railgun/);
+  assert.match(ahabDialogue({ name: 'Ahab' }, setup().game, false).intro, /railgun/);
   assert.equal(KRAKEN_CAPE_TEXT, 'I Killed the Kraken and All I Got Was This Lousy Cape');
 });
 test('automatic ranged attacks remain frame-rate independent against the level-60 kraken', () => {
@@ -352,4 +354,24 @@ test('Akibo shots occupy a small volume moving along the shot path', () => {
     assert.ok(xPositions.length > 0);
     assert.ok(xPositions.every((x) => Math.abs(x - center) < 0.1));
   }
+});
+
+test('missiles reach twice the railgun range and render a moving trail and impact', () => {
+  const range = ITEM_STATS['missile-launcher'].range;
+  assert.equal(range, ITEM_STATS.railgun.range * 2);
+  const from = { x: 0, y: 1.14, z: 0 };
+  const to = { x: range, y: 1.14, z: 0 };
+  function bounds(ttl: number) {
+    const mesh = new Mesh();
+    drawBeam(mesh, { from, to, ttl, weapon: 'missile-launcher' });
+    assert.ok(mesh.data.every(Number.isFinite));
+    const xs = mesh.data.filter((_, i) => i % 11 === 0);
+    return { min: Math.min(...xs), max: Math.max(...xs) };
+  }
+  const launch = bounds(MISSILE_EFFECT_SECONDS);
+  const flight = bounds((MISSILE_EFFECT_SECONDS + MISSILE_BURST_SECONDS) / 2);
+  const impact = bounds(MISSILE_BURST_SECONDS / 2);
+  assert.ok(launch.min > 0 && launch.max < 1);
+  assert.ok(flight.max > range / 2 && flight.max - flight.min > 1.5);
+  assert.ok(impact.min > range - 0.5 && impact.max > range + 0.2);
 });

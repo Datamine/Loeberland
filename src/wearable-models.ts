@@ -1,5 +1,6 @@
 import type { CharacterAppearance } from './characters.ts';
 import { Mesh } from './geometry.ts';
+import { heldMeleeWeapon } from './melee-weapon-models.ts';
 import { rigidCharacterMesh } from './rendering/character-gpu.ts';
 
 let heldRailgunMesh: number[] | null = null,
@@ -100,15 +101,17 @@ function recoilAmulet() {
 function missileLauncher() {
   if (launcherMesh) return launcherMesh;
   const m = new Mesh();
-  const x = 0.221,
-    y = 1.4;
-  m.rod([x, y, -0.39], [x, y, 0.53], 0.092, '#56634d', 12, { metal: 0.5 });
-  for (const z of [-0.32, 0.04, 0.47])
+  // Build around the right-hand bind position. The tube sits over the grip.
+  const x = 0.245,
+    y = 0.875;
+  m.rod([x, y, -0.57], [x, y, 0.35], 0.092, '#56634d', 12, { metal: 0.5 });
+  for (const z of [-0.5, -0.1, 0.29])
     m.rod([x, y, z - 0.032], [x, y, z + 0.032], 0.104, '#323c3f', 12, { metal: 0.55 });
-  m.rod([x, y, 0.531], [x, y, 0.535], 0.066, '#1b252a', 12);
-  m.box(x - 0.062, 1.31, 0.12, 0.124, 0.079, 0.23, '#333c36');
-  m.box(x - 0.023, 1.5, 0.27, 0.046, 0.06, 0.09, '#353c41');
-  m.box(x - 0.015, 1.52, 0.266, 0.03, 0.023, 0.01, '#ecc172', { emissive: 0.55 });
+  m.rod([x, y, 0.351], [x, y, 0.355], 0.066, '#1b252a', 12);
+  m.box(x - 0.03, 0.67, -0.034, 0.06, 0.15, 0.068, '#333c36');
+  m.rod([x, 0.81, 0.17], [x - 0.085, 0.756, 0.17], 0.034, '#333c36', 8);
+  m.box(x - 0.023, y + 0.09, 0.09, 0.046, 0.06, 0.09, '#353c41');
+  m.box(x - 0.015, y + 0.11, 0.086, 0.03, 0.023, 0.01, '#ecc172', { emissive: 0.55 });
   return (launcherMesh = m.data);
 }
 function clockMesh(time: number) {
@@ -206,7 +209,11 @@ export function drawWearableAccessories(
     look.headOnly ||
     (!goose &&
       !look.railgun &&
-      look.weapon !== 'missile-launcher' &&
+      !look.launcher &&
+      !look.bayonet &&
+      !look.crowbar &&
+      !look.rollingPin &&
+      !look.battleaxe &&
       look.back !== 'new-year-rocket' &&
       look.neck !== 'clock-amulet' &&
       look.neck !== 'recoil-amulet')
@@ -261,6 +268,10 @@ export function drawWearableAccessories(
       }
     };
   if (look.railgun) attach(railgunMesh(), 9, 'held-railgun');
+  if (look.bayonet) attach(heldMeleeWeapon('bayonet'), 9, 'held-bayonet');
+  if (look.crowbar) attach(heldMeleeWeapon('crowbar'), 9, 'held-crowbar');
+  if (look.rollingPin) attach(heldMeleeWeapon('rolling-pin'), 9, 'held-rolling-pin');
+  if (look.battleaxe) attach(heldMeleeWeapon('battleaxe'), 9, 'held-battleaxe');
   if (look.back === 'new-year-rocket') {
     attach(rocketMesh(), 1, 'wearable-rocket');
     if ((look.rocketBurnUntil || 0) > (look.serverTime ?? Date.now())) {
@@ -300,7 +311,7 @@ export function drawWearableAccessories(
     attach(hood, 3, 'wearable-goose-hood');
   }
   if (look.neck === 'recoil-amulet') attach(recoilAmulet(), 2, 'wearable-recoil');
-  if (look.weapon === 'missile-launcher') attach(missileLauncher(), 2, 'wearable-launcher');
+  if (look.launcher) attach(missileLauncher(), 9, 'wearable-launcher');
   if (look.neck === 'clock-amulet')
     attach(clockMesh((look.serverTime ?? Date.now()) / 1000), 2, 'wearable-clock');
 }

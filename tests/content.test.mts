@@ -6,6 +6,7 @@ import { contentFixture } from './helpers/content-fixture.mts';
 import { validateContent, validatePlayerDocument } from '../src/content-validation.ts';
 import { conditionMatches, selectContentVariant } from '../src/content-conditions.ts';
 import { compileEntityDialogue, applyContentEntity, menuFromContent } from '../src/content-game.ts';
+import { ahabDialogue } from '../src/jurassic.ts';
 import {
   createPlayerDocument,
   playerDocumentFromContext,
@@ -44,7 +45,7 @@ test('safe JSON conditions read quest progress and collections', () => {
   );
   assert.equal(conditionMatches({ path: '__proto__.constructor', exists: true }, state), false);
 });
-test('JSON controls dialogue text and visibility while stable IDs preserve action callbacks', () => {
+test('JSON controls dialogue text and visibility while stable IDs preserve action callbacks', async () => {
   const original = { ...CONTENT };
   try {
     const content = contentFixture();
@@ -78,6 +79,19 @@ test('JSON controls dialogue text and visibility while stable IDs preserve actio
     assert.ok(dialogue?.choices != null, 'Missing test fixture: dialogue.choices');
     requiredFixture(requiredFixture(dialogue.choices.find((c) => c.id === 'purchase')).accept)();
     assert.equal(calls, 1);
+    person.choices![0].accept = undefined;
+    person.choices![0].amount = {
+      prompt: 'How many?',
+      submit: (amount) => {
+        calls += amount;
+        return { ok: true };
+      },
+    };
+    const purchase = compileEntityDialogue(person, 'actor:goblin', ctx).choices?.find(
+      (choice) => choice.id === 'purchase',
+    );
+    assert.equal((await requiredFixture(purchase?.amount).submit(4)).ok, true);
+    assert.equal(calls, 5);
     content.entities.definitions.goblin.name = 'Chair maker';
     const npc = applyContentEntity({ id: 'goblin', label: 'Goblin' }, 'actor:goblin');
     assert.equal(npc.label, 'Chair maker');
@@ -89,6 +103,37 @@ test('JSON controls dialogue text and visibility while stable IDs preserve actio
     installContent(original);
   }
 });
+test('Ahab reads the Character weapon and authoritative raptor progress for the boarding dialogue', () => {
+  const state = createPlayerDocument();
+  state.inventory.economy.ownedEquipment = ['railgun'];
+  const game = {
+    state: { raptor: 'not-started' as const, equipped: true, krakenReward: false },
+    ship: { aboard: false, phase: 'moored' },
+    board: () => ({ ok: true }),
+    returnShip: () => true,
+  };
+  const read = (weapon: string) =>
+    compileEntityDialogue(
+      ahabDialogue({ name: 'Ahab' }, game, weapon === 'railgun'),
+      'actor:captain-ahab',
+      {
+        playerLook: { weapon },
+        expeditions: game,
+        multiplayer: { state: { playerState: state } },
+      },
+    );
+  state.quests.expeditions.raptor = 'escaped';
+  assert.match(read('railgun').intro || '', /I see your railgun.*Defeat the raptor first/);
+  state.quests.expeditions.raptorDefeated = true;
+  state.quests.expeditions.equipped = false;
+  assert.match(read('unarmed').intro || '', /Equip a railgun under Character/);
+  const ready = read('railgun');
+  assert.match(ready.intro || '', /That railgun will do/);
+  assert.equal(ready.choices?.[0].next?.choices?.[0].actionId, 'jurassic.ahabDialogue.action-58');
+  game.ship.aboard = true;
+  assert.equal(read('railgun').choices?.[0].actionId, 'jurassic.ahabDialogue.action-36');
+});
+
 test('legacy player data migrates every module and profile flag into one serializable document', () => {
   const profile = {
     name: 'Veteran',

@@ -189,7 +189,7 @@ import '../alien-sites.ts';
 import '../times-square-life.ts';
 import '../square-construction.ts';
 
-import { createSkateTricks, SKATE_TRICKS } from '../skateboard.ts';
+import { createSkateTricks } from '../skateboard.ts';
 import '../npc-roaming.ts';
 import '../shipyard.ts';
 import '../parrots.ts';
@@ -254,7 +254,7 @@ import '../zoo-animals.ts';
 
 import { ZOO_PATHS } from '../zoo.ts';
 import { WINDSURF_LAUNCH, createWindsurfing } from '../windsurfing.ts';
-import { createSurfing, SURF_TRICKS } from '../surfing.ts';
+import { createSurfing } from '../surfing.ts';
 import { createDetentionSite } from '../encounters.ts';
 import {
   WORLD_SIZE,
@@ -1752,9 +1752,6 @@ export function createSFWorld({
     get updateCamera() {
       return updateCamera;
     },
-    get updateCapeControl() {
-      return updateCapeControl;
-    },
     get updateClimbButton() {
       return updateClimbButton;
     },
@@ -1961,9 +1958,7 @@ export function createSFWorld({
     updatePhoneControl,
     updateHatControl,
     wearHat,
-    updateCapeControl,
     playerRocketHop,
-    canRocketHop,
     hopRocket,
     lightDecorativeRocket,
     changeCharacter,
@@ -3140,6 +3135,7 @@ export function createSFWorld({
       id: 'home',
       name: contentText('world.scene.createSFWorld.name-7', {}),
       label: contentText('world.scene.createSFWorld.label-8', {}),
+      signText: "John's Place",
       category: 'Bio & contact',
       source: 'Bio',
       x: 34,
@@ -3170,6 +3166,7 @@ export function createSFWorld({
       id: 'writing',
       name: contentText('world.scene.createSFWorld.name-13', {}),
       label: contentText('world.scene.createSFWorld.label-14', {}),
+      signText: 'City Lights - Essays',
       category: 'Writing',
       source: 'Writing',
       x: 44,
@@ -3185,6 +3182,7 @@ export function createSFWorld({
       id: 'books',
       name: contentText('world.scene.createSFWorld.name-16', {}),
       label: contentText('world.scene.createSFWorld.label-17', {}),
+      signText: 'Main Library - Bookshelf',
       category: 'Bookshelf',
       source: 'Bookshelf',
       x: 40,
@@ -3200,6 +3198,7 @@ export function createSFWorld({
       id: 'press',
       name: contentText('world.scene.createSFWorld.name-19', {}),
       label: contentText('world.scene.createSFWorld.label-20', {}),
+      signText: 'The Newsstand',
       category: 'Press & podcasts',
       source: 'Press',
       x: 44,
@@ -3263,6 +3262,7 @@ export function createSFWorld({
       id: 'venture',
       name: contentText('world.scene.createSFWorld.name-31', {}),
       label: contentText('world.scene.createSFWorld.label-32', {}),
+      signText: 'Demo Day Hall',
       category: 'Venture',
       source: 'Venture',
       x: 48,
@@ -3296,6 +3296,7 @@ export function createSFWorld({
       id: 'etc',
       name: contentText('world.scene.createSFWorld.name-37', {}),
       label: contentText('world.scene.createSFWorld.label-38', {}),
+      signText: 'Curiosity Shop',
       category: 'Etc. · Haight-Ashbury',
       source: 'Etc.',
       x: 31,
@@ -4447,7 +4448,9 @@ export function createSFWorld({
     control('v', 'sf-roll-button', 'Forward roll');
     control('b', 'sf-bike-button', 'Bicycle');
     control('k', 'sf-skateboard-button', 'Skateboard');
-    control('e', 'sf-ski-button', 'Tahoe activity');
+    control('j', 'sf-rocket-hop', 'Rocket hop');
+    if (tahoe.state.mode === 'ski') control(' ', 'sf-ski-button', 'Ski flip');
+    else control('e', 'sf-ski-button', 'Tahoe activity');
     entries.set('+', { label: 'Zoom in', run: () => setZoom(zoom + 0.1) });
     entries.set('-', { label: 'Zoom out', run: () => setZoom(zoom - 0.1) });
     if (motorcycle?.state.rented)
@@ -4458,19 +4461,18 @@ export function createSFWorld({
     if (exit === 'streetcar' || exit === 'waymo' || sutroClimb.state.active)
       entries.set('e', { label: 'Exit options', run: showExitMenu });
     for (const group of [
+      $('sf-bomber-controls'),
       $('sf-wave-controls'),
       $('sf-skate-tricks'),
       $('sf-motorcycle-tricks'),
       $('sf-atv-controls'),
     ]) {
       if (group.hidden) continue;
-      for (const button of group.querySelectorAll<HTMLButtonElement>('button[aria-keyshortcuts]')) {
+      for (const button of group.querySelectorAll<HTMLButtonElement>('button[data-shortcut]')) {
         if (button.hidden || button.disabled) continue;
         const label = button.textContent?.trim().split(' · ')[0] || '';
-        const keys = (button.getAttribute('aria-keyshortcuts') || '').toLowerCase().split(/\s+/);
-        for (const key of keys) {
-          if (key) entries.set(key === 'space' ? ' ' : key, { label, run: () => button.click() });
-        }
+        for (const key of button.dataset.shortcut!.split(' '))
+          entries.set(key === 'space' ? ' ' : key, { label, run: () => button.click() });
       }
     }
     entries.set('t', {
@@ -4488,6 +4490,7 @@ export function createSFWorld({
     return entries;
   }
   function showShortcuts() {
+    canvas.focus({ preventScroll: true });
     shortcutList.replaceChildren();
     for (const [key, { label }] of availableShortcuts()) {
       const item = document.createElement('li');
@@ -4508,13 +4511,33 @@ export function createSFWorld({
   function startTyping(event: KeyboardEvent) {
     if (chatForm.hidden || !$('sf-reader').hidden || !$('sf-context').hidden) return false;
     if (event.key === ' ' && event.target instanceof HTMLButtonElement) return false;
-    if ([...event.key].length !== 1 && event.key !== 'Dead' && !event.isComposing) return false;
+    const deleting = event.key === 'Backspace' || event.key === 'Delete';
+    if (!deleting && [...event.key].length !== 1 && event.key !== 'Dead' && !event.isComposing)
+      return false;
     expandChat(true);
     chatDraft.focus({ preventScroll: true });
     if (event.isComposing || event.key === 'Dead') return true;
     event.preventDefault();
     const start = chatDraft.selectionStart ?? chatDraft.value.length;
     const end = chatDraft.selectionEnd ?? start;
+    if (deleting) {
+      let from = start;
+      let to = end;
+      if (start === end) {
+        const boundaries = [
+          0,
+          ...Array.from(
+            new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(chatDraft.value),
+            ({ index, segment }) => index + segment.length,
+          ),
+        ];
+        if (event.key === 'Backspace')
+          from = boundaries.findLast((index) => index < start) ?? start;
+        else to = boundaries.find((index) => index > end) ?? end;
+      }
+      if (to > from) chatDraft.setRangeText('', from, to, 'end');
+      return true;
+    }
     if (chatDraft.value.length - end + start + event.key.length <= PLAYER_CHAT_LIMIT)
       chatDraft.setRangeText(event.key, start, end, 'end');
     return true;
@@ -4546,17 +4569,17 @@ export function createSFWorld({
       }
       if (key === 'escape' && !e.isComposing && !e.repeat) {
         e.preventDefault();
-        canvas.focus({ preventScroll: true });
         showShortcuts();
       }
       return;
     }
     if (!shortcutMenu.hidden && !['shift', 'control', 'alt', 'meta'].includes(key)) {
-      closeShortcutMenu();
       if (key === 'escape') {
         e.preventDefault();
+        if (!e.repeat) closeShortcutMenu();
         return;
       }
+      closeShortcutMenu();
       if (!e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) {
         const shortcut = availableShortcuts().get(key === '=' ? '+' : key);
         if (shortcut) {
@@ -4690,10 +4713,6 @@ export function createSFWorld({
       (e.target instanceof HTMLElement && e.target.isContentEditable)
     )
       return;
-    if (key === 'e' && !e.repeat && $('sf-reader').hidden && showExitMenu()) {
-      e.preventDefault();
-      return;
-    }
     if (!$('sf-context').hidden && (key === 'arrowdown' || key === 'arrowup')) {
       e.preventDefault();
       const opts = [...$('sf-context').querySelectorAll<HTMLElementTagNameMap['button']>('button')],
@@ -4728,90 +4747,7 @@ export function createSFWorld({
       keys.add(key);
       return;
     }
-    if (secretWorld?.bomber.state.active) {
-      if (key === 'r' && !e.repeat) {
-        e.preventDefault();
-        secretWorld.bomber.barrelRoll();
-        return;
-      }
-      if (key === ' ' && !e.repeat) {
-        e.preventDefault();
-        secretAction(secretWorld.dropBomb());
-        return;
-      }
-      if ((['b', 'f', 'e', 'r', 'm', 'k', 'v', 'd', 'g'] satisfies string[]).includes(key)) {
-        e.preventDefault();
-        return;
-      }
-    }
-    if (
-      multiplayerWorld?.selfMode === 'atv' &&
-      !e.repeat &&
-      (key === 'r' || key === 't') &&
-      multiplayerWorld.selfGesture === 'atv-air'
-    ) {
-      e.preventDefault();
-      multiplayerWorld.command('travel', {
-        kind: 'atvTrick',
-        trick: key === 'r' ? 'roll' : 'spin',
-      });
-      return;
-    }
-    if (
-      !e.repeat &&
-      surf.state.riding &&
-      surf.state.mode === 'surf' &&
-      (key === ' ' || SURF_TRICKS.some((t) => t.key === key))
-    ) {
-      e.preventDefault();
-      if (key === ' ') catchPacificaWave();
-      else
-        performSurfTrick(
-          requiredValue(
-            SURF_TRICKS.find((t) => t.key === key),
-            'Surf trick',
-          ).id,
-        );
-      return;
-    }
-    const motorcycleTrick = !$('sf-motorcycle-tricks').hidden
-      ? motorcycleTricks.find((button) => button.getAttribute('aria-keyshortcuts') === key)
-      : undefined;
-    if (motorcycleTrick) {
-      e.preventDefault();
-      if (!e.repeat) motorcycleTrick.click();
-      return;
-    }
-    if (!e.repeat && skateboard.riding && SKATE_TRICKS.some((t) => t.key === key)) {
-      e.preventDefault();
-      performSkateTrick(
-        requiredValue(
-          SKATE_TRICKS.find((t) => t.key === key),
-          'Skate trick',
-        ).id,
-      );
-      return;
-    }
-    if (key === ' ' && canRocketHop()) {
-      e.preventDefault();
-      if (!e.repeat) hopRocket();
-      return;
-    }
-    if (!e.repeat && key === ' ' && tahoe.state.mode === 'ski') {
-      e.preventDefault();
-      tahoe.flip();
-      return;
-    }
-    if (startTyping(e) || e.repeat || multiplayerWorld?.selfMode === 'atv') return;
-    if (key === '+' || key === '=') {
-      e.preventDefault();
-      setZoom(zoom + 0.1);
-    }
-    if (key === '-') {
-      e.preventDefault();
-      setZoom(zoom - 0.1);
-    }
-    if (key === '?') showHelp();
+    startTyping(e);
   });
   document.addEventListener('keyup', (e) => {
     updateGroundItemModifier(e);

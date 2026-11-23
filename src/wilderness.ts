@@ -1,4 +1,5 @@
 import { CREATURE_STRIKE_MS } from './creature-attack-pose.ts';
+import { WILDERNESS_FIRST_ATTACK_SECONDS } from './config/gameplay.ts';
 import { legacyBugSpawns } from './legacy-software-layout.ts';
 import { contentText } from './content-runtime.ts';
 import { isFiniteNumber } from './types/json.ts';
@@ -255,7 +256,8 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
       actor.enemyPosition = { x: person.x, z: person.z };
       actor.repath = 0;
     }
-    if (actor.enemy === null) actor.attackAt = Math.max(actor.attackAt, clock + 0.6);
+    if (actor.enemy === null)
+      actor.attackAt = Math.max(actor.attackAt, clock + WILDERNESS_FIRST_ATTACK_SECONDS);
     actor.enemy = person.id;
     actor.returning = false;
     actor.affection = 0;
@@ -409,7 +411,7 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
           actor.enemy = enemy.id;
           actor.enemyPosition = { x: enemy.x, z: enemy.z };
           actor.repath = 0;
-          actor.attackAt = Math.max(actor.attackAt, clock + 0.6);
+          actor.attackAt = Math.max(actor.attackAt, clock + WILDERNESS_FIRST_ATTACK_SECONDS);
         }
       }
       if (actor.returning && Math.hypot(actor.x - actor.home.x, actor.z - actor.home.z) < 0.05) {

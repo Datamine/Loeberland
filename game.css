@@ -115,6 +115,7 @@ body.sf-mode > .maintable {
   --sf-muted: #7a7e68;
   --sf-line: #9da185;
   --sf-menu-yellow: #ffe29b;
+  --sf-npc-yellow: #ffff00;
   --sf-scrollbar-colors: #8b7651 #cabb93;
   --sf-hud-inset-x: 24px;
   --sf-hud-inset-y: 22px;
@@ -964,7 +965,7 @@ body.sf-mode .sf-toggle {
   color: #fff;
 }
 #sf-world .sf-action-target[data-kind='npc'] {
-  color: #ffff00;
+  color: var(--sf-npc-yellow);
 }
 #sf-world .sf-action-target[data-kind='item'] {
   color: #ffa99b;
@@ -972,10 +973,7 @@ body.sf-mode .sf-toggle {
 #sf-world .sf-action-target[data-kind='object'] {
   color: #49c3bf;
 }
-#sf-world
-  .sf-actions
-  .sf-action-target:is([data-kind='npc'], [data-kind='object']):not(:where(#sf-exit-streetcar *)),
-#sf-world #sf-eat-sandwich .sf-action-target {
+#sf-world .sf-actions .sf-action-target {
   color: inherit;
 }
 #sf-world .sf-context button:hover,
@@ -1009,7 +1007,7 @@ body.sf-mode .sf-toggle {
   padding: 0 12px;
   white-space: nowrap;
   background: #66553a;
-  color: var(--sf-menu-yellow);
+  color: var(--sf-side-menu-text, var(--sf-menu-yellow));
   border: 3px solid;
   border-color: #b29b69 #30291f #30291f #b29b69;
   box-shadow: inset 0 0 0 1px #473b29;
@@ -1028,10 +1026,14 @@ body.sf-mode .sf-toggle {
 #sf-world .sf-bike-button[aria-pressed='true'] {
   background: #405b3b;
   border-top-color: #a3b67a;
-  color: #e1efab;
+  color: var(--sf-side-menu-text, #e1efab);
+}
+#sf-world .sf-actions .sf-bike-button[aria-pressed='true']:where(:not(:disabled)) {
+  background: #7b6542;
+  border-top-color: #d0b786;
 }
 #sf-world .sf-bike-button:disabled {
-  color: #c8c8c8;
+  color: var(--sf-side-menu-text, #c8c8c8);
   background: #505050;
   border-color: #767676 #353535 #353535 #767676;
   box-shadow: none;
@@ -1168,12 +1170,14 @@ body.sf-mode .sf-toggle {
 
 /* Compact exploration controls share one card in the bottom-right corner. */
 .sf-side-hud {
+  --sf-side-menu-text: #f1deb3;
   display: flex;
   align-items: flex-end;
   justify-content: flex-end;
   gap: 6px;
   min-width: 0;
   margin-left: auto;
+  color: var(--sf-side-menu-text);
   pointer-events: none;
 }
 .sf-side-hud > * {
@@ -1195,7 +1199,7 @@ body.sf-mode .sf-toggle {
   border: 1px solid #a39370;
   border-radius: 3px 3px 0 0;
   background: #554e3e;
-  color: #efdfb1;
+  color: var(--sf-side-menu-text, #efdfb1);
   font: 16px/1 Tahoma, sans-serif;
 }
 #sf-world .sf-panel-toggle:hover {
@@ -1242,7 +1246,7 @@ body.sf-mode .sf-toggle {
   padding: 8px 10px;
   border: 1px solid #9d8b60;
   background: #302c24;
-  color: #f1dfb9;
+  color: inherit;
   font:
     12px Tahoma,
     sans-serif;
@@ -1277,7 +1281,7 @@ body.sf-mode .sf-toggle {
   border: 1px solid #888681;
   border-radius: 2px;
   background: #605e59;
-  color: #f8f3e7;
+  color: var(--sf-side-menu-text, #f8f3e7);
   font:
     11px Tahoma,
     sans-serif;
@@ -1337,7 +1341,7 @@ body.sf-mode .sf-toggle {
   background: #302b22;
   border: 1px solid #a39370;
   box-shadow: 3px 4px 8px #17151077;
-  color: #f1deb3;
+  color: inherit;
 }
 .sf-action-choices:popover-open {
   display: grid;
@@ -1386,22 +1390,17 @@ body.sf-mode .sf-toggle {
   flex-wrap: wrap;
   justify-content: space-between;
   gap: 8px;
-  color: #f0d79c;
   font:
     11px Tahoma,
     sans-serif;
   padding-bottom: 6px;
   border-bottom: 1px solid #a3937060;
 }
-.sf-purse strong {
-  color: #ffe29a;
-}
 .sf-strength {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
   align-items: center;
   gap: 6px 8px;
-  color: #e7d4a6;
   font:
     11px Tahoma,
     sans-serif;
@@ -1410,7 +1409,6 @@ body.sf-mode .sf-toggle {
   padding: 7px;
   background: #343e3c;
   border: 1px solid #8c947b;
-  color: #e8dfba;
   font:
     11px Tahoma,
     sans-serif;
@@ -1438,7 +1436,7 @@ body.sf-mode .sf-toggle {
   padding: 5px;
   background: #736346;
   border: 1px solid #b29b6b;
-  color: #ffedbf;
+  color: inherit;
 }
 #sf-inventory {
   color: #d4c7a4;
@@ -1500,7 +1498,7 @@ body.sf-mode .sf-toggle {
 }
 .sf-chat-name {
   width: 100%;
-  color: #684526;
+  color: var(--sf-npc-yellow);
   text-align: center;
   font:
     bold 13px/1.35 Tahoma,
@@ -1683,16 +1681,37 @@ body.sf-mode .sf-toggle {
   align-items: start;
   gap: 12px 24px;
 }
-.sf-character-summary {
-  grid-column: 1 / -1;
-}
-#sf-world .sf-character-summary p,
 #sf-world .sf-character-body h3 {
   margin-top: 0;
 }
 .sf-character-gear {
   padding-left: 20px;
   border-left: 1px solid #8b7853;
+}
+.sf-character .sf-equipment-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px 12px;
+  margin: 0 0 12px;
+  padding: 7px 0;
+  border-block: 1px solid #8b7853;
+  color: #e2d0a2;
+  font: 11px/1.5 Tahoma, sans-serif;
+}
+.sf-equipment-stats dt {
+  color: inherit;
+}
+.sf-equipment-stats > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4px;
+}
+.sf-equipment-stats dd {
+  margin: 0;
+  color: #fff1c9;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 #sf-account-panel {
   max-width: 340px;
@@ -1760,6 +1779,8 @@ body.sf-mode .sf-toggle {
   max-width: 92px;
 }
 .sf-high-scores select {
+  background: #66553a;
+  color: inherit;
   font: inherit;
 }
 .sf-high-scores label {
@@ -1884,13 +1905,6 @@ body.sf-mode .sf-toggle {
   height: 16px;
   accent-color: #8ca477;
 }
-.sf-sunglasses-hint {
-  grid-column: 1 / -1;
-  font:
-    11px/1.5 Tahoma,
-    sans-serif;
-  color: #d8c8a3;
-}
 
 #sf-world .sf-quest-card ul {
   margin: 10px 0;
@@ -1907,7 +1921,6 @@ body.sf-mode .sf-toggle {
   display: block;
   flex-basis: 100%;
   max-width: 280px;
-  color: #d3c49c;
   font:
     11px/1.5 Tahoma,
     sans-serif;
@@ -1922,10 +1935,6 @@ body.sf-mode .sf-toggle {
   flex-wrap: wrap;
   gap: 4px 10px;
   font-size: 12px;
-  color: #f1e1c3;
-}
-#sf-enemy-health {
-  color: #edb39d;
 }
 .sf-food-controls {
   display: grid;
@@ -2046,14 +2055,10 @@ body.sf-mode .sf-toggle {
 }
 #sf-wave-status {
   grid-column: 1 / -1;
-  color: #eadfbc;
   font-size: 11px;
 }
 
-#sf-world .sf-character-fields .sf-hat-option {
-  align-items: stretch;
-}
-#sf-world .sf-hat-option select {
+.sf-character-gear .sf-character-fields select {
   max-width: none;
   width: 100%;
 }
@@ -2324,14 +2329,20 @@ body.sf-mode .sf-toggle {
 }
 .sf-player-speech,
 .sf-actor-label:has(> .sf-player-name) .sf-speech {
-  color: var(--sf-menu-yellow);
+  color: var(--sf-npc-yellow);
 }
 .sf-player-speech,
 .sf-actor-label .sf-player-name,
 .sf-actor-label:has(> .sf-player-name) .sf-speech {
   font-size: var(--sf-player-text-size);
   text-shadow: none;
-  -webkit-text-stroke: 1px #373739;
+}
+.sf-chat-name,
+.sf-player-speech,
+.sf-actor-label .sf-player-name,
+.sf-actor-label:has(> .sf-player-name) .sf-speech {
+  /* The fill covers the inner half of the stroke, leaving a 1px outline. */
+  -webkit-text-stroke: 2px #000;
   paint-order: stroke fill;
 }
 .sf-pvp-option {
@@ -2361,13 +2372,6 @@ body.sf-mode .sf-toggle {
 .sf-player-name[data-pvp='true'] {
   color: #f2a18c;
 }
-.sf-guild-status {
-  margin: 10px 0;
-  color: #e2d0a2;
-  font:
-    12px/1.5 Tahoma,
-    sans-serif;
-}
 .sf-instance-level {
   display: block;
   grid-column: 1 / -1;
@@ -2394,7 +2398,6 @@ body.sf-mode .sf-toggle {
   font:
     11px/1.5 Tahoma,
     sans-serif;
-  color: #e7d5a5;
 }
 #sf-world .sf-bomber-controls .sf-bike-button {
   min-width: 0;
@@ -2804,7 +2807,6 @@ body.sf-mode .sf-toggle {
   padding: 4px 6px;
   border: 1px solid #9d8b60;
   background: #25251d;
-  color: #f9ecce;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   pointer-events: none;
@@ -2880,9 +2882,6 @@ body.sf-mode .sf-toggle {
 }
 #sf-character-save-status:empty {
   display: none !important;
-}
-#sf-equipment-hint {
-  white-space: pre-line;
 }
 
 #sf-log {
@@ -3004,7 +3003,7 @@ body.sf-mode .sf-toggle {
   padding: 6px 7px;
   border: 1px solid transparent;
   background: transparent;
-  color: #f1deb3;
+  color: var(--sf-side-menu-text, #f1deb3);
   font-size: 11px;
   white-space: nowrap;
 }
@@ -3014,23 +3013,34 @@ body.sf-mode .sf-toggle {
 #sf-world .sf-action-tabs [role='tab'][aria-selected='true'] {
   background: #736448;
   border-color: transparent #9f895f #9f895f;
-  color: #fff1c9;
 }
 #sf-world .sf-tablist button:hover,
 #sf-world #sf-help-button:hover {
-  color: #fff9df;
+  color: var(--sf-side-menu-text, #fff9df);
   background: #756348;
 }
-#sf-character-tabs {
+.sf-character-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
   border-bottom: 1px solid #ab936b;
   margin-bottom: 12px;
+}
+#sf-world #sf-character-tabs button {
+  white-space: normal;
+}
+#sf-character-level {
+  color: #e2d0a2;
+  font: 12px/1.5 Tahoma, sans-serif;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 #sf-world #sf-character-tabs [aria-selected='true'] {
   background: #736448;
   border-color: #9f895f #9f895f transparent;
 }
 .sf-online-count {
-  color: #efdfb9;
   font-size: 11px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -3039,7 +3049,6 @@ body.sf-mode .sf-toggle {
   display: grid;
   gap: 3px;
   text-align: center;
-  color: #e7d4a6;
 }
 .sf-high-scores ol {
   padding-inline-start: 1.55rem;
@@ -3147,7 +3156,8 @@ body.sf-mode .sf-toggle {
   color: #f0d7a5;
 }
 .sf-character-resources {
-  color: #5c503b;
+  grid-column: 1 / -1;
+  margin-top: 0;
 }
 #sf-world :is(.sf-player-trade, .sf-chat-unlock-dialog) button:not(.sf-primary) {
   padding: 5px 9px;

@@ -701,7 +701,7 @@
       "template": "A triumph of maritime understatement. Wear it proudly."
     },
     "jurassic.ahabDialogue.intro-42": {
-      "template": "I’m Ahab. That’s the Pequod at the berth. Out past the last buoy the fog can swallow the whole shoreline, so I check everyone’s gear while I can still see it. Anyone who hunts from my deck brings a railgun. If you came for the sea air, there’s room to stand awhile."
+      "template": "I’m Ahab. That’s the Pequod at the berth. Out past the last buoy the fog can swallow the whole shoreline, so I check everyone’s gear while I can still see it. Equip a railgun under Character → Gear → Weapon before we set sail."
     },
     "jurassic.ahabDialogue.question-43": {
       "template": "What counts as sufficiently powerful?"
@@ -2174,7 +2174,7 @@
       "template": "Pacifica surfboards"
     },
     "world.generation.setupPacificaSurf.description-100": {
-      "template": "Bright boards wait on the Pacifica beach. Paddle into the foam lines, press Space to catch a wave, and use 1 / 2 / 3 for an Air 360, kickflip or backflip. U returns to the beach."
+      "template": "Bright boards wait on the Pacifica beach. Paddle into the foam lines, press Esc then Space to catch a wave, and press Esc then 1, 2, or 3 for an Air 360, kickflip, or backflip. Esc then F returns you to the beach."
     },
     "world.generation.connectStreetNetwork.name-101": {
       "template": "Connecting walk"
@@ -2243,13 +2243,13 @@
       "template": "pet"
     },
     "world.interactions.interactCitizen.intro-27": {
-      "template": "Good afternoon. I stock railgun batteries, twenty coins each. I keep them up off the floor because the fog creeps under the door and the terminals mind getting wet. If you’re headed out for the day, check what you have before you leave."
+      "template": "Good afternoon. I stock railgun batteries, {price} coins each. I keep them up off the floor because the fog creeps under the door and the terminals mind getting wet. If you’re headed out for the day, check what you have before you leave."
     },
     "world.interactions.interactCitizen.decline-28": {
       "template": "Leave"
     },
     "world.interactions.interactCitizen.label-30": {
-      "template": "Buy battery · 20 coins"
+      "template": "Buy batteries · {price} coins each"
     },
     "world.interactions.interactCitizen.choice-34": {
       "template": "How is the town?"
@@ -2498,7 +2498,7 @@
       "template": "Bicycle"
     },
     "world.scene.createSFWorld.description-71": {
-      "template": "A red city bicycle. Ride it along Market Street and through the park. Press B to ride or park it; dismount automatically at shop doors."
+      "template": "A red city bicycle. Ride it along Market Street and through the park. Press Esc then B to ride or park it; dismount automatically at shop doors."
     },
     "world.scene.createSFWorld.label-72": {
       "template": "Golden Gate Bridge"
@@ -2783,7 +2783,7 @@
       "template": "Any advice for the descent?"
     },
     "service.ski-lift.root.choices.1.receipt": {
-      "template": "Click to steer, stay on the snow, and press Space to flip while airborne. If you’d rather keep your feet off the ground, the gondola will take you back down."
+      "template": "Click to steer, stay on the snow, and press Esc then Space to flip while airborne. If you’d rather keep your feet off the ground, the gondola will take you back down."
     },
     "service.wizard.tablet-story.label": {
       "template": "How did you invent the tablets?"
@@ -2852,7 +2852,7 @@
       "template": "Where is my motorcycle?"
     },
     "service.motorcycle-rented.root.choices.0.receipt": {
-      "template": "Press M to find your parked motorcycle or get on it. Your rental remains valid."
+      "template": "Press Esc then M to find your parked motorcycle or get on it. Your rental remains valid."
     },
     "service.ai-recruiter.root.intro": {
       "template": "Come in. The people with headphones are trying to get a run through before lunch. I handle hiring for the lab. We start with a short arithmetic interview. I can tell you what the work is like before you decide whether to sit it."
@@ -3767,7 +3767,7 @@
       "template": "BERKELEY INSTITUTE\nFOR ESOTERIC STUDIES"
     },
     "world-label.sign.CHURCH%20NOTICEBOARD": {
-      "template": "CHURCH NOTICEBOARD"
+      "template": "Church Noticeboard"
     },
     "world-label.sign.GOOSE%20CORP%0ATRUST%20THE%20SIMULATION": {
       "template": "GOOSE CORP\nTRUST THE SIMULATION"
@@ -3843,6 +3843,36 @@
     },
     "world-label.sign.Rich%20Table": {
       "template": "Rich Table"
+    },
+    "combat-supplies.ammo.label": {
+      "template": "Buy Akimbo ammo · {price} coins per {units} rounds"
+    },
+    "combat-supplies.ammo.prompt": {
+      "template": "How many packs of {units} rounds?"
+    },
+    "combat-supplies.missile.label": {
+      "template": "Buy missiles · {price} coins each"
+    },
+    "combat-supplies.missile.prompt": {
+      "template": "How many missiles?"
+    },
+    "combat-supplies.battery.prompt": {
+      "template": "How many railgun batteries?"
+    },
+    "jurassic.ahabDialogue.railgun-on-loan": {
+      "template": "I see your railgun. Jurassic Biosciences lent it to you for the Velociraptor hunt. Defeat the raptor first, then bring it back here and we’ll sail."
+    },
+    "world-label.sign.BOLINAS": {
+      "template": "BOLINAS"
+    },
+    "world-label.sign.COASTAL%20GROCER": {
+      "template": "COASTAL GROCER"
+    },
+    "world-label.sign.MOUNT%20TAM%20GOBLINS": {
+      "template": "MOUNT TAM GOBLINS"
+    },
+    "world-label.sign.FOG%20JAR%20CO-OP": {
+      "template": "FOG JAR CO-OP"
     }
   }
 }

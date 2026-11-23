@@ -12,7 +12,7 @@ async function act(
   game: TestGame,
   a: TestPlayer,
   action: string,
-  args: { op?: string; id?: string; weapon?: string },
+  args: { op?: string; id?: string; weapon?: string; amount?: unknown },
 ) {
   game.receive(a.p, {
     type: 'command',
@@ -89,6 +89,51 @@ test('ammo and battery purchases validate location and price, charge explicitly,
     assert.equal(returned.token, token);
     assert.equal(returned.p.inventory.meta.railgunCharge, 24);
     assert.equal(returned.p.inventory.meta.akimboAmmo, 0);
+  } finally {
+    await game.close();
+  }
+});
+
+test('combat supply vendors sell whole-number quantities and reject the entire invalid order', async () => {
+  const geometry = fixtureGeometry();
+  const game = await createGame({ geometry, store: createMemoryStore() });
+  try {
+    const a = await player(game, 99206, { 'sf-purse-v1': '{"coins":300}' });
+    const buy = (op: string, amount: unknown) => act(game, a, 'inventory', { op, amount });
+    const purse = a.p.inventory.economy.state;
+    const supplies = a.p.inventory.meta;
+    supplies.akimboAmmo = 0;
+    assert.equal((await buy('buyMissile', 2))?.ok, false);
+    assert.equal((await buy('buyBattery', 2))?.ok, false);
+    for (const [id, kind] of [
+      ['armorer', 'armorer'],
+      ['battery', 'battery-seller'],
+    ]) {
+      const npc = { id, kind, label: id, questRole: kind, x: a.p.x, z: a.p.z, base: a.p.y };
+      geometry.merchants.push(npc);
+      game.shared.npcById.set(id, npc);
+    }
+    assert.equal((await buy('buyAmmo', 3))?.ok, true);
+    assert.equal((await buy('buyMissile', 4))?.ok, true);
+    const batteryOrder = await buy('buyBattery', 2);
+    assert.equal(batteryOrder?.ok, true);
+    assert.match(batteryOrder?.message || '', /2 railgun batteries for 40 coins/);
+    assert.deepEqual(
+      [purse.coins, supplies.akimboAmmo, supplies.missiles, supplies.railgunBatteries],
+      [45, 60, 4, 2],
+    );
+    for (const amount of [0, -2, 1.5, '2', null, Number.MAX_SAFE_INTEGER])
+      assert.equal((await buy('buyAmmo', amount))?.ok, false);
+    assert.equal((await buy('buyBattery', 3))?.ok, false);
+    assert.equal((await buy('buyMissile', 1))?.ok, false);
+    assert.deepEqual(
+      [purse.coins, supplies.akimboAmmo, supplies.missiles, supplies.railgunBatteries],
+      [45, 60, 4, 2],
+    );
+    supplies.akimboAmmo = 999_970;
+    assert.equal((await buy('buyAmmo', 2))?.ok, false);
+    assert.equal(supplies.akimboAmmo, 999_970);
+    assert.equal(purse.coins, 45);
   } finally {
     await game.close();
   }
@@ -228,7 +273,7 @@ test('the armorer sells missiles for 50 coins and the launcher spends one per sh
     await game.disconnect(a.p);
     const b = await player(game, 99205);
     assert.equal(b.p.inventory.snapshot().missiles, 2);
-    Object.assign(b.p, { x: cow.x - 1, z: cow.z });
+    Object.assign(b.p, { x: cow.x - 9, z: cow.z });
     cow.hp = cow.max = 1000;
     const attack = () => act(game, b, 'attack', { id: cow.id, weapon: 'missile-launcher' });
     assert.equal((await attack())?.ok, true);

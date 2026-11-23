@@ -1,12 +1,40 @@
 import { requiredFixture } from './helpers/required.mts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { rollEnemyDamage, createAlienBattle, createHitpoints } from '../src/combat.ts';
+import {
+  averageAttackDamage,
+  rollEnemyDamage,
+  createAlienBattle,
+  createHitpoints,
+} from '../src/combat.ts';
+import { monsterFighter, simulateFight } from '../editor/combat-simulator.ts';
 import { ownedEquipmentDefense } from '../src/item-stats.ts';
 import { createExpeditions } from '../src/jurassic.ts';
 import { createEconomy } from '../src/economy.ts';
 import { MONSTER_STATS } from '../src/monster-drops.ts';
 import { monsterInBombArea, bombTileArea } from '../src/stealth-bomber.ts';
+
+test('Mad Scientist DPS uses the live hit roll and cadence while simulated damage waits for impact', () => {
+  const attacker = monsterFighter('mad-scientist');
+  const opponent = { ...monsterFighter('cow'), level: 1, hp: 30 };
+  const roll = attacker.range(opponent);
+  assert.deepEqual(roll, { min: 9, max: 47, accuracy: 0.9 });
+  assert.equal((averageAttackDamage(roll) / attacker.interval).toFixed(2), '13.62');
+  const expectedWithArmor = (0.9 * 666) / 39;
+  assert.ok(Math.abs(averageAttackDamage(roll, 11) - expectedWithArmor) < 1e-10);
+  const frames: { time: number; hp: number }[] = [];
+  const result = simulateFight(
+    [attacker, opponent],
+    () => 0.5,
+    (time, hp) => {
+      frames.push({ time, hp: hp[1] });
+    },
+  );
+  const firstHit = requiredFixture(frames.find((frame) => frame.hp < opponent.hp));
+  assert.ok(Math.abs(firstHit.time - 1.15) < 1e-10);
+  assert.equal(firstHit.hp, 2);
+  assert.equal(result.damage[0], 30, 'the fight counts health lost, including a capped final hit');
+});
 
 test('ordinary creature bomb eligibility excludes quest species and uses the same 3×3 tile boundary', () => {
   const area = bombTileArea(10, 20);

@@ -58,12 +58,12 @@
       "format": "esm"
     },
     "content/validate.js": {
-      "bytes": 154923,
+      "bytes": 154928,
       "imports": [],
       "format": "esm"
     },
     "content/items.json": {
-      "bytes": 10787,
+      "bytes": 10792,
       "imports": [],
       "format": "esm",
       "with": {
@@ -71,7 +71,7 @@
       }
     },
     "content/entities.json": {
-      "bytes": 592483,
+      "bytes": 592600,
       "imports": [],
       "format": "esm",
       "with": {
@@ -79,7 +79,7 @@
       }
     },
     "content/dialogues.json": {
-      "bytes": 453954,
+      "bytes": 458358,
       "imports": [],
       "format": "esm",
       "with": {
@@ -108,7 +108,7 @@
       "format": "esm"
     },
     "content/texts.json": {
-      "bytes": 156777,
+      "bytes": 157866,
       "imports": [],
       "format": "esm",
       "with": {
@@ -116,7 +116,7 @@
       }
     },
     "content/world-messages.json": {
-      "bytes": 98257,
+      "bytes": 99006,
       "imports": [],
       "format": "esm",
       "with": {
@@ -279,7 +279,7 @@
       "format": "esm"
     },
     "src/types/ui.ts": {
-      "bytes": 11412,
+      "bytes": 11491,
       "imports": [],
       "format": "esm"
     },
@@ -384,7 +384,7 @@
       "format": "esm"
     },
     "src/config/gameplay.ts": {
-      "bytes": 674,
+      "bytes": 1112,
       "imports": [],
       "format": "esm"
     },
@@ -505,7 +505,7 @@
       "format": "esm"
     },
     "src/dialogues/services.json": {
-      "bytes": 32845,
+      "bytes": 32863,
       "imports": [],
       "format": "esm",
       "with": {
@@ -605,13 +605,34 @@
       ],
       "format": "esm"
     },
-    "src/wearable-models.ts": {
-      "bytes": 10170,
+    "src/melee-weapon-models.ts": {
+      "bytes": 10260,
       "imports": [
         {
           "path": "src/geometry.ts",
           "kind": "import-statement",
           "original": "./geometry.ts"
+        },
+        {
+          "path": "src/rendering/mesh-transform.ts",
+          "kind": "import-statement",
+          "original": "./rendering/mesh-transform.ts"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/wearable-models.ts": {
+      "bytes": 10763,
+      "imports": [
+        {
+          "path": "src/geometry.ts",
+          "kind": "import-statement",
+          "original": "./geometry.ts"
+        },
+        {
+          "path": "src/melee-weapon-models.ts",
+          "kind": "import-statement",
+          "original": "./melee-weapon-models.ts"
         },
         {
           "path": "src/rendering/character-gpu.ts",
@@ -662,8 +683,13 @@
       ],
       "format": "esm"
     },
+    "src/ground-items.ts": {
+      "bytes": 566,
+      "imports": [],
+      "format": "esm"
+    },
     "src/item-stats.ts": {
-      "bytes": 4411,
+      "bytes": 4572,
       "imports": [
         {
           "path": "src/types/json.ts",
@@ -676,11 +702,21 @@
           "original": "./config/item-stats.ts"
         },
         {
+          "path": "src/ground-items.ts",
+          "kind": "import-statement",
+          "original": "./ground-items.ts"
+        },
+        {
           "path": "src/config/item-stats.ts",
           "kind": "import-statement",
           "original": "./config/item-stats.ts"
         }
       ],
+      "format": "esm"
+    },
+    "src/iron-armor-appearance.ts": {
+      "bytes": 96,
+      "imports": [],
       "format": "esm"
     },
     "src/hat-models.ts": {
@@ -738,7 +774,7 @@
       "format": "esm"
     },
     "src/characters.ts": {
-      "bytes": 86202,
+      "bytes": 84093,
       "imports": [
         {
           "path": "src/wearable-models.ts",
@@ -754,6 +790,11 @@
           "path": "src/item-stats.ts",
           "kind": "import-statement",
           "original": "./item-stats.ts"
+        },
+        {
+          "path": "src/iron-armor-appearance.ts",
+          "kind": "import-statement",
+          "original": "./iron-armor-appearance.ts"
         },
         {
           "path": "src/hat-models.ts",
@@ -1682,7 +1723,7 @@
       "format": "esm"
     },
     "src/player-document.ts": {
-      "bytes": 10642,
+      "bytes": 10815,
       "imports": [
         {
           "path": "src/types/json.ts",
@@ -1734,7 +1775,7 @@
       "format": "esm"
     },
     "src/content-game.ts": {
-      "bytes": 11331,
+      "bytes": 11421,
       "imports": [
         {
           "path": "src/content-runtime.ts",
@@ -1882,7 +1923,7 @@
       "format": "esm"
     },
     "src/goblin-town.ts": {
-      "bytes": 15920,
+      "bytes": 15939,
       "imports": [
         {
           "path": "src/geometry.ts",
@@ -2015,7 +2056,7 @@
       "format": "esm"
     },
     "src/config/monster-drops.ts": {
-      "bytes": 17222,
+      "bytes": 17178,
       "imports": [
         {
           "path": "src/legacy-software-layout.ts",
@@ -2191,7 +2232,7 @@
       "format": "esm"
     },
     "src/jurassic-models.ts": {
-      "bytes": 24237,
+      "bytes": 26173,
       "imports": [
         {
           "path": "src/config/gameplay.ts",
@@ -2222,6 +2263,11 @@
           "path": "src/guild-models.ts",
           "kind": "import-statement",
           "original": "./guild-models.ts"
+        },
+        {
+          "path": "src/melee-weapon-models.ts",
+          "kind": "import-statement",
+          "original": "./melee-weapon-models.ts"
         },
         {
           "path": "src/windows.ts",
@@ -2739,7 +2785,7 @@
       "format": "esm"
     },
     "src/remote-player-models.ts": {
-      "bytes": 7507,
+      "bytes": 7530,
       "imports": [
         {
           "path": "src/goblin-town.ts",
@@ -2855,7 +2901,7 @@
       "format": "esm"
     },
     "src/multiplayer-world.ts": {
-      "bytes": 27891,
+      "bytes": 28233,
       "imports": [
         {
           "path": "src/monster-drops.ts",
@@ -2982,7 +3028,7 @@
       "format": "esm"
     },
     "src/world/network.ts": {
-      "bytes": 23027,
+      "bytes": 23191,
       "imports": [
         {
           "path": "src/types/assert.ts",
@@ -3235,7 +3281,7 @@
       "format": "esm"
     },
     "src/world/runtime.ts": {
-      "bytes": 35002,
+      "bytes": 34985,
       "imports": [
         {
           "path": "src/berkeley-lab.ts",
@@ -3535,7 +3581,7 @@
       "format": "esm"
     },
     "src/wilderness-models.ts": {
-      "bytes": 48964,
+      "bytes": 51984,
       "imports": [
         {
           "path": "src/types/assert.ts",
@@ -3571,6 +3617,11 @@
           "path": "src/goblin-town.ts",
           "kind": "import-statement",
           "original": "./goblin-town.ts"
+        },
+        {
+          "path": "src/iron-armor-appearance.ts",
+          "kind": "import-statement",
+          "original": "./iron-armor-appearance.ts"
         }
       ],
       "format": "esm"
@@ -3638,7 +3689,7 @@
       "format": "esm"
     },
     "src/life.ts": {
-      "bytes": 21749,
+      "bytes": 23462,
       "imports": [
         {
           "path": "src/content-runtime.ts",
@@ -4118,7 +4169,7 @@
       "format": "esm"
     },
     "src/world/rendering.ts": {
-      "bytes": 107671,
+      "bytes": 108290,
       "imports": [
         {
           "path": "src/berkeley-lab.ts",
@@ -4691,11 +4742,6 @@
       "imports": [],
       "format": "esm"
     },
-    "src/ground-items.ts": {
-      "bytes": 454,
-      "imports": [],
-      "format": "esm"
-    },
     "src/legacy-software.ts": {
       "bytes": 3389,
       "imports": [
@@ -4842,7 +4888,7 @@
       "format": "esm"
     },
     "src/world-stream.ts": {
-      "bytes": 536516,
+      "bytes": 536527,
       "imports": [
         {
           "path": "src/types/json.ts",
@@ -5272,7 +5318,7 @@
       "format": "esm"
     },
     "src/combat.ts": {
-      "bytes": 6489,
+      "bytes": 7063,
       "imports": [
         {
           "path": "src/types/json.ts",
@@ -5324,12 +5370,17 @@
       "format": "esm"
     },
     "src/wilderness.ts": {
-      "bytes": 19685,
+      "bytes": 19819,
       "imports": [
         {
           "path": "src/creature-attack-pose.ts",
           "kind": "import-statement",
           "original": "./creature-attack-pose.ts"
+        },
+        {
+          "path": "src/config/gameplay.ts",
+          "kind": "import-statement",
+          "original": "./config/gameplay.ts"
         },
         {
           "path": "src/legacy-software-layout.ts",
@@ -6020,7 +6071,7 @@
       "format": "esm"
     },
     "src/suburban-homes.ts": {
-      "bytes": 12555,
+      "bytes": 12607,
       "imports": [
         {
           "path": "src/geometry.ts",
@@ -6050,8 +6101,13 @@
       ],
       "format": "esm"
     },
+    "src/neighborhood-tree.ts": {
+      "bytes": 855,
+      "imports": [],
+      "format": "esm"
+    },
     "src/berkeley-campus.ts": {
-      "bytes": 30073,
+      "bytes": 36601,
       "imports": [
         {
           "path": "src/wall-openings.ts",
@@ -6077,12 +6133,17 @@
           "path": "src/geography.ts",
           "kind": "import-statement",
           "original": "./geography.ts"
+        },
+        {
+          "path": "src/neighborhood-tree.ts",
+          "kind": "import-statement",
+          "original": "./neighborhood-tree.ts"
         }
       ],
       "format": "esm"
     },
     "src/alien-sites.ts": {
-      "bytes": 33761,
+      "bytes": 36803,
       "imports": [
         {
           "path": "src/types/assert.ts",
@@ -6613,7 +6674,7 @@
       "format": "esm"
     },
     "src/secret-adventures.ts": {
-      "bytes": 7447,
+      "bytes": 7329,
       "imports": [
         {
           "path": "src/content-runtime.ts",
@@ -6780,7 +6841,7 @@
       "format": "esm"
     },
     "src/world/generation.ts": {
-      "bytes": 253859,
+      "bytes": 254045,
       "imports": [
         {
           "path": "src/backyard-details.ts",
@@ -7750,7 +7811,7 @@
       "format": "esm"
     },
     "src/world/hud.ts": {
-      "bytes": 35197,
+      "bytes": 34732,
       "imports": [
         {
           "path": "src/motorcycle.ts",
@@ -7796,11 +7857,6 @@
           "path": "src/hat-catalog.ts",
           "kind": "import-statement",
           "original": "../hat-catalog.ts"
-        },
-        {
-          "path": "src/jurassic-layout.ts",
-          "kind": "import-statement",
-          "original": "../jurassic-layout.ts"
         },
         {
           "path": "src/equipment-options.ts",
@@ -7900,7 +7956,7 @@
       }
     },
     "src/interaction-sights.ts": {
-      "bytes": 451,
+      "bytes": 1316,
       "imports": [],
       "format": "esm"
     },
@@ -7926,6 +7982,17 @@
           "path": "src/types/json.ts",
           "kind": "import-statement",
           "original": "./types/json.ts"
+        }
+      ],
+      "format": "esm"
+    },
+    "src/combat-supply-shop.ts": {
+      "bytes": 682,
+      "imports": [
+        {
+          "path": "src/item-stats.ts",
+          "kind": "import-statement",
+          "original": "./item-stats.ts"
         }
       ],
       "format": "esm"
@@ -8015,7 +8082,7 @@
       "format": "esm"
     },
     "src/jurassic.ts": {
-      "bytes": 35999,
+      "bytes": 36094,
       "imports": [
         {
           "path": "src/types/assert.ts",
@@ -8041,6 +8108,11 @@
           "path": "src/item-stats.ts",
           "kind": "import-statement",
           "original": "./item-stats.ts"
+        },
+        {
+          "path": "src/config/gameplay.ts",
+          "kind": "import-statement",
+          "original": "./config/gameplay.ts"
         },
         {
           "path": "src/jurassic-layout.ts",
@@ -8243,7 +8315,7 @@
       }
     },
     "src/world/interactions.ts": {
-      "bytes": 202212,
+      "bytes": 207189,
       "imports": [
         {
           "path": "src/backyard-details.ts",
@@ -8392,6 +8464,11 @@
           "path": "src/item-stats.ts",
           "kind": "import-statement",
           "original": "../item-stats.ts"
+        },
+        {
+          "path": "src/combat-supply-shop.ts",
+          "kind": "import-statement",
+          "original": "../combat-supply-shop.ts"
         },
         {
           "path": "src/wilderness.ts",
@@ -8796,7 +8873,7 @@
       "format": "esm"
     },
     "src/models.ts": {
-      "bytes": 60067,
+      "bytes": 59314,
       "imports": [
         {
           "path": "src/types/assert.ts",
@@ -8812,6 +8889,11 @@
           "path": "src/bicycle-model.ts",
           "kind": "import-statement",
           "original": "./bicycle-model.ts"
+        },
+        {
+          "path": "src/neighborhood-tree.ts",
+          "kind": "import-statement",
+          "original": "./neighborhood-tree.ts"
         },
         {
           "path": "src/southern-layout.ts",
@@ -8996,7 +9078,7 @@
       "format": "esm"
     },
     "src/dialogue.ts": {
-      "bytes": 14043,
+      "bytes": 14079,
       "imports": [
         {
           "path": "src/content-runtime.ts",
@@ -9055,7 +9137,7 @@
       "format": "esm"
     },
     "src/world/scene.ts": {
-      "bytes": 148280,
+      "bytes": 146735,
       "imports": [
         {
           "path": "src/ui/tabs.ts",
@@ -10133,7 +10215,7 @@
       "imports": [],
       "exports": [],
       "inputs": {},
-      "bytes": 9529483
+      "bytes": 9594370
     },
     "explore.js": {
       "imports": [],
@@ -10141,7 +10223,7 @@
       "entryPoint": "src/world.ts",
       "inputs": {
         "content/validate.js": {
-          "bytesInOutput": 154976
+          "bytesInOutput": 154981
         },
         "src/types/assert.ts": {
           "bytesInOutput": 91
@@ -10174,13 +10256,13 @@
           "bytesInOutput": 1615
         },
         "content/items.json": {
-          "bytesInOutput": 7789
+          "bytesInOutput": 7794
         },
         "content/entities.json": {
-          "bytesInOutput": 361156
+          "bytesInOutput": 361255
         },
         "content/dialogues.json": {
-          "bytesInOutput": 270985
+          "bytesInOutput": 273102
         },
         "content/dialogues/tweet-derived/chains.json": {
           "bytesInOutput": 121052
@@ -10192,10 +10274,10 @@
           "bytesInOutput": 236
         },
         "content/texts.json": {
-          "bytesInOutput": 130490
+          "bytesInOutput": 131379
         },
         "content/world-messages.json": {
-          "bytesInOutput": 88547
+          "bytesInOutput": 89233
         },
         "content/world-message-sources.ts": {
           "bytesInOutput": 96
@@ -10231,7 +10313,7 @@
           "bytesInOutput": 4187
         },
         "src/client/controllers.ts": {
-          "bytesInOutput": 5143
+          "bytesInOutput": 5145
         },
         "src/rendering/mesh-transform.ts": {
           "bytesInOutput": 1409
@@ -10249,7 +10331,7 @@
           "bytesInOutput": 7465
         },
         "src/config/gameplay.ts": {
-          "bytesInOutput": 456
+          "bytesInOutput": 616
         },
         "src/atv.ts": {
           "bytesInOutput": 442
@@ -10273,7 +10355,7 @@
           "bytesInOutput": 2853
         },
         "src/dialogues/services.json": {
-          "bytesInOutput": 24195
+          "bytesInOutput": 24213
         },
         "content/dialogues/other/goose-corp-lore.json": {
           "bytesInOutput": 7028
@@ -10294,7 +10376,7 @@
           "bytesInOutput": 2561
         },
         "src/player-document.ts": {
-          "bytesInOutput": 3074
+          "bytesInOutput": 3180
         },
         "content/player-state-defaults.json": {
           "bytesInOutput": 1433
@@ -10305,8 +10387,11 @@
         "src/coastline.ts": {
           "bytesInOutput": 3529
         },
+        "src/melee-weapon-models.ts": {
+          "bytesInOutput": 5841
+        },
         "src/wearable-models.ts": {
-          "bytesInOutput": 5652
+          "bytesInOutput": 6017
         },
         "src/config/hats.ts": {
           "bytesInOutput": 1613
@@ -10317,8 +10402,14 @@
         "src/config/item-stats.ts": {
           "bytesInOutput": 1001
         },
+        "src/ground-items.ts": {
+          "bytesInOutput": 273
+        },
         "src/item-stats.ts": {
-          "bytesInOutput": 1873
+          "bytesInOutput": 2422
+        },
+        "src/iron-armor-appearance.ts": {
+          "bytesInOutput": 70
         },
         "src/hat-models.ts": {
           "bytesInOutput": 6536
@@ -10333,7 +10424,7 @@
           "bytesInOutput": 930
         },
         "src/characters.ts": {
-          "bytesInOutput": 43779
+          "bytesInOutput": 43123
         },
         "src/surfing.ts": {
           "bytesInOutput": 7592
@@ -10441,7 +10532,7 @@
           "bytesInOutput": 2130
         },
         "src/institute-interiors.ts": {
-          "bytesInOutput": 6666
+          "bytesInOutput": 6672
         },
         "src/research-layout.ts": {
           "bytesInOutput": 1034
@@ -10465,10 +10556,10 @@
           "bytesInOutput": 4086
         },
         "src/dog-surfing.ts": {
-          "bytesInOutput": 6480
+          "bytesInOutput": 6485
         },
         "src/content-game.ts": {
-          "bytesInOutput": 7330
+          "bytesInOutput": 7400
         },
         "src/world-edits.ts": {
           "bytesInOutput": 1638
@@ -10483,7 +10574,7 @@
           "bytesInOutput": 1512
         },
         "src/goblin-ai-lab.ts": {
-          "bytesInOutput": 6275
+          "bytesInOutput": 6286
         },
         "src/goblin-space-layout.ts": {
           "bytesInOutput": 729
@@ -10492,10 +10583,10 @@
           "bytesInOutput": 3598
         },
         "src/furniture-models.ts": {
-          "bytesInOutput": 2488
+          "bytesInOutput": 2498
         },
         "src/goblin-town.ts": {
-          "bytesInOutput": 9844
+          "bytesInOutput": 9873
         },
         "src/dialogue-config.ts": {
           "bytesInOutput": 3884
@@ -10513,7 +10604,7 @@
           "bytesInOutput": 75
         },
         "src/config/monster-drops.ts": {
-          "bytesInOutput": 12519
+          "bytesInOutput": 12481
         },
         "src/monster-drops.ts": {
           "bytesInOutput": 398
@@ -10546,10 +10637,10 @@
           "bytesInOutput": 2313
         },
         "src/guild-models.ts": {
-          "bytesInOutput": 2648
+          "bytesInOutput": 2650
         },
         "src/jurassic-models.ts": {
-          "bytesInOutput": 12373
+          "bytesInOutput": 13507
         },
         "src/config/hairstyles.ts": {
           "bytesInOutput": 689
@@ -10585,10 +10676,10 @@
           "bytesInOutput": 4338
         },
         "src/street-traffic.ts": {
-          "bytesInOutput": 9287
+          "bytesInOutput": 9293
         },
         "src/atv-model.ts": {
-          "bytesInOutput": 2521
+          "bytesInOutput": 2530
         },
         "src/swings.ts": {
           "bytesInOutput": 2448
@@ -10612,7 +10703,7 @@
           "bytesInOutput": 868
         },
         "src/estate-homes.ts": {
-          "bytesInOutput": 10765
+          "bytesInOutput": 10769
         },
         "src/estate-architecture.ts": {
           "bytesInOutput": 5063
@@ -10633,16 +10724,16 @@
           "bytesInOutput": 1247
         },
         "src/remote-player-models.ts": {
-          "bytesInOutput": 3525
+          "bytesInOutput": 3537
         },
         "src/multiplayer-world.ts": {
-          "bytesInOutput": 16174
+          "bytesInOutput": 16443
         },
         "src/encounters.ts": {
           "bytesInOutput": 3657
         },
         "src/world/network.ts": {
-          "bytesInOutput": 14536
+          "bytesInOutput": 14640
         },
         "src/berkeley-lab.ts": {
           "bytesInOutput": 3526
@@ -10669,7 +10760,7 @@
           "bytesInOutput": 1872
         },
         "src/world/runtime.ts": {
-          "bytesInOutput": 22002
+          "bytesInOutput": 22003
         },
         "src/burning-man-models.ts": {
           "bytesInOutput": 5320
@@ -10702,7 +10793,7 @@
           "bytesInOutput": 2604
         },
         "src/wilderness-models.ts": {
-          "bytesInOutput": 26302
+          "bytesInOutput": 27602
         },
         "src/static-batches.ts": {
           "bytesInOutput": 1217
@@ -10720,13 +10811,13 @@
           "bytesInOutput": 600
         },
         "src/life.ts": {
-          "bytesInOutput": 10550
+          "bytesInOutput": 11520
         },
         "src/western-coast-details.ts": {
           "bytesInOutput": 1891
         },
         "src/lighting.ts": {
-          "bytesInOutput": 7956
+          "bytesInOutput": 7971
         },
         "src/environment.ts": {
           "bytesInOutput": 5250
@@ -10786,7 +10877,7 @@
           "bytesInOutput": 5030
         },
         "src/world/rendering.ts": {
-          "bytesInOutput": 68952
+          "bytesInOutput": 69324
         },
         "src/combat-navigation.ts": {
           "bytesInOutput": 2537
@@ -10802,9 +10893,6 @@
         },
         "src/backyard-details.ts": {
           "bytesInOutput": 2711
-        },
-        "src/ground-items.ts": {
-          "bytesInOutput": 196
         },
         "src/legacy-software.ts": {
           "bytesInOutput": 1849
@@ -10834,7 +10922,7 @@
           "bytesInOutput": 2183
         },
         "src/world-stream.ts": {
-          "bytesInOutput": 501031
+          "bytesInOutput": 501042
         },
         "src/config/neighborhood-services.ts": {
           "bytesInOutput": 1397
@@ -10873,7 +10961,7 @@
           "bytesInOutput": 2512
         },
         "src/marin-land.ts": {
-          "bytesInOutput": 9927
+          "bytesInOutput": 9933
         },
         "src/countryside.ts": {
           "bytesInOutput": 6282
@@ -10882,7 +10970,7 @@
           "bytesInOutput": 304
         },
         "src/downtown.ts": {
-          "bytesInOutput": 9400
+          "bytesInOutput": 9404
         },
         "src/config/progression.ts": {
           "bytesInOutput": 128
@@ -10891,13 +10979,13 @@
           "bytesInOutput": 995
         },
         "src/combat.ts": {
-          "bytesInOutput": 2005
+          "bytesInOutput": 2122
         },
         "src/wilderness-sites.ts": {
           "bytesInOutput": 3728
         },
         "src/wilderness.ts": {
-          "bytesInOutput": 10878
+          "bytesInOutput": 10936
         },
         "src/ferrari-roads.ts": {
           "bytesInOutput": 4452
@@ -10984,13 +11072,16 @@
           "bytesInOutput": 1367
         },
         "src/suburban-homes.ts": {
-          "bytesInOutput": 6309
+          "bytesInOutput": 6338
+        },
+        "src/neighborhood-tree.ts": {
+          "bytesInOutput": 414
         },
         "src/berkeley-campus.ts": {
-          "bytesInOutput": 16956
+          "bytesInOutput": 21233
         },
         "src/alien-sites.ts": {
-          "bytesInOutput": 18983
+          "bytesInOutput": 20758
         },
         "src/rail-works.ts": {
           "bytesInOutput": 4249
@@ -11023,7 +11114,7 @@
           "bytesInOutput": 3212
         },
         "src/secret-adventures.ts": {
-          "bytesInOutput": 3651
+          "bytesInOutput": 3606
         },
         "src/banking.ts": {
           "bytesInOutput": 743
@@ -11047,7 +11138,7 @@
           "bytesInOutput": 4042
         },
         "src/world/generation.ts": {
-          "bytesInOutput": 158557
+          "bytesInOutput": 158726
         },
         "src/minimap-layers.ts": {
           "bytesInOutput": 3872
@@ -11065,7 +11156,7 @@
           "bytesInOutput": 111
         },
         "src/world/hud.ts": {
-          "bytesInOutput": 25401
+          "bytesInOutput": 25100
         },
         "src/chat-head.ts": {
           "bytesInOutput": 2225
@@ -11074,13 +11165,16 @@
           "bytesInOutput": 18269
         },
         "src/interaction-sights.ts": {
-          "bytesInOutput": 189
+          "bytesInOutput": 650
         },
         "src/interaction-results.ts": {
           "bytesInOutput": 184
         },
         "src/debug-console.ts": {
           "bytesInOutput": 5270
+        },
+        "src/combat-supply-shop.ts": {
+          "bytesInOutput": 315
         },
         "src/sales-conference.ts": {
           "bytesInOutput": 2588
@@ -11095,7 +11189,7 @@
           "bytesInOutput": 3689
         },
         "src/jurassic.ts": {
-          "bytesInOutput": 23698
+          "bytesInOutput": 23741
         },
         "src/interaction-access.ts": {
           "bytesInOutput": 216
@@ -11131,7 +11225,7 @@
           "bytesInOutput": 1477
         },
         "src/world/interactions.ts": {
-          "bytesInOutput": 136363
+          "bytesInOutput": 139254
         },
         "src/ai-lab.ts": {
           "bytesInOutput": 3137
@@ -11143,22 +11237,22 @@
           "bytesInOutput": 25311
         },
         "src/city-hall.ts": {
-          "bytesInOutput": 4176
+          "bytesInOutput": 4183
         },
         "src/offices.ts": {
           "bytesInOutput": 1053
         },
         "src/sutro.ts": {
-          "bytesInOutput": 6424
+          "bytesInOutput": 6433
         },
         "src/soma-pyramid.ts": {
           "bytesInOutput": 1601
         },
         "src/transamerica.ts": {
-          "bytesInOutput": 3889
+          "bytesInOutput": 3895
         },
         "src/models.ts": {
-          "bytesInOutput": 29156
+          "bytesInOutput": 28973
         },
         "src/strength.ts": {
           "bytesInOutput": 1327
@@ -11176,10 +11270,10 @@
           "bytesInOutput": 1977
         },
         "src/dialogue.ts": {
-          "bytesInOutput": 8471
+          "bytesInOutput": 8505
         },
         "src/combat-feedback.ts": {
-          "bytesInOutput": 2733
+          "bytesInOutput": 2735
         },
         "src/levels.ts": {
           "bytesInOutput": 401
@@ -11188,7 +11282,7 @@
           "bytesInOutput": 3190
         },
         "src/world/scene.ts": {
-          "bytesInOutput": 82966
+          "bytesInOutput": 82016
         },
         "src/world/model.ts": {
           "bytesInOutput": 85
@@ -11197,7 +11291,7 @@
           "bytesInOutput": 1701
         }
       },
-      "bytes": 4395881
+      "bytes": 4419654
     }
   }
 }

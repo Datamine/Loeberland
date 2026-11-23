@@ -118,7 +118,7 @@ export function menuFromContent<B extends object>(
 }
 
 function rawBindings(person: RuntimeDialogue) {
-  const actions = new Map<string, NonNullable<RuntimeChoice['accept']>>(),
+  const actions = new Map<string, RuntimeChoice>(),
     nodes = new Map<string, RuntimeDialogue>(),
     choices = new Map<string, RuntimeChoice>();
   function walk(node: RuntimeDialogue | undefined) {
@@ -128,8 +128,8 @@ function rawBindings(person: RuntimeDialogue) {
       const id = choice.contentNodeId || choice.id || choice.actionId;
       if (id) choices.set(id, choice);
       if (choice.actionId) choices.set(choice.actionId, choice);
-      if (typeof choice.accept === 'function' && choice.actionId)
-        actions.set(choice.actionId, choice.accept);
+      if (choice.actionId && (typeof choice.accept === 'function' || choice.amount))
+        actions.set(choice.actionId, choice);
       if (!choice.ambientConversation) walk(choice.next);
     }
   }
@@ -283,8 +283,11 @@ export function compileEntityDialogue<T extends RuntimeDialogue>(
         };
         delete compiled.next;
         delete compiled.accept;
-        if (choice.action && raw.actions.has(choice.action))
-          compiled.accept = raw.actions.get(choice.action);
+        if (choice.action) {
+          const action = raw.actions.get(choice.action);
+          if (action?.accept) compiled.accept = action.accept;
+          if (action?.amount) compiled.amount = action.amount;
+        }
         if (choice.trade) compiled.trade = choice.trade;
         if (choice.receipt !== undefined)
           compiled.receipt = field(choice.receipt, binding, 'receipt', choice.id);
