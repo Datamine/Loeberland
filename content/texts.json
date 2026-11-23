@@ -512,10 +512,10 @@
       "template": "Heirloom produce, black coats and exceptionally small sunglasses. The farmers grow the future, mostly in vials."
     },
     "guild.guildDialogue.intro-8.yes": {
-      "template": "Ray closes the ledger. “Full member. The library is yours. Mind the fine print.”"
+      "template": "[Ray closes the ledger.] Full member. The library is yours. Mind the fine print."
     },
     "guild.guildDialogue.intro-8.no": {
-      "template": "Ray turns the ledger toward you. “Rank {v0}. I keep the admissions book. What did you want to know?”"
+      "template": "[Ray turns the ledger toward you.] Rank {v0}. I keep the admissions book. What did you want to know?"
     },
     "guild.guildDialogue.decline-10": {
       "template": "Leave"
@@ -3425,19 +3425,19 @@
       "template": "Who owns the lodge?"
     },
     "service.guild-rumours.root.choices.0.receipt": {
-      "template": "Ray lowers his voice. “The Powerful and Evil Goose Corporation. An old arrangement. We own the secrets; they own the building.”"
+      "template": "[Ray lowers his voice.] The Powerful and Evil Goose Corporation. An old arrangement. We own the secrets. They own the building."
     },
     "guild.guildDialogue.shortcut.label": {
       "template": "Is there any way to move things along?"
     },
     "guild.guildDialogue.private-trade.intro": {
-      "template": "Ray glances toward the lodge door. “The Freemasons don’t ask for peptides. I do make a private trade, though. Slip me one vial and I can put you up a rank today. It stays between us.” You have {v0} peptides."
+      "template": "[Ray glances toward the lodge door.] The Freemasons don’t ask for peptides. I do make a private trade, though. Slip me one vial and I can put you up a rank today. It stays between us. You have {v0} peptides."
     },
     "service.guild-admissions.root.choices.0.label": {
       "template": "What are the official requirements?"
     },
     "service.guild-admissions.root.choices.0.receipt": {
-      "template": "“Sign in to get started, then come back after a full hour for each promotion. Twenty-four promotions make you a member. You can do the whole thing without ever bringing a peptide.”"
+      "template": "Sign in to get started, then come back after a full hour for each promotion. Twenty-four promotions make you a member. You can do the whole thing without ever bringing a peptide."
     },
     "service.neighborhood-menottis.root.intro": {
       "template": "Welcome to Menotti’s. What can I pour you? If you want to earn a coin, I could use a hand clearing the tables."

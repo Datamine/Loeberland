@@ -1769,21 +1769,22 @@
     }
   },
   "variants": {
-    "sight:nia.conversation": {
-      "id": "sight:nia.conversation",
-      "states": ["Inside this building"],
-      "placements": ["sight:nia"],
-      "when": {
-        "path": "activities.insideTarget",
-        "eq": true
-      },
-      "shared": true
-    },
     "sight:nia.tip": {
       "id": "sight:nia.tip",
-      "states": ["New visitor"],
+      "states": ["New visitor", "Inside this building"],
       "placements": ["sight:nia"],
-      "speech": "\"Best way to see the city? Borrow the bicycle, take Market west, and go say hello to the ducks.\""
+      "root": "tip",
+      "nodes": {
+        "tip": {
+          "id": "tip",
+          "intro": "Best way to see the city? Borrow the bicycle, take Market west, and go say hello to the ducks.",
+          "question": "",
+          "decline": "Leave",
+          "repeat": false,
+          "skipIntro": false,
+          "choices": []
+        }
+      }
     },
     "actor:ai-lab-recruiter.dialogue-1": {
       "id": "actor:ai-lab-recruiter.dialogue-1",

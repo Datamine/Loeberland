@@ -34,8 +34,7 @@ import {
   placeEntryVerb,
 } from '../context-menu.ts';
 import { applyEntityEdits } from '../world-edits.ts';
-import { menuFromContent, compileEntityDialogue, entityDialogueVariant } from '../content-game.ts';
-import { playerDocumentFromContext } from '../player-document.ts';
+import { menuFromContent, compileEntityDialogue } from '../content-game.ts';
 import { dialogueChoices } from '../dialogue-choices.ts';
 import { POOL_SWIMMER } from '../communal-pool.ts';
 import { createAmbientDialogue, childConversation } from '../dialogues/ambient.ts';
@@ -2181,13 +2180,12 @@ export function createInteractions(context: WorldContext) {
     if (s.kind === 'ducks') return feedDucks();
     if (s.kind === 'guest') {
       const bani = context.niaCitizen;
-      const state = playerDocumentFromContext(context, s);
-      state.activities.insideTarget = !!bani?.interior && context.currentInterior === bani.interior;
-      const variant = entityDialogueVariant(s.editorKey || 'sight:' + s.id, state);
-      if (variant?.shared) return interactCitizen(bani, 'talk');
-      const speech = variant?.speech;
-      if (speech) return walkTo(s.entry.x, s.entry.y, () => announce(speech, s.label));
-      return false;
+      if (bani?.interior && context.currentInterior === bani.interior)
+        return interactCitizen(bani, 'talk');
+      const { intro } = compileEntityDialogue(s, s.editorKey || 'sight:' + s.id, context);
+      return typeof intro === 'string' && intro
+        ? walkTo(s.entry.x, s.entry.y, () => announce(intro, s.label))
+        : false;
     }
     return examine(s);
   }
@@ -3702,9 +3700,11 @@ export function createInteractions(context: WorldContext) {
           context.destination = null;
           context.keys.clear();
           openNPCDialogue(
-            npc.club
-              ? { ...npc, contentResolved: true, intro: nightlifeRebuff(npc.gender || 'man') }
-              : createAmbientDialogue(npc, npc.child ? { chain: childConversation() } : {}),
+            npc === context.niaCitizen
+              ? npc
+              : npc.club
+                ? { ...npc, contentResolved: true, intro: nightlifeRebuff(npc.gender || 'man') }
+                : createAmbientDialogue(npc, npc.child ? { chain: childConversation() } : {}),
           );
         }
       } else {

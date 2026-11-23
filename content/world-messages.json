@@ -1185,7 +1185,7 @@
     "template": "Your equity is public. Listing fee: {fee} coins."
   },
   "world-message.src.guild.one-vial-one-promotion-you-are-now-rank-24-promotions": {
-    "template": "Ray palms the vial and marks the ledger. You are now Rank {value1} ({visits}/24 promotions)."
+    "template": "[Ray palms the vial and marks the ledger.] You are now Rank {value1} ({visits}/24 promotions)."
   },
   "world-message.src.guild.rank-25-twenty-four-promotions-welcome-to-the-freemasons-guild": {
     "template": "Rank 25. Twenty-four promotions. Welcome to the Freemasons’ Guild!"
@@ -1203,10 +1203,10 @@
     "template": "You are Rank {value1}. Return in {value2} minutes; a full hour must pass between qualifying visits."
   },
   "world-message.src.guild.you-have-no-peptides-to-donate": {
-    "template": "Ray closes his hand. “Come back when you have a vial, if you still want to make that trade.”"
+    "template": "[Ray closes his hand.] Come back when you have a vial, if you still want to make that trade."
   },
   "world-message.src.guild.your-twenty-fourth-promotion-rank-25-welcome-to-the-freemasons": {
-    "template": "Ray pockets the vial and closes the ledger. “Rank 25. I’ll tell them you’ve been very punctual.” Welcome to the Freemasons’ Guild!"
+    "template": "[Ray pockets the vial and closes the ledger.] Rank 25. I’ll tell them you’ve been very punctual. Welcome to the Freemasons’ Guild!"
   },
   "world-message.src.haberdashery.you-can-wear-any-owned-hat-from-the-character-menu": {
     "template": "{value1}. You can wear any owned hat from the Character menu."

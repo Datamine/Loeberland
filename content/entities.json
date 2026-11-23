@@ -482,7 +482,7 @@
           ]
         }
       ],
-      "dialogues": ["sight:nia.conversation", "sight:nia.tip"],
+      "dialogues": ["sight:nia.tip"],
       "capabilities": ["walk", "interaction.35", "examine"]
     },
     "actor:shanghai-bartender": {

@@ -71,7 +71,7 @@
       }
     },
     "content/entities.json": {
-      "bytes": 592509,
+      "bytes": 592483,
       "imports": [],
       "format": "esm",
       "with": {
@@ -79,7 +79,7 @@
       }
     },
     "content/dialogues.json": {
-      "bytes": 453959,
+      "bytes": 453954,
       "imports": [],
       "format": "esm",
       "with": {
@@ -108,7 +108,7 @@
       "format": "esm"
     },
     "content/texts.json": {
-      "bytes": 156799,
+      "bytes": 156777,
       "imports": [],
       "format": "esm",
       "with": {
@@ -116,7 +116,7 @@
       }
     },
     "content/world-messages.json": {
-      "bytes": 98263,
+      "bytes": 98257,
       "imports": [],
       "format": "esm",
       "with": {
@@ -8243,7 +8243,7 @@
       }
     },
     "src/world/interactions.ts": {
-      "bytes": 202346,
+      "bytes": 202212,
       "imports": [
         {
           "path": "src/backyard-details.ts",
@@ -8307,11 +8307,6 @@
           "path": "src/content-game.ts",
           "kind": "import-statement",
           "original": "../content-game.ts"
-        },
-        {
-          "path": "src/player-document.ts",
-          "kind": "import-statement",
-          "original": "../player-document.ts"
         },
         {
           "path": "src/dialogue-choices.ts",
@@ -10138,7 +10133,7 @@
       "imports": [],
       "exports": [],
       "inputs": {},
-      "bytes": 9529765
+      "bytes": 9529483
     },
     "explore.js": {
       "imports": [],
@@ -10182,10 +10177,10 @@
           "bytesInOutput": 7789
         },
         "content/entities.json": {
-          "bytesInOutput": 361181
+          "bytesInOutput": 361156
         },
         "content/dialogues.json": {
-          "bytesInOutput": 271035
+          "bytesInOutput": 270985
         },
         "content/dialogues/tweet-derived/chains.json": {
           "bytesInOutput": 121052
@@ -10197,10 +10192,10 @@
           "bytesInOutput": 236
         },
         "content/texts.json": {
-          "bytesInOutput": 130542
+          "bytesInOutput": 130490
         },
         "content/world-messages.json": {
-          "bytesInOutput": 88565
+          "bytesInOutput": 88547
         },
         "content/world-message-sources.ts": {
           "bytesInOutput": 96
@@ -11136,7 +11131,7 @@
           "bytesInOutput": 1477
         },
         "src/world/interactions.ts": {
-          "bytesInOutput": 136427
+          "bytesInOutput": 136363
         },
         "src/ai-lab.ts": {
           "bytesInOutput": 3137
@@ -11202,7 +11197,7 @@
           "bytesInOutput": 1701
         }
       },
-      "bytes": 4396090
+      "bytes": 4395881
     }
   }
 }

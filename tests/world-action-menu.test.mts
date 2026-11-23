@@ -12,14 +12,26 @@ import { npcContextActions, npcDisplayLabel, npcPrimaryVerb } from '../src/npc-i
 import { createInteractions } from '../src/world/interactions.ts';
 import { applyWorldEdits } from '../src/world-edits.ts';
 import type { WorldContext } from '../src/world/scene.ts';
-import type { Actor } from '../src/types/world.ts';
+import type { Actor, RuntimeDialogue } from '../src/types/world.ts';
 
-test('Bani uses the editor identity when selected as a character or a sight', () => {
-  const bani: Pick<Actor, 'id' | 'label' | 'editorKey'> = {
+test('both ways of selecting Bani use her editor identity and the single bicycle tip', () => {
+  const interior = { id: 'links' };
+  const bani: Pick<Actor, 'id' | 'label' | 'editorKey' | 'x' | 'z'> & {
+    interior: typeof interior;
+  } = {
     id: 'nia',
     label: 'Bani · Mazarine Coffee',
+    x: 45.5,
+    z: 29.5,
+    interior,
   };
-  const sight = { id: 'nia', label: 'Bani · café regular', description: '', kind: 'guest' };
+  const sight = {
+    id: 'nia',
+    label: 'Bani · café regular',
+    description: '',
+    kind: 'guest',
+    entry: { x: 45, y: 29 },
+  };
   applyWorldEdits({ sights: [sight], niaCitizen: bani });
   assert.equal(bani.editorKey, 'sight:nia');
   assert.equal(npcDisplayLabel(bani), sight.label);
@@ -27,14 +39,27 @@ test('Bani uses the editor identity when selected as a character or a sight', ()
   assert.equal(npcPrimaryVerb(bani), 'talk');
   assert.deepEqual(npcContextActions(bani), ['talk', 'walk', 'examine']);
   let directHit = true;
+  const opened: RuntimeDialogue[] = [];
   const { worldTarget, primaryWorldAction } = createInteractions({
     niaCitizen: bani,
+    currentInterior: interior,
     sights: [sight],
     pick: () => (directHit ? { sight } : null),
     hitCitizen: () => (directHit ? null : bani),
     flying: () => false,
     clearAt: () => true,
     tileAt: () => ({ x: 45, y: 29 }),
+    $: () => ({ hidden: true }),
+    player: { x: 45, y: 29 },
+    canvas: { focus() {} },
+    keys: new Set(),
+    quests: { state: {}, theyLive: { isDefeated: () => false } },
+    rocket: { state: { active: false } },
+    surf: { state: { riding: false } },
+    rope: { climbing: false },
+    tahoe: { state: { mode: 'ground' } },
+    sutroClimb: { state: { active: false } },
+    dialogue: { active: false, open: (person: RuntimeDialogue) => opened.push(person) },
   } as unknown as WorldContext);
   for (const direct of [true, false]) {
     directHit = direct;
@@ -56,13 +81,18 @@ test('Bani uses the editor identity when selected as a character or a sight', ()
   }
 
   const record = projectCatalog(CONTENT).records.find(({ key }) => key === bani.editorKey);
-  assert.equal(record?.dialogues.length, 2);
-  assert.equal(record?.dialogues[0].dialogue?.sharedPool, true);
+  assert.equal(record?.dialogues.length, 1);
   const inside = entityDialogueVariant(bani.editorKey, { activities: { insideTarget: true } });
   assert.equal(inside?.id, record?.dialogues[0].id);
   const outside = entityDialogueVariant(bani.editorKey, { activities: { insideTarget: false } });
-  assert.equal(outside?.id, record?.dialogues[1].id);
-  assert.match(outside?.speech ?? '', /Borrow the bicycle/);
+  assert.equal(outside?.id, inside?.id);
+  primaryWorldAction(worldTarget(20, 20)).run();
+  assert.equal(opened.length, 1);
+  assert.equal(opened[0].name, 'Bani');
+  assert.equal(opened[0].intro, record?.dialogues[0].dialogue?.intro);
+  assert.match(opened[0].intro ?? '', /Borrow the bicycle/);
+  assert.deepEqual(opened[0].choices, []);
+  assert.equal(opened[0].conversationId, undefined);
 });
 
 test('the delivery cooler can be examined as an NPC during a delivery', () => {
