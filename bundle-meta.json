@@ -279,7 +279,7 @@
       "format": "esm"
     },
     "src/types/ui.ts": {
-      "bytes": 11380,
+      "bytes": 11328,
       "imports": [],
       "format": "esm"
     },
@@ -7811,7 +7811,7 @@
       "format": "esm"
     },
     "src/world/hud.ts": {
-      "bytes": 34314,
+      "bytes": 33975,
       "imports": [
         {
           "path": "src/motorcycle.ts",
@@ -10215,7 +10215,7 @@
       "imports": [],
       "exports": [],
       "inputs": {},
-      "bytes": 9597912
+      "bytes": 9597292
     },
     "explore.js": {
       "imports": [],
@@ -11156,7 +11156,7 @@
           "bytesInOutput": 111
         },
         "src/world/hud.ts": {
-          "bytesInOutput": 24739
+          "bytesInOutput": 24386
         },
         "src/chat-head.ts": {
           "bytesInOutput": 2225
@@ -11291,7 +11291,7 @@
           "bytesInOutput": 1701
         }
       },
-      "bytes": 4421364
+      "bytes": 4421011
     }
   }
 }

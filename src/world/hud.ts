@@ -309,16 +309,7 @@ export function createHud(context: WorldContext) {
       const text = 'Sales pitch · considering';
       if (sales.textContent !== text) sales.textContent = text;
     }
-    const phone = $('sf-phone-status'),
-      cab = $('sf-robotaxi-status');
-    phone.hidden = !context.economy.state.iphoneOwned;
-    cab.hidden = !context.economy.state.robotaxiOwned;
-    const phoneText = context.economy.state.iphoneEquipped
-      ? 'iPhone · equipped'
-      : 'iPhone · put away';
-    if (phone.textContent !== phoneText) phone.textContent = phoneText;
-    const cabText = 'Robotaxi · dispatched';
-    if (cab.textContent !== cabText) cab.textContent = cabText;
+    $('sf-robotaxi-status').hidden = !purse.robotaxiOwned;
     $('sf-roll-button').disabled = context.forwardRoll.state.active || !context.canForwardRoll();
     if (
       context.fishing.state.active &&
@@ -382,6 +373,7 @@ export function createHud(context: WorldContext) {
     )
       context.skateboard.riding = false;
     const { pelts, uni } = context.multiplayer?.state.inventory || {};
+    // Show carried quest and trade items without a Character entry or an action button.
     const q = context.quests.theyLive.state,
       items = [
         purse.sand > 0 ? 'Sand ×' + purse.sand.toLocaleString('en-US') : null,

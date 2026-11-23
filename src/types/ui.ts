@@ -126,7 +126,6 @@ export interface GameElements {
   'sf-minimap': HTMLElementTagNameMap['canvas'];
   'sf-motorcycle-tricks': HTMLElementTagNameMap['div'];
   'sf-order-doordash': HTMLElementTagNameMap['button'];
-  'sf-phone-status': HTMLElementTagNameMap['span'];
   'sf-place-markers': HTMLElementTagNameMap['div'];
   'sf-player-pvp': HTMLElementTagNameMap['div'];
   'sf-player-speech': HTMLElementTagNameMap['div'];
