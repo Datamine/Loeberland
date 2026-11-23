@@ -43,8 +43,8 @@ import { CHARACTER_CLIPS } from './characters.ts';
 import type { Mesh } from './geometry.ts';
 
 const researchSignLines = [
-  ['CALIFORNIA INSTITUTE', 'FOR CONSCIOUSNESS', 'RESEARCH'] satisfies [string, string, string],
-  ['CONSCIOUSNESS RESEARCH', 'FIELD STATION', 'CALIFORNIA'] satisfies [string, string, string],
+  ['CALIFORNIA INSTITUTE', 'OF CONSCIOUSNESS', 'RESEARCH'] satisfies [string, string, string],
+  ['CALIFORNIAN RESEARCH', 'INSTITUTE FOR', 'CONSCIOUSNESS'] satisfies [string, string, string],
 ];
 export const RESEARCH_SIGNS = Object.freeze(researchSignLines.map((lines) => lines.join('\n')));
 

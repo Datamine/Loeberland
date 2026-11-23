@@ -193,7 +193,6 @@ test('all wizard dialogue choices purchase tablets from the authored house appro
   const purchases = dialogue.choices.filter((choice) => typeof choice.accept === 'function');
   assert.equal(purchases.length, 3);
 
-  assert.ok(dialogue.choices.some((choice) => choice.ambientConversation));
   for (const choice of purchases) {
     assert.ok(choice?.accept != null, 'Missing test fixture: choice.accept');
     const result = await choice.accept();

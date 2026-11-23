@@ -211,12 +211,10 @@ test('editor captures the real gym menu order and conditional training options',
   const r = await inspectTarget(world, record(gym, false));
   assert.match(r.actions[0].actions[0].label, /^Perform /);
   assert.equal(r.actions[0].actions.filter((a) => a.label.startsWith('Perform ')).length, 4);
-  assert.ok(!r.actions[0].actions.some((a) => a.label === 'Stop training'));
-  assert.ok(
-    requiredFixture(r.actions.find((v) => v.states.includes('Training'))).actions.some(
-      (a) => a.label === 'Stop training',
-    ),
-  );
+  assert.ok(!r.actions[0].actions.some((a) => a.id === 'interaction.27'));
+  const training = requiredFixture(r.actions.find((v) => v.states.includes('Training')));
+  assert.equal(training.actions[0].id, 'interaction.27');
+  assert.match(training.actions[0].label, /^Stop training\b/);
 });
 
 test('professor quest branches come from the actual dispatcher without modifying the placed NPC', async () => {

@@ -97,12 +97,16 @@ test('the tent floor and indoor check follow the round footprint', () => {
 
 test('the Poster has an authored reply in a dialogue panel', () => {
   const person = compileEntityDialogue(
-    { id: 'twitter-poster', label: 'Poster', choices: [] },
+    { id: 'twitter-poster', label: 'Poster' },
     'actor:twitter-poster',
   );
   assert.equal(person.name, 'Poster');
-  assert.equal(person.intro, 'Very busy, someone is wrong on the internet.');
-  assert.deepEqual(person.choices, []);
+  assert.match(String(person.intro), /Someone is wrong on the internet.*Welcome to Posting HQ/);
+  assert.deepEqual(person.choices?.map((choice) => choice.label), [
+    'What are you posting about?',
+    'Is it always this busy?',
+  ]);
+  assert.ok(person.choices?.every((choice) => choice.receipt && !choice.accept));
 });
 
 test('bottle posting is animated with a bound on dynamic geometry and proper rig motion', () => {

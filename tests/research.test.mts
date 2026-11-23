@@ -31,10 +31,16 @@ test('the institutes have distinct authored models, façade signs, and shared co
   assert.equal(sites.length, 2);
   assert.ok(m.data.every(Number.isFinite));
   assert.ok(m.data.length / 33 < 22000);
+  const names = [
+    'California Institute of Consciousness Research',
+    'Californian Research Institute for Consciousness',
+  ];
+  assert.deepEqual(sites.map((s) => s.label), names);
   assert.deepEqual(
-    sites.map((s) => s.label),
-    RESEARCH_CAMPUSES.map((c) => c.label),
+    RESEARCH_SIGNS.map((sign) => sign.replaceAll('\n', ' ')),
+    names.map((name) => name.toUpperCase()),
   );
+  assert.match(sites[1].description, /field station before the split/);
   for (const [i, s] of sites.entries()) {
     const c = RESEARCH_CAMPUSES[i];
     assert.equal(sightPrimaryVerb(s), 'Enter');
@@ -89,6 +95,13 @@ test('six different researchers retain their individual conversations and indivi
     assert.equal(d.decline, 'Leave');
     assert.notEqual(d.intro, describeCharacter(npc));
     checkChoices(requiredFixture(d.choices));
+    if (npc.id === 'elias-index') {
+      assert.match(String(d.intro), /Californian Research Institute for Consciousness/);
+      const split = d.choices?.find((choice) => choice.label === 'What was the disagreement?');
+      assert.match(requiredFixture(split?.receipt), /evidence worth testing/);
+      const naming = d.choices?.find((choice) => choice.label.includes('name so long'));
+      assert.match(requiredFixture(naming?.receipt), /California Institute of Consciousness Research/);
+    }
     assert.ok(
       access.contains(requiredFixture(npc.approach).x + 0.5, requiredFixture(npc.approach).y + 0.5),
     );

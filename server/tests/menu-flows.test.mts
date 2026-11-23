@@ -164,8 +164,11 @@ test('new characters spawn at the authored starting tile', async () => {
 test('the Market Street cable car takes nearby riders and lets them off on walkable ground', async () => {
   const a = await visitor();
   try {
-    assert.equal((await act(a, 'travel', { kind: 'streetcarBoard' })).retryApproach, true);
     const car = () => marketStreetcarPose(geometry.streetcarRoute, time);
+    stand(a, { x: car().x - 0.5, y: car().z + 10 });
+    const tooFar = await act(a, 'travel', { kind: 'streetcarBoard' });
+    assert.equal(tooFar.ok, false);
+    assert.equal(tooFar.retryApproach, true);
     stand(a, { x: car().x - 0.5, y: car().z - 0.5 });
     assert.equal((await act(a, 'travel', { kind: 'streetcarBoard' })).ok, true);
     assert.equal(a.p.mode, 'streetcar');
@@ -1307,7 +1310,7 @@ test('every offer at every neighborhood shop executes through its real menu and 
           a.p.inventory.economy.state.coins,
           before - (offer.price || 0) + (offer.reward || 0),
         );
-        if (offer.heal) assert.equal(a.p.hp, 15);
+        if (offer.heal) assert.equal(a.p.hp, Math.min(10 + offer.heal, a.p.max));
         if (offer.sober) assert.equal(game.personal.runtime(a.p).inebriation.state.percent, 30);
         if (offer.bouquet) assert.equal(a.p.inventory.economy.state.bouquets, 1);
         if (offer.sandwich) assert.equal(a.p.inventory.meta.sandwiches, 1);
@@ -1801,7 +1804,7 @@ test('rehabilitation’s final consent leads to UCSF, a valid changed appearance
   }
 });
 
-test('Ray’s donation menu, the Old Man, the stairs and the bomber form a complete admission journey', async () => {
+test('Ray’s private trade, the Old Man, the stairs and the bomber form a complete admission journey', async () => {
   const a = await visitor(),
     ray = npc((n) => n.kind === 'guild-master'),
     elder = npc((n) => n.kind === 'illuminati-elder');
@@ -1811,10 +1814,16 @@ test('Ray’s donation menu, the Old Man, the stairs and the bomber form a compl
     for (let i = 0; i < 24; i++) {
       atNPC(a, ray);
       const person = guildDialogue(ray, {
-        status: () => guildStatusFor(a.p, () => time),
+        status: () => ({
+          ...guildStatusFor(a.p, () => time),
+          peptides: a.p.inventory.meta.peptides,
+        }),
         act: (kind: string) => act(a, kind === 'donate' ? 'guildDonate' : 'guildCheckIn'),
       });
-      await choose(a, person, ['Donate 1 peptide']);
+      await choose(a, person, [
+        'Is there any way to move things along?',
+        'Slip Ray 1 peptide · gain 1 rank',
+      ]);
     }
     assert.equal(requiredFixture(a.p.profile.guild).member, true);
     assert.equal(a.p.inventory.meta.peptides, 0);

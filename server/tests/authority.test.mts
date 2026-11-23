@@ -381,6 +381,8 @@ test('unchanged worlds and idle players do not receive redundant tick snapshots'
   const { game } = await fixture(),
     a = await player(game, 907);
   try {
+    // Keep the idle observer out of range of the zoo’s animated tiger.
+    Object.assign(a.p, { x: 180, z: 170 });
     game.tick(0.25);
     game.broadcast();
     const baseline = a.messages.length;

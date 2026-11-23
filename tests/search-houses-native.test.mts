@@ -2,7 +2,7 @@ import { requiredFixture } from './helpers/required.mts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createWorldModel } from '../src/world.ts';
-import { SEARCH_HOMES } from '../src/search-houses.ts';
+import { ALL_SEARCH_HOMES } from '../src/search-houses.ts';
 import { navigationObstacles } from '../src/navigation.ts';
 
 const world = createWorldModel({ retainInteriors: true });
@@ -57,9 +57,9 @@ test('Goose Corp books have reachable reading spots in four houses and the lodge
     assert.equal(site.object.interior, room);
   }
 });
-test('all eight homes have connected doorways, walkable interiors and reachable storage', () => {
-  assert.equal(world.searchSites.length, 8);
-  for (const home of SEARCH_HOMES) {
+test('all searchable homes, including the cultist’s cottage, have connected doorways and reachable storage', () => {
+  assert.equal(world.searchSites.length, ALL_SEARCH_HOMES.length);
+  for (const home of ALL_SEARCH_HOMES) {
     const house = world.places.find((p) => p.id === home.id),
       site = world.searchSites.find((s) => s.id === home.search.id);
     assert.ok(house?.object && site);

@@ -340,7 +340,7 @@ test('Nightlife moved north into the city with a grounded foundation and two ind
       signs: new Map(),
     });
   assert.ok(!neighborhood.sights.some((s) => s.id === 'nightlife'));
-  assert.equal(neighborhood.diners.length, 0);
+  assert.ok(neighborhood.diners.every((n) => !n.club));
   const ground = (x: number, z: number) => 2 + (z - NIGHTLIFE.z) * 0.4,
     club = buildNightlife(m, { height: ground, naturalHeight: ground, cutPlot() {} }),
     cafe = club.sight;

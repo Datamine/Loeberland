@@ -31,7 +31,7 @@ test('a stranded Ferrari can be recovered with a saved portable can bought witho
 
   assert.ok(!dialogue.choices.some((choice) => choice.id === 'refuel'));
 
-  assert.ok(dialogue.choices.some((choice) => choice.ambientConversation));
+  assert.ok(dialogue.choices.every((choice) => !choice.ambientConversation));
   assert.match(purchases[0].label, /Fuel can/);
   assert.equal(
     requiredFixture(await requiredFixture(await requiredFixture(purchases[0].accept)())).ok,

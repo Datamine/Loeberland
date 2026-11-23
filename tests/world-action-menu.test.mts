@@ -60,8 +60,8 @@ test('the airship traveler can be clicked to talk from the basket and has only p
 
 test('Cotogna and Rich Table diners offer conversation without a level or hostile actions', () => {
   for (const [id, label] of [
-    ['cotogna-diner-2', 'Cotogna diner'],
-    ['cotogna-diner-3', 'Cotogna diner'],
+    ['cotogna-diner-2', 'Cotogna Diner'],
+    ['cotogna-diner-3', 'Cotogna Diner'],
     ['rich-table-diner-0', 'Rich Table diner'],
     ['rich-table-diner-1', 'Rich Table diner'],
   ]) {

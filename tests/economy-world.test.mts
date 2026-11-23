@@ -29,6 +29,7 @@ test('equity and grain trades conserve inventory and never overdraw the purse', 
     iphoneEquipped: false,
     robotaxiOwned: false,
     incomeQuarters: 0,
+    incubatorEquityBought: false,
     softwareCopies: 0,
   });
   assert.equal(e.trade('secondary').ok, false);
@@ -51,6 +52,7 @@ test('equity and grain trades conserve inventory and never overdraw the purse', 
     iphoneEquipped: false,
     robotaxiOwned: false,
     incomeQuarters: 0,
+    incubatorEquityBought: false,
     softwareCopies: 0,
   });
   assert.equal(e.trade('secondary').ok, true);
@@ -71,6 +73,7 @@ test('equity and grain trades conserve inventory and never overdraw the purse', 
     iphoneEquipped: false,
     robotaxiOwned: false,
     incomeQuarters: 0,
+    incubatorEquityBought: false,
     softwareCopies: 0,
   });
   assert.equal(e.trade('grain').ok, true);
@@ -91,6 +94,7 @@ test('equity and grain trades conserve inventory and never overdraw the purse', 
     iphoneEquipped: false,
     robotaxiOwned: false,
     incomeQuarters: 0,
+    incubatorEquityBought: false,
     softwareCopies: 0,
   });
   assert.equal(e.trade('feed').ok, true);

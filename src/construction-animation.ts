@@ -42,7 +42,7 @@ export function drawConstructionWorker(
       0.076,
       0.093,
       '#505960',
-      'metal',
+      { metal: 0.7 },
     );
   });
 }

@@ -86,7 +86,7 @@ test('enemy blows retain structured damage events without generating per-hit cha
     health = createHitpoints(),
     p = { x: 0, z: 0, eligible: false },
     g = createExpeditions({
-      saved: { railgun: true },
+      saved: { railgun: true, raptorDefeated: true },
       health,
       economy: createEconomy(),
       player: () => p,
@@ -94,7 +94,7 @@ test('enemy blows retain structured damage events without generating per-hit cha
       onEvent: (e) => events.push(e),
     });
   g.setHarbor({ x: 0, z: 0 });
-  g.board();
+  assert.equal(g.board().ok, true);
   g.update(6);
   p.x = g.ship.x;
   p.eligible = true;

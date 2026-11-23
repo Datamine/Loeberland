@@ -144,7 +144,8 @@ test('starting Jurassic recovery waits for the actual server receipt instead of 
     );
     f.advance();
     f.click('Do you have a quest for me?');
-    assert.match(f.element.textContent, /bolts south toward the road/);
+    assert.match(f.element.textContent, /fully charged railgun/);
+    assert.match(f.element.textContent, /Chase it south before it reaches the pedestrians/);
     assert.equal(starts, 0);
     f.advance();
     f.click('I’ll recover the raptor.');

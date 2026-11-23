@@ -94,7 +94,7 @@ test('collection log reveals item names only after discovery', () => {
 test('the kraken adventure is discovered by boarding and remains recorded after leaving or reconnecting', () => {
   let saved;
   const game = createExpeditions({
-    saved: { railgun: true },
+    saved: { railgun: true, raptorDefeated: true },
     onSave: (state) => {
       saved = state;
     },

@@ -212,7 +212,7 @@ export function createNavigation(context: WorldContext) {
           d > 0.6 &&
           d < 0.85 &&
           !placeAt(x, y) &&
-          navigationRegionAt(x, y) === region &&
+          ((region >= 0 && navigationRegionAt(x, y) === region) || !!pathTo(x, y, from)) &&
           Math.abs(context.characterGround(x + 0.5, y + 0.5) - context.characterGround(b.x, b.z)) <
             0.22
         );

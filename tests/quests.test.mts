@@ -39,6 +39,8 @@ test('professor dialogue follows the saved quest and the rail worker retains his
     q = createQuestLog(),
     e = createEconomy();
   let d = monkeyQuestDialogue(professor, q, e);
+  assert.match(requiredFixture(q.entry().startLocation), /California Institute of Consciousness Research/);
+  assert.match(d.intro, /former field station went independent/);
   assert.equal(d.choice, 'Accept quest');
   assert.ok(requiredFixture(await requiredFixture(await requiredFixture(d.accept)())).ok);
   d = monkeyQuestDialogue(professor, q, e);

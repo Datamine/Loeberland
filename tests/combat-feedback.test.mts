@@ -91,7 +91,7 @@ test('ranged attacks roll damage from current strength, clamp overkill and prese
     game = createExpeditions({
       health,
       economy: createEconomy(),
-      saved: { railgun: true },
+      saved: { railgun: true, raptorDefeated: true },
       level: () => level,
       random: () => 0.5,
       onEvent: (e) => events.push(e),

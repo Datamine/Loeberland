@@ -10,6 +10,7 @@ import { SOUTHERN_HOUSING, isSearchHousePlot, inTimesSquare } from '../src/south
 import { isWizardHousePlot } from '../src/wizard-house.ts';
 import { inEstateDistrict } from '../src/estate-layout.ts';
 import { SALT_PONDS } from '../src/salt-layout.ts';
+import { onSouthBeachPier } from '../src/south-beach.ts';
 import { isGlassVertex, meshGlassTriangles } from '../src/glazing.ts';
 import { rayTriangle } from '../src/geometry.ts';
 import { instituteWindowOpenings } from '../src/institute-interiors.ts';
@@ -383,7 +384,7 @@ test('the bus connects Nightlife to Market and only its route has traffic lights
   assert.ok(b.route.points[0].z < NIGHTLIFE.z - NIGHTLIFE.d / 2);
   assert.ok(Math.abs(b.route.points[0].x - NIGHTLIFE.x) < 0.1);
   assert.equal(b.bus.speed, 4.6 / 2);
-  assert.equal(b.bus.sight.description, "the world's slowest bus");
+  assert.equal(b.bus.sight.description, "The world's slowest bus.");
   for (let i = 1; i < b.route.points.length; i++) {
     const a = b.route.points[i - 1],
       p = b.route.points[i],
@@ -1416,6 +1417,7 @@ test('the Golden Gate connects the city and Marin using the visible deck in both
 test('the runtime navigation mask matches the final tile data and all placed collision footprints', () => {
   const rebuilt = buildTileNavigation(world.tiles, {
       obstacles: navigationObstacles(world.objects),
+      walkableDeck: onSouthBeachPier,
     }),
     differences: {
       at: { x: number; y: number };
@@ -1815,8 +1817,13 @@ test('the southern expansion has varied townhouses and single-storey courts, woo
     monkeys = world.sights.find((s) => s.id === 'zoo-monkeys');
   assert.ok(professor != null, 'Missing test fixture: professor');
   assert.equal(professor.name, 'Professor Ada Meridian');
-  assert.ok(
-    world.sights.some((s) => s.label === 'California Institute for Consciousness Research'),
+  assert.equal(
+    world.sights.find((s) => s.id === 'centeredness-institute')?.label,
+    'California Institute of Consciousness Research',
+  );
+  assert.equal(
+    world.sights.find((s) => s.id === 'center-research-institute')?.label,
+    'Californian Research Institute for Consciousness',
   );
   for (const from of [world.spawn, requiredFixture(monkeys).entry, professor.approach])
     for (const to of [
@@ -2493,19 +2500,30 @@ test('all enterable storefronts have clear, two-sided windows with no masonry be
   assert.ok(checked > 150);
 });
 
-test('research and social rooms have real glazing and retain solid walls in the navigation graph', () => {
-  for (const room of world.instituteRooms) {
+test('research and social rooms retain their glazed or canvas walls', () => {
+  const roomIDs = [
+    ...RESEARCH_CAMPUSES.map((campus) => campus.id),
+    'berkeley-esoteric',
+    TWITTER_HQ.id,
+    SALES_CONFERENCE.id,
+  ];
+  for (const id of roomIDs) {
+    const room = requiredFixture(world.instituteRooms.find((room) => room.id === id));
     assert.ok(room?.object?.mesh != null, 'Missing test fixture: room.object.mesh');
-    assert.ok(
-      meshGlassTriangles(room.object.mesh.data).length >= 6,
-      room.id + ' is missing transparent panes',
-    );
+    const panes = meshGlassTriangles(room.object.mesh.data);
+    if (room.id === SALES_CONFERENCE.id) {
+      assert.equal(panes.length, 0, 'the conference uses canvas walls');
+      const rearWall = { x: room.x - 0.5, y: room.z - room.d / 2 + 0.05 - 0.5 };
+      assert.equal(world.landClearAt(rearWall.x, rearWall.y), false);
+      continue;
+    }
+    assert.ok(panes.length >= 6, room.id + ' is missing transparent panes');
     for (const section of requiredFixture(room.object.sections).filter((s) => s.kind === 'wall')) {
       assert.ok(room?.object?.mesh != null, 'Missing test fixture: room.object.mesh');
-      const glass = meshGlassTriangles(room.object.mesh.data).filter(
+      const glass = panes.filter(
         (t) => t.start >= section.start && t.start < section.start + section.count,
       );
-      if (room.id === 'twitter-hq' || room.id === 'sales-conference') continue;
+      if (room.id === 'twitter-hq') continue;
       assert.ok(glass.length > 0, room.id + ' wall ' + section.side + ' has no glass');
       const openings = instituteWindowOpenings(
         room,

@@ -104,7 +104,7 @@ test('quest reload preserves both quests, partial kills and skateboard ownership
   const restored = createQuestLog(saved);
   assert.equal(restored.carrying, true);
   assert.equal(restored.theyLive.state.defeated.length, 1);
-  assert.equal(restored.entries().length, 2);
+  assert.deepEqual(restored.entries(), log.entries());
   for (const a of ALIEN_TARGETS.slice(1)) restored.theyLive.defeat(a.id, { revealed: true });
   restored.theyLive.reward();
   const completed = createQuestLog(JSON.parse(JSON.stringify(restored.state)));
@@ -147,7 +147,7 @@ test('the square has usable public conversations and all native props block thei
   );
   assert.match(
     typeof foreman.intro === 'function' ? foreman.intro() : requiredFixture(foreman.intro),
-    /Hillsborough is being demolished and replaced with Times Square/,
+    /This used to be Hillsborough\. The sign says Times Square now/,
   );
   assert.ok(foreman?.choices != null, 'Missing test fixture: foreman.choices');
   assert.ok(foreman.choices.length >= 3);

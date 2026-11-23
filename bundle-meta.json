@@ -136,7 +136,7 @@
       "format": "esm"
     },
     "content/entities.json": {
-      "bytes": 585616,
+      "bytes": 462021,
       "imports": [],
       "format": "esm",
       "with": {
@@ -173,7 +173,7 @@
       "format": "esm"
     },
     "content/texts.json": {
-      "bytes": 148533,
+      "bytes": 148963,
       "imports": [],
       "format": "esm",
       "with": {
@@ -484,7 +484,7 @@
       "format": "esm"
     },
     "src/dialogues/services.json": {
-      "bytes": 32623,
+      "bytes": 32845,
       "imports": [],
       "format": "esm",
       "with": {
@@ -974,7 +974,7 @@
       "format": "esm"
     },
     "src/haberdasher-layout.ts": {
-      "bytes": 434,
+      "bytes": 428,
       "imports": [],
       "format": "esm"
     },
@@ -2678,7 +2678,7 @@
       "format": "esm"
     },
     "src/construction-animation.ts": {
-      "bytes": 1417,
+      "bytes": 1424,
       "imports": [
         {
           "path": "src/characters.ts",
@@ -3724,7 +3724,7 @@
       "format": "esm"
     },
     "src/research-art.ts": {
-      "bytes": 6152,
+      "bytes": 6187,
       "imports": [],
       "format": "esm"
     },
@@ -4577,7 +4577,7 @@
       "format": "esm"
     },
     "src/world/navigation.ts": {
-      "bytes": 19063,
+      "bytes": 19106,
       "imports": [
         {
           "path": "src/berkeley-lab.ts",
@@ -5912,7 +5912,7 @@
       "format": "esm"
     },
     "src/waymo-dispatch.ts": {
-      "bytes": 1665,
+      "bytes": 1950,
       "imports": [
         {
           "path": "src/southern-district.ts",
@@ -8064,7 +8064,7 @@
       "format": "esm"
     },
     "src/quests.ts": {
-      "bytes": 8500,
+      "bytes": 8529,
       "imports": [
         {
           "path": "src/types/json.ts",
@@ -10099,7 +10099,7 @@
       "imports": [],
       "exports": [],
       "inputs": {},
-      "bytes": 9454572
+      "bytes": 9278487
     },
     "explore.js": {
       "imports": [],
@@ -10167,7 +10167,7 @@
           "bytesInOutput": 1568
         },
         "content/entities.json": {
-          "bytesInOutput": 336345
+          "bytesInOutput": 275382
         },
         "content/dialogues.json": {
           "bytesInOutput": 259047
@@ -10182,7 +10182,7 @@
           "bytesInOutput": 236
         },
         "content/texts.json": {
-          "bytesInOutput": 124116
+          "bytesInOutput": 124559
         },
         "content/world-messages.json": {
           "bytesInOutput": 88639
@@ -10236,7 +10236,7 @@
           "bytesInOutput": 2853
         },
         "src/dialogues/services.json": {
-          "bytesInOutput": 23961
+          "bytesInOutput": 24195
         },
         "content/dialogues/other/goose-corp-lore.json": {
           "bytesInOutput": 7028
@@ -10344,7 +10344,7 @@
           "bytesInOutput": 1008
         },
         "src/haberdasher-layout.ts": {
-          "bytesInOutput": 257
+          "bytesInOutput": 251
         },
         "src/square-construction-layout.ts": {
           "bytesInOutput": 1406
@@ -10587,7 +10587,7 @@
           "bytesInOutput": 1584
         },
         "src/construction-animation.ts": {
-          "bytesInOutput": 771
+          "bytesInOutput": 774
         },
         "src/config/dynamite-depot.ts": {
           "bytesInOutput": 134
@@ -10698,7 +10698,7 @@
           "bytesInOutput": 4573
         },
         "src/research-art.ts": {
-          "bytesInOutput": 5414
+          "bytesInOutput": 5449
         },
         "src/sunglasses.ts": {
           "bytesInOutput": 2097
@@ -10761,7 +10761,7 @@
           "bytesInOutput": 3534
         },
         "src/world/navigation.ts": {
-          "bytesInOutput": 11093
+          "bytesInOutput": 11126
         },
         "src/backyard-details.ts": {
           "bytesInOutput": 2740
@@ -10935,7 +10935,7 @@
           "bytesInOutput": 118
         },
         "src/waymo-dispatch.ts": {
-          "bytesInOutput": 976
+          "bytesInOutput": 1166
         },
         "src/encounter-buildings.ts": {
           "bytesInOutput": 1492
@@ -11067,7 +11067,7 @@
           "bytesInOutput": 1897
         },
         "src/quests.ts": {
-          "bytesInOutput": 5609
+          "bytesInOutput": 5625
         },
         "src/config/airship.ts": {
           "bytesInOutput": 104
@@ -11160,7 +11160,7 @@
           "bytesInOutput": 1701
         }
       },
-      "bytes": 4343202
+      "bytes": 4283187
     }
   }
 }

@@ -15,8 +15,9 @@ export function drawWaymoDispatch(
     centerZ = z + 2.65;
   const base = ground(centerX, centerZ);
   const start = m.data.length;
+  const wall = { x: centerX - 1.12, z: centerZ + 0.59, width: 2.24, depth: 0.14 };
   m.box(centerX - 1.25, base - 0.15, centerZ - 0.8, 2.5, 0.16, 1.6, '#5c6363', 'asphalt');
-  m.box(centerX - 1.12, base, centerZ + 0.59, 2.24, 1.18, 0.14, '#b8c2bb', 'steel');
+  m.box(wall.x, base, wall.z, wall.width, 1.18, wall.depth, '#b8c2bb', 'steel');
   for (const side of [-1, 1]) {
     m.box(centerX + side * 1.04 - 0.04, base, centerZ - 0.7, 0.08, 1.2, 0.08, '#647978', 'steel');
     m.box(
@@ -48,6 +49,14 @@ export function drawWaymoDispatch(
     description:
       'A dispatch bay for Waymos. Call a Waymo from your travel controls to request pickup.',
     entry: { x: x - 0.5, y: z - 0.5 },
+    navigationPolygons: [
+      [
+        [wall.x, wall.z],
+        [wall.x + wall.width, wall.z],
+        [wall.x + wall.width, wall.z + wall.depth],
+        [wall.x, wall.z + wall.depth],
+      ],
+    ],
     start,
     count: m.data.length - start,
     lo: [centerX - 1.25, base - 0.15, centerZ - 0.85],

@@ -318,6 +318,7 @@ test('one-coin travel and skis cannot overdraw the purse, while taxes take every
     bouquets: 0,
     fuelCans: 0,
     fish: 0,
+    mud: 0,
     sand: 0,
     saltLetters: 0,
     saltLettersDelivered: 0,
@@ -327,6 +328,7 @@ test('one-coin travel and skis cannot overdraw the purse, while taxes take every
     iphoneEquipped: false,
     robotaxiOwned: false,
     incomeQuarters: 0,
+    incubatorEquityBought: false,
     softwareCopies: 0,
   });
   assert.match(requiredFixture(requiredFixture(await paid).message), /37 coins/);

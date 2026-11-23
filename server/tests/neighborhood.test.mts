@@ -192,6 +192,9 @@ test('raptor remains survive the compact world channel as shared loot and advanc
     await command(game, a.p, 'playerAction', { verb: 'startRaptor' });
     assert.equal(requiredResult(a.messages).ok, true);
     assert.equal(a.p.inventory.meta.railgunCharge, 25);
+    assert.equal(a.p.appearance.weapon, 'unarmed');
+    await command(game, a.p, 'equipAppearance', { look: { weapon: 'railgun' } });
+    assert.equal(requiredResult(a.messages).ok, true);
     assert.equal(a.p.appearance.weapon, 'railgun');
     const raptor = game.shared.raptor;
     assert.equal(raptor.phase, 'releasing');

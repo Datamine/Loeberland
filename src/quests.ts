@@ -16,7 +16,9 @@ export const MONKEY_QUEST = Object.freeze({
   title: 'Monkey Business',
   professor: 'Professor Ada Meridian',
   startLocation:
-    'the California Institute for Consciousness Research (speak to Professor Ada Meridian)',
+    'the ' +
+    contentText('southern-settlement-layout.module.label-1', {}) +
+    ' (speak to Professor Ada Meridian)',
   reward: 25,
 });
 const questStages: readonly string[] = [

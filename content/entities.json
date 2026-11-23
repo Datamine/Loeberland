@@ -29,41 +29,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:lore-explorable-home-3.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:lore-explorable-home-3"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.9",
-              "action": "interaction.9",
-              "label": "Read {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.9", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.9", "examine"]
     },
     "sight:abandoned-factory": {
       "id": "sight:abandoned-factory",
@@ -88,36 +57,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:abandoned-factory.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:abandoned-factory"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "place:ai-lab": {
       "id": "place:ai-lab",
@@ -173,45 +116,14 @@
             "path": "activities.insideTarget",
             "eq": true
           }
-        },
-        {
-          "id": "place:ai-lab.menu-3",
-          "states": ["Equipment and rentals available"],
-          "placements": ["place:ai-lab"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.14",
-              "action": "interaction.14",
-              "label": "Enter {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.14", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.14", "examine"]
     },
     "actor:ai-lab-recruiter": {
       "id": "actor:ai-lab-recruiter",
-      "name": "AI Lab recruiter",
+      "name": "AI Lab Recruiter",
       "category": "npc",
       "kind": "recruiter",
       "description": "A lab recruiter clutching a clipboard labeled \u201cgeneral intelligence.\u201d The entire interview fits in a calculator, which is strictly forbidden.",
@@ -286,7 +198,7 @@
     },
     "actor:airship-rental-attendant": {
       "id": "actor:airship-rental-attendant",
-      "name": "Airship attendant",
+      "name": "Airship Attendant",
       "category": "npc",
       "kind": "airship-agent",
       "description": "A punctual attendant with a brass watch and a very long retrieval cable. Their flight schedule has exactly one departure: whenever you are ready.",
@@ -366,7 +278,7 @@
     },
     "sight:shared-airship-rope": {
       "id": "sight:shared-airship-rope",
-      "name": "Airship rope",
+      "name": "Airship Rope",
       "category": "object",
       "kind": "airship-rope",
       "description": "A rope hanging from the airship basket. Climb aboard.",
@@ -392,41 +304,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:shared-airship-rope.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:shared-airship-rope"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.7",
-              "action": "interaction.7",
-              "label": "Climb up airship rope"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.7", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.7", "examine"]
     },
     "sight:american-industrial-center": {
       "id": "sight:american-industrial-center",
@@ -451,36 +332,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:american-industrial-center.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:american-industrial-center"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "actor:industrial-armorer": {
       "id": "actor:industrial-armorer",
@@ -592,48 +447,17 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:personal-b2.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:personal-b2"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.15",
-              "action": "interaction.15",
-              "label": "Board {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.15", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.15", "examine"]
     },
     "sight:nia": {
       "id": "sight:nia",
-      "name": "Bani \u00b7 caf\u00e9 regular",
+      "name": "Bani",
       "category": "object",
       "kind": "guest",
-      "description": "A friendly woman with warm brown skin and long dark hair, enjoying her coffee at a table inside Mazarine.",
+      "description": "A friendly woman enjoying her coffee at a table inside Mazarine.",
       "menus": [
         {
           "id": "sight:nia.menu-1",
@@ -656,41 +480,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:nia.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:nia"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.35",
-              "action": "interaction.35",
-              "label": "Talk to Bani"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.35", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.35", "examine"]
     },
     "actor:shanghai-bartender": {
       "id": "actor:shanghai-bartender",
@@ -763,7 +556,7 @@
     },
     "actor:ssf-battery-seller": {
       "id": "actor:ssf-battery-seller",
-      "name": "Battery seller",
+      "name": "Battery Seller",
       "category": "npc",
       "kind": "battery-seller",
       "description": "A local adventurer. Currently undertaking the difficult quest called \u201cone more errand.\u201d",
@@ -864,36 +657,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:salt-flats.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:salt-flats"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:baybridge": {
       "id": "sight:baybridge",
@@ -918,36 +685,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:baybridge.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:baybridge"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:bayshore-pocket-garden": {
       "id": "sight:bayshore-pocket-garden",
@@ -972,36 +713,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:bayshore-pocket-garden.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:bayshore-pocket-garden"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:bayshore-design-studio": {
       "id": "sight:bayshore-design-studio",
@@ -1026,36 +741,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:bayshore-design-studio.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:bayshore-design-studio"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:bayview-common": {
       "id": "sight:bayview-common",
@@ -1080,36 +769,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:bayview-common.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:bayview-common"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:berkeley-esoteric": {
       "id": "sight:berkeley-esoteric",
@@ -1160,41 +823,10 @@
             "path": "activities.insideTarget",
             "eq": true
           }
-        },
-        {
-          "id": "sight:berkeley-esoteric.menu-3",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:berkeley-esoteric"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.13",
-              "action": "interaction.13",
-              "label": "Enter {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.13", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.13", "examine"]
     },
     "sight:bicycle": {
       "id": "sight:bicycle",
@@ -1224,41 +856,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:bicycle.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:bicycle"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.31",
-              "action": "interaction.31",
-              "label": "Ride bicycle"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.31", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.31", "examine"]
     },
     "actor:golden-gate-park-bison": {
       "id": "actor:golden-gate-park-bison",
@@ -1352,40 +953,14 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:bolinas.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:bolinas"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "actor:bolinas-grocer": {
       "id": "actor:bolinas-grocer",
-      "name": "Bolinas grocer",
+      "name": "Bolinas Grocer",
       "category": "npc",
       "kind": "bolinas-local",
       "description": "Knows a shortcut. Will probably describe it using a caf\u00e9 that closed in 2018.",
@@ -1459,7 +1034,7 @@
     },
     "actor:bolinas-surfer": {
       "id": "actor:bolinas-surfer",
-      "name": "Bolinas surfer",
+      "name": "Bolinas Surfer",
       "category": "npc",
       "kind": "bolinas-local",
       "description": "Appears to be mentally composing a strongly worded review of the weather.",
@@ -1533,7 +1108,7 @@
     },
     "sight:bottle-post-machine": {
       "id": "sight:bottle-post-machine",
-      "name": "Bottle-post conveyor",
+      "name": "Bottle-Post Conveyor",
       "category": "object",
       "kind": "bottle-machine",
       "description": "I never thought about how the technology worked.",
@@ -1554,40 +1129,14 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:bottle-post-machine.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:bottle-post-machine"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "actor:twitter-bottle-worker": {
       "id": "actor:twitter-bottle-worker",
-      "name": "Bottle-post engineer",
+      "name": "Bottle-Post Engineer",
       "category": "npc",
       "kind": "twitter-worker",
       "description": "A backend engineer with impeccable bottle discipline. Every cork is a deployment.",
@@ -1656,7 +1205,7 @@
     },
     "sight:house-search-7": {
       "id": "sight:house-search-7",
-      "name": "Bread box",
+      "name": "Bread Box",
       "category": "object",
       "kind": "house-storage",
       "description": "A familiar bit of household storage, worn smooth by years of use.",
@@ -1682,41 +1231,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:house-search-7.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:house-search-7"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.8",
-              "action": "interaction.8",
-              "label": "Search {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.8", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.8", "examine"]
     },
     "sight:painted-bunny": {
       "id": "sight:painted-bunny",
@@ -1746,48 +1264,17 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:painted-bunny.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:painted-bunny"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.22",
-              "action": "interaction.22",
-              "label": "Pet bunny"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.22", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.22", "examine"]
     },
     "sight:nightlife-market-bus": {
       "id": "sight:nightlife-market-bus",
       "name": "Bus",
       "category": "npc",
       "kind": "bus",
-      "description": "the world's slowest bus",
+      "description": "The world's slowest bus.",
       "menus": [
         {
           "id": "sight:nightlife-market-bus.menu-1",
@@ -1805,36 +1292,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:nightlife-market-bus.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:nightlife-market-bus"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:academy": {
       "id": "sight:academy",
@@ -1859,43 +1320,17 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:academy.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:academy"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:rail-pit": {
       "id": "sight:rail-pit",
       "name": "California high-speed rail",
       "category": "object",
       "kind": "rail-pit",
-      "description": "An empty pit. The sign says California high-speed rail.",
+      "description": "An empty pit.",
       "menus": [
         {
           "id": "sight:rail-pit.menu-1",
@@ -1913,43 +1348,17 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:rail-pit.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:rail-pit"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:centeredness-institute": {
       "id": "sight:centeredness-institute",
-      "name": "California Institute for Consciousness Research",
+      "name": "California Institute of Consciousness Research",
       "category": "object",
       "kind": "research-institute",
-      "description": "The California Institute for Consciousness Research. Celestial tiles and a copper observatory promise a rigorous measurement of the ineffable. Professor Meridian still needs a research assistant with a prehensile tail.",
+      "description": "The California Institute of Consciousness Research. Celestial tiles and a copper observatory promise a rigorous measurement of the ineffable. Professor Meridian still needs a research assistant with a prehensile tail.",
       "menus": [
         {
           "id": "sight:centeredness-institute.menu-1",
@@ -1993,48 +1402,17 @@
             "path": "activities.insideTarget",
             "eq": true
           }
-        },
-        {
-          "id": "sight:centeredness-institute.menu-3",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:centeredness-institute"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.13",
-              "action": "interaction.13",
-              "label": "Enter {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.13", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.13", "examine"]
     },
     "sight:center-research-institute": {
       "id": "sight:center-research-institute",
-      "name": "California Institute for Consciousness Research \u00b7 Field Station",
+      "name": "Californian Research Institute for Consciousness",
       "category": "object",
       "kind": "research-institute",
-      "description": "The field station of the California Institute for Consciousness Research. Star charts cover the glass roof; its brass instruments are calibrated to a different consensus reality.",
+      "description": "The Californian Research Institute for Consciousness was the original institute’s field station before the split. Star charts cover the glass roof, and the brass instruments are still calibrated to a different consensus reality.",
       "menus": [
         {
           "id": "sight:center-research-institute.menu-1",
@@ -2078,48 +1456,17 @@
             "path": "activities.insideTarget",
             "eq": true
           }
-        },
-        {
-          "id": "sight:center-research-institute.menu-3",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:center-research-institute"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.13",
-              "action": "interaction.13",
-              "label": "Enter {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.13", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.13", "examine"]
     },
     "actor:captain-ahab": {
       "id": "actor:captain-ahab",
       "name": "Captain Ahab",
       "category": "npc",
       "kind": "person",
-      "description": "Carries a reusable bag with the quiet confidence of someone who remembered to bring it.",
+      "description": "White whale, holy grail.",
       "menus": [
         {
           "id": "actor:captain-ahab.menu-1",
@@ -2197,7 +1544,7 @@
     },
     "sight:house-search-1": {
       "id": "sight:house-search-1",
-      "name": "Cedar chest",
+      "name": "Cedar Chest",
       "category": "object",
       "kind": "house-storage",
       "description": "A familiar bit of household storage, worn smooth by years of use.",
@@ -2223,41 +1570,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:house-search-1.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:house-search-1"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.8",
-              "action": "interaction.8",
-              "label": "Search {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.8", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.8", "examine"]
     },
     "sight:peninsula-garden-office-69": {
       "id": "sight:peninsula-garden-office-69",
@@ -2282,40 +1598,14 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:peninsula-garden-office-69.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:peninsula-garden-office-69"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:house-search-3": {
       "id": "sight:house-search-3",
-      "name": "Chest of drawers",
+      "name": "Chest of Drawers",
       "category": "object",
       "kind": "house-storage",
       "description": "A familiar bit of household storage, worn smooth by years of use.",
@@ -2341,41 +1631,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:house-search-3.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:house-search-3"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.8",
-              "action": "interaction.8",
-              "label": "Search {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.8", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.8", "examine"]
     },
     "sight:chinatown": {
       "id": "sight:chinatown",
@@ -2400,36 +1659,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:chinatown.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:chinatown"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:cityhall": {
       "id": "sight:cityhall",
@@ -2454,40 +1687,14 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:cityhall.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:cityhall"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "actor:city-hall-clerk": {
       "id": "actor:city-hall-clerk",
-      "name": "City Hall clerk",
+      "name": "City Hall Clerk",
       "category": "npc",
       "kind": "person",
       "description": "An unflappable clerk. Her stamp has faced stranger paperwork than this.",
@@ -2624,41 +1831,10 @@
             "path": "activities.insideTarget",
             "eq": true
           }
-        },
-        {
-          "id": "place:writing.menu-3",
-          "states": ["Equipment and rentals available"],
-          "placements": ["place:writing"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.14",
-              "action": "interaction.14",
-              "label": "Enter {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.14", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.14", "examine"]
     },
     "sight:coit": {
       "id": "sight:coit",
@@ -2683,36 +1859,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:coit.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:coit"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:conservatory": {
       "id": "sight:conservatory",
@@ -2737,36 +1887,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:conservatory.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:conservatory"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:cotogna": {
       "id": "sight:cotogna",
@@ -2791,40 +1915,14 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:cotogna.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:cotogna"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "actor:cotogna-chef": {
       "id": "actor:cotogna-chef",
-      "name": "Cotogna chef",
+      "name": "Cotogna Chef",
       "category": "npc",
       "kind": "chef",
       "description": "An immaculate chef with a very tall hat and very exacting standards. Will accept a fish story, but only pays for the fish.",
@@ -2900,7 +1998,7 @@
     },
     "actor:cotogna-diner-2": {
       "id": "actor:cotogna-diner-2",
-      "name": "Cotogna diner",
+      "name": "Cotogna Diner",
       "category": "npc",
       "kind": "person",
       "description": "A scholar of pasta, conducting an extremely thorough field study.",
@@ -2972,7 +2070,7 @@
       "name": "Cow",
       "category": "npc",
       "kind": "cow",
-      "description": "A local adventurer. Currently undertaking the difficult quest called \u201cone more errand.\u201d",
+      "description": "A bovine adventurer.",
       "menus": [
         {
           "id": "actor:south-cow-0.menu-1",
@@ -3047,7 +2145,7 @@
     },
     "sight:lost-pirate-wreck": {
       "id": "sight:lost-pirate-wreck",
-      "name": "Crashed pirate ship",
+      "name": "Crashed Pirate Ship",
       "category": "object",
       "kind": "shipwreck",
       "description": "A tricorn-sized navigational error has become a full-sized shipwreck. The tide has claimed the stern; its captain is still disputing the insurance assessment.",
@@ -3068,36 +2166,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:lost-pirate-wreck.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:lost-pirate-wreck"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:crissy": {
       "id": "sight:crissy",
@@ -3122,36 +2194,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:crissy.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:crissy"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:cupertino-orchard-gardens": {
       "id": "sight:cupertino-orchard-gardens",
@@ -3176,43 +2222,17 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:cupertino-orchard-gardens.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:cupertino-orchard-gardens"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "place:etc": {
       "id": "place:etc",
-      "name": "Curiosity shop",
+      "name": "Curiosity Shop",
       "category": "object",
       "kind": "building",
-      "description": "Other corners of the internet, a past life on the web, and a few digital curiosities.",
+      "description": "Other corners of the internet, a past life on the web, and a few digital novelties.",
       "menus": [
         {
           "id": "place:etc.menu-1",
@@ -3261,41 +2281,10 @@
             "path": "activities.insideTarget",
             "eq": true
           }
-        },
-        {
-          "id": "place:etc.menu-3",
-          "states": ["Equipment and rentals available"],
-          "placements": ["place:etc"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.14",
-              "action": "interaction.14",
-              "label": "Enter {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.14", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.14", "examine"]
     },
     "sight:southern-corner-124": {
       "id": "sight:southern-corner-124",
@@ -3320,40 +2309,14 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:southern-corner-124.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:southern-corner-124", "sight:southern-craft-41"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "actor:southern-corner-124-neighbor": {
       "id": "actor:southern-corner-124-neighbor",
-      "name": "Cypress Flowers shopkeeper",
+      "name": "Cypress Flowers Shopkeeper",
       "category": "npc",
       "kind": "person",
       "description": "A local shopkeeper. The window display changes with the seasons; the welcome does not.",
@@ -3429,7 +2392,7 @@
     },
     "sight:deyoung": {
       "id": "sight:deyoung",
-      "name": "de Young Museum",
+      "name": "De Young Museum",
       "category": "object",
       "kind": "museum",
       "description": "A dark copper museum and a twisted observation tower overlook the Music Concourse. The Academy sits across the plaza.",
@@ -3450,43 +2413,17 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:deyoung.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:deyoung"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:zoo-deer": {
       "id": "sight:zoo-deer",
       "name": "Deer",
       "category": "object",
       "kind": "animals",
-      "description": "Two deer browse peacefully. They have declined to comment on their neighbor\u2019s recent escape.",
+      "description": "The deer peacefully browses the grass. It has no plans to escape.",
       "menus": [
         {
           "id": "sight:zoo-deer.menu-1",
@@ -3504,40 +2441,14 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:zoo-deer.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:zoo-deer"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "actor:lucindas-proprietor": {
       "id": "actor:lucindas-proprietor",
-      "name": "Deli proprietor",
+      "name": "Deli Proprietor",
       "category": "npc",
       "kind": "deli",
       "description": "A sandwich artisan whose delivery fleet fits inside the walk-in fridge. The flag is for morale.",
@@ -3615,7 +2526,7 @@
       "name": "Dog and Pony Administrator",
       "category": "npc",
       "kind": "show-administrator",
-      "description": "A very small impresario with a clipboard, two exceptionally flexible employees, and complete confidence in the programme.",
+      "description": "A very small impresario with a clipboard, two exceptionally flexible employees, and complete confidence in the program.",
       "menus": [
         {
           "id": "actor:dog-pony-administrator.menu-1",
@@ -3707,43 +2618,17 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:dog-pony-show.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:dog-pony-show"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:house-search-2": {
       "id": "sight:house-search-2",
-      "name": "Dog house",
+      "name": "Dog House",
       "category": "object",
       "kind": "house-storage",
-      "description": "A little roofed dog house in the side yard.",
+      "description": "A man's best friend's favorite dwelling.",
       "menus": [
         {
           "id": "sight:house-search-2.menu-1",
@@ -3766,45 +2651,14 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:house-search-2.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:house-search-2"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.8",
-              "action": "interaction.8",
-              "label": "Search {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.8", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.8", "examine"]
     },
     "actor:pacifica-dog-surf-judge": {
       "id": "actor:pacifica-dog-surf-judge",
-      "name": "Dog surfing judge",
+      "name": "Dog Surfing Judge",
       "category": "npc",
       "kind": "dog-surfing-judge",
       "description": "The judge paces the beach in a yellow shirt, watching each dog from takeoff to landing.",
@@ -3897,36 +2751,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:dolores.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:dolores"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "actor:noor-qualia": {
       "id": "actor:noor-qualia",
@@ -4002,7 +2830,7 @@
       "name": "Duel Arena",
       "category": "object",
       "kind": "duel-arena",
-      "description": "A tiny garden arena, with a ramp and room for two large financial opinions. Equal coin stakes, explicit agreement, and a fair 50\u201350 flip. Speak to the referee or challenge another player here.",
+      "description": "A tiny garden arena, with room for two large financial opinions. Equal coin stakes, explicit agreement, and a fair 50–50 flip. Speak to the referee or challenge another player here.",
       "menus": [
         {
           "id": "sight:duel-arena.menu-1",
@@ -4020,40 +2848,14 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:duel-arena.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:duel-arena"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "actor:duel-referee": {
       "id": "actor:duel-referee",
-      "name": "Duel referee",
+      "name": "Duel Referee",
       "category": "npc",
       "kind": "duel-referee",
       "description": "An impartial referee carrying one well-balanced coin and absolutely no spreadsheet for predicting which side it will land on.",
@@ -4122,10 +2924,10 @@
     },
     "actor:bolinas-emf-warrior": {
       "id": "actor:bolinas-emf-warrior",
-      "name": "EMF warrior",
+      "name": "EMF Warrior",
       "category": "npc",
       "kind": "emf-warrior",
-      "description": "A coastal campaigner surrounded by an agitated chorus of radios.",
+      "description": "He's grounding. He's earthing. He's got a thousand wires and a million volts running through him.",
       "menus": [
         {
           "id": "actor:bolinas-emf-warrior.menu-1",
@@ -4191,7 +2993,7 @@
     },
     "actor:esoteric-professor": {
       "id": "actor:esoteric-professor",
-      "name": "Esoteric researcher",
+      "name": "Esoteric Researcher",
       "category": "npc",
       "kind": "person",
       "description": "She has impeccable credentials in a field whose existence is fiercely disputed.",
@@ -4272,7 +3074,7 @@
       "name": "Extortionate Gas Station",
       "category": "object",
       "kind": "fuel",
-      "description": "The pump accepts every coin you have. The attendant calls this \u201cmarket pricing.\u201d",
+      "description": "The pump accepts every coin you have. The attendant calls this \"market pricing.\"",
       "menus": [
         {
           "id": "sight:fuel-outbound.menu-1",
@@ -4290,36 +3092,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:fuel-outbound.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:fuel-outbound", "sight:fuel-return"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "actor:market-farmer-0": {
       "id": "actor:market-farmer-0",
@@ -4602,7 +3378,7 @@
       "name": "Ferrari",
       "category": "object",
       "kind": "ferrari",
-      "description": "A very fast red Ferrari: twenty times walking speed, with a tank that lasts 56% of the drive to Tahoe.",
+      "description": "It's very fast and can be yours for no money at all.",
       "menus": [
         {
           "id": "sight:ferrari-car.menu-1",
@@ -4650,36 +3426,23 @@
               "id": "interaction.29",
               "action": "interaction.29",
               "label": "Use fuel can"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
             }
           ],
           "when": {
-            "any": [
-              {
-                "path": "inventory.economy.ownedEquipment",
-                "contains": "ball-chair"
-              },
-              {
-                "path": "inventory.economy.fuelCans",
-                "gte": 1
-              }
-            ]
+            "path": "inventory.economy.fuelCans",
+            "gte": 1
           }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.28", "examine", "interaction.29", "interaction.38"]
+      "capabilities": ["walk", "interaction.28", "examine", "interaction.29"]
     },
     "sight:ferrari-dealer": {
       "id": "sight:ferrari-dealer",
       "name": "Ferrari Dealership",
       "category": "object",
       "kind": "dealership",
-      "description": "Fast, fashionable, and free. What a great deal.",
+      "description": "Fast, fashionable, and free. What a great promotion.",
       "menus": [
         {
           "id": "sight:ferrari-dealer.menu-1",
@@ -4697,36 +3460,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:ferrari-dealer.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:ferrari-dealer"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:ferry": {
       "id": "sight:ferry",
@@ -4751,40 +3488,14 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:ferry.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:ferry"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:wharf-fishing": {
       "id": "sight:wharf-fishing",
-      "name": "Fisherman\u2019s Wharf fishing spot",
+      "name": "Fishing Spot",
       "category": "object",
       "kind": "fishing",
       "description": "Small fish gather below the wharf, flickering beneath the surface.",
@@ -4810,41 +3521,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:wharf-fishing.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:wharf-fishing"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.18",
-              "action": "interaction.18",
-              "label": "Catch live fish"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.18", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.18", "examine"]
     },
     "sight:fuel-tahoe": {
       "id": "sight:fuel-tahoe",
@@ -4869,36 +3549,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:fuel-tahoe.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:fuel-tahoe"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "place:freemasons-guild": {
       "id": "place:freemasons-guild",
@@ -4949,45 +3603,14 @@
             "path": "activities.insideTarget",
             "eq": true
           }
-        },
-        {
-          "id": "place:freemasons-guild.menu-3",
-          "states": ["Equipment and rentals available"],
-          "placements": ["place:freemasons-guild"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.14",
-              "action": "interaction.14",
-              "label": "Enter {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.14", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.14", "examine"]
     },
     "actor:green-banker": {
       "id": "actor:green-banker",
-      "name": "Friendly banker",
+      "name": "Friendly Banker",
       "category": "npc",
       "kind": "banker",
       "description": "A warm smile, a beautifully organized ledger, and a talent for remembering exactly how you take your coffee. Banking has rarely felt so hospitable.",
@@ -5062,7 +3685,7 @@
     },
     "actor:marin-bear": {
       "id": "actor:marin-bear",
-      "name": "Friendly bear",
+      "name": "Friendly Bear",
       "category": "npc",
       "kind": "bear",
       "description": "A big bear with small ambitions: sunshine, a nap, and perhaps your sandwich.",
@@ -5136,7 +3759,7 @@
     },
     "actor:ferrari-dealer-attendant": {
       "id": "actor:ferrari-dealer-attendant",
-      "name": "Fuel attendant",
+      "name": "Fuel Attendant",
       "category": "npc",
       "kind": "fuel-attendant",
       "description": "A pump attendant with a tiny nozzle embroidered on their cap. Their smile depends entirely on how many coins you are carrying.",
@@ -5221,7 +3844,7 @@
     },
     "sight:country-bench-0": {
       "id": "sight:country-bench-0",
-      "name": "Garden bench",
+      "name": "Garden Bench",
       "category": "object",
       "kind": "bench",
       "description": "A cedar bench, made for sitting a while. A very modest antidote to being in a hurry.",
@@ -5268,62 +3891,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:country-bench-0.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": [
-            "sight:country-bench-0",
-            "sight:country-bench-1",
-            "sight:country-bench-2",
-            "sight:country-bench-3",
-            "sight:country-bench-4",
-            "sight:country-bench-5",
-            "sight:country-bench-6",
-            "sight:country-bench-7",
-            "sight:southern-craft-1-bench",
-            "sight:southern-craft-20-bench",
-            "sight:southern-craft-24-bench",
-            "sight:southern-craft-29-bench",
-            "sight:southern-craft-42-bench",
-            "sight:southern-craft-43-bench",
-            "sight:southern-craft-45-bench",
-            "sight:village-bench-0",
-            "sight:village-bench-1",
-            "sight:village-bench-2",
-            "sight:village-bench-3",
-            "sight:village-bench-4"
-          ],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.11",
-              "action": "interaction.11",
-              "label": "Sit on {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.11", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.11", "examine"]
     },
     "sight:peninsula-garden-office-58": {
       "id": "sight:peninsula-garden-office-58",
@@ -5348,36 +3919,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:peninsula-garden-office-58.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:peninsula-garden-office-58"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:zoo-giraffes": {
       "id": "sight:zoo-giraffes",
@@ -5402,36 +3947,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:zoo-giraffes.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:zoo-giraffes"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "actor:tam-goblin-1": {
       "id": "actor:tam-goblin-1",
@@ -5599,36 +4118,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:golden.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:golden"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:park": {
       "id": "sight:park",
@@ -5653,36 +4146,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:park.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:park"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:lore-explorable-home-7": {
       "id": "sight:lore-explorable-home-7",
@@ -5712,41 +4179,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:lore-explorable-home-7.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:lore-explorable-home-7"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.9",
-              "action": "interaction.9",
-              "label": "Read {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.9", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.9", "examine"]
     },
     "sight:gpu-factory": {
       "id": "sight:gpu-factory",
@@ -5771,36 +4207,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:gpu-factory.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:gpu-factory"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "actor:gpu-factory-buyer": {
       "id": "actor:gpu-factory-buyer",
@@ -5994,41 +4404,10 @@
             "path": "activities.insideTarget",
             "eq": true
           }
-        },
-        {
-          "id": "place:green.menu-3",
-          "states": ["Equipment and rentals available"],
-          "placements": ["place:green"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.14",
-              "action": "interaction.14",
-              "label": "Enter {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.14", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.14", "examine"]
     },
     "actor:haberdasher-merchant": {
       "id": "actor:haberdasher-merchant",
@@ -6137,36 +4516,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:haberdasher.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:haberdasher"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:hiking-supplies": {
       "id": "sight:hiking-supplies",
@@ -6191,36 +4544,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:hiking-supplies.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:hiking-supplies"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "actor:hiking-supplier": {
       "id": "actor:hiking-supplier",
@@ -6314,36 +4641,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:times-square-works.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:times-square-works"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "place:explorable-home-1": {
       "id": "place:explorable-home-1",
@@ -6414,46 +4715,6 @@
           }
         },
         {
-          "id": "place:explorable-home-1.menu-3",
-          "states": ["Equipment and rentals available"],
-          "placements": [
-            "place:explorable-home-1",
-            "place:explorable-home-2",
-            "place:explorable-home-3",
-            "place:explorable-home-4",
-            "place:explorable-home-5",
-            "place:explorable-home-6",
-            "place:explorable-home-7",
-            "place:explorable-home-8"
-          ],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.14",
-              "action": "interaction.14",
-              "label": "Enter {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
-        },
-        {
           "id": "place:explorable-home-1.menu-4",
           "states": ["Climbable house"],
           "placements": [
@@ -6461,11 +4722,17 @@
             "place:explorable-home-4",
             "place:explorable-home-6"
           ],
-          "actions": [{ "id": "house.climb", "action": "house.climb", "label": "Climb house" }]
+          "actions": [
+            {
+              "id": "house.climb",
+              "action": "house.climb",
+              "label": "Climb house"
+            }
+          ]
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.14", "examine", "interaction.38", "house.climb"]
+      "capabilities": ["walk", "interaction.14", "examine", "house.climb"]
     },
     "sight:whale-0": {
       "id": "sight:whale-0",
@@ -6495,41 +4762,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:whale-0.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:whale-0", "sight:whale-1", "sight:whale-2"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.34",
-              "action": "interaction.34",
-              "label": "Jump over {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.34", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.34", "examine"]
     },
     "actor:tahoe-giant-1": {
       "id": "actor:tahoe-giant-1",
@@ -6628,41 +4864,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:illuminati-stairway.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:illuminati-stairway"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.15",
-              "action": "interaction.15",
-              "label": "Descend {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.15", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.15", "examine"]
     },
     "sight:in-n-out": {
       "id": "sight:in-n-out",
@@ -6687,36 +4892,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:in-n-out.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:in-n-out"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "actor:in-n-out-clerk": {
       "id": "actor:in-n-out-clerk",
@@ -6841,41 +5020,10 @@
             "path": "activities.insideTarget",
             "eq": true
           }
-        },
-        {
-          "id": "place:home.menu-3",
-          "states": ["Equipment and rentals available"],
-          "placements": ["place:home"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.14",
-              "action": "interaction.14",
-              "label": "Enter {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.14", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.14", "examine"]
     },
     "actor:square-busker": {
       "id": "actor:square-busker",
@@ -6969,36 +5117,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:menottis-cafe.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:menottis-cafe"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "actor:menottis-cafe-neighbor": {
       "id": "actor:menottis-cafe-neighbor",
@@ -7098,36 +5220,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:jurassic-biosciences.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:jurassic-biosciences"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "actor:jurassic-scientist": {
       "id": "actor:jurassic-scientist",
@@ -7302,36 +5398,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:merced.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:merced"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "actor:ocean-beach-landshark": {
       "id": "actor:ocean-beach-landshark",
@@ -7430,41 +5500,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:house-search-4.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:house-search-4"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.8",
-              "action": "interaction.8",
-              "label": "Search {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.8", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.8", "examine"]
     },
     "actor:square-bookseller": {
       "id": "actor:square-bookseller",
@@ -7589,41 +5628,10 @@
             "path": "activities.insideTarget",
             "eq": true
           }
-        },
-        {
-          "id": "place:limit.menu-3",
-          "states": ["Equipment and rentals available"],
-          "placements": ["place:limit"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.14",
-              "action": "interaction.14",
-              "label": "Enter {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.14", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.14", "examine"]
     },
     "sight:beach-billboard": {
       "id": "sight:beach-billboard",
@@ -7648,36 +5656,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:beach-billboard.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:beach-billboard"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "actor:south-lost-goblin": {
       "id": "actor:south-lost-goblin",
@@ -7840,36 +5822,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:lucindas-deli.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:lucindas-deli"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "place:books": {
       "id": "place:books",
@@ -7925,41 +5881,10 @@
             "path": "activities.insideTarget",
             "eq": true
           }
-        },
-        {
-          "id": "place:books.menu-3",
-          "states": ["Equipment and rentals available"],
-          "placements": ["place:books"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.14",
-              "action": "interaction.14",
-              "label": "Enter {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.14", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.14", "examine"]
     },
     "sight:ducks": {
       "id": "sight:ducks",
@@ -7989,41 +5914,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:ducks.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:ducks"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.36",
-              "action": "interaction.36",
-              "label": "Feed ducks"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.36", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.36", "examine"]
     },
     "sight:marin-bridge-landing": {
       "id": "sight:marin-bridge-landing",
@@ -8048,36 +5942,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:marin-bridge-landing.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:marin-bridge-landing"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "actor:mazarine-clerk": {
       "id": "actor:mazarine-clerk",
@@ -8207,41 +6075,10 @@
             "path": "activities.insideTarget",
             "eq": true
           }
-        },
-        {
-          "id": "place:links.menu-3",
-          "states": ["Equipment and rentals available"],
-          "placements": ["place:links"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.14",
-              "action": "interaction.14",
-              "label": "Enter {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.14", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.14", "examine"]
     },
     "sight:lore-freemasons-guild": {
       "id": "sight:lore-freemasons-guild",
@@ -8271,41 +6108,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:lore-freemasons-guild.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:lore-freemasons-guild"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.9",
-              "action": "interaction.9",
-              "label": "Read {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.9", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.9", "examine"]
     },
     "actor:mira-softmax": {
       "id": "actor:mira-softmax",
@@ -8493,29 +6299,16 @@
               "id": "examine",
               "action": "examine",
               "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
             }
           ],
           "when": {
-            "any": [
-              {
-                "path": "inventory.economy.ownedEquipment",
-                "contains": "ball-chair"
-              },
-              {
-                "path": "vehicles.motorcycle.rented",
-                "eq": true
-              }
-            ]
+            "path": "vehicles.motorcycle.rented",
+            "eq": true
           }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.21", "examine", "interaction.20", "interaction.38"]
+      "capabilities": ["walk", "interaction.21", "examine", "interaction.20"]
     },
     "actor:zoo-motorcycle-clerk": {
       "id": "actor:zoo-motorcycle-clerk",
@@ -8612,36 +6405,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:mount-tam-goblins.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:mount-tam-goblins"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:gondola-base": {
       "id": "sight:gondola-base",
@@ -8671,41 +6438,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:gondola-base.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:gondola-base"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.24",
-              "action": "interaction.24",
-              "label": "Ride gondola up"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.24", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.24", "examine"]
     },
     "sight:southern-craft-1": {
       "id": "sight:southern-craft-1",
@@ -8743,49 +6479,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:southern-craft-1.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": [
-            "sight:southern-craft-1",
-            "sight:southern-craft-20",
-            "sight:southern-craft-24",
-            "sight:southern-craft-29",
-            "sight:southern-craft-42",
-            "sight:southern-craft-43",
-            "sight:southern-craft-45"
-          ],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.12",
-              "action": "interaction.12",
-              "label": "Sit in garden"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.12", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.12", "examine"]
     },
     "sight:nightlife": {
       "id": "sight:nightlife",
@@ -8815,41 +6512,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:nightlife.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:nightlife"],
-          "actions": [
-            {
-              "id": "nightlife.enter",
-              "action": "nightlife.enter",
-              "label": "Enter {name}"
-            },
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["nightlife.enter", "walk", "examine", "interaction.38"]
+      "capabilities": ["nightlife.enter", "walk", "examine"]
     },
     "sight:beach": {
       "id": "sight:beach",
@@ -8874,36 +6540,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:beach.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:beach"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:ocean-pocket-garden": {
       "id": "sight:ocean-pocket-garden",
@@ -8928,36 +6568,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:ocean-pocket-garden.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:ocean-pocket-garden"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "actor:illuminati-old-man": {
       "id": "actor:illuminati-old-man",
@@ -9061,41 +6675,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:lore-explorable-home-1.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:lore-explorable-home-1"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.9",
-              "action": "interaction.9",
-              "label": "Read {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.9", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.9", "examine"]
     },
     "sight:oracle": {
       "id": "sight:oracle",
@@ -9120,36 +6703,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:oracle.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:oracle"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:southern-village-gardens": {
       "id": "sight:southern-village-gardens",
@@ -9179,41 +6736,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:southern-village-gardens.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:southern-village-gardens"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.12",
-              "action": "interaction.12",
-              "label": "Sit in garden"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.12", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.12", "examine"]
     },
     "actor:tablet-wizard": {
       "id": "actor:tablet-wizard",
@@ -9340,41 +6866,10 @@
             "path": "activities.insideTarget",
             "eq": true
           }
-        },
-        {
-          "id": "place:orin-house.menu-3",
-          "states": ["Equipment and rentals available"],
-          "placements": ["place:orin-house"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.14",
-              "action": "interaction.14",
-              "label": "Enter {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.14", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.14", "examine"]
     },
     "actor:south-grove-outlaw": {
       "id": "actor:south-grove-outlaw",
@@ -9468,36 +6963,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:pacifica-park.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:pacifica-park"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:pacifica-surf": {
       "id": "sight:pacifica-surf",
@@ -9527,41 +6996,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:pacifica-surf.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:pacifica-surf"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.33",
-              "action": "interaction.33",
-              "label": "Paddle out"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.33", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.33", "examine"]
     },
     "sight:painted": {
       "id": "sight:painted",
@@ -9586,36 +7024,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:painted.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:painted"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:palace": {
       "id": "sight:palace",
@@ -9640,36 +7052,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:palace.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:palace"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:southern-corner-129": {
       "id": "sight:southern-corner-129",
@@ -9694,36 +7080,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:southern-corner-129.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:southern-corner-129", "sight:southern-corner-53"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "actor:southern-corner-129-neighbor": {
       "id": "actor:southern-corner-129-neighbor",
@@ -9823,36 +7183,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:windmill.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:windmill"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:zoo-penguins": {
       "id": "sight:zoo-penguins",
@@ -9877,36 +7211,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:zoo-penguins.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:zoo-penguins"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "actor:police": {
       "id": "actor:police",
@@ -10059,36 +7367,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:presidio.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:presidio"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:airship": {
       "id": "sight:airship",
@@ -10118,41 +7400,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:airship.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:airship"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.30",
-              "action": "interaction.30",
-              "label": "Rent airship"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.30", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.30", "examine"]
     },
     "actor:ada-meridian": {
       "id": "actor:ada-meridian",
@@ -10326,36 +7577,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:prometheus.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:prometheus"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:qualia-bookshop": {
       "id": "sight:qualia-bookshop",
@@ -10380,36 +7605,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:qualia-bookshop.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:qualia-bookshop"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "actor:qualia-bookshop-neighbor": {
       "id": "actor:qualia-bookshop-neighbor",
@@ -10732,41 +7931,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:southern-lake-meadows.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:southern-lake-meadows"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.12",
-              "action": "interaction.12",
-              "label": "Sit in garden"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.12", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.12", "examine"]
     },
     "sight:redwood-office-court": {
       "id": "sight:redwood-office-court",
@@ -10791,36 +7959,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:redwood-office-court.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:redwood-office-court"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "actor:rehabilitation-specialist": {
       "id": "actor:rehabilitation-specialist",
@@ -10914,36 +8056,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:rich-table.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:rich-table"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "actor:lucindas-deli-diner-0": {
       "id": "actor:lucindas-deli-diner-0",
@@ -11036,9 +8152,21 @@
           "states": ["New visitor"],
           "placements": ["actor:rich-table-diner-0", "actor:rich-table-diner-1"],
           "actions": [
-            { "id": "npc.talk", "action": "npc.talk", "label": "Talk-To {name}" },
-            { "id": "npc.walk", "action": "npc.walk", "label": "Walk here {name}" },
-            { "id": "npc.examine", "action": "npc.examine", "label": "Examine {name}" }
+            {
+              "id": "npc.talk",
+              "action": "npc.talk",
+              "label": "Talk-To {name}"
+            },
+            {
+              "id": "npc.walk",
+              "action": "npc.walk",
+              "label": "Walk here {name}"
+            },
+            {
+              "id": "npc.examine",
+              "action": "npc.examine",
+              "label": "Examine {name}"
+            }
           ]
         }
       ],
@@ -11099,41 +8227,10 @@
             "path": "activities.insideTarget",
             "eq": true
           }
-        },
-        {
-          "id": "place:rose.menu-3",
-          "states": ["Equipment and rentals available"],
-          "placements": ["place:rose"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.14",
-              "action": "interaction.14",
-              "label": "Enter {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.14", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.14", "examine"]
     },
     "actor:rowan-zero": {
       "id": "actor:rowan-zero",
@@ -11227,36 +8324,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:salesforce.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:salesforce"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "actor:salt-conservationist": {
       "id": "actor:salt-conservationist",
@@ -11364,41 +8435,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:zoo.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:zoo"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.23",
-              "action": "interaction.23",
-              "label": "Release tiger"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.23", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.23", "examine"]
     },
     "actor:sand-hill-partner": {
       "id": "actor:sand-hill-partner",
@@ -11500,36 +8540,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:sand-hill-capital.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:sand-hill-capital"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:sand-hill-woods": {
       "id": "sight:sand-hill-woods",
@@ -11554,36 +8568,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:sand-hill-woods.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:sand-hill-woods"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:southern-corner-127": {
       "id": "sight:southern-corner-127",
@@ -11608,36 +8596,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:southern-corner-127.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:southern-corner-127", "sight:southern-corner-45"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "actor:southern-corner-127-neighbor": {
       "id": "actor:southern-corner-127-neighbor",
@@ -11901,52 +8863,6 @@
           ]
         },
         {
-          "id": "sight:sf-fitness.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:sf-fitness"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "gym.bench",
-              "action": "gym.bench",
-              "label": "Perform Bench press"
-            },
-            {
-              "id": "gym.curls",
-              "action": "gym.curls",
-              "label": "Perform Dumbbell curls"
-            },
-            {
-              "id": "gym.squats",
-              "action": "gym.squats",
-              "label": "Perform Barbell squats"
-            },
-            {
-              "id": "gym.press",
-              "action": "gym.press",
-              "label": "Perform Overhead press"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
-        },
-        {
           "id": "sight:sf-fitness.menu-3",
           "states": ["Training"],
           "placements": ["sight:sf-fitness"],
@@ -12001,7 +8917,6 @@
         "gym.squats",
         "gym.press",
         "examine",
-        "interaction.38",
         "interaction.27"
       ]
     },
@@ -12028,36 +8943,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:shanghai-kelly.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:shanghai-kelly"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:dolores-skate-dog": {
       "id": "sight:dolores-skate-dog",
@@ -12082,36 +8971,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:dolores-skate-dog.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:dolores-skate-dog"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "actor:summit-lift-attendant": {
       "id": "actor:summit-lift-attendant",
@@ -12300,41 +9163,10 @@
             "path": "activities.insideTarget",
             "eq": true
           }
-        },
-        {
-          "id": "sight:sales-conference.menu-3",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:sales-conference"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.13",
-              "action": "interaction.13",
-              "label": "Enter {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.13", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.13", "examine"]
     },
     "actor:software-buyer-1": {
       "id": "actor:software-buyer-1",
@@ -12501,36 +9333,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:south-cow-pen.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:south-cow-pen"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "actor:sf-spaceport-attendant": {
       "id": "actor:sf-spaceport-attendant",
@@ -12624,36 +9430,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:sf-spaceport.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:sf-spaceport"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "actor:square-diner": {
       "id": "actor:square-diner",
@@ -12752,41 +9532,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:zoo-monkeys.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:zoo-monkeys"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.19",
-              "action": "interaction.19",
-              "label": "Steal monkey"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.19", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.19", "examine"]
     },
     "sight:illuminati-exit": {
       "id": "sight:illuminati-exit",
@@ -12816,41 +9565,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:illuminati-exit.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:illuminati-exit"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.15",
-              "action": "interaction.15",
-              "label": "Climb {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.15", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.15", "examine"]
     },
     "actor:founder-merchant": {
       "id": "actor:founder-merchant",
@@ -12944,36 +9662,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:startup-hq.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:startup-hq"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "actor:times-square-stockbroker": {
       "id": "actor:times-square-stockbroker",
@@ -13055,7 +9747,9 @@
       "name": "Street / unlabelled scenery",
       "category": "object",
       "kind": "ground",
-      "description": { "text": "world.interactions.examine.description-40" },
+      "description": {
+        "text": "world.interactions.examine.description-40"
+      },
       "menus": [
         {
           "id": "sight:unlabelled-ground.menu-1",
@@ -13073,36 +9767,10 @@
               "label": "Examine street"
             }
           ]
-        },
-        {
-          "id": "sight:unlabelled-ground.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:unlabelled-ground"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine street"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:gondola-summit": {
       "id": "sight:gondola-summit",
@@ -13132,41 +9800,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:gondola-summit.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:gondola-summit"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.24",
-              "action": "interaction.24",
-              "label": "Ride gondola down"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.24", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.24", "examine"]
     },
     "sight:ski-rental": {
       "id": "sight:ski-rental",
@@ -13191,36 +9828,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:ski-rental.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:ski-rental"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:sutro": {
       "id": "sight:sutro",
@@ -13257,42 +9868,6 @@
           ]
         },
         {
-          "id": "sight:sutro.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:sutro"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.25",
-              "action": "interaction.25",
-              "label": "Climb {name}"
-            },
-            {
-              "id": "interaction.26",
-              "action": "interaction.26",
-              "label": "Walk to {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
-        },
-        {
           "id": "sight:sutro.menu-3",
           "states": ["At the top of Sutro Tower"],
           "placements": ["sight:sutro"],
@@ -13325,7 +9900,6 @@
         "interaction.25",
         "interaction.26",
         "examine",
-        "interaction.38",
         "tower.dance",
         "tower.descend"
       ]
@@ -13353,36 +9927,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:tahoe-spaceport.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:tahoe-spaceport"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "actor:tax-authority-0": {
       "id": "actor:tax-authority-0",
@@ -13482,36 +10030,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:tax-hq.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:tax-hq"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "place:sunset-whole-foods": {
       "id": "place:sunset-whole-foods",
@@ -13562,41 +10084,10 @@
             "path": "activities.insideTarget",
             "eq": true
           }
-        },
-        {
-          "id": "place:sunset-whole-foods.menu-3",
-          "states": ["Equipment and rentals available"],
-          "placements": ["place:sunset-whole-foods"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.14",
-              "action": "interaction.14",
-              "label": "Enter {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.14", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.14", "examine"]
     },
     "actor:abandoned-factory-terminator": {
       "id": "actor:abandoned-factory-terminator",
@@ -13699,45 +10190,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:tesla-robotaxi-1.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": [
-            "sight:tesla-robotaxi-1",
-            "sight:tesla-robotaxi-2",
-            "sight:tesla-robotaxi-3"
-          ],
-          "actions": [
-            {
-              "id": "taxi.kick",
-              "action": "taxi.kick",
-              "label": "Kick {name}"
-            },
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["taxi.kick", "walk", "examine", "interaction.38"]
+      "capabilities": ["taxi.kick", "walk", "examine"]
     },
     "actor:robotaxi-sales": {
       "id": "actor:robotaxi-sales",
@@ -13837,36 +10293,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:tesla-robotaxi.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:tesla-robotaxi"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:the-armory": {
       "id": "sight:the-armory",
@@ -13891,36 +10321,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:the-armory.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:the-armory"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "place:press": {
       "id": "place:press",
@@ -13976,41 +10380,10 @@
             "path": "activities.insideTarget",
             "eq": true
           }
-        },
-        {
-          "id": "place:press.menu-3",
-          "states": ["Equipment and rentals available"],
-          "placements": ["place:press"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.14",
-              "action": "interaction.14",
-              "label": "Enter {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.14", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.14", "examine"]
     },
     "sight:panhandle": {
       "id": "sight:panhandle",
@@ -14035,36 +10408,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:panhandle.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:panhandle"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:pequod": {
       "id": "sight:pequod",
@@ -14089,36 +10436,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:pequod.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:pequod"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:campus-tea-room": {
       "id": "sight:campus-tea-room",
@@ -14143,36 +10464,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:campus-tea-room.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:campus-tea-room"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "actor:campus-tea-room-neighbor": {
       "id": "actor:campus-tea-room-neighbor",
@@ -14277,41 +10572,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:lore-explorable-home-8.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:lore-explorable-home-8"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.9",
-              "action": "interaction.9",
-              "label": "Read {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.9", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.9", "examine"]
     },
     "sight:southern-corner-85": {
       "id": "sight:southern-corner-85",
@@ -14336,36 +10600,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:southern-corner-85.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:southern-corner-85"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "actor:southern-corner-85-neighbor": {
       "id": "actor:southern-corner-85-neighbor",
@@ -14465,36 +10703,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:tiger.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:tiger"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "actor:tim-apple": {
       "id": "actor:tim-apple",
@@ -14594,36 +10806,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:tim-apple-campus.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:tim-apple-campus"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:times-square": {
       "id": "sight:times-square",
@@ -14648,36 +10834,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:times-square.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:times-square"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:times-square-stock-exchange": {
       "id": "sight:times-square-stock-exchange",
@@ -14702,36 +10862,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:times-square-stock-exchange.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:times-square-stock-exchange"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:house-search-5": {
       "id": "sight:house-search-5",
@@ -14761,41 +10895,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:house-search-5.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:house-search-5"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.8",
-              "action": "interaction.8",
-              "label": "Search {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.8", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.8", "examine"]
     },
     "sight:pyramid": {
       "id": "sight:pyramid",
@@ -14820,36 +10923,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:pyramid.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:pyramid"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:house-search-8": {
       "id": "sight:house-search-8",
@@ -14879,41 +10956,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:house-search-8.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:house-search-8"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.8",
-              "action": "interaction.8",
-              "label": "Search {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.8", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.8", "examine"]
     },
     "sight:peaks": {
       "id": "sight:peaks",
@@ -14938,36 +10984,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:peaks.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:peaks"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "sight:twitter-hq": {
       "id": "sight:twitter-hq",
@@ -15018,41 +11038,10 @@
             "path": "activities.insideTarget",
             "eq": true
           }
-        },
-        {
-          "id": "sight:twitter-hq.menu-3",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:twitter-hq"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.13",
-              "action": "interaction.13",
-              "label": "Enter {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.13", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.13", "examine"]
     },
     "sight:ucsf": {
       "id": "sight:ucsf",
@@ -15077,36 +11066,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:ucsf.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:ucsf"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "actor:jurassic-raptor": {
       "id": "actor:jurassic-raptor",
@@ -15231,41 +11194,10 @@
             "path": "activities.insideTarget",
             "eq": true
           }
-        },
-        {
-          "id": "place:venture.menu-3",
-          "states": ["Equipment and rentals available"],
-          "placements": ["place:venture"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.14",
-              "action": "interaction.14",
-              "label": "Enter {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.14", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.14", "examine"]
     },
     "actor:square-foreman": {
       "id": "actor:square-foreman",
@@ -15364,41 +11296,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:house-search-6.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:house-search-6"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.8",
-              "action": "interaction.8",
-              "label": "Search {name}"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.8", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.8", "examine"]
     },
     "sight:waymo-1": {
       "id": "sight:waymo-1",
@@ -15428,41 +11329,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:waymo-1.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:waymo-1", "sight:waymo-2", "sight:waymo-3", "sight:waymo-4"],
-          "actions": [
-            {
-              "id": "taxi.kick",
-              "action": "taxi.kick",
-              "label": "Kick {name}"
-            },
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["taxi.kick", "walk", "examine", "interaction.38"]
+      "capabilities": ["taxi.kick", "walk", "examine"]
     },
     "actor:coit-parrot-0": {
       "id": "actor:coit-parrot-0",
@@ -15561,41 +11431,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:windsurf.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:windsurf"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "interaction.32",
-              "action": "interaction.32",
-              "label": "Go windsurfing"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "interaction.32", "examine", "interaction.38"]
+      "capabilities": ["walk", "interaction.32", "examine"]
     },
     "actor:yohji": {
       "id": "actor:yohji",
@@ -15689,36 +11528,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:zoo-office.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:zoo-office"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     },
     "actor:monkey-zookeeper": {
       "id": "actor:monkey-zookeeper",
@@ -15812,36 +11625,10 @@
               "label": "Examine {name}"
             }
           ]
-        },
-        {
-          "id": "sight:monkey-keeper-post.menu-2",
-          "states": ["Equipment and rentals available"],
-          "placements": ["sight:monkey-keeper-post"],
-          "actions": [
-            {
-              "id": "walk",
-              "action": "walk",
-              "label": "Walk here"
-            },
-            {
-              "id": "examine",
-              "action": "examine",
-              "label": "Examine {name}"
-            },
-            {
-              "id": "interaction.38",
-              "action": "interaction.38",
-              "label": "Sit (chair)"
-            }
-          ],
-          "when": {
-            "path": "inventory.economy.ownedEquipment",
-            "contains": "ball-chair"
-          }
         }
       ],
       "dialogues": [],
-      "capabilities": ["walk", "examine", "interaction.38"]
+      "capabilities": ["walk", "examine"]
     }
   },
   "placements": {
@@ -17384,8 +13171,8 @@
       "actor": true,
       "source": "merchants",
       "position": {
-        "x": 64.25,
-        "z": 127.725
+        "x": 68.25,
+        "z": 126.925
       },
       "appearance": {
         "skin": "#b58b6c",
@@ -17402,8 +13189,8 @@
       "actor": false,
       "source": "sights",
       "position": {
-        "x": 63.5,
-        "z": 127.1
+        "x": 67.5,
+        "z": 126.3
       }
     },
     "sight:hiking-supplies": {

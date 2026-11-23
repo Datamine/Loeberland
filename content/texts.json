@@ -170,7 +170,7 @@
       "template": "Ball chair"
     },
     "config.item-stats.module.description-8": {
-      "template": "A sculptural white sphere with red upholstery and a chrome pedestal. Sit (chair) to settle inside."
+      "template": "A sculptural white sphere with red upholstery and a chrome pedestal. Choose Ball chair from the Sit menu to settle inside."
     },
     "config.item-stats.module.name-9": {
       "template": "Fist"
@@ -1091,7 +1091,7 @@
       "template": "The last applicant wanted a corner office. The one before that wanted an entire corner tree. I thought we should broaden our search."
     },
     "quests.monkeyQuestDialogue.intro-21": {
-      "template": "We need a research assistant with an unprejudiced view of consciousness. Also a prehensile tail. Would you steal a monkey from the zoo? I have a very small relocation budget and a very large supply of bananas."
+      "template": "Welcome to the California Institute of Consciousness Research. Our former field station went independent over what counts as evidence of consciousness. We need a research assistant with an unprejudiced view of the subject. Also a prehensile tail. Would you steal a monkey from the zoo? I have a very small relocation budget and a very large supply of bananas."
     },
     "quests.monkeyQuestDialogue.question-22": {
       "template": "Help Professor Meridian?"
@@ -1169,10 +1169,10 @@
       "template": "Rehabilitation specialist"
     },
     "research-campuses.drawResearchCampuses.description-2.yes": {
-      "template": "The field station of the California Institute for Consciousness Research. Star charts cover the glass roof; its brass instruments are calibrated to a different consensus reality."
+      "template": "The Californian Research Institute for Consciousness was the original institute’s field station before the split. Star charts cover the glass roof, and the brass instruments are still calibrated to a different consensus reality."
     },
     "research-campuses.drawResearchCampuses.description-2.no": {
-      "template": "The California Institute for Consciousness Research. Celestial tiles and a copper observatory promise a rigorous measurement of the ineffable. Professor Meridian still needs a research assistant with a prehensile tail."
+      "template": "The California Institute of Consciousness Research. Celestial tiles and a copper observatory promise a rigorous measurement of the ineffable. Professor Meridian still needs a research assistant with a prehensile tail."
     },
     "research-dialogue.module.name-1": {
       "template": "Professor Ada Meridian"
@@ -1646,10 +1646,10 @@
       "template": "Bay Area Salt Flats"
     },
     "southern-settlement-layout.module.label-1": {
-      "template": "California Institute for Consciousness Research"
+      "template": "California Institute of Consciousness Research"
     },
     "southern-settlement-layout.module.label-2": {
-      "template": "California Institute for Consciousness Research · Field Station"
+      "template": "Californian Research Institute for Consciousness"
     },
     "southern-settlement-layout.module.name-3": {
       "template": "Times Square neighborhood approach"
@@ -3353,7 +3353,7 @@
       "template": "What about the other institute?"
     },
     "service.ada-meridian.root.choices.2.receipt": {
-      "template": "A fine institution. The field station studies consciousness in machines. We study the machines studying consciousness. The distinction occupies three lawyers full-time."
+      "template": "The Californian Research Institute for Consciousness used to be our field station. We split over whether a machine’s account of its own thinking counts as evidence. They kept the instruments. We kept the original charter. The distinction occupies three lawyers full-time."
     },
     "service.mira-softmax.root.intro": {
       "template": "My meditation app reached enlightenment this morning. It immediately requested a larger context window. I am trying not to take that personally."
@@ -3398,19 +3398,19 @@
       "template": "Of course. Leave room for uncertainty. It takes up more of the bench than you would think."
     },
     "service.elias-index.root.intro": {
-      "template": "We found the center of the center. Unfortunately, it is eleven centimeters inside the other institute’s parking easement. The discovery is currently in arbitration."
+      "template": "Welcome to the Californian Research Institute for Consciousness. We found the center of the center, eleven centimeters inside the other institute’s parking easement. The discovery is currently in arbitration."
     },
     "service.elias-index.root.choices.0.label": {
-      "template": "What is center research?"
+      "template": "What was the disagreement?"
     },
     "service.elias-index.root.choices.0.receipt": {
-      "template": "Suppose you find the middle of something. How do you know you found the middle of the right thing? We employ twelve people to make this question more expensive."
+      "template": "Meridian’s team studies how machines talk about consciousness. We think what a machine says about its own experience is evidence worth testing. We called it a difference in method. The board called it grounds for separate institutions."
     },
     "service.elias-index.root.choices.1.label": {
       "template": "Why is your institute’s name so long?"
     },
     "service.elias-index.root.choices.1.receipt": {
-      "template": "We shortened it after the old name exceeded the width of the building. The naming committee has been relocated to the field station, where it is studying whether a name can observe itself."
+      "template": "When we left the California Institute of Consciousness Research, we took the same words, moved them around and added an ‘n’. The grant office still sends half our mail next door."
     },
     "service.elias-index.root.choices.2.label": {
       "template": "Can the two institutes collaborate?"
