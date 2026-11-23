@@ -8,6 +8,7 @@ import { fixtureGeometry, player, latestResult } from './fixtures.mts';
 import { decodePlayerFrame } from '../../src/multiplayer-protocol.ts';
 import { CAPTURE_DURATION, DEATH_DURATION } from '../../src/capture-animation.ts';
 import { TABLET_TELEPORT_SECONDS } from '../../src/teleport-tablets.ts';
+import { ITEM_STATS } from '../../src/item-stats.ts';
 import type { ServerPlayer } from '../../src/types/server.ts';
 async function setup(geometry = fixtureGeometry()) {
   let time = 1000000;
@@ -253,12 +254,26 @@ test('server chase-to-attack continues to approach and fight without a focused c
       requiredFixture(await act(game, a, 'followPlayer', { id: b.p.id, attack: true })).ok,
       true,
     );
+    const range = ITEM_STATS.bayonet.range;
+    const distance = () => Math.hypot(a.p.x - b.p.x, a.p.z - b.p.z);
     for (let i = 0; i < 35 && b.p.hp === 30; i++) {
       advance(50);
       game.tick(0.05);
+      if (distance() > range || a.p.moving) assert.equal(b.p.hp, 30);
     }
     assert.ok(b.p.hp < 30);
-    assert.ok(a.p.x > b.p.x - 2);
+    assert.ok(distance() <= range && !a.p.moving);
+    const previous = b.p.hp;
+    b.p.x = a.p.x + range + 0.2;
+    advance(1200);
+    game.tick(0.05);
+    assert.equal(b.p.hp, previous, 'leaving range resumes the chase before any further hit');
+    for (let i = 0; i < 15 && b.p.hp === previous; i++) {
+      advance(50);
+      game.tick(0.05);
+      if (distance() > range || a.p.moving) assert.equal(b.p.hp, previous);
+    }
+    assert.ok(b.p.hp < previous);
     await act(game, a, 'personalTransit', { kind: 'jail' });
     assert.equal(a.p.following, null);
   } finally {

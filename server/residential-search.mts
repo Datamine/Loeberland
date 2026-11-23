@@ -1,6 +1,11 @@
 import { contentText } from '../src/content-runtime.ts';
 import type { SimulationServices, ServerPlayer } from '../src/types/server.ts';
-import { CULTIST_WARDROBE, HOUSE_SEARCHES, SEARCH_ROCKET } from '../src/config/search-houses.ts';
+import {
+  BERKELEY_HOUSE_SEARCHES,
+  CULTIST_WARDROBE,
+  HOUSE_SEARCHES,
+  SEARCH_ROCKET,
+} from '../src/config/search-houses.ts';
 import { itemLoot, equipmentOwned } from '../src/item-stats.ts';
 
 /** Personal claims and cosmetic cooldowns live in the authoritative profile.
@@ -10,7 +15,12 @@ export function createResidentialSearch({
   now,
   dirty,
 }: Pick<SimulationServices, 'geometry' | 'now' | 'dirty'>) {
-  const definitions = new Map([...HOUSE_SEARCHES, CULTIST_WARDROBE].map((s) => [s.id, s]));
+  const definitions = new Map(
+    [...HOUSE_SEARCHES, CULTIST_WARDROBE, ...Object.values(BERKELEY_HOUSE_SEARCHES)].map((s) => [
+      s.id,
+      s,
+    ]),
+  );
   function search(p: ServerPlayer, id: unknown) {
     if (typeof id !== 'string')
       return {

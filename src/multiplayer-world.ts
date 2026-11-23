@@ -87,11 +87,12 @@ import './capture-animation.ts';
 import './illuminati-models.ts';
 import './bank-models.ts';
 import { createMultiplayerActions } from './multiplayer-actions.ts';
-import { MP_ENTITY_INTERPOLATION_MS } from './multiplayer-protocol.ts';
-import { createActorAnimation } from './animation-presentation.ts';
+import { MP_ENTITY_INTERPOLATION_MS, MP_SELF_INTERPOLATION_MS } from './multiplayer-protocol.ts';
+import { createActorAnimation, GESTURE_SECONDS } from './animation-presentation.ts';
 import { drawRemotePlayer } from './remote-player-models.ts';
 import { rocketHopForPose } from './rocket-hop.ts';
 import { createPursuitPresentation } from './pursuit-presentation.ts';
+import { creatureLunge } from './creature-attack-pose.ts';
 
 export function estimatedWorldSeconds(
   clock: unknown,
@@ -165,6 +166,9 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
     cowPresentation = createNPCPresentation({ npcs: expeditions.cows });
   const pursuits = createPursuitPresentation({ zoo, raptor: expeditions.raptor });
   const followState = { target: null as number | null, attack: false };
+  type PvpHit = Extract<ServerEvent, { type: 'pvpHit' }>;
+  const combatEffects: { at: number; show: () => void }[] = [];
+  const pvpGestureMs = GESTURE_SECONDS.attack * 1000;
   let followGround: number | null = null,
     selfMode = 'walk',
     selfGesture = '',
@@ -335,9 +339,46 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
     }
     api.refreshUI();
   }
+  function queueCombatEffect(sampleTime: number, delay: number, show: () => void) {
+    const at = sampleTime + delay;
+    const cutoff = performance.now() - pvpGestureMs;
+    while (combatEffects.length && combatEffects[0].at < cutoff) combatEffects.shift();
+    const next = combatEffects.findIndex((effect) => effect.at > at);
+    combatEffects.splice(next === -1 ? combatEffects.length : next, 0, { at, show });
+  }
+  function showPvpHit(message: PvpHit) {
+    const actor = message.target === client.state.id ? player : remoteActors.get(message.target);
+    if (actor) {
+      const other = message.attacker !== client.state.id && message.target !== client.state.id;
+      combatFeedback.hit(actor, message.damage, message.hp, message.max || health.state.max, other);
+    }
+    if (['railgun', 'akibo', 'missile-launcher'].includes(message.weapon))
+      expeditions.state.beams.push({
+        from: message.from,
+        to: message.to,
+        ttl: message.weapon === 'missile-launcher' ? MISSILE_EFFECT_SECONDS : ENERGY_BOLT_SECONDS,
+        weapon: message.weapon,
+      });
+    if (message.weapon !== 'recoil-amulet' && message.attacker === client.state.id) {
+      player.angle = Math.atan2(message.to.z - message.from.z, message.to.x - message.from.x);
+      player.gesture = {
+        name: contentText('multiplayer-world.createWorldMultiplayer.name-1', {}),
+        started: performance.now(),
+        duration: pvpGestureMs,
+      };
+      combatFeedback.show(player, health.state.hp, health.state.max);
+    } else if (message.weapon !== 'recoil-amulet') {
+      remoteActors.get(message.attacker)?.animation?.trigger('attack', performance.now());
+    }
+    if (message.hp === 0) {
+      const peer = client.peers.get(message.target);
+      if (peer) peer.deathAt = performance.now();
+    }
+  }
   client.subscribe((message) => {
     if (message.type === 'world') worldUpdate(message.state, message.self, message.sampleTime);
     else if (message.type === 'instance') {
+      combatEffects.length = 0;
       stopFollowing(true, true);
       client.state.pvpTarget = null;
       remoteActors.clear();
@@ -350,6 +391,7 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
       grapplingGround = null;
       worldUpdate(client.state.world, null);
     } else if (message.type === 'welcome') {
+      combatEffects.length = 0;
       pursuits.clear();
       npcPresentation.clear();
       creaturePresentation.clear();
@@ -371,8 +413,17 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
       else api.applyFollowPose(message.position, false);
       if (message.message) announce(message.message, 'Follow');
     } else if (message.type === 'result' && message.award) award(message.award);
-    else if (message.type === 'position') onPosition(message);
-    else if (message.type === 'airshipReset') {
+    else if (message.type === 'position') {
+      if (message.reason === 'respawn') {
+        combatEffects.length = 0;
+        stopFollowing(true, true);
+        previousSelf = currentSelf = null;
+        grapplingGround = null;
+        selfMode = 'walk';
+        selfGesture = '';
+      }
+      onPosition(message);
+    } else if (message.type === 'airshipReset') {
       previousShip = currentShip = null;
       worldUpdate({ ...snapshot, airship: message.airship }, null);
       if (message.position) {
@@ -383,8 +434,13 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
       announce(message.message, 'Airship');
     } else if (message.type === 'damage') {
       health.state.hp = message.hp;
-      health.state.max = message.max || health.state.max;
-      combatFeedback.hit(player, message.damage, message.hp, message.max || health.state.max);
+      const max = message.max || health.state.max;
+      health.state.max = max;
+      const attacker = api.wilderness?.actors.find((actor) => actor.id === message.attacker);
+      const show = () => combatFeedback.hit(player, message.damage, message.hp, max);
+      if (attacker?.combatKind && creatureLunge(attacker.combatKind))
+        queueCombatEffect(message.sampleTime, MP_ENTITY_INTERPOLATION_MS + 50, show);
+      else show();
       api.refreshUI();
     } else if (message.type === 'caught') {
       stopFollowing(true, true);
@@ -403,46 +459,13 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
         weapon: explosive ? 'scientist-explosive' : message.weapon,
       });
     } else if (message.type === 'pvpHit') {
-      const actor = message.target === client.state.id ? player : remoteActors.get(message.target);
-      if (actor) {
-        if ('networkPlayer' in actor) actor.hp = message.hp;
-        const other = message.attacker !== client.state.id && message.target !== client.state.id;
-        combatFeedback.hit(
-          actor,
-          message.damage,
-          message.hp,
-          message.max || health.state.max,
-          other,
-        );
-      }
       if (message.target === client.state.id) {
         health.state.hp = message.hp;
         try {
           localStorage.setItem('sf-hitpoints-v1', JSON.stringify(health.state));
         } catch {}
       }
-      if (['railgun', 'akibo', 'missile-launcher'].includes(message.weapon))
-        expeditions.state.beams.push({
-          from: message.from,
-          to: message.to,
-          ttl: message.weapon === 'missile-launcher' ? MISSILE_EFFECT_SECONDS : ENERGY_BOLT_SECONDS,
-          weapon: message.weapon,
-        });
-      if (message.attacker === client.state.id) {
-        player.angle = Math.atan2(message.to.z - player.y - 0.5, message.to.x - player.x - 0.5);
-        player.gesture = {
-          name: contentText('multiplayer-world.createWorldMultiplayer.name-1', {}),
-          started: performance.now(),
-          duration: 450,
-        };
-        combatFeedback.show(player, health.state.hp, health.state.max);
-      } else if (message.weapon === 'missile-launcher') {
-        remoteActors.get(message.attacker)?.animation?.trigger('attack', performance.now());
-      }
-      if (message.hp === 0) {
-        const peer = client.peers.get(message.target);
-        if (peer) peer.deathAt = performance.now();
-      }
+      queueCombatEffect(message.sampleTime, MP_SELF_INTERPOLATION_MS, () => showPvpHit(message));
       api.refreshUI();
     } else if (message.type === 'pvpKill') {
       client.state.pvpTarget = null;
@@ -539,15 +562,21 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
       grapplingGround = p.y;
     } else grapplingGround = null;
     if (!client.state.connected) {
+      combatEffects.length = 0;
       if (followState.target !== null) stopFollowing(true, true);
       return;
     }
-    const authoritative = client.selfPose();
+    const authoritative = client.selfPose(time);
     if (authoritative) {
       followGround = authoritative.y;
       selfMode = authoritative.mode;
       selfGesture = authoritative.gesture || '';
       api.applyServerPose(authoritative);
+    }
+    // Show combat effects on the same timeline as the movement or lunge.
+    while (combatEffects.length && combatEffects[0].at <= time) {
+      const effect = combatEffects.shift()!;
+      if (time - effect.at < pvpGestureMs) effect.show();
     }
   }
   function attackPlayer(target: { id: number; pvp?: boolean }) {

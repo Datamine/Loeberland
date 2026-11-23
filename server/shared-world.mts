@@ -579,7 +579,15 @@ export function createSharedWorld({
     const damage = Math.min(p.hp, amount);
     p.hp -= damage;
     p.damagePending = true;
-    send(p, { type: 'damage', damage, hp: p.hp, max: p.max, source, attacker: attacker?.id });
+    send(p, {
+      type: 'damage',
+      time: now(),
+      damage,
+      hp: p.hp,
+      max: p.max,
+      source,
+      attacker: attacker?.id,
+    });
     if (!p.hp) {
       p.respawnAllowed = true;
       p.attack = null;

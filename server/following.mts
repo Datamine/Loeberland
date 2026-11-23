@@ -17,7 +17,6 @@ import { sameMapInstance } from '../src/map-instances.ts';
 import { inFighterYard } from '../src/fighter-yard-layout.ts';
 import { fighterYardMayEnter } from './fighter-yard.mts';
 import { guildMayEnter } from './guild.mts';
-import { ITEM_STATS } from '../src/item-stats.ts';
 const FOLLOW_SPEED = 4.6,
   FOLLOW_RANGE = 1.2,
   ORBIT_RANGE = 2.2,
@@ -157,7 +156,7 @@ export function createServerFollowing({
           'world-message.server.following.that-player-is-too-far-away-to-follow',
         ),
       };
-    const range = attack ? ITEM_STATS[pvp.weaponFor(p)].range + 0.1 : FOLLOW_RANGE,
+    const range = attack ? pvp.rangeFor(p) : FOLLOW_RANGE,
       route = Math.hypot(p.x - target.x, p.z - target.z) > range ? plan(p, target, range) : [];
     if (!route)
       return {
@@ -286,7 +285,7 @@ export function createServerFollowing({
       const range = jail
           ? Math.max(jail.w, jail.d) / 2 + 0.8
           : state.attack
-            ? ITEM_STATS[pvp.weaponFor(p)].range + 0.1
+            ? pvp.rangeFor(p)
             : FOLLOW_RANGE,
         distance = Math.hypot(destination.x - p.x, destination.z - p.z),
         clear =
@@ -301,6 +300,7 @@ export function createServerFollowing({
         if (state.attack && p.pvpTarget !== target.id) pvp.attack(p, target.id);
         continue;
       }
+      if (state.attack) pvp.stop(p);
       const gx = Math.floor(destination.x * 4),
         gz = Math.floor(destination.z * 4);
       if (

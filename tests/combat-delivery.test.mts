@@ -4,6 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHitpoints, createAlienBattle, combatStats, MAX_HITPOINTS } from '../src/combat.ts';
 import { createDeli, drawDeliveryCooler } from '../src/deli.ts';
+import { createDeliveryPresentation } from '../src/multiplayer-actions.ts';
 import { createEconomy } from '../src/economy.ts';
 import { createStreetTraffic, drawWaymo } from '../src/street-traffic.ts';
 import { drawAirportBillboard } from '../src/airport-billboards.ts';
@@ -144,6 +145,32 @@ test('a paid delivery resumes without another charge and follows a moving custom
   assert.equal(poor.deli.order({ x: 4, y: 0 }).ok, false);
   assert.equal(poor.deli.pickup().ok, false);
   assert.equal(poor.deli.state.pending, false);
+});
+
+test('DoorDash coasts between snapshots and reaches its parking pose without a jump', () => {
+  const delayMs = 250;
+  const delivery = createDeliveryPresentation(delayMs);
+  const sample = (time: number) => requiredFixture(delivery.sample(time)[0]);
+  delivery.accept({ position: { x: 0, y: 2 }, angle: Math.PI - 0.1, travel: 0 }, [], 0);
+  const second = { position: { x: 1.2, y: 2 }, angle: -Math.PI + 0.1, travel: 1.2 };
+  delivery.accept(second, [], 200);
+  delivery.accept(second, [], 260); // An unrelated private snapshot keeps the original sample time.
+  for (let elapsed = 0; elapsed <= 200; elapsed += 10)
+    assert.ok(Math.abs(sample(delayMs + elapsed).position.x - elapsed * 0.006) < 1e-8);
+  assert.ok(Math.abs(sample(350).angle - Math.PI) < 1e-8);
+
+  const parked = { position: { x: 1.8, y: 2 }, angle: second.angle, expiresAt: 2300 };
+  delivery.accept(null, [parked], 300);
+  assert.equal(delivery.sample(500).length, 1, 'the same cooler appears only once during parking');
+  assert.equal(sample(500).position.x, 1.5);
+  assert.deepEqual(delivery.sample(550), [parked]);
+  assert.deepEqual(delivery.sample(650), [parked]);
+
+  delivery.accept({ position: { x: 0, y: 0 }, angle: 0, travel: 0 }, [parked], 680);
+  assert.deepEqual(sample(680).position, { x: 0, y: 0 });
+  assert.equal(delivery.sample(900).length, 2, 'a new delivery starts separately from parked ones');
+  delivery.clear();
+  assert.deepEqual(delivery.sample(900), []);
 });
 
 test('road traffic splits intersections and excludes non-road spans, with bounded movement', () => {

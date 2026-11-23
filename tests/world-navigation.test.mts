@@ -20,6 +20,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createWorldModel } from '../src/world.ts';
 import { buildingNPCService } from '../src/building-interactions.ts';
+import { BERKELEY_VILLAGE_HOMES } from '../src/berkeley-campus.ts';
 import { BILLBOARD_ART } from '../src/billboards.ts';
 import { RESEARCH_ART } from '../src/research-art.ts';
 import { authoredSignSlots, signAtlasLayout } from '../src/materials.ts';
@@ -1000,7 +1001,8 @@ test('the Berkeley chapel and East Bay neighborhood connect to the bridge and po
   const inside = requiredFixture(church.inside);
   assert.equal(world.instituteRoomAt(inside.x + 0.5, inside.y + 0.5)?.id, church.id);
   const neighborhood = requiredFixture(campus.life).people.filter(
-    ({ points }) => campus.local(points[0][0], points[0][1]).v < 0,
+    ({ id, points }) =>
+      /^berkeley-scholar-\d+$/.test(id) && campus.local(points[0][0], points[0][1]).v < 0,
   );
   assert.equal(neighborhood.length, 10);
   assert.equal(neighborhood.filter((person) => person.stroller).length, 1);
@@ -1027,6 +1029,34 @@ test('the Berkeley chapel and East Bay neighborhood connect to the bridge and po
       previous = next;
     }
     assert.deepEqual(previous, target);
+  }
+});
+
+test('the Berkeley village and shore paths connect to three direct highway crossings', () => {
+  const campus = world.esotericCampus;
+  const logical = (u: number, v: number) => {
+    const { x, z } = campus.point(u, v);
+    return { x: x - 0.5, y: z - 0.5 };
+  };
+  assert.equal(BERKELEY_VILLAGE_HOMES.length, 15);
+  const people = requiredFixture(campus.life).people;
+  const residents = people.length + campus.residents.length + campus.churchgoers.length + 2;
+  assert.equal(people.filter((person) => person.rider).length * 7, residents);
+  for (const u of [-13, 0, 16.7]) {
+    const a = logical(u, -3.65),
+      b = logical(u, 2.63);
+    assert.ok(world.canTravel(a.x, a.y, b.x, b.y));
+    assert.ok(world.canTravel(b.x, b.y, a.x, a.y));
+  }
+  const village = logical(1, -3.89);
+  for (const origin of [{ x: 123, y: 7 }, world.spawn]) {
+    const path = requiredFixture(world.pathTo(village.x, village.y, origin));
+    let from = origin;
+    for (const to of path) {
+      assert.ok(world.canTravel(from.x, from.y, to.x, to.y));
+      from = to;
+    }
+    assert.deepEqual(from, village);
   }
 });
 

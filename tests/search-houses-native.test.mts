@@ -58,8 +58,10 @@ test('Goose Corp books have reachable reading spots in four houses and the lodge
   }
 });
 test('all searchable homes, including the cultist’s cottage, have connected doorways and reachable storage', () => {
-  assert.equal(world.searchSites.length, ALL_SEARCH_HOMES.length);
-  for (const home of ALL_SEARCH_HOMES) {
+  const homes = [...ALL_SEARCH_HOMES, ...world.esotericCampus.searchHomes];
+  assert.equal(world.esotericCampus.searchHomes.length, 4);
+  assert.equal(world.searchSites.length, homes.length);
+  for (const home of homes) {
     const house = world.places.find((p) => p.id === home.id),
       site = world.searchSites.find((s) => s.id === home.search.id);
     assert.ok(house?.object && site);

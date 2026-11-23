@@ -1797,7 +1797,7 @@ test('Ahab’s menu boards a private hunt, arrives at the boss, collects the cap
       requiredFixture(await act(a, 'playerAction', { verb: 'collectPersonal', id: loot.id })).ok,
       true,
     );
-    assert.equal(a.p.inventory.economy.state.coins, 1_000_100);
+    assert.equal(a.p.inventory.economy.state.coins, 1_000_250);
     assert.equal(r.expeditions.state.cape, true);
     assert.equal(
       requiredFixture(await act(a, 'playerAction', { verb: 'collectPersonal', id: loot.id })).ok,

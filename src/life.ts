@@ -12,7 +12,7 @@ interface LifeRoute {
 }
 interface AuthoredLifeRoute {
   id: string;
-  role: 'cyclist' | 'child' | 'dog-walker';
+  role: 'cyclist' | 'child' | 'dog-walker' | 'walker';
   points: readonly (readonly number[])[];
   seed: number;
   loop?: boolean;

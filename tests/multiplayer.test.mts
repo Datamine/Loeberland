@@ -14,7 +14,11 @@ import {
   unpackNetworkNPC,
   encodePlayerFrame,
   decodePlayerFrame,
+  MP_ENTITY_INTERPOLATION_MS,
+  MP_SELF_INTERPOLATION_MS,
 } from '../src/multiplayer-protocol.ts';
+import { createWorldMultiplayer } from '../src/multiplayer-world.ts';
+import type { ServerEvent } from '../src/types/network.ts';
 
 test('bomber bank and successive barrel rolls interpolate through full turns over the existing movement packet', () => {
   const pose = {
@@ -151,6 +155,7 @@ test('authoritative follower poses interpolate without a local movement loop and
       setItem: (k: string, v: string) => values.set(k, v),
     };
   let time = 1000;
+  const serverStart = 0xffffffff - 40;
   const client = createMultiplayerClient({
       endpoint: 'ws://localhost/ws',
       storage,
@@ -164,7 +169,7 @@ test('authoritative follower poses interpolate without a local movement loop and
       id: 1,
       name: 'Test',
       renameAt: 0,
-      time: Date.now(),
+      time: serverStart,
       privateState: {},
       position: { x: 0, y: 1, z: 0 },
       shared: { npcs: [] },
@@ -183,10 +188,12 @@ test('authoritative follower poses interpolate without a local movement loop and
       level: 5,
     };
     socket.message({ type: 'following', target: 2, position: base });
-    time = 1100;
-    socket.message(encodePlayerFrame([{ ...base, x: 1, phase: 1 }], 1, 1100));
-    time = 1200;
-    socket.message(encodePlayerFrame([{ ...base, x: 2, phase: 2, level: 6 }], 2, 1200));
+    time = 1130;
+    socket.message(encodePlayerFrame([{ ...base, x: 1, phase: 1 }], 1, serverStart + 100));
+    time = 1250;
+    socket.message(
+      encodePlayerFrame([{ ...base, x: 2, phase: 2, level: 6 }], 2, serverStart + 200),
+    );
     assert.equal(client.state.level, 6);
     const pose = client.selfPose(1250);
     assert.ok(pose != null, 'Missing test fixture: pose');
@@ -195,12 +202,96 @@ test('authoritative follower poses interpolate without a local movement loop and
     assert.ok(Math.abs(pose.phase - 0.8) < 1e-6);
     assert.equal(client.peers.size, 0);
     assert.equal(client.state.following, 2);
+    const hospital = { x: 5, y: 1, z: 3, hp: 30 };
+    socket.message({ type: 'position', reason: 'respawn', ...hospital });
+    assert.equal(client.selfPose(), null, 'the last death pose cannot overwrite the hospital');
+    assert.equal(client.state.position?.x, hospital.x);
+    assert.equal(client.state.position?.z, hospital.z);
+    assert.equal(client.state.hp, hospital.hp);
+    assert.equal(client.state.following, null);
+
     socket.message({ type: 'following', target: null, position: { ...base, x: 2 } });
     assert.equal(client.selfPose(), null);
     assert.equal(client.state.following, null);
   } finally {
     client.stop();
   }
+});
+
+test('combat effects wait for the rendered PvP approach or wildlife lunge', (t) => {
+  const hitTime = 1_000;
+  let time = hitTime;
+  t.mock.method(performance, 'now', () => time);
+  const listeners: ((message: ServerEvent) => void)[] = [];
+  const player = { x: 0, y: 0, angle: 0, gesture: null };
+  const client = {
+    state: { id: 1, connected: true },
+    subscribe: (listener: (message: ServerEvent) => void) => listeners.push(listener),
+    selfPose: (sample: number) => ({
+      x: sample < hitTime + MP_SELF_INTERPOLATION_MS ? 0.5 : 5.5,
+      y: 0,
+      z: 0.5,
+      mode: 'walk',
+    }),
+  };
+  const swings: number[] = [];
+  const received: number[] = [];
+  const health = { state: { hp: 30, max: 30 } };
+  const world = createWorldMultiplayer({
+    client,
+    player,
+    merchants: [],
+    controllers: {},
+    expeditions: { cows: [], state: { beams: [] } },
+    health,
+    wilderness: { actors: [{ id: 'bear', combatKind: 'tahoe-bear' }] },
+    applyServerPose: (pose: { x: number }) => (player.x = pose.x - 0.5),
+    refreshUI: () => {},
+    combatFeedback: {
+      show: () => swings.push(player.x),
+      hit: (_player: unknown, damage: number) => received.push(damage),
+    },
+  } as unknown as Parameters<typeof createWorldMultiplayer>[0]);
+  for (const receive of listeners)
+    receive({
+      type: 'pvpHit',
+      sampleTime: hitTime,
+      attacker: 1,
+      target: 2,
+      damage: 1,
+      hp: 29,
+      max: 30,
+      weapon: 'unarmed',
+      from: { x: 5.5, y: 1, z: 0.5 },
+      to: { x: 6.5, y: 1, z: 0.5 },
+    });
+  time = hitTime + MP_SELF_INTERPOLATION_MS - 1;
+  world.beforeUpdate();
+  assert.equal(player.gesture, null);
+  assert.deepEqual(swings, []);
+  time++;
+  world.beforeUpdate();
+  assert.ok(player.gesture);
+  assert.deepEqual(swings, [5]);
+  world.beforeUpdate();
+  assert.deepEqual(swings, [5], 'the same hit is not replayed on later frames');
+  const creatureHitTime = ++time;
+  for (const receive of listeners)
+    receive({
+      type: 'damage',
+      sampleTime: creatureHitTime,
+      attacker: 'bear',
+      damage: 4,
+      hp: 26,
+      max: 30,
+    });
+  assert.equal(health.state.hp, 26);
+  time = creatureHitTime + MP_ENTITY_INTERPOLATION_MS + 49;
+  world.beforeUpdate();
+  assert.deepEqual(received, []);
+  time++;
+  world.beforeUpdate();
+  assert.deepEqual(received, [4]);
 });
 
 test('leaving kraken waters clears private ship state so later deltas cannot reboard a ghost ship', async () => {

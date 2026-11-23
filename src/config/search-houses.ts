@@ -7,6 +7,32 @@ export const CULTIST_WARDROBE = Object.freeze({
   label: 'Wardrobe',
   reward: { item: 'goose-costume', amount: 1 },
 });
+export const BERKELEY_HOUSE_SEARCHES = {
+  'indigo-victorian': {
+    id: 'berkeley-indigo-drawers',
+    container: 'drawers',
+    label: 'Drawers',
+    reward: { item: 'coins', amount: 22 },
+  },
+  'nasturtium-house': {
+    id: 'berkeley-nasturtium-breadbox',
+    container: 'breadbox',
+    label: 'Breadbox',
+    reward: { item: 'sandwich', amount: 2 },
+  },
+  'tile-roof-house': {
+    id: 'berkeley-tile-roof-chest',
+    container: 'chest',
+    label: 'Chest',
+    reward: { item: 'coins', amount: 35 },
+  },
+  'primrose-house': {
+    id: 'berkeley-primrose-breadbox',
+    container: 'breadbox',
+    label: 'Breadbox',
+    reward: { item: 'sandwich', amount: 3 },
+  },
+};
 /** Stable pseudo-random residential choices; never reroll on a page load.
  * Rewards are personal, once per character. Keep IDs stable for checkpoints. */
 export const HOUSE_SEARCHES = Object.freeze(

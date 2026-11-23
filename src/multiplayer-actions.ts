@@ -36,6 +36,7 @@ export interface MultiplayerActionsOptions {
 import { sampleRocketPresentation } from './rocket.ts';
 import { MP_ENTITY_INTERPOLATION_MS } from './multiplayer-protocol.ts';
 import { createPursuitPresentation } from './pursuit-presentation.ts';
+import { createSnapshotMotion } from './snapshot-motion.ts';
 
 /** Keep one visual clock for the rider, rocket, hatch and camera. Buffer one
  * entity sample, and bound continuation if packets stop arriving. */
@@ -103,6 +104,62 @@ export function interpolateGamePresentation(
   );
 }
 
+/** Buffer delivery samples on the render clock, including the last leg into the parked pose. */
+export function createDeliveryPresentation(delayMs = MP_ENTITY_INTERPOLATION_MS + 50) {
+  type Delivery = NonNullable<PersonalSnapshot['delivery']>;
+  type Arrival = NonNullable<PersonalSnapshot['deliveryArrivals']>[number];
+  type Motion = ReturnType<typeof createSnapshotMotion>;
+  let moving: { source: Delivery; motion: Motion } | null = null;
+  let parking: { arrival: Arrival; time: number; motion: Motion } | null = null;
+  let arrivals: readonly Arrival[] = [];
+
+  return {
+    accept(delivery: PersonalSnapshot['delivery'], nextArrivals: readonly Arrival[], time: number) {
+      if (delivery && delivery !== moving?.source) {
+        const motion =
+          moving && delivery.travel >= moving.source.travel
+            ? moving.motion
+            : createSnapshotMotion({ delayMs });
+        motion.accept(
+          { ...delivery.position, angle: delivery.angle, travel: delivery.travel },
+          time,
+        );
+        moving = { source: delivery, motion };
+      } else if (!delivery && moving) {
+        const arrival = nextArrivals.find(({ expiresAt }) =>
+          arrivals.every((previous) => previous.expiresAt !== expiresAt),
+        );
+        if (arrival) {
+          moving.motion.accept({ ...arrival.position, angle: arrival.angle }, time);
+          parking = { arrival, time, motion: moving.motion };
+        }
+        moving = null;
+      }
+      arrivals = nextArrivals;
+    },
+    sample(time: number) {
+      if (parking && time >= parking.time + delayMs) parking = null;
+      if (!moving && !parking) return arrivals;
+      const coolers: (Pick<Delivery, 'position' | 'angle'> | Arrival)[] = arrivals.filter(
+        (arrival) => arrival.expiresAt !== parking?.arrival.expiresAt,
+      );
+      for (const view of [moving, parking]) {
+        const pose = view?.motion.sample(time);
+        if (pose?.x !== undefined && pose.y !== undefined && pose.angle !== undefined)
+          coolers.unshift({
+            position: { x: pose.x, y: pose.y },
+            angle: pose.angle,
+          });
+      }
+      return coolers;
+    },
+    clear() {
+      moving = parking = null;
+      arrivals = [];
+    },
+  };
+}
+
 /** Input adapters and server-state application. Local controllers are read
  * models for the renderer, dialogue, wardrobe and quest journal. */
 export function createMultiplayerActions({
@@ -128,6 +185,7 @@ export function createMultiplayerActions({
     monkeyKeeper,
   } = controllers;
   const pursuits = createPursuitPresentation({ police: chase, keeper: monkeyKeeper });
+  const deliveryPresentation = createDeliveryPresentation();
   function request(verb: string, args: object = {}) {
     const promise = client.command('playerAction', { verb, ...args }).then((r) => {
       if (r.message) announce(r.message, r.ok ? 'You' : 'Server');
@@ -164,6 +222,7 @@ export function createMultiplayerActions({
       else if (key === 'sf-hitpoints-v1') Object.assign(health.state, value);
     }
     if (state) {
+      deliveryPresentation.accept(state.delivery, state.deliveryArrivals ?? [], time);
       deli.state.arrivals = state.deliveryArrivals ?? [];
       if (state.fishing) {
         Object.assign(fishing.state, state.fishing);
@@ -199,7 +258,10 @@ export function createMultiplayerActions({
     onState(fields, state);
   }
   client.subscribe((message) => {
-    if (message.type === 'instance' || message.type === 'welcome') pursuits.clear();
+    if (message.type === 'instance' || message.type === 'welcome') {
+      pursuits.clear();
+      deliveryPresentation.clear();
+    }
     if (message.type === 'playerState')
       apply(message.privateState, message.state, message.sampleTime);
     if (message.type === 'notice' && message.id !== 'server-update')
@@ -215,5 +277,10 @@ export function createMultiplayerActions({
       initial[key] = JSON.parse(value);
     } catch {}
   apply(initial, client.state.personal);
-  return { request, apply, update: (connected: boolean) => pursuits.update(connected) };
+  return {
+    request,
+    apply,
+    update: (connected: boolean) => pursuits.update(connected),
+    deliveryCoolers: deliveryPresentation.sample,
+  };
 }

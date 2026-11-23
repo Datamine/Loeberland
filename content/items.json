@@ -341,7 +341,7 @@
     },
     "kraken": {
       "name": "Kraken spoils",
-      "coins": 100,
+      "coins": 250,
       "description": "The spoils of an extremely unwise maritime expedition."
     }
   }

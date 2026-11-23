@@ -9,6 +9,7 @@ export const MP_PROTOCOL = 4,
   MP_VIEW_RADIUS = GAMEPLAY.viewRadius,
   MP_MAX_NEIGHBORS = GAMEPLAY.maxNearbyPlayers;
 export const MP_INTERPOLATION_MS = 1200 / GAMEPLAY.playerHz,
+  MP_SELF_INTERPOLATION_MS = MP_INTERPOLATION_MS + 50,
   MP_ENTITY_INTERPOLATION_MS = 1000 / GAMEPLAY.worldHz;
 export const MP_MODES = Object.freeze([
   'walk',

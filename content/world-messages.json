@@ -1221,7 +1221,7 @@
     "template": "0 — the blue beam passes through the alien."
   },
   "world-message.src.jurassic.100-coins-and-one-lousy-cape": {
-    "template": "100 coins and one lousy cape."
+    "template": "{amount} coins and one lousy cape."
   },
   "world-message.src.jurassic.a-citizen-defeats-the-velociraptor": {
     "template": "A citizen defeats the velociraptor!"
@@ -1290,7 +1290,7 @@
     "template": "This was a good test of the raptor escape and emergency recovery protocol. Quest complete. You keep the railgun."
   },
   "world-message.src.jurassic.you-collect-100-coins-and-a-commemorative-cape-equip-it-in-cha": {
-    "template": "You collect 100 coins and a commemorative cape. Equip it in Character settings."
+    "template": "You collect {amount} coins and a commemorative cape. Equip it in Character settings."
   },
   "world-message.src.jurassic.you-do-not-have-a-suitable-weapon-equipped": {
     "template": "You do not have a suitable weapon equipped."

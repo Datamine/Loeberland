@@ -16,6 +16,7 @@ import {
   BERKELEY_HOMES,
   BERKELEY_INSTITUTE_ROOM,
   BERKELEY_NEIGHBORHOOD,
+  BERKELEY_VILLAGE_HOMES,
   MAD_HOUSE,
 } from '../src/berkeley-campus.ts';
 import { BURNING_MAN } from '../src/burning-man.ts';
@@ -46,10 +47,13 @@ test('Berkeley has a sculpted institute, campanile, library, reading hall and ch
   );
   assert.equal(
     campus.layout.buildings.length,
-    BERKELEY_HOMES.length + BERKELEY_NEIGHBORHOOD.length + 5,
+    BERKELEY_HOMES.length + BERKELEY_NEIGHBORHOOD.length + BERKELEY_VILLAGE_HOMES.length + 5,
   );
   const homes = campus.drawHomes(m).filter((home) => home.kind !== 'hot-trapdoor');
-  assert.equal(homes.length, BERKELEY_HOMES.length + BERKELEY_NEIGHBORHOOD.length);
+  assert.equal(
+    homes.length + campus.searchHomes.length,
+    BERKELEY_HOMES.length + BERKELEY_NEIGHBORHOOD.length + BERKELEY_VILLAGE_HOMES.length,
+  );
   for (const home of homes)
     assert.ok(
       campus.path(campus.gate, home.entry, () => null),
@@ -64,6 +68,11 @@ test('Berkeley has a sculpted institute, campanile, library, reading hall and ch
   }
   assert.ok(BERKELEY_CHURCH_ROOM.z < 0 && BURNING_MAN.v < 0);
   assert.ok(BURNING_MAN.u > Math.max(...campus.layout.buildings.map(({ rect }) => rect[2])));
+  const previous = campus.point(30, -11),
+    moved = campus.point(BURNING_MAN.u, BURNING_MAN.v);
+  assert.ok(Math.abs(moved.x - previous.x - 10) < 0.01);
+  assert.ok(Math.abs(moved.z - previous.z) < 0.01);
+  assert.ok(campus.layout.dirtPaths.length >= 3);
   const grove = drawBurningManGrove(m, campus);
   for (const npc of [...grove.people, ...campus.residents]) {
     assert.ok(campus.contains(npc.x, npc.z), npc.id);
@@ -144,8 +153,13 @@ test('the campus adjacency graph connects every lawn and path around solid build
       p = campus.point((x + xx) / 2, (z + zz) / 2);
     assert.equal(
       campus.contains(p.x, p.z),
-      ['institute', MAD_HOUSE.id, BERKELEY_CHURCH_ROOM.id].includes(building.id),
-      'the Institute, church and scientist’s house have walkable interiors',
+      [
+        'institute',
+        MAD_HOUSE.id,
+        BERKELEY_CHURCH_ROOM.id,
+        ...campus.searchHomes.map(({ id }) => id),
+      ].includes(building.id),
+      building.id + ' walkable interior',
     );
   }
   const gate = campus.graph.regionAt(-campus.layout.bounds[0], -campus.layout.bounds[1]),
@@ -153,8 +167,11 @@ test('the campus adjacency graph connects every lawn and path around solid build
   assert.deepEqual([...regions], [gate], 'there must be no stranded courtyard pockets');
 });
 
-test('the neighborhood has two connected blocks and clear grass at the former highway frontage', () => {
-  for (const x of [133, 133.75, 134.5]) assert.equal(campus.surfaceType(x, 6), 'grass');
+test('the neighborhood has two connected blocks and retains open grass west of the village', () => {
+  for (const [u, v] of [[-15, -6], [-15, -7], [-21, -4]]) {
+    const { x, z } = campus.point(u, v);
+    assert.equal(campus.surfaceType(x, z), 'grass');
+  }
   const aroundBlocks = [
     [-13, -24.95],
     [3, -24.95],
@@ -210,13 +227,14 @@ test('cyclists circle the new blocks while children and dog walkers use clear pa
     bicycle: drawBicycle,
     waterTraffic: false,
   });
-  assert.equal(life.people.filter((person) => person.rider).length, 3);
+  assert.equal(life.people.filter((person) => person.rider).length, 6);
   assert.equal(life.people.filter((person) => person.child).length, 2);
-  assert.equal(life.people.filter((person) => person.dogWalker).length, 2);
+  assert.equal(life.people.filter((person) => person.dogWalker).length, 3);
   for (const person of life.people) {
     for (const [i, [x, z]] of person.points.entries()) {
       assert.ok(campus.contains(x, z), person.id);
-      if (person.rider) assert.equal(campus.surfaceType(x, z), 'road');
+      if (person.rider && !person.id.includes('-village-'))
+        assert.equal(campus.surfaceType(x, z), 'road');
       if (i) {
         const [ax, az] = person.points[i - 1];
         assert.ok(
@@ -236,7 +254,7 @@ test('cyclists circle the new blocks while children and dog walkers use clear pa
   const park = campus.point(...campus.layout.playground.entry);
   const targets: string[] = [];
   life.draw(new Mesh(), 0, [park.x, park.z], false, (_, actor) => targets.push(actor.id));
-  assert.equal(targets.filter((id) => id.endsWith('-dog')).length, 2);
+  assert.equal(targets.filter((id) => id.endsWith('-dog')).length, 3);
 });
 
 test('residential lights glow over the street and verge fixtures leave sidewalks clear', () => {

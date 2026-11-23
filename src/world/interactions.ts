@@ -18,7 +18,7 @@ import { groundPickupsOnTile, hasSiteEntry, isLootTarget } from '../interaction-
 import { isFiniteNumber } from '../types/json.ts';
 import { requiredValue } from '../types/assert.ts';
 
-import type { CommandResult } from '../types/network.ts';
+import type { CommandResult, Position } from '../types/network.ts';
 import type { Point, WorldPoint } from '../types/geometry.ts';
 
 import type { ExpeditionEvent } from '../types/expeditions.ts';
@@ -529,11 +529,24 @@ export function createInteractions(context: WorldContext) {
     context.questMenu?.close();
     context.closeCharacter();
     const base = context.playerGround(true);
+    const waitsForHospital =
+      complete === respawnAtHospital && !!context.multiplayer?.state.connected;
     if (
-      !context.capture.start(kind, base, () => {
-        context.world.inert = false;
-        complete();
-      })
+      !context.capture.start(
+        kind,
+        base,
+        () => {
+          if (waitsForHospital) {
+            // A current server delivers the hospital position on its own.
+            // Keep the request for servers that still require it.
+            void context.multiplayer.command('respawn');
+          } else {
+            context.world.inert = false;
+            complete();
+          }
+        },
+        waitsForHospital,
+      )
     )
       return;
     context.tech.losePhone(kind === 'police' ? 'arrest' : 'death');
@@ -567,10 +580,10 @@ export function createInteractions(context: WorldContext) {
     context.world.inert = true;
   }
 
-  function respawnAtHospital(rehabilitated = false) {
+  function respawnAtHospital(rehabilitated = false, position?: Position) {
+    context.capture.cancel();
+    context.world.inert = false;
     context.secretWorld?.reset();
-    if (context.multiplayer?.state.connected && !rehabilitated)
-      context.multiplayer.command('respawn');
     context.social.cancelPitch();
     if (!rehabilitated) context.tech.losePhone('death');
     context.expeditions.abandonShip();
@@ -590,7 +603,8 @@ export function createInteractions(context: WorldContext) {
     context.gesture = false;
     context.rocket.cancel();
     context.rope.reset();
-    context.airship.cancel();
+    if (position && 'resetPresentation' in context.airship) context.airship.resetPresentation();
+    else context.airship.cancel();
     context.sutroClimb.cancel();
     context.tahoe.reset();
     context.waveSurf.stop();
@@ -607,7 +621,9 @@ export function createInteractions(context: WorldContext) {
     }
     context.$('sf-wanted').hidden = true;
     context.$('sf-custody').hidden = true;
-    const entry = requiredValue(sightById('ucsf'), 'Missing authored entity: ucsf').entry;
+    const entry = position
+      ? { x: position.x - 0.5, y: position.z - 0.5 }
+      : requiredValue(sightById('ucsf'), 'Missing authored entity: ucsf').entry;
     Object.assign(context.player, {
       x: entry.x,
       y: entry.y,
@@ -620,7 +636,10 @@ export function createInteractions(context: WorldContext) {
       vx: 0,
       vy: 0,
       gesture: null,
-      angle: Math.PI,
+      sitting: false,
+      benchSeat: false,
+      chair: undefined,
+      angle: position?.angle ?? Math.PI,
     });
     for (const input of context.world.querySelectorAll<HTMLButtonElement>(
       '#sf-map-button,#sf-bike-button,.sf-place-marker',

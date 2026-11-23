@@ -9,7 +9,7 @@ import { contentText } from '../content-runtime.ts';
 export const COMMON_RESPAWN_SECONDS = 10;
 const ironGearDrop: DropRule = { choose: [...IRON_ARMOR_PIECES, 'crowbar'], oneIn: 20 };
 export const MONSTER_DROPS: Readonly<Record<string, readonly DropRule[]>> = Object.freeze({
-  'emf-warrior': [{ item: 'railgun-upgrade', oneIn: 1 }],
+  'emf-warrior': [{ item: 'railgun-upgrade', oneIn: 20 }],
   cow: [{ item: 'sandwich', oneIn: 1 }],
   goblin: [
     { item: 'coins', amount: 3, oneIn: 1 },
@@ -50,13 +50,13 @@ export const MONSTER_DROPS: Readonly<Record<string, readonly DropRule[]>> = Obje
     { item: 'bind-tablet', oneIn: 20 },
   ],
   'mad-scientist': [
-    { item: 'coins', amount: 16, oneIn: 1 },
+    { item: 'coins', amount: 120, oneIn: 1 },
     { item: 'sandwich', oneIn: 3 },
     { item: 'recoil-amulet', oneIn: 100 },
     { item: 'bind-tablet', oneIn: 20 },
   ],
   'madder-scientist': [
-    { item: 'coins', amount: 20, oneIn: 1 },
+    { item: 'coins', amount: 160, oneIn: 1 },
     { item: 'sandwich', oneIn: 3 },
     { item: 'missile-launcher', oneIn: 100 },
     { item: 'bind-tablet', oneIn: 20 },
@@ -75,7 +75,7 @@ export const MONSTER_DROPS: Readonly<Record<string, readonly DropRule[]>> = Obje
 
   seagull: [],
   'soma-zombie': [ironGearDrop],
-  'armed-zombie': [ironGearDrop],
+  'armed-zombie': [{ item: 'coins', amount: 20, oneIn: 1 }, ironGearDrop],
   robocop: [{ item: 'peptides', oneIn: 10 }, ironGearDrop],
   raptor: [{ item: 'raptor', oneIn: 1 }],
   kraken: [{ item: 'kraken', oneIn: 1 }],
@@ -83,10 +83,16 @@ export const MONSTER_DROPS: Readonly<Record<string, readonly DropRule[]>> = Obje
   'tahoe-bear': [{ item: 'bear-pelt', oneIn: 20 }],
   'tahoe-fox': [{ item: 'fox-pelt', oneIn: 16 }],
   bison: [{ item: 'bison-hide', oneIn: 1 }],
-  'snow-giant': [{ choose: ['ice-top', 'ice-pants'] satisfies [string, string], oneIn: 50 }],
-  'ice-giant': [{ choose: ['ice-top', 'ice-pants'] satisfies [string, string], oneIn: 50 }],
+  'snow-giant': [
+    { item: 'coins', amount: 35, oneIn: 1 },
+    { choose: ['ice-top', 'ice-pants'] satisfies [string, string], oneIn: 50 },
+  ],
+  'ice-giant': [
+    { item: 'coins', amount: 45, oneIn: 1 },
+    { choose: ['ice-top', 'ice-pants'] satisfies [string, string], oneIn: 50 },
+  ],
   terminator: [
-    { item: 'coins', amount: 12, oneIn: 1 },
+    { item: 'coins', amount: 90, oneIn: 1 },
     { item: 'sandwich', oneIn: 2 },
     { item: 'peptides', oneIn: 10 },
     { item: 'akibo', oneIn: 20 },

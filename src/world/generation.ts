@@ -1735,18 +1735,25 @@ export function createGeneration(context: WorldContext) {
         throw new Error('Missing quest alien ' + target.id);
   }
 
-  function setupSearchHomes() {
-    for (const [i, home] of ALL_SEARCH_HOMES.entries()) {
+  function setupSearchHomes(campus?: NonNullable<typeof context.esotericCampus>) {
+    const residences = campus
+      ? campus.searchableResidences
+      : ALL_SEARCH_HOMES.map((home) => ({ home, house: undefined }));
+    for (const [i, { home, house: berkeley }] of residences.entries()) {
       const cultist = home === CULTIST_HOME;
       const p = home.parcel,
         house: Place = {
           id: home.id,
-          name: cultist
-            ? 'Cultist’s cottage'
-            : contentText('world.generation.setupSearchHomes.name-44', {}),
-          label: cultist
-            ? 'Cultist’s cottage'
-            : contentText('world.generation.setupSearchHomes.label-45', {}),
+          name:
+            berkeley?.label ??
+            (cultist
+              ? 'Cultist’s cottage'
+              : contentText('world.generation.setupSearchHomes.name-44', {})),
+          label:
+            berkeley?.label ??
+            (cultist
+              ? 'Cultist’s cottage'
+              : contentText('world.generation.setupSearchHomes.label-45', {})),
           kind: 'residence',
           activityBuilding: true,
           searchHome: true,
@@ -1759,10 +1766,17 @@ export function createGeneration(context: WorldContext) {
           inside: { ...home.inside },
           entry: { ...home.entry },
           h: 48,
-          worldHeight: 2.4 + (i % 3) * 0.25,
-          color: (
-            ['#a6b9ad', '#c4a0a5', '#c1b17e', '#9caec1'] satisfies [string, string, string, string]
-          )[i % 4],
+          worldHeight: berkeley?.style === 'craftsman' ? 2.35 : 2.4 + (i % 3) * 0.25,
+          color:
+            berkeley?.color ??
+            (
+              ['#a6b9ad', '#c4a0a5', '#c1b17e', '#9caec1'] satisfies [
+                string,
+                string,
+                string,
+                string,
+              ]
+            )[i % 4],
           style: 'victorian',
           roof: i % 3 === 1 ? 'hip' : 'gable',
           searchDefinition: home.search,
@@ -1770,7 +1784,7 @@ export function createGeneration(context: WorldContext) {
           description: contentText('world.generation.setupSearchHomes.description-46', {}),
         };
       const ground = terrainHeight(p.x, p.z);
-      if (!cultist)
+      if (!cultist && !berkeley)
         context.southernTerrain.cutPlot({
           cx: p.x,
           cz: p.z,
@@ -2343,6 +2357,7 @@ export function createGeneration(context: WorldContext) {
     context.streetLights.push(...context.esotericCampus.drawStreetlights(context.highwayMesh));
     for (const home of context.esotericCampus.drawHomes(context.highwayMesh))
       register(home, context.highwayMesh);
+    setupSearchHomes(context.esotericCampus);
     register(context.esotericCampus.drawPlayground(context.highwayMesh), context.highwayMesh);
     register(
       context.esotericCampus.drawChurch(context.highwayMesh, context.signs),
@@ -2392,7 +2407,9 @@ export function createGeneration(context: WorldContext) {
       regional: true,
     });
     const neighborhood = context.esotericCampus.life.people.filter(
-      (person) => context.esotericCampus.local(person.points[0][0], person.points[0][1]).v < 0,
+      (person) =>
+        /^berkeley-scholar-\d+$/.test(person.id) &&
+        context.esotericCampus.local(person.points[0][0], person.points[0][1]).v < 0,
     );
     if (neighborhood[1]) neighborhood[1].stroller = true;
     if (neighborhood[3]?.child) {
@@ -4518,11 +4535,10 @@ export function createGeneration(context: WorldContext) {
   }
 
   function terrainHeight(x: number, z: number): number {
+    if (context.esotericCampus?.coversGround(x, z)) return context.esotericCampus.ground();
     if (context.countryside?.contains(x, z)) return context.countryside.height(x, z);
     if (context.marinLand?.onLand(x, z)) return context.marinLand.height(x, z);
-    return context.esotericCampus?.contains(x, z)
-      ? context.esotericCampus.ground()
-      : sampleTerrain(context.heights, x, z);
+    return sampleTerrain(context.heights, x, z);
   }
 
   function airportSurfaceHeight(x: number, z: number) {
@@ -4562,7 +4578,9 @@ export function createGeneration(context: WorldContext) {
       const bank = terrainHeight(x, z) + (TILE_TYPES[surfaceTypeAt(x, z)]?.height || 0);
       return Math.max(SOUTH_BEACH_PIER.deck, bank) + 0.008;
     }
-    const home = searchHomeContaining(x, z),
+    const home =
+        searchHomeContaining(x, z) ||
+        (context.esotericCampus && searchHomeContaining(x, z, context.esotericCampus.searchHomes)),
       residence = home && planningPlaces().find((p) => p.id === home.id);
     if (residence?.object) return requiredValue(residence.object.base, 'house floor') + 0.045;
     const institute = context.instituteRoomAt(x, z);
@@ -4577,9 +4595,9 @@ export function createGeneration(context: WorldContext) {
           terrainHeight,
         ) + 0.025
       );
-    if (context.esotericCampus?.contains(x, z)) return context.esotericCampus.ground();
     const road = context.goldenGate?.at(x, z) || context.regionalRoad?.at(x, z);
     if (road) return road.height + 0.015;
+    if (context.esotericCampus?.contains(x, z)) return context.esotericCampus.ground();
     if (context.tahoe.contains(x, z)) return tahoeHeight(x, z) + 0.04;
     if (z >= context.N && context.airship.contains(x, z)) return airportWalkingHeight(x, z);
     const type = surfaceTypeAt(x, z);
@@ -4654,7 +4672,7 @@ export function createGeneration(context: WorldContext) {
       institute = context.instituteRoomAt(x, z);
     if (institute) return institute.base + INSTITUTE_FLOOR_HEIGHT;
     if (gymAccess(x, z)) return SF_FITNESS.base + 0.065;
-    if (context.esotericCampus?.contains(x, z)) return context.esotericCampus.ground();
+    if (context.esotericCampus?.contains(x, z)) return characterGround(x, z);
     const road = context.goldenGate?.at(x, z) || context.regionalRoad?.at(x, z);
     if (road) return road.height + 0.015;
     if (context.tahoe.contains(x, z)) return tahoeHeight(x, z);

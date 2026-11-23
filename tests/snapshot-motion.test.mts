@@ -78,6 +78,16 @@ test('a creature strike begins between snapshots and plays forward from its wind
   assert.ok(Math.abs(requiredFixture(track.sample(290)?.attackAnimation) - 0.6) < 1e-8);
 });
 
+test('a black bear lunge uses its full timeline even when the next snapshot is late', () => {
+  const track = createSnapshotMotion({ delayMs: 0 });
+  track.accept({ x: 0, z: 0, combatKind: 'tahoe-bear', attackAnimation: 0 }, 100);
+  track.accept({ x: 0, z: 0, combatKind: 'tahoe-bear', attackAnimation: 0.8 }, 300);
+  assert.equal(track.sample(119)?.attackAnimation, 0);
+  assert.ok(Math.abs(requiredFixture(track.sample(120)?.attackAnimation) - 1) < 1e-8);
+  assert.equal(track.sample(570)?.attackAnimation, 0.5);
+  assert.equal(track.sample(1021)?.attackAnimation, 0);
+});
+
 test('metadata applies immediately without mutating snapshots or restarting unchanged delta records', () => {
   let time = 0;
   const target: Partial<{ x: number; z: number; phase: number; hp: number }> = {},

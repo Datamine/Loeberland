@@ -362,18 +362,20 @@ export async function createGame({
     const dropped = victim.inventory.deathDrops(),
       ids = shared.dropInventory(victim, killer, dropped);
     victim.profile.deathPending = true;
-    victim.respawnReadyAt = now() + DEATH_DURATION * 1000;
+    const readyAt = now() + DEATH_DURATION * 1000;
+    victim.respawnReadyAt = readyAt;
+    victim.respawnAllowed = true;
     victim.revision++;
     shared.leave(victim);
     dirty(victim);
+    if (killer) send(victim, { type: 'caught', source: 'pvp' });
     const inventory = { ...victim.inventory.snapshot(), hp: 0 };
     const task = durable(victim)
       .then(() => {
-        send(victim, { type: 'inventory', inventory });
-        if (killer) {
-          send(victim, { type: 'caught', source: 'pvp' });
+        if (victim.profile.deathPending && victim.respawnReadyAt === readyAt)
+          send(victim, { type: 'inventory', inventory });
+        if (killer)
           send(killer, { type: 'pvpKill', target: victim.id, name: victim.name, drops: ids });
-        }
       })
       .catch((error) => console.error('PvP death persistence:', error.message));
     victim.deathTask = task;
@@ -810,6 +812,44 @@ export async function createGame({
     metrics.corrections++;
     send(p, { type: 'position', ...privatePosition(p), reason });
   }
+  function finishRespawn(p: ServerPlayer) {
+    const entry = geometry.hospital || { x: 74.7, y: 89.5 };
+    const x = entry.x + 0.5;
+    const z = entry.y + 0.5;
+    const destination = { x, z, y: geometry.characterGround(x, z), angle: Math.PI, hp: p.max };
+    following.stop(p);
+    movement.leaveTraining(p);
+    movement.clear(p);
+    shared.leave(p);
+    pvp.stop(p);
+    const runtime = personal.runtime(p);
+    runtime.expeditions.abandonShip();
+    runtime.battles.clear();
+    runtime.battle = null;
+    p.personalBattle = null;
+    p.profile.deathPending = false;
+    p.pvpDying = false;
+    p.boundUntil = undefined;
+    delete p.profile.playerState.activities.bindUntil;
+    Object.assign(p, destination, {
+      attack: null,
+      respawnAllowed: false,
+      respawnReadyAt: undefined,
+      damagePending: false,
+      tabletTeleport: null,
+      depotLaunch: undefined,
+      mode: 'walk',
+      phase: 0,
+      gesture: '',
+      gestureUntil: 0,
+      lastPoseAt: now(),
+      pvpProtectedUntil: now() + 5000,
+    });
+    if (instances.kind(p) !== 'world' || p.bomberActive) instances.reset(p, destination);
+    runtime.save('sf-hitpoints-v1')({ hp: p.hp, max: p.max, xp: p.hitpointsXP });
+    dirty(p);
+    correction(p, 'respawn');
+  }
   function pose(p: ServerPlayer, input: unknown) {
     // Protocol v4 accepts destinations and activity buttons, never poses or HP.
     metrics.rejected++;
@@ -975,7 +1015,7 @@ export async function createGame({
           !p.respawnAllowed &&
           !p.detainAt &&
           !(action === 'travel' && args.kind === 'streetcarExit'))) &&
-      !['beginPlay', 'pausePlay', 'characterLogin', 'saveCharacter'].includes(action)
+      !['beginPlay', 'pausePlay', 'characterLogin', 'saveCharacter', 'respawn'].includes(action)
     ) {
       send(p, { type: 'result', request: message.request, action, ok: false });
       return;
@@ -983,7 +1023,8 @@ export async function createGame({
     if (
       p.tabletTeleport &&
       !(
-        ['stopAttack', 'rename', 'personalTransit', 'teleport', 'moveTo'] satisfies [
+        ['stopAttack', 'rename', 'personalTransit', 'teleport', 'moveTo', 'respawn'] satisfies [
+          string,
           string,
           string,
           string,
@@ -1027,14 +1068,12 @@ export async function createGame({
           'bomberEject',
           'teleport',
           'personalTransit',
-          'respawn',
           'airshipBoard',
           'grapple',
           'airshipClimb',
           'attack',
           'pvpAttack',
         ] satisfies [
-          string,
           string,
           string,
           string,
@@ -1062,30 +1101,16 @@ export async function createGame({
           'bomberEject',
           'teleport',
           'personalTransit',
-          'respawn',
           'useTablet',
           'airshipBoard',
           'grapple',
-        ] satisfies [
-          string,
-          string,
-          string,
-          string,
-          string,
-          string,
-          string,
-          string,
-          string,
-          string,
-          string,
-        ]
+        ] satisfies [string, string, string, string, string, string, string, string, string, string]
       ).includes(action)
     ) {
       const travel = movement.state(p);
       if (
         (travel.atv || travel.houseClimb) &&
         action !== 'teleport' &&
-        action !== 'respawn' &&
         action !== 'personalTransit'
       ) {
         send(p, { type: 'result', request: message.request, action, ok: false });
@@ -1548,29 +1573,7 @@ export async function createGame({
           message: contentText('world-message.server.game.wait-for-the-collapse-to-finish'),
         };
       else {
-        const entry = geometry.hospital || { x: 74.7, y: 89.5 };
-        if (instances.kind(p) !== 'world' || p.bomberActive) instances.reset(p);
-        shared.leave(p);
-        personal.runtime(p).battles.clear();
-        personal.runtime(p).battle = null;
-        p.personalBattle = null;
-        p.profile.deathPending = false;
-        p.pvpDying = false;
-        p.boundUntil = undefined;
-        delete p.profile.playerState.activities.bindUntil;
-        p.pvpProtectedUntil = now() + 5000;
-        pvp.stop(p);
-        Object.assign(p, {
-          x: entry.x + 0.5,
-          z: entry.y + 0.5,
-          y: geometry.characterGround(entry.x + 0.5, entry.y + 0.5),
-          hp: p.max,
-          respawnAllowed: false,
-          damagePending: false,
-          mode: 'walk',
-          lastPoseAt: now(),
-        });
-        correction(p, 'respawn');
+        finishRespawn(p);
         result = { ok: true };
       }
     } else {
@@ -1835,6 +1838,7 @@ export async function createGame({
         p.training = false;
         pvpDeath(p, null);
       }
+      if (p.profile.deathPending && time >= (p.respawnReadyAt ?? Infinity)) finishRespawn(p);
       if (p.gestureUntil && time > p.gestureUntil) {
         p.gesture = '';
         p.gestureUntil = 0;

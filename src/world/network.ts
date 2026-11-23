@@ -471,15 +471,24 @@ export function createNetwork(context: WorldContext) {
       onPosition: (p) => {
         context.cancelMovingInteraction(false);
         if (
-          context.capture.state.active &&
-          (['respawn', 'jail'] satisfies [string, string]).includes(p.reason || '')
-        )
+          p.reason === 'respawn' ||
+          (p.reason === 'reconnect' &&
+            context.capture.state.active &&
+            context.capture.state.kind !== 'police' &&
+            (p.hp ?? 0) > 0)
+        ) {
+          priorTravel = currentTravel = travelSource = null;
+          priorPersonalShip = currentPersonalShip = personalShipSource = null;
+          rocketPresentation.accept(null);
+          context.respawnAtHospital(false, p);
           return;
+        }
+        if (p.reason === 'jail' && context.capture.state.active) return;
         if (p.reason === 'teleport') {
           context.debugTeleport(p.x, p.z, true);
           return;
         }
-        if (p.reason === 'respawn') context.health.restore();
+        if (p.reason === 'rehabilitation') context.health.restore();
         if (context.secretWorld?.bomber.state.active)
           context.secretWorld.bomber.state.position = { x: p.x, y: p.y, z: p.z };
         Object.assign(context.player, {

@@ -108,9 +108,16 @@ test('B-2 blasts damage cows, bears and both giant species, with normal shared d
   game.shared.bombCreatures(bomb);
   assert.equal(snow.hp, 0);
   assert.equal(ice.hp, 0);
-  assert.equal(game.shared.loot.size, 4);
+  assert.equal(game.shared.loot.size, 6);
+  assert.deepEqual(
+    [...game.shared.loot.values()]
+      .filter((loot) => loot.lootKind === 'coins')
+      .map((loot) => loot.amount)
+      .sort((a, b) => a - b),
+    [35, 45],
+  );
   game.shared.bombCreatures(bomb);
-  assert.equal(game.shared.loot.size, 4, 'dead creatures cannot drop twice');
+  assert.equal(game.shared.loot.size, 6, 'dead creatures cannot drop twice');
   await game.flush();
   assert.equal(
     requiredFixture(

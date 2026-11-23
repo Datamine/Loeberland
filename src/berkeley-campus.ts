@@ -12,6 +12,7 @@ import { drawPlaque } from './southern-district.ts';
 import { EAST_BAY_GRASS_COLOR } from './geography.ts';
 import type { SignAtlas } from './types/world.ts';
 import { drawNeighborhoodTree } from './neighborhood-tree.ts';
+import { BURNING_MAN } from './burning-man.ts';
 
 export const MAD_HOUSE = Object.freeze({
   id: 'mad-scientist-house',
@@ -57,9 +58,12 @@ const home = (
   color: string,
   style: HomeStyle,
   facing: Home['facing'] = 'south',
+  size?: readonly [number, number],
 ): Home => {
-  const w = style === 'eichler' ? 3.75 : style === 'victorian' ? 2.28 : 2.4;
-  const d = style === 'victorian' ? 2.75 : 2.05;
+  const [w, d] = size ?? [
+    style === 'eichler' ? 3.75 : style === 'victorian' ? 2.28 : 2.4,
+    style === 'victorian' ? 2.75 : 2.05,
+  ];
   const sideways = facing === 'east' || facing === 'west';
   return {
     id,
@@ -100,6 +104,51 @@ export const BERKELEY_HOMES: Home[] = [
   home('berkeley-craftsman', 'Berkeley Craftsman', 14.6, -8.75, '#8da18a', 'craftsman', 'north'),
   home('eucalyptus-cottage', 'Eucalyptus Cottage', -7.1, -11.9, '#c49a86', 'bungalow', 'north'),
   home('oak-bungalow', 'Oak Bungalow', -10.35, -11.9, '#b8b380', 'bungalow', 'north'),
+];
+
+export const BERKELEY_VILLAGE_HOMES = [
+  home('acorn-cottage', 'Acorn Cottage', -10.4, -6.2, '#d4b183', 'bungalow', 'south', [1.8, 1.7]),
+  home('indigo-victorian', 'Indigo Victorian', -7.3, -6.4, '#8397b8', 'victorian'),
+  home('nasturtium-house', 'Nasturtium House', -4.25, -6.15, '#c58b70', 'craftsman'),
+  home('fern-cottage', 'Fern Cottage', -1.55, -6.05, '#a2b194', 'bungalow', 'south', [1.9, 1.7]),
+  home('quince-house', 'Quince House', 2.45, -6.35, '#d2aa73', 'victorian'),
+  home('juniper-eichler', 'Juniper Eichler', 5.95, -6.15, '#91a8a2', 'eichler'),
+  home('poppy-cottage', 'Poppy Cottage', 12.83, -6.05, '#d3a180', 'bungalow', 'south', [1.7, 1.7]),
+  home('plum-craftsman', 'Plum Craftsman', 15.22, -6.25, '#ab94a7', 'craftsman'),
+  home('pear-cottage', 'Pear Cottage', -10.5, -1.9, '#b9b981', 'bungalow', 'north', [1.85, 1.7]),
+  home('raven-craftsman', 'Raven Craftsman', -7.2, -1.87, '#859292', 'craftsman', 'north'),
+  home(
+    'marigold-cottage',
+    'Marigold Cottage',
+    -3.85,
+    -1.8,
+    '#d3ac6b',
+    'bungalow',
+    'north',
+    [2.1, 1.7],
+  ),
+  home(
+    'tile-roof-house',
+    'Tile Roof House',
+    3.1,
+    -1.74,
+    '#c3a791',
+    'victorian',
+    'north',
+    [2.28, 2.35],
+  ),
+  home('olive-eichler', 'Olive Eichler', 7.05, -1.9, '#9da589', 'eichler', 'north'),
+  home(
+    'primrose-house',
+    'Primrose House',
+    11.2,
+    -1.74,
+    '#bd8e98',
+    'victorian',
+    'north',
+    [2.28, 2.35],
+  ),
+  home('linen-cottage', 'Linen Cottage', 14.65, -1.82, '#d7c8a9', 'bungalow', 'north', [1.8, 1.7]),
 ];
 
 export const BERKELEY_NEIGHBORHOOD: Home[] = [
@@ -294,6 +343,129 @@ export const BERKELEY_LIFE_ROUTES = [
     ],
     seed: 0.59,
   },
+  {
+    id: 'village-west-cyclist',
+    role: 'cyclist',
+    points: [
+      [-12.85, -13.8],
+      [-12.85, -3.98],
+      [0.55, -3.98],
+      [0.55, 2.45],
+      [-12.85, 2.45],
+      [-12.85, -13.8],
+    ],
+    seed: 0.24,
+    loop: true,
+  },
+  {
+    id: 'village-east-cyclist',
+    role: 'cyclist',
+    points: [
+      [16.8, -8.95],
+      [16.8, -3.67],
+      [0, -3.67],
+      [0, 2.44],
+      [16.8, 2.44],
+      [16.8, -8.95],
+    ],
+    seed: 0.64,
+    loop: true,
+  },
+  {
+    id: 'village-block-cyclist',
+    role: 'cyclist',
+    points: [
+      [-13, -16.45],
+      [3, -16.45],
+      [3, -24.95],
+      [-13, -24.95],
+      [-13, -16.45],
+    ],
+    seed: 0.53,
+    loop: true,
+  },
+  {
+    id: 'village-park-walker',
+    role: 'walker',
+    points: [
+      [-19.77, -11.55],
+      [-17.7, -8.65],
+      [-17.7, -4.43],
+      [-13.45, -4.43],
+      [-8.9, -4.43],
+      [-1.6, -4.43],
+    ],
+    seed: 0.32,
+  },
+  {
+    id: 'village-market-walker',
+    role: 'walker',
+    points: [
+      [15.65, -3.27],
+      [12.5, -3.27],
+      [7.05, -3.27],
+      [0.3, -3.27],
+      [-3.4, -3.27],
+    ],
+    seed: 0.63,
+  },
+  {
+    id: 'village-dog-walker',
+    role: 'dog-walker',
+    points: [
+      [0.8, -4.43],
+      [9.1, -4.43],
+      [16.9, -4.43],
+      [17, -6.8],
+      [17, -8.65],
+    ],
+    seed: 0.45,
+  },
+  {
+    id: 'village-campus-walker',
+    role: 'walker',
+    points: [
+      [16.8, -3.15],
+      [16.65, -1],
+      [16.65, 2.56],
+      [14.85, 2.56],
+      [10.75, 2.56],
+    ],
+    seed: 0.7,
+  },
+  {
+    id: 'village-avenue-walker',
+    role: 'walker',
+    points: [
+      [-12.15, -14.7],
+      [-12.15, -4.1],
+      [-11.65, -3.65],
+      [-8.55, -3.65],
+    ],
+    seed: 0.49,
+  },
+  {
+    id: 'village-crossing-walker',
+    role: 'walker',
+    points: [
+      [-12.85, 2.85],
+      [-12.85, -3.51],
+      [-6.4, -3.52],
+      [-2, -3.57],
+    ],
+    seed: 0.78,
+  },
+  {
+    id: 'village-playground-walker',
+    role: 'walker',
+    points: [
+      [13.65, -3.12],
+      [16.75, -3.08],
+      [20.05, -3.19],
+      [20.5, -3.6],
+    ],
+    seed: 0.26,
+  },
 ] as const;
 
 const avenues = [-13, 3, 18];
@@ -308,6 +480,26 @@ const residentialRoads = [
   ...crossStreets.flatMap((v) =>
     blockSpans.map(([a, b]) => [a, v - streetHalf, b, v + streetHalf]),
   ),
+  [-12.3, -4.34, 17.7, -3.35],
+  [16.4, -9.5, 17.55, -4.34],
+];
+const villageSidewalks = [
+  [-13.7, -4.72, 17.7, -4.34],
+  [-13.7, -3.35, 17.7, -3.02],
+];
+export const BERKELEY_HIGHWAY_CROSSINGS = [-13, 0, 16.7].map((u) => [
+  u - 0.65,
+  -1.9,
+  u + 0.65,
+  2.65,
+]);
+export const BERKELEY_SHORE_GATE = -19.7;
+const shoreWalk: LocalPoint[] = [
+  [-20.25, -12.35],
+  [-19.75, -11.55],
+  [-17.7, -8.65],
+  [-17.7, -4.43],
+  [-13.3, -4.43],
 ];
 export const BERKELEY_SIDEWALKS = [
   ...avenues.flatMap((u, i) =>
@@ -348,6 +540,12 @@ const frontWalks = [...BERKELEY_HOMES, ...BERKELEY_NEIGHBORHOOD].flatMap((house)
   if (house.style === 'eichler') return [[u - 0.19, -15.39, u + 0.19, north]];
   return [];
 });
+const villageFrontWalks = BERKELEY_VILLAGE_HOMES.map((house) => {
+  const { u, v } = berkeleyHomeFront(house);
+  return house.facing === 'north'
+    ? [u - 0.18, -3.02, u + 0.18, v + 0.06]
+    : [u - 0.18, v - 0.06, u + 0.18, -4.72];
+});
 // Posts sit on the verge outside the sidewalk. Angles point lamp heads toward the curb.
 const streetLamps = [
   { u: -14.4, v: -23.6, angle: -Math.PI / 2, style: 1 },
@@ -361,6 +559,11 @@ const streetLamps = [
   { u: 19.4, v: -14.4, angle: -Math.PI / 2, style: 1 },
   { u: 25.4, v: -9.05, angle: Math.PI / 2, style: 3 },
   { u: 22.35, v: -5.65, angle: Math.PI / 2, style: 1 },
+  { u: -11.56, v: -3.04, angle: Math.PI, style: 1 },
+  { u: -5.6, v: -4.85, angle: 0, style: 1 },
+  { u: 0.95, v: -4.88, angle: 0, style: 3 },
+  { u: 5.05, v: -2.9, angle: Math.PI, style: 1 },
+  { u: 13.55, v: -4.95, angle: 0, style: 1 },
 ];
 const hydrants = [
   { u: -14.4, v: -15.7, angle: -Math.PI / 2 },
@@ -374,6 +577,9 @@ const mailboxes = [
   { u: -8.25, v: -10.15, angle: Math.PI },
   { u: 5.3, v: -7.4, angle: Math.PI / 2 },
   { u: 15.9, v: -10.4, angle: -Math.PI / 2 },
+  { u: -9.05, v: -4.9, angle: 0 },
+  { u: 4.1, v: -4.94, angle: 0 },
+  { u: 13.35, v: -2.65, angle: Math.PI },
 ];
 const eucalyptusTrees = [
   [-18.35, -13.65],
@@ -392,22 +598,61 @@ const benches = [
   [9.55, -22.85],
   [20.15, -18.75],
   [22.8, -2.6],
+  [0.44, -5.58],
+  [-16.65, -7.2],
 ];
 
 // The same parcels place the models, exclude solid ground, and color the map.
 export const BERKELEY_CAMPUS = Object.freeze({
-  bounds: [-23, -26.5, 36, 18.5],
+  bounds: [-23, -26.5, 42, 18.5],
   grounds: [
     [-16, 1.6, 17, 18.5],
     [-23, -16, 36, -1.65],
     [-16, -26.5, 23.5, -16],
+    [-14.1, -1.65, 17.8, -0.5],
+    [-14.1, 0.5, 17.8, 1.6],
+    [17, 1.6, 17.8, 2.75],
+    [36, -8.65, 42, -1.65],
   ],
+  crossings: BERKELEY_HIGHWAY_CROSSINGS,
+  highwayShoulders: [-14.1, -0.5, 17.8, 0.5],
+  dirtPaths: streetStrip(
+    [
+      [27.3, -8.48],
+      [28.45, -8.35],
+      [30.65, -8.05],
+      [33, -7.8],
+      [35.3, -7.65],
+      [36.85, -6.3],
+      [BURNING_MAN.u, BURNING_MAN.v],
+    ],
+    -0.31,
+    0.31,
+  ),
   roads: residentialRoads,
   crookedRoads: [...streetStrip(crescent, -0.68, 0.68), ...streetStrip(lane, -0.49, 0.49)],
   crookedWalks: [
     ...streetStrip(crescent, -1.04, -0.68),
     ...streetStrip(crescent, 0.68, 1.04),
     ...streetStrip(playgroundPath, -0.24, 0.24),
+    ...streetStrip(shoreWalk, -0.28, 0.28),
+    ...streetStrip(
+      [
+        [17.2, -3.08],
+        [20.05, -3.19],
+        [20.5, -3.6],
+      ],
+      -0.2,
+      0.2,
+    ),
+    ...streetStrip(
+      [
+        [18.75, -10.32],
+        [17.3, -9.37],
+      ],
+      -0.24,
+      0.24,
+    ),
     ...streetStrip(
       [
         [25.07, -14.87],
@@ -437,10 +682,12 @@ export const BERKELEY_CAMPUS = Object.freeze({
     [4.25, -14.8, 10.45, -9.75],
     [19.6, -21.65, 22.8, -17.65],
     playground.rect,
+    [-1.1, -7.2, 1.1, -4.75],
   ],
   buildings: [
     ...BERKELEY_HOMES,
     ...BERKELEY_NEIGHBORHOOD,
+    ...BERKELEY_VILLAGE_HOMES,
     {
       id: 'institute',
       rect: [-3.6, 5.7, 3.6, 10.6] satisfies [number, number, number, number],
@@ -468,13 +715,21 @@ export const BERKELEY_CAMPUS = Object.freeze({
     },
   ],
   paths: [
-    [-0.65, -1.95, 0.65, 3.5] satisfies [number, number, number, number],
-    [-14.7, 2.1, 16, 3.25] satisfies [number, number, number, number],
+    [-0.65, -1.95, 0.65, -0.5],
+    [-0.65, 0.5, 0.65, 3.5],
+    [-14.7, 2.1, 17.35, 3.25] satisfies [number, number, number, number],
     [-7.8, 2.1, 7.8, 4.3],
     [9.1, 2.8, 10.1, 17.9],
     [-10.45, 2.8, -9.5, 17.8],
     ...BERKELEY_SIDEWALKS,
     ...frontWalks,
+    ...villageSidewalks,
+    ...villageFrontWalks,
+    [-13.65, -1.95, -12.35, -0.5],
+    [16.05, -3.03, 17.35, -0.5],
+    [-13.65, 0.5, -12.35, 2.65],
+    [16.05, 0.5, 17.35, 2.65],
+    [BERKELEY_SHORE_GATE - 0.38, -10.4, BERKELEY_SHORE_GATE + 0.38, 0.17],
     [-2, -8.75, -0.6, -6.55],
     [-20.25, -14.25, -19.25, -9.4],
     [18.5, -10.75, 21.1, -9.85],
@@ -526,6 +781,13 @@ export const BERKELEY_CAMPUS = Object.freeze({
     [8.1, 4.8] satisfies [number, number],
     [8.2, 14.3] satisfies [number, number],
     [6.2, 17.2] satisfies [number, number],
+    [-0.65, -6.78],
+    [0.75, -7.13],
+    [-15.45, -5.75],
+    [-16.8, -3.3],
+    [11.6, -5.67],
+    [36.3, -3.05],
+    [40.7, -7.65],
   ],
   obstacles: [
     ...playground.obstacles,
@@ -533,6 +795,7 @@ export const BERKELEY_CAMPUS = Object.freeze({
     ...hydrants.map(({ u, v }) => ({ u, v, r: 0.18 })),
     ...mailboxes.map(({ u, v }) => ({ u, v, r: 0.14 })),
     ...benches.map(([u, v]) => ({ u, v, r: 0.52 })),
+    { u: 0.12, v: -6.48, r: 0.43 },
     { u: 0, v: 12.8, r: 1 },
     { u: -3.1, v: 13.7, r: 0.85 },
     { u: 3.1, v: 13.7, r: 0.85 },
@@ -790,7 +1053,7 @@ export function drawBerkeleyPlayground(m: Mesh) {
 export function drawBerkeleyCampus(m: Mesh, signs: SignAtlas, title: string) {
   const b = BERKELEY_CAMPUS;
   for (const [x, z, xx, zz] of b.grounds)
-    m.box(x, -0.12, z, xx - x, 0.12, zz - z, EAST_BAY_GRASS_COLOR, 'grass');
+    m.quad([x, 0, z], [x, 0, zz], [xx, 0, zz], [xx, 0, z], EAST_BAY_GRASS_COLOR, 'grass');
   for (const [x, z, xx, zz] of b.parks) m.box(x, 0, z, xx - x, 0.002, zz - z, '#8ca37b', 'grass');
   for (const [x, z, xx, zz] of b.roads) m.box(x, 0, z, xx - x, 0.012, zz - z, '#797b76', 'asphalt');
   for (const polygon of b.crookedRoads) {
@@ -816,13 +1079,38 @@ export function drawBerkeleyCampus(m: Mesh, signs: SignAtlas, title: string) {
     const [a, b, c, d] = polygon.map(([u, v]) => [u, 0.015, v]);
     m.quad(a, b, c, d, '#c6c5b1', 'stone');
   }
-  for (const [x, z] of [
-    [-9, 1.6] satisfies [number, number],
-    [-9, 18.35] satisfies [number, number],
-  ])
-    m.box(x, -0.03, z, 18, 0.07, 0.15, '#aab49d', 'stone');
-  for (const x of [-9, 8.85] satisfies [number, number])
-    m.box(x, -0.03, 1.6, 0.15, 0.07, 16.9, '#aab49d', 'stone');
+  for (const polygon of b.dirtPaths) {
+    const [a, b, c, d] = polygon.map(([u, v]) => [u, 0.009, v]);
+    m.quad(a, b, c, d, '#ae9870', 'dirt');
+  }
+  for (const [i, house] of BERKELEY_VILLAGE_HOMES.entries()) {
+    const { u, v } = berkeleyHomeFront(house, 0.18);
+    const flowers = ['#cfaa6b', '#cb8795', '#c0a6cf', '#d8cb9e'];
+    for (const side of [-1, 1]) {
+      const x = u + side * 0.66;
+      m.box(x - 0.19, 0.012, v - 0.11, 0.38, 0.12, 0.22, '#927957', 'wood');
+      for (let j = 0; j < 3; j++)
+        m.sphere(
+          x + (j - 1) * 0.1,
+          0.17,
+          v,
+          0.05,
+          0.055,
+          0.05,
+          flowers[(i + j) % flowers.length],
+          7,
+          4,
+        );
+    }
+  }
+  m.box(-0.28, 0.012, -6.78, 0.8, 0.23, 0.6, '#907255', 'wood');
+  m.box(-0.24, 0.24, -6.74, 0.72, 0.025, 0.52, '#675642', 'dirt');
+  for (let i = 0; i < 10; i++) {
+    const u = -0.16 + (i % 5) * 0.14;
+    const v = -6.61 + Math.floor(i / 5) * 0.24;
+    m.sphere(u, 0.31, v, 0.07, 0.075, 0.065, i % 2 ? '#628355' : '#849259', 7, 4);
+    m.sphere(u, 0.38, v, 0.023, 0.024, 0.023, i % 2 ? '#d39791' : '#dbbc7c', 6, 4);
+  }
   for (const x of [-4.95, 4.95] satisfies [number, number])
     for (let z = 4.5; z < 15; z += 0.75) m.box(x, 0.02, z, 0.015, 0.003, 0.45, '#a9b4a5');
   for (const [index, [x, z]] of b.trees.entries()) {

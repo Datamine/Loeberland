@@ -23,7 +23,7 @@ export function houseClimb(id: string) {
     angle: (p.rotation || 0) - Math.PI / 2,
   };
 }
-function searchHome(id: string, p: Parcel, search: (typeof HOUSE_SEARCHES)[number]) {
+export function searchHome(id: string, p: Parcel, search: (typeof HOUSE_SEARCHES)[number]) {
   const inside = searchHousePoint(p, 0, p.d / 2 - 0.7),
     entry = searchHousePoint(p, 0, p.d / 2 + 0.45),
     sideYard = -p.w / 2 - 0.5,
@@ -57,8 +57,12 @@ export const CULTIST_HOME = searchHome(
 );
 export const ALL_SEARCH_HOMES = [...SEARCH_HOMES, CULTIST_HOME];
 
-export function searchHomeContaining(x: number, z: number) {
-  return ALL_SEARCH_HOMES.find((h) => {
+export function searchHomeContaining(
+  x: number,
+  z: number,
+  homes: readonly ReturnType<typeof searchHome>[] = ALL_SEARCH_HOMES,
+) {
+  return homes.find((h) => {
     const p = h.parcel,
       dx = x - p.x,
       dz = z - p.z;

@@ -397,6 +397,7 @@ export function createExpeditions({
         'cape',
         contentText(
           'world-message.src.jurassic.you-collect-100-coins-and-a-commemorative-cape-equip-it-in-cha',
+          { amount: String(ITEM_STATS.kraken.coins) },
         ),
       );
     }
@@ -407,7 +408,9 @@ export function createExpeditions({
         item.lootKind === 'sandwich'
           ? undefined
           : item.lootKind === 'kraken'
-            ? contentText('world-message.src.jurassic.100-coins-and-one-lousy-cape')
+            ? contentText('world-message.src.jurassic.100-coins-and-one-lousy-cape', {
+                amount: String(ITEM_STATS.kraken.coins),
+              })
             : contentText('world-message.src.jurassic.you-pick-up-coins', {
                 amount: String(item.amount),
               }),
@@ -787,7 +790,7 @@ export function createExpeditions({
       stage: state.krakenReward ? 'completed' : state.krakenStarted ? 'accepted' : 'not-started',
       status: state.krakenReward ? 'Complete' : state.krakenStarted ? 'In progress' : 'Not started',
       description: state.krakenReward ? KRAKEN_CAPE_TEXT : 'You have joined Captain Ahab’s hunt.',
-      rewardLabel: '100 coins · commemorative cape',
+      rewardLabel: `${ITEM_STATS.kraken.coins} coins · commemorative cape`,
     });
     return result;
   }

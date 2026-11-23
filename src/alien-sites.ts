@@ -2,6 +2,9 @@ import type { Point, Ray } from './types/geometry.ts';
 import type { Site, SignAtlas } from './types/world.ts';
 import { requiredValue } from './types/assert.ts';
 import { BURNING_MAN } from './burning-man.ts';
+import { BERKELEY_HOUSE_SEARCHES } from './config/search-houses.ts';
+import { searchHome } from './search-houses.ts';
+import { searchHouseFurniture } from './search-house-models.ts';
 // CONTENT-BINDINGS-MIGRATED
 import { contentText } from './content-runtime.ts';
 import type { Mesh } from './geometry.ts';
@@ -28,6 +31,8 @@ import {
   BERKELEY_INSTITUTE_ROOM,
   BERKELEY_HOMES,
   BERKELEY_LIFE_ROUTES,
+  BERKELEY_SHORE_GATE,
+  BERKELEY_VILLAGE_HOMES,
   MAD_HOUSE,
   HOT_TRAPDOOR,
   drawBerkeleyCampus,
@@ -142,6 +147,8 @@ export function createEsotericCampus(
     return { u: dx * c + dz * s, v: -dx * s + dz * c };
   };
   const point = (u: number, v: number) => ({ x: p.x + u * c - v * s, z: p.z + u * s + v * c });
+  const shore = point(BERKELEY_SHORE_GATE, 0);
+  const regionalGates = [gate, { x: shore.x - 0.5, y: shore.z - 0.5 }];
   const inRect = (u: number, v: number, [a, b, d, e]: number[], pad = 0) =>
     u >= a - pad - 1e-8 && u <= d + pad + 1e-8 && v >= b - pad - 1e-8 && v <= e + pad + 1e-8;
   const inStrip = (u: number, v: number, strip: number[][]) =>
@@ -149,6 +156,58 @@ export function createEsotericCampus(
       const [x, z] = strip[(i + 1) % strip.length];
       return (x - a) * (v - b) - (z - b) * (u - a) <= 1e-8;
     });
+  const groundRects = [
+    ...layout.grounds,
+    layout.highwayShoulders,
+    ...layout.paths,
+    ...layout.roads,
+  ];
+  const coversLocal = (u: number, v: number) =>
+    inRect(u, v, layout.bounds) &&
+    (groundRects.some((rect) => inRect(u, v, rect)) ||
+      layout.dirtPaths.some((strip) => inStrip(u, v, strip)));
+  const coversGround = (x: number, z: number) => {
+    const { u, v } = local(x, z);
+    return coversLocal(u, v);
+  };
+  const searchableResidences = BERKELEY_VILLAGE_HOMES.flatMap((house) => {
+    const search = BERKELEY_HOUSE_SEARCHES[house.id as keyof typeof BERKELEY_HOUSE_SEARCHES];
+    if (!search) return [];
+    const [left, top, right, bottom] = house.rect;
+    const u = (left + right) / 2,
+      v = (top + bottom) / 2,
+      w = right - left,
+      d = bottom - top,
+      doorway = berkeleyHomeFront(house),
+      direction = house.facing === 'north' ? -1 : 1,
+      furniture = Object.values(searchHouseFurniture(w, d));
+    return [
+      {
+        house,
+        home: searchHome(
+          house.id,
+          { ...point(u, v), w, d, rotation: p.angle + doorway.rotation },
+          search,
+        ),
+        walkable(x: number, z: number) {
+          const dx = (x - u) * direction,
+            roomX = dx + w / 2,
+            roomZ = (z - v) * direction + d / 2;
+          if (Math.abs(dx) <= 0.34 && roomZ >= d - 0.25) return true;
+          return (
+            roomX >= 0.23 &&
+            roomX <= w - 0.23 &&
+            roomZ >= 0.23 &&
+            roomZ <= d - 0.23 &&
+            !furniture.some((rect) => inRect(roomX, roomZ, rect, 0.1))
+          );
+        },
+      },
+    ];
+  });
+  const searchableById = new Map(
+    searchableResidences.map((residence) => [residence.house.id, residence]),
+  );
   const roomWalls = [MAD_HOUSE, BERKELEY_CHURCH_ROOM].map((room) => ({
     room,
     walls: [0, 1, 2, 3].flatMap((side) => instituteWallRects(room, side)),
@@ -157,6 +216,8 @@ export function createEsotericCampus(
     [-2.3, 0.92].map((u) => ({ u, v, w: 1.38, d: 0.38 })),
   );
   const clearRoom = (id: string, u: number, v: number) => {
+    const residence = searchableById.get(id);
+    if (residence) return residence.walkable(u, v);
     const entry = roomWalls.find(({ room }) => room.id === id);
     if (!entry) return id === 'institute' && instituteWalkable(BERKELEY_INSTITUTE_ROOM, u, v);
     const { room, walls } = entry;
@@ -171,12 +232,7 @@ export function createEsotericCampus(
     );
   };
   const clearLocal = (u: number, v: number) => {
-    if (
-      !layout.grounds.some((rect) => inRect(u, v, rect)) &&
-      !inRect(u, v, layout.paths[0]) &&
-      !layout.roads.some((rect) => inRect(u, v, rect))
-    )
-      return false;
+    if (!coversLocal(u, v)) return false;
     if (Math.hypot(u - BURNING_MAN.u, v - BURNING_MAN.v) < 0.59) return false;
     for (const b of layout.buildings)
       if (inRect(u, v, b.rect, 0.16) && !clearRoom(b.id, u, v)) return false;
@@ -249,9 +305,15 @@ export function createEsotericCampus(
       b = contains(to.x + 0.5, to.y + 0.5);
     if (!a && !b) return basePath(from, to);
     if (a && b) return internal(from, to);
-    const entry = a ? internal(from, gate) : basePath(from, gate),
-      exit = b ? internal(gate, to) : basePath(gate, to);
-    return entry && exit ? [...entry, ...exit] : null;
+    const distance = (p: Point, q: Point) => Math.hypot(p.x - q.x, p.y - q.y);
+    for (const entry of [...regionalGates].sort(
+      (p, q) => distance(from, p) + distance(p, to) - distance(from, q) - distance(q, to),
+    )) {
+      const head = a ? internal(from, entry) : basePath(from, entry);
+      const tail = b ? internal(entry, to) : basePath(entry, to);
+      if (head && tail) return [...head, ...tail];
+    }
+    return null;
   }
   const quad = (rect: readonly number[]) => {
     const [a, b, c, d] = rect;
@@ -273,17 +335,18 @@ export function createEsotericCampus(
       .flatMap((side) => instituteWallRects(room, side))
       .map(({ x, z, w, d }) => footprint([room.x + x, room.z + z, room.x + x + w, room.z + z + d]));
   const groundQuads = layout.grounds.map(quad);
-  const quads = [...groundQuads, quad(layout.paths[0]), quad(layout.roads[0])];
   const stripQuad = (polygon: number[][]) =>
     polygon.map(([u, v]) => {
       const q = point(u, v);
       return [q.x, ground(), q.z];
     });
+  const quads = [...groundRects.map(quad), ...layout.dirtPaths.map(stripQuad)];
   const mapFeatures = [
     ...groundQuads.map((polygon) => ({ polygon, color: '#879c78' })),
     ...layout.parks.map((rect) => ({ polygon: quad(rect), color: '#729063' })),
     ...layout.paths.map((rect) => ({ polygon: quad(rect), color: '#c8c6b1' })),
     ...layout.crookedWalks.map((strip) => ({ polygon: stripQuad(strip), color: '#c8c6b1' })),
+    ...layout.dirtPaths.map((strip) => ({ polygon: stripQuad(strip), color: '#ae9870' })),
     ...layout.roads.map((rect) => ({ polygon: quad(rect), color: '#727573' })),
     ...layout.crookedRoads.map((strip) => ({ polygon: stripQuad(strip), color: '#727573' })),
     ...layout.buildings.map((b) => ({ polygon: quad(b.rect), color: b.color })),
@@ -303,6 +366,18 @@ export function createEsotericCampus(
       : null;
   }
   function draw(m: Mesh, signs: SignAtlas, { separateInterior = false } = {}) {
+    for (const [left, , right] of layout.crossings) {
+      const a = car.sample(p.distance + left + 0.14),
+        b = car.sample(p.distance + right - 0.14);
+      for (const v of [-0.37, -0.13, 0.11, 0.35]) {
+        const stripe = (at: typeof a, offset: number) => [
+          at.x - offset * s,
+          at.y + 0.008,
+          at.z + offset * c,
+        ];
+        m.quad(stripe(a, v), stripe(a, v + 0.07), stripe(b, v + 0.07), stripe(b, v), '#e0d9bf');
+      }
+    }
     let definition: ReturnType<typeof drawBerkeleyCampus> | undefined;
     pose(m, p.x, base, p.z, p.angle, () => {
       definition = drawBerkeleyCampus(m, signs, ALIEN_SITE_SIGNS[1]);
@@ -424,7 +499,12 @@ export function createEsotericCampus(
   ]);
   function drawHomes(m: Mesh) {
     const homes: import('./types/world.ts').RenderedSite[] = [];
-    for (const [i, home] of [...BERKELEY_HOMES, ...BERKELEY_NEIGHBORHOOD].entries()) {
+    for (const [i, home] of [
+      ...BERKELEY_HOMES,
+      ...BERKELEY_NEIGHBORHOOD,
+      ...BERKELEY_VILLAGE_HOMES,
+    ].entries()) {
+      if (searchableById.has(home.id)) continue;
       const start = m.data.length;
       const [west, north, east, south] = home.rect,
         x = (west + east) / 2,
@@ -918,7 +998,7 @@ export function createEsotericCampus(
       label: 'Churchgoer',
       name: 'Elias',
       u: 0.6,
-      v: -7.45,
+      v: -8.12,
       skin: '#c69d76',
       shirt: '#736d80',
     },
@@ -958,6 +1038,7 @@ export function createEsotericCampus(
     point,
     local,
     contains,
+    coversGround,
     ground,
     segment,
     path,
@@ -978,6 +1059,8 @@ export function createEsotericCampus(
     mapFeatures,
     routes,
     lifeRoutes,
+    searchableResidences,
+    searchHomes: searchableResidences.map(({ home }) => home),
     surfaceType,
     layout,
     graph,

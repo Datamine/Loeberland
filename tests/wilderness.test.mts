@@ -10,6 +10,7 @@ import {
 } from '../src/wilderness.ts';
 import { drawWildMonster, sampleBearWalk } from '../src/wilderness-models.ts';
 import { Mesh } from '../src/geometry.ts';
+import { creatureLunge } from '../src/creature-attack-pose.ts';
 import { weaponDamageRange, createHitpoints } from '../src/combat.ts';
 import { createDeli } from '../src/deli.ts';
 import { createEconomy } from '../src/economy.ts';
@@ -66,6 +67,35 @@ test('the coyote pursues an unprovoked target around an obstacle, then attacks i
   for (let i = 0; i < 32; i++) coyote.update(0.05, [player]);
   assert.ok(actor.z > 0.8, 'the coyote goes around the obstacle');
   assert.deepEqual(hits, [MONSTER_STATS.coyote.damage]);
+});
+
+test('wildlife closes the gap, telegraphs each lunge and can miss a retreating player', () => {
+  for (const combatKind of ['tahoe-bear', 'tahoe-fox', 'coyote', 'seagull']) {
+    const player = { id: 1, x: 2.6, z: 0 };
+    const hits: number[] = [];
+    const world = createWilderness({
+      spawns: [{ id: combatKind, combatKind, x: 0, z: 0 }],
+      onDamage: (_person, damage) => hits.push(damage),
+    });
+    const actor = world.actors[0];
+    if (combatKind === 'seagull') world.provoke(actor, player);
+    world.update(0.05, [player]);
+    assert.equal(actor.enemy, player.id);
+    assert.ok(actor.motion > 0 && actor.x > 0);
+    for (let i = 0; i < 80 && !actor.attackAnimation; i++) world.update(0.05, [player]);
+    assert.equal(actor.attackAnimation, 1, combatKind);
+    assert.equal(actor.motion, 0);
+    assert.deepEqual(hits, []);
+    const { duration, impact, reach } = creatureLunge(combatKind)!;
+    assert.ok(player.x - actor.x <= reach);
+    world.update((duration * impact) / 1000 - 0.05, [player]);
+    assert.deepEqual(hits, []);
+    player.x += combatKind === 'seagull' ? 0.35 : 2;
+    world.update(0.06, [player]);
+    assert.deepEqual(hits, []);
+    for (let i = 0; i < 100 && !hits.length; i++) world.update(0.05, [player]);
+    assert.deepEqual(hits, [MONSTER_STATS[combatKind].damage], combatKind);
+  }
 });
 
 test('the Terminator returns fire through a clear lane even when hit repeatedly', () => {
@@ -162,19 +192,24 @@ test('black bears and red foxes use a distinct gait while pursuing a target', ()
 test('drop catalogs have exact 1/20 and 1/50 boundaries; giant success chooses one ice piece', () => {
   assert.equal(rollMonsterDrops('bear', () => 0.05).length, 0);
   assert.equal(rollMonsterDrops('bear', () => 0.05 - Number.EPSILON)[0].lootKind, 'peptides');
+  assert.deepEqual(rollMonsterDrops('emf-warrior', () => 1 / 20), []);
+  assert.equal(
+    rollMonsterDrops('emf-warrior', () => 1 / 20 - Number.EPSILON)[0].itemId,
+    'railgun-upgrade',
+  );
   for (const kind of ['snow-giant', 'ice-giant'] satisfies [string, string]) {
-    assert.deepEqual(
-      rollMonsterDrops(kind, () => 0.02),
-      [],
-    );
+    const miss = rollMonsterDrops(kind, () => 0.02);
+    assert.equal(miss.length, 1);
+    assert.equal(miss[0].lootKind, 'coins');
+    assert.equal(miss[0].amount, kind === 'snow-giant' ? 35 : 45);
     assert.equal(
-      rollMonsterDrops(kind, sequence([0.02 - Number.EPSILON, 0] satisfies [number, number]))[0]
+      rollMonsterDrops(kind, sequence([0.02 - Number.EPSILON, 0] satisfies [number, number]))[1]
         .itemId,
       'ice-top',
     );
     const pants = rollMonsterDrops(kind, sequence([0, 0.999999] satisfies [number, number]));
-    assert.equal(pants.length, 1);
-    assert.equal(pants[0].itemId, 'ice-pants');
+    assert.equal(pants.length, 2);
+    assert.equal(pants[1].itemId, 'ice-pants');
   }
   for (const rules of Object.values(MONSTER_DROPS))
     for (const rule of rules) {
@@ -182,6 +217,13 @@ test('drop catalogs have exact 1/20 and 1/50 boundaries; giant success chooses o
       for (const id of rule.choose || [rule.item]) assert.ok(itemById(id));
     }
   assert.equal(rollMonsterDrops('cow')[0].lootKind, 'sandwich');
+});
+
+test('stronger humanoid enemies pay progressively larger guaranteed coin drops', () => {
+  const amounts = ['armed-zombie', 'terminator', 'mad-scientist', 'madder-scientist'].map(
+    (kind) => rollMonsterDrops(kind, () => 0.999).find((drop) => drop.lootKind === 'coins')?.amount,
+  );
+  assert.deepEqual(amounts, [20, 90, 120, 160]);
 });
 
 test('goblins, zombies, and Robocop roll once for iron gear or a crowbar', () => {

@@ -219,8 +219,9 @@ test('PvP loot transfers do not multiply coins through the iPhone earnings boost
   assert.ok(![...game.shared.loot.values()].some((i) => i.lootKind === 'hat'));
   assert.ok(b.p.inventory.economy.state.ownedHats.includes('paper'));
   advance(3000);
-  await act(game, b.p, 'respawn');
+  game.tick();
   assert.equal(b.p.hp, 30);
+  assert.equal(b.messages.filter((m) => m.type === 'position' && m.reason === 'respawn').length, 1);
   assert.equal(b.p.inventory.economy.state.coins, 0);
   await game.close();
 });
@@ -299,9 +300,15 @@ test('a non-player death drops coins, phone and sandwiches that can be reclaimed
   await act(game, a.p, 'respawn');
   assert.equal(a.p.hp, 0);
   assert.equal(requiredResult(a.messages).ok, false);
-  advance(3000);
-  await act(game, a.p, 'respawn');
+  advance(2999);
+  game.tick();
+  assert.equal(a.p.hp, 0);
+  advance(1);
+  game.tick();
   assert.equal(a.p.hp, 30);
+  await act(game, a.p, 'respawn');
+  assert.equal(requiredResult(a.messages).ok, false);
+  assert.equal(a.messages.filter((m) => m.type === 'position' && m.reason === 'respawn').length, 1);
   assert.equal(a.p.inventory.economy.state.coins, 0);
   assert.equal(a.p.inventory.meta.sandwiches, 0);
   assert.deepEqual(a.p.inventory.economy.state.ownedHats, ['paper']);

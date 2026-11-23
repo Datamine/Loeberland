@@ -8,8 +8,9 @@ export const BURNING_MAN = {
   dj: 'burning-man-dj',
   partyDJ: 'burning-man-party-dj',
   waterClerk: 'in-n-out-clerk',
-  u: 30,
-  v: -11,
+  // Berkeley-local coordinates, ten world tiles east of the former clearing.
+  u: 38.1335,
+  v: -5.1823,
   burnMs: 4600,
   straw: [
     [-1, 0],

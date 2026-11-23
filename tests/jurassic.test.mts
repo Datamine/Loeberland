@@ -244,7 +244,7 @@ test('cows drop stored food and respawn after ten simulation seconds', () => {
   assert.equal(deli.state.sandwiches, 2);
   assert.equal(health.state.hp, 23);
 });
-test('Ahab requires an unlocked railgun; 140 boss hits deplete 1,400 HP and yield one 100-coin reward and a persistent cape', () => {
+test('Ahab requires an unlocked railgun; 140 boss hits deplete 1,400 HP and yield one 250-coin reward and a persistent cape', () => {
   assert.equal(setup().game.board().ok, false);
   const {
     game: g,
@@ -279,7 +279,7 @@ test('Ahab requires an unlocked railgun; 140 boss hits deplete 1,400 HP and yiel
   const spoils = g.state.loot.find((l) => l.lootKind === 'kraken'),
     before = economy.state.coins;
   g.collect(requiredFixture(spoils));
-  assert.equal(economy.state.coins, before + 100);
+  assert.equal(economy.state.coins, before + 250);
   assert.equal(g.state.cape, true);
   assert.equal(g.collect(requiredFixture(spoils)).ok, false);
   assert.equal(requiredFixture(g.entries().at(-1)).description, KRAKEN_CAPE_TEXT);

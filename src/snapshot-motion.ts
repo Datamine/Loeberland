@@ -10,7 +10,7 @@ interface MotionSample {
   pose: MotionPose;
 }
 // CONTENT-BINDINGS-MIGRATED
-import { CREATURE_STRIKE_MS } from './creature-attack-pose.ts';
+import { CREATURE_STRIKE_MS, creatureLunge } from './creature-attack-pose.ts';
 import { MP_ENTITY_INTERPOLATION_MS } from './multiplayer-protocol.ts';
 
 // Presentation only. Never interpolate HP, inventory, targets or route nodes.
@@ -40,6 +40,7 @@ export function createSnapshotMotion({
   maxSamples = 8,
 }: MotionOptions = {}) {
   let samples: MotionSample[] = [];
+  let strikeDuration = CREATURE_STRIKE_MS;
   function accept(source: object, time = now()) {
     const fields = source as Record<string, unknown>,
       pose: MotionPose = {};
@@ -48,6 +49,8 @@ export function createSnapshotMotion({
       if (typeof value === 'number' && Number.isFinite(value)) pose[key] = value;
     }
     if (typeof fields.moving === 'boolean') pose.moving = fields.moving;
+    if (typeof fields.combatKind === 'string')
+      strikeDuration = creatureLunge(fields.combatKind)?.duration ?? CREATURE_STRIKE_MS;
     const last = samples.at(-1),
       axis = 'z' in pose ? 'z' : 'y';
     const discontinuity =
@@ -85,8 +88,12 @@ export function createSnapshotMotion({
         to = b.pose[key];
       // The first sample of a strike may already be partway through it.
       // Recover its start from the countdown so the pose plays forward.
+      if (key === 'attackAnimation' && to !== undefined && target > b.time) {
+        pose[key] = Math.max(0, to - (target - b.time) / strikeDuration);
+        continue;
+      }
       if (key === 'attackAnimation' && to !== undefined && to > (from ?? 0)) {
-        const remaining = to + ((b.time - a.time) * (1 - t)) / CREATURE_STRIKE_MS;
+        const remaining = to + (b.time - target) / strikeDuration;
         pose[key] = remaining <= 1 ? remaining : (from ?? 0);
         continue;
       }

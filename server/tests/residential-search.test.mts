@@ -14,6 +14,7 @@ import { createGame } from '../game.mts';
 import { createMemoryStore } from '../store.mts';
 
 import { SEARCH_HOMES } from '../../src/search-houses.ts';
+import { BERKELEY_HOUSE_SEARCHES } from '../../src/config/search-houses.ts';
 import type { Site } from '../../src/types/world.ts';
 
 async function setup() {
@@ -29,6 +30,17 @@ async function setup() {
     entry: h.approach,
     base: 1.15,
   }));
+  for (const [i, [houseId, definition]] of Object.entries(BERKELEY_HOUSE_SEARCHES).entries())
+    geometry.searchSites.push({
+      id: definition.id,
+      kind: 'house-storage',
+      houseId,
+      label: definition.label,
+      x: 140 + i,
+      z: -1,
+      entry: { x: 139.5 + i, y: -1.5 },
+      base: 1.2,
+    });
   geometry.placeAt = (x: number, y: number) => {
     const s = requiredFixture(geometry.searchSites).find(
       (s) => s.id !== 'house-search-2' && Math.hypot(x - s.entry.x, y - s.entry.y) < 0.4,
@@ -42,6 +54,21 @@ async function setup() {
 function stand(a: TestPlayer, site: Site) {
   Object.assign(a.p, { x: site.entry.x + 0.5, z: site.entry.y + 0.5, y: site.base });
 }
+test('Berkeley drawers and breadboxes grant the authored coin and sandwich rewards once', async () => {
+  const f = await setup();
+  try {
+    const a = await player(f.game, 57012);
+    const first = SEARCH_HOMES.length;
+    const before = a.p.inventory.economy.state.coins;
+    assert.equal(requiredFixture(await search(f, a, first)).ok, true);
+    assert.equal(requiredFixture(await search(f, a, first + 1)).ok, true);
+    assert.equal(a.p.inventory.economy.state.coins, before + 22);
+    assert.equal(a.p.inventory.meta.sandwiches, 2);
+    assert.equal(requiredFixture(await search(f, a, first)).ok, false);
+  } finally {
+    await f.game.close();
+  }
+});
 async function search(f: Awaited<ReturnType<typeof setup>>, a: TestPlayer, index: number) {
   const site = requiredFixture(f.geometry.searchSites)[index];
   stand(a, site);

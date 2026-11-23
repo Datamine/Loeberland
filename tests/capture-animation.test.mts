@@ -39,6 +39,24 @@ test('both encounters raise hands, collapse, hold, and only then transfer once',
   }
 });
 
+test('an online collapse stays down while waiting for the hospital position', () => {
+  const animation = createCaptureAnimation();
+  let requests = 0;
+  animation.start('alien', 4, () => requests++, true);
+  animation.update(DEATH_DURATION);
+  animation.update(1);
+  assert.equal(requests, 1);
+  assert.equal(animation.state.active, true);
+  assert.equal(animation.pose.fall, 1);
+  animation.cancel();
+  assert.equal(animation.state.active, false);
+  assert.equal(animation.pose.fall, 0);
+  animation.start('alien', 4, () => requests++, true);
+  animation.cancel();
+  animation.update(DEATH_DURATION);
+  assert.equal(requests, 1, 'the hospital update can arrive before the collapse timer fires');
+});
+
 test('surrender raises both hands over the head without stretching limbs', () => {
   for (let t = 0; t <= 1; t += 0.1) {
     const p = sampleCharacterPose('idle', 0, { motion: 0, action: 'caught', actionT: t }),

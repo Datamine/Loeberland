@@ -116,7 +116,7 @@
       }
     },
     "content/world-messages.json": {
-      "bytes": 99006,
+      "bytes": 99016,
       "imports": [],
       "format": "esm",
       "with": {
@@ -289,7 +289,7 @@
       "format": "esm"
     },
     "src/burning-man.ts": {
-      "bytes": 6752,
+      "bytes": 6839,
       "imports": [],
       "format": "esm"
     },
@@ -442,7 +442,7 @@
       "format": "esm"
     },
     "src/multiplayer-protocol.ts": {
-      "bytes": 6479,
+      "bytes": 6534,
       "imports": [
         {
           "path": "src/types/json.ts",
@@ -463,7 +463,7 @@
       "format": "esm"
     },
     "src/multiplayer-client.ts": {
-      "bytes": 27481,
+      "bytes": 28158,
       "imports": [
         {
           "path": "src/types/json.ts",
@@ -747,7 +747,7 @@
       "format": "esm"
     },
     "src/config/search-houses.ts": {
-      "bytes": 3343,
+      "bytes": 4017,
       "imports": [
         {
           "path": "src/content-runtime.ts",
@@ -2056,7 +2056,7 @@
       "format": "esm"
     },
     "src/config/monster-drops.ts": {
-      "bytes": 17178,
+      "bytes": 17330,
       "imports": [
         {
           "path": "src/legacy-software-layout.ts",
@@ -2103,12 +2103,12 @@
       "format": "esm"
     },
     "src/creature-attack-pose.ts": {
-      "bytes": 385,
+      "bytes": 835,
       "imports": [],
       "format": "esm"
     },
     "src/snapshot-motion.ts": {
-      "bytes": 5283,
+      "bytes": 5639,
       "imports": [
         {
           "path": "src/creature-attack-pose.ts",
@@ -2361,7 +2361,7 @@
       "format": "esm"
     },
     "src/capture-animation.ts": {
-      "bytes": 2290,
+      "bytes": 2384,
       "imports": [],
       "format": "esm"
     },
@@ -2425,7 +2425,7 @@
       "format": "esm"
     },
     "src/multiplayer-actions.ts": {
-      "bytes": 7744,
+      "bytes": 10312,
       "imports": [
         {
           "path": "src/content-runtime.ts",
@@ -2451,6 +2451,11 @@
           "path": "src/pursuit-presentation.ts",
           "kind": "import-statement",
           "original": "./pursuit-presentation.ts"
+        },
+        {
+          "path": "src/snapshot-motion.ts",
+          "kind": "import-statement",
+          "original": "./snapshot-motion.ts"
         }
       ],
       "format": "esm"
@@ -2901,7 +2906,7 @@
       "format": "esm"
     },
     "src/multiplayer-world.ts": {
-      "bytes": 28233,
+      "bytes": 29831,
       "imports": [
         {
           "path": "src/monster-drops.ts",
@@ -3007,6 +3012,11 @@
           "path": "src/pursuit-presentation.ts",
           "kind": "import-statement",
           "original": "./pursuit-presentation.ts"
+        },
+        {
+          "path": "src/creature-attack-pose.ts",
+          "kind": "import-statement",
+          "original": "./creature-attack-pose.ts"
         }
       ],
       "format": "esm"
@@ -3028,7 +3038,7 @@
       "format": "esm"
     },
     "src/world/network.ts": {
-      "bytes": 23191,
+      "bytes": 23590,
       "imports": [
         {
           "path": "src/types/assert.ts",
@@ -3250,7 +3260,7 @@
       "format": "esm"
     },
     "src/search-houses.ts": {
-      "bytes": 3509,
+      "bytes": 3582,
       "imports": [
         {
           "path": "src/picking.ts",
@@ -3581,7 +3591,7 @@
       "format": "esm"
     },
     "src/wilderness-models.ts": {
-      "bytes": 51525,
+      "bytes": 53132,
       "imports": [
         {
           "path": "src/types/assert.ts",
@@ -3689,7 +3699,7 @@
       "format": "esm"
     },
     "src/life.ts": {
-      "bytes": 23462,
+      "bytes": 23473,
       "imports": [
         {
           "path": "src/content-runtime.ts",
@@ -4169,7 +4179,7 @@
       "format": "esm"
     },
     "src/world/rendering.ts": {
-      "bytes": 108290,
+      "bytes": 108375,
       "imports": [
         {
           "path": "src/berkeley-lab.ts",
@@ -4888,7 +4898,7 @@
       "format": "esm"
     },
     "src/world-stream.ts": {
-      "bytes": 536527,
+      "bytes": 536526,
       "imports": [
         {
           "path": "src/types/json.ts",
@@ -5370,7 +5380,7 @@
       "format": "esm"
     },
     "src/wilderness.ts": {
-      "bytes": 19819,
+      "bytes": 21272,
       "imports": [
         {
           "path": "src/creature-attack-pose.ts",
@@ -5738,7 +5748,7 @@
       "format": "esm"
     },
     "src/search-house-models.ts": {
-      "bytes": 5021,
+      "bytes": 5125,
       "imports": [
         {
           "path": "src/types/assert.ts",
@@ -6107,7 +6117,7 @@
       "format": "esm"
     },
     "src/berkeley-campus.ts": {
-      "bytes": 36601,
+      "bytes": 43485,
       "imports": [
         {
           "path": "src/wall-openings.ts",
@@ -6138,12 +6148,17 @@
           "path": "src/neighborhood-tree.ts",
           "kind": "import-statement",
           "original": "./neighborhood-tree.ts"
+        },
+        {
+          "path": "src/burning-man.ts",
+          "kind": "import-statement",
+          "original": "./burning-man.ts"
         }
       ],
       "format": "esm"
     },
     "src/alien-sites.ts": {
-      "bytes": 36803,
+      "bytes": 39891,
       "imports": [
         {
           "path": "src/types/assert.ts",
@@ -6154,6 +6169,21 @@
           "path": "src/burning-man.ts",
           "kind": "import-statement",
           "original": "./burning-man.ts"
+        },
+        {
+          "path": "src/config/search-houses.ts",
+          "kind": "import-statement",
+          "original": "./config/search-houses.ts"
+        },
+        {
+          "path": "src/search-houses.ts",
+          "kind": "import-statement",
+          "original": "./search-houses.ts"
+        },
+        {
+          "path": "src/search-house-models.ts",
+          "kind": "import-statement",
+          "original": "./search-house-models.ts"
         },
         {
           "path": "src/content-runtime.ts",
@@ -6841,7 +6871,7 @@
       "format": "esm"
     },
     "src/world/generation.ts": {
-      "bytes": 253897,
+      "bytes": 254590,
       "imports": [
         {
           "path": "src/backyard-details.ts",
@@ -8082,7 +8112,7 @@
       "format": "esm"
     },
     "src/jurassic.ts": {
-      "bytes": 36094,
+      "bytes": 36248,
       "imports": [
         {
           "path": "src/types/assert.ts",
@@ -8315,7 +8345,7 @@
       }
     },
     "src/world/interactions.ts": {
-      "bytes": 207213,
+      "bytes": 207900,
       "imports": [
         {
           "path": "src/backyard-details.ts",
@@ -10215,7 +10245,7 @@
       "imports": [],
       "exports": [],
       "inputs": {},
-      "bytes": 9596710
+      "bytes": 9632511
     },
     "explore.js": {
       "imports": [],
@@ -10277,7 +10307,7 @@
           "bytesInOutput": 131243
         },
         "content/world-messages.json": {
-          "bytesInOutput": 89233
+          "bytesInOutput": 89243
         },
         "content/world-message-sources.ts": {
           "bytesInOutput": 96
@@ -10310,7 +10340,7 @@
           "bytesInOutput": 128
         },
         "src/burning-man.ts": {
-          "bytesInOutput": 4187
+          "bytesInOutput": 4196
         },
         "src/client/controllers.ts": {
           "bytesInOutput": 5145
@@ -10343,13 +10373,13 @@
           "bytesInOutput": 2475
         },
         "src/multiplayer-protocol.ts": {
-          "bytesInOutput": 2180
+          "bytesInOutput": 2228
         },
         "src/world-deltas.ts": {
           "bytesInOutput": 1287
         },
         "src/multiplayer-client.ts": {
-          "bytesInOutput": 16865
+          "bytesInOutput": 17217
         },
         "src/server-connection.ts": {
           "bytesInOutput": 2853
@@ -10418,7 +10448,7 @@
           "bytesInOutput": 2085
         },
         "src/config/search-houses.ts": {
-          "bytesInOutput": 2044
+          "bytesInOutput": 2552
         },
         "src/rocket-hop.ts": {
           "bytesInOutput": 930
@@ -10604,16 +10634,16 @@
           "bytesInOutput": 75
         },
         "src/config/monster-drops.ts": {
-          "bytesInOutput": 12481
+          "bytesInOutput": 12583
         },
         "src/monster-drops.ts": {
           "bytesInOutput": 398
         },
         "src/creature-attack-pose.ts": {
-          "bytesInOutput": 184
+          "bytesInOutput": 468
         },
         "src/snapshot-motion.ts": {
-          "bytesInOutput": 2722
+          "bytesInOutput": 2969
         },
         "src/npc-network.ts": {
           "bytesInOutput": 832
@@ -10655,7 +10685,7 @@
           "bytesInOutput": 215
         },
         "src/capture-animation.ts": {
-          "bytesInOutput": 1198
+          "bytesInOutput": 1238
         },
         "src/map-instances.ts": {
           "bytesInOutput": 1708
@@ -10670,7 +10700,7 @@
           "bytesInOutput": 2016
         },
         "src/multiplayer-actions.ts": {
-          "bytesInOutput": 3712
+          "bytesInOutput": 5063
         },
         "src/traffic-signals.ts": {
           "bytesInOutput": 4338
@@ -10727,13 +10757,13 @@
           "bytesInOutput": 3537
         },
         "src/multiplayer-world.ts": {
-          "bytesInOutput": 16443
+          "bytesInOutput": 17500
         },
         "src/encounters.ts": {
           "bytesInOutput": 3657
         },
         "src/world/network.ts": {
-          "bytesInOutput": 14640
+          "bytesInOutput": 14931
         },
         "src/berkeley-lab.ts": {
           "bytesInOutput": 3526
@@ -10757,7 +10787,7 @@
           "bytesInOutput": 8472
         },
         "src/search-houses.ts": {
-          "bytesInOutput": 1872
+          "bytesInOutput": 1884
         },
         "src/world/runtime.ts": {
           "bytesInOutput": 22003
@@ -10793,7 +10823,7 @@
           "bytesInOutput": 2604
         },
         "src/wilderness-models.ts": {
-          "bytesInOutput": 27546
+          "bytesInOutput": 28305
         },
         "src/static-batches.ts": {
           "bytesInOutput": 1217
@@ -10877,7 +10907,7 @@
           "bytesInOutput": 5030
         },
         "src/world/rendering.ts": {
-          "bytesInOutput": 69324
+          "bytesInOutput": 69380
         },
         "src/combat-navigation.ts": {
           "bytesInOutput": 2537
@@ -10922,7 +10952,7 @@
           "bytesInOutput": 2183
         },
         "src/world-stream.ts": {
-          "bytesInOutput": 501042
+          "bytesInOutput": 501043
         },
         "src/config/neighborhood-services.ts": {
           "bytesInOutput": 1397
@@ -10985,7 +11015,7 @@
           "bytesInOutput": 3728
         },
         "src/wilderness.ts": {
-          "bytesInOutput": 10936
+          "bytesInOutput": 11832
         },
         "src/ferrari-roads.ts": {
           "bytesInOutput": 4452
@@ -11027,7 +11057,7 @@
           "bytesInOutput": 2205
         },
         "src/search-house-models.ts": {
-          "bytesInOutput": 2614
+          "bytesInOutput": 2787
         },
         "src/goblin-space.ts": {
           "bytesInOutput": 3625
@@ -11078,10 +11108,10 @@
           "bytesInOutput": 414
         },
         "src/berkeley-campus.ts": {
-          "bytesInOutput": 21233
+          "bytesInOutput": 25993
         },
         "src/alien-sites.ts": {
-          "bytesInOutput": 20758
+          "bytesInOutput": 22606
         },
         "src/rail-works.ts": {
           "bytesInOutput": 4249
@@ -11138,7 +11168,7 @@
           "bytesInOutput": 4042
         },
         "src/world/generation.ts": {
-          "bytesInOutput": 158666
+          "bytesInOutput": 159059
         },
         "src/minimap-layers.ts": {
           "bytesInOutput": 3872
@@ -11189,7 +11219,7 @@
           "bytesInOutput": 3689
         },
         "src/jurassic.ts": {
-          "bytesInOutput": 23741
+          "bytesInOutput": 23846
         },
         "src/interaction-access.ts": {
           "bytesInOutput": 216
@@ -11225,7 +11255,7 @@
           "bytesInOutput": 1477
         },
         "src/world/interactions.ts": {
-          "bytesInOutput": 139247
+          "bytesInOutput": 139553
         },
         "src/ai-lab.ts": {
           "bytesInOutput": 3137
@@ -11291,7 +11321,7 @@
           "bytesInOutput": 1701
         }
       },
-      "bytes": 4420904
+      "bytes": 4434512
     }
   }
 }

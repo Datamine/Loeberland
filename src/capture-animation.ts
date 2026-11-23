@@ -9,14 +9,17 @@ export const DEATH_DURATION = 3;
 
 /** Keep the encounter at its original location until the collapse finishes. */
 export function createCaptureAnimation() {
-  const state = { active: false, elapsed: 0, kind: null, base: 0 };
+  const state = { active: false, elapsed: 0, kind: null as string | null, base: 0 };
   let finish: (() => void) | null = null;
   return {
     state,
-    start(kind: string, base: number, onComplete: () => void) {
+    start(kind: string, base: number, onComplete: () => void, hold = false) {
       if (state.active) return false;
       Object.assign(state, { active: true, elapsed: 0, kind, base });
-      finish = onComplete;
+      finish = () => {
+        if (!hold) state.active = false;
+        onComplete();
+      };
       return true;
     },
     update(dt: number) {
@@ -24,7 +27,6 @@ export function createCaptureAnimation() {
       const duration = state.kind === 'police' ? CAPTURE_DURATION : DEATH_DURATION;
       state.elapsed = Math.min(duration, state.elapsed + Math.max(0, dt));
       if (state.elapsed >= duration) {
-        state.active = false;
         const done = finish;
         finish = null;
         done?.();
@@ -33,6 +35,7 @@ export function createCaptureAnimation() {
     cancel() {
       state.active = false;
       state.elapsed = 0;
+      state.kind = null;
       finish = null;
     },
     get pose() {

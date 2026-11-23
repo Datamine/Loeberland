@@ -64,6 +64,7 @@ import {
   MP_PROTOCOL,
   MP_PRIVATE_KEYS,
   MP_INTERPOLATION_MS,
+  MP_SELF_INTERPOLATION_MS,
   decodePlayerFrame,
 } from './multiplayer-protocol.ts';
 import type { WorldMaps } from './world-deltas.ts';
@@ -278,7 +279,12 @@ export function createMultiplayerClient({
       if (typeof event.data !== 'string') {
         const frame = decodePlayerFrame(event.data);
         if (!frame) return;
-        const time = now();
+        const receivedAt = now();
+        // The binary header holds the low 32 bits of server time. Use the
+        // same local timeline as timestamped combat events.
+        const delta =
+          presentationOffset === null ? 0 : (frame.time - (receivedAt - presentationOffset)) | 0;
+        const time = delta >= -2000 && delta <= 50 ? receivedAt + delta : receivedAt;
         for (const pose of frame.players) {
           if (pose.id === state.id) {
             selfSamples.push({ time, pose });
@@ -345,6 +351,14 @@ export function createMultiplayerClient({
         selfSamples.length = 0;
         if (message.target !== null && message.position)
           selfSamples.push({ time: now(), pose: message.position });
+      }
+      if (message.type === 'position' && message.reason === 'respawn') {
+        selfSamples.length = 0;
+        state.position = message;
+        state.self = null;
+        state.following = null;
+        state.pvpTarget = null;
+        if (isFiniteNumber(message.hp)) state.hp = message.hp;
       }
       if (message.type === 'instance') {
         worldMaps = {};
@@ -655,7 +669,7 @@ export function createMultiplayerClient({
     : null;
   function selfPose(time = now()) {
     if (!selfSamples.length) return null;
-    const target = time - MP_INTERPOLATION_MS - 50;
+    const target = time - MP_SELF_INTERPOLATION_MS;
     let a = selfSamples[0],
       b = selfSamples.at(-1)!;
     for (let i = 1; i < selfSamples.length; i++)

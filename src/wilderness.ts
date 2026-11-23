@@ -1,4 +1,4 @@
-import { CREATURE_STRIKE_MS } from './creature-attack-pose.ts';
+import { CREATURE_STRIKE_MS, creatureLunge } from './creature-attack-pose.ts';
 import { WILDERNESS_FIRST_ATTACK_SECONDS } from './config/gameplay.ts';
 import { legacyBugSpawns } from './legacy-software-layout.ts';
 import { contentText } from './content-runtime.ts';
@@ -214,6 +214,7 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
     };
   }
   const actors = spawns.map(makeActor);
+  const windups = new Map<WildernessActor, WildernessPerson['id']>();
   function dispatch(spawn: WildernessSpawn, person: P) {
     const actor = makeActor(spawn, actors.length);
     actor.enemy = actor.dispatchedFor = person.id;
@@ -284,6 +285,8 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
       onReflect(attacker, reflected, actor);
     }
     if (!actor.hp) {
+      windups.delete(actor);
+      actor.attackAnimation = 0;
       actor.enemy = null;
       actor.path = [];
       actor.motion = 0;
@@ -305,6 +308,8 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
         ),
       };
     actor.enemy = null;
+    windups.delete(actor);
+    actor.attackAnimation = 0;
     actor.path = [];
     actor.motion = 0;
     actor.affection = 3;
@@ -323,13 +328,16 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
     // Remove expired responses before iterating the active roster.
     for (let i = actors.length - 1; i >= 0; i--) {
       const actor = actors[i];
-      if (actor.lastCombatAt !== undefined && (!actor.hp || clock - actor.lastCombatAt >= 60))
+      if (actor.lastCombatAt !== undefined && (!actor.hp || clock - actor.lastCombatAt >= 60)) {
+        windups.delete(actor);
         actors.splice(i, 1);
+      }
     }
     for (const [i, actor] of actors.entries()) {
       const stats = walkingStats(actor.combatKind),
+        lunge = creatureLunge(actor.combatKind),
         yardFighter = isYardFighter(actor.combatKind),
-        attackRange = stats.attackRange ?? 1.6,
+        attackRange = lunge?.reach ?? stats.attackRange ?? 1.6,
         inFiringRange = (person: P) =>
           Math.hypot(person.x - actor.x, person.z - actor.z) <= attackRange &&
           canShoot(actor, person),
@@ -346,7 +354,7 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
       if (actor.attackAnimation)
         actor.attackAnimation = Math.max(
           0,
-          actor.attackAnimation - (dt * 1000) / CREATURE_STRIKE_MS,
+          actor.attackAnimation - (dt * 1000) / (lunge?.duration ?? CREATURE_STRIKE_MS),
         );
       if (!actor.hp) {
         actor.respawn = Math.max(0, actor.respawn - dt);
@@ -423,8 +431,6 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
         actor.motion = 0;
         continue;
       }
-      actor.repath -= dt;
-      const direct = enemy && stats.pursuit === 'direct';
       const clear = (a: WorldPoint, b: WorldPoint) => {
         if (!inTerritory(b) || !canTravel(a, b)) return false;
         if (!stats.radius) return true;
@@ -436,6 +442,22 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
         }
         return true;
       };
+      const inLungeRange = (person: P) =>
+        Math.hypot(person.x - actor.x, person.z - actor.z) <= attackRange && clear(actor, person);
+      if (lunge) {
+        const pending = windups.get(actor);
+        if (pending !== undefined && 1 - (actor.attackAnimation ?? 0) >= lunge.impact) {
+          windups.delete(actor);
+          if (enemy?.id === pending && canPursue(enemy) && inLungeRange(enemy))
+            onDamage(enemy, stats.damage, actor);
+        }
+        if (actor.attackAnimation) {
+          actor.motion = 0;
+          continue;
+        }
+      }
+      actor.repath -= dt;
+      const direct = enemy && (stats.pursuit === 'direct' || (lunge && clear(actor, enemy)));
       if (actor.repath <= 0) {
         actor.repath = enemy ? 0.6 : 1.5;
         const goal = enemy
@@ -456,9 +478,11 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
       const distance = enemy ? Math.hypot(enemy.x - actor.x, enemy.z - actor.z) : Infinity;
       let budget =
         enemy &&
-        (stats.attackRange
-          ? inFiringRange(enemy)
-          : distance < 1.35 && (direct || clear(actor, enemy)))
+        (lunge
+          ? inLungeRange(enemy)
+          : stats.attackRange
+            ? inFiringRange(enemy)
+            : distance < 1.35 && (direct || clear(actor, enemy)))
           ? 0
           : dt * (enemy || actor.returning ? stats.speed : stats.roamSpeed || 0.45);
       actor.motion = 0;
@@ -470,7 +494,11 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
           dx = next.x - actor.x,
           dz = next.z - actor.z,
           d = Math.hypot(dx, dz),
-          step = Math.min(budget, d, direct ? Math.min(0.2, Math.max(0, d - 1.35)) : Infinity);
+          step = Math.min(
+            budget,
+            d,
+            direct ? Math.min(0.2, Math.max(0, d - (lunge ? lunge.reach - 0.06 : 1.35))) : Infinity,
+          );
         if (step <= 1e-8) break;
         const end = { x: actor.x + (dx / d) * step, z: actor.z + (dz / d) * step };
         if (!clear(actor, end)) {
@@ -484,23 +512,33 @@ export function createWilderness<P extends WildernessPerson = WildernessPerson>(
         actor.phase += step * (stats.walkStride ? (Math.PI * 2) / stats.walkStride : 4);
         budget -= step;
         if (!direct && d <= step + 1e-8) actor.path.shift();
+        if (lunge && enemy && inLungeRange(enemy)) break;
       }
       actor.base = ground(actor.x, actor.z);
+      if (lunge && enemy && !actor.motion)
+        actor.angle = Math.atan2(enemy.z - actor.z, enemy.x - actor.x);
       if (
         enemy &&
         clock >= actor.attackAt &&
         canPursue(enemy) &&
-        (stats.attackRange
-          ? inFiringRange(enemy)
-          : (stats.territoryHalfWidth ||
-              Math.hypot(enemy.x - actor.x, enemy.z - actor.z) < attackRange) &&
-            clear(actor, enemy))
+        (lunge
+          ? inLungeRange(enemy)
+          : stats.attackRange
+            ? inFiringRange(enemy)
+            : (stats.territoryHalfWidth ||
+                Math.hypot(enemy.x - actor.x, enemy.z - actor.z) < attackRange) &&
+              clear(actor, enemy))
       ) {
         actor.attackAt = clock + stats.interval;
         actor.angle = Math.atan2(enemy.z - actor.z, enemy.x - actor.x);
         actor.attackAnimation = 1;
         if (actor.dispatchedFor !== undefined) actor.lastCombatAt = clock;
-        onDamage(enemy, stats.damage, actor);
+        if (lunge) {
+          windups.set(actor, enemy.id);
+          actor.path = [];
+          actor.repath = 0;
+          actor.motion = 0;
+        } else onDamage(enemy, stats.damage, actor);
       }
     }
   }

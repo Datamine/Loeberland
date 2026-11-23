@@ -4,16 +4,25 @@ import type { Mesh } from './geometry.ts';
 import { HOME_LORE_BOOKS } from './config/world-lore.ts';
 import { drawLoreBook } from './world-lore.ts';
 
+export function searchHouseFurniture(w: number, d: number) {
+  return {
+    seat: [w - 0.79, 0.51, w - 0.21, 1.39],
+    plant: [w - 0.7, d - 0.6, w - 0.3, d - 0.2],
+    storage: [0.23, 0.31, 1.07, 1.01],
+  };
+}
+
 /** Cozy original interiors and ordinary-looking containers. Contents are
  * deliberately never drawn, named, or advertised on the buildings. */
 export function drawSearchHouseInterior(m: Mesh, b: InteriorBuilding, base: number) {
   const { x, y: z, w, d } = b,
-    type = requiredValue(b.searchDefinition, 'Search house definition').container;
-  const bounds = (xx: number, zz: number, ww: number, dd: number) => [
-    [xx, zz] satisfies [number, number],
-    [xx + ww, zz] satisfies [number, number],
-    [xx + ww, zz + dd] satisfies [number, number],
-    [xx, zz + dd] satisfies [number, number],
+    type = requiredValue(b.searchDefinition, 'Search house definition').container,
+    { seat, plant, storage } = searchHouseFurniture(w, d);
+  const bounds = ([left, top, right, bottom]: number[]) => [
+    [x + left, z + top],
+    [x + right, z + top],
+    [x + right, z + bottom],
+    [x + left, z + bottom],
   ];
   b.interiorObstacles = [];
   m.box(
@@ -33,10 +42,10 @@ export function drawSearchHouseInterior(m: Mesh, b: InteriorBuilding, base: numb
     sz = z + 0.55;
   m.box(sx, base + 0.03, sz, 0.5, 0.38, 0.8, '#8c9d86', 'canvasWeave');
   m.box(sx + 0.36, base + 0.41, sz, 0.14, 0.4, 0.8, '#a9b49b', 'canvasWeave');
-  b.interiorObstacles.push(bounds(sx - 0.04, sz - 0.04, 0.58, 0.88));
+  b.interiorObstacles.push(bounds(seat));
   m.cylinder(x + w - 0.5, base + 0.02, z + d - 0.4, 0.15, 0.26, '#bd8b69', 12);
   m.sphere(x + w - 0.5, base + 0.45, z + d - 0.4, 0.22, 0.25, 0.19, '#6f8b60', 10, 7);
-  b.interiorObstacles.push(bounds(x + w - 0.7, z + d - 0.6, 0.4, 0.4));
+  b.interiorObstacles.push(bounds(plant));
   const cx = x + 0.65,
     cz = z + 0.65,
     start = m.data.length;
@@ -96,7 +105,7 @@ export function drawSearchHouseInterior(m: Mesh, b: InteriorBuilding, base: numb
       for (const dx of [-0.24, 0.24] satisfies [number, number])
         m.box(cx + dx, base + 0.03, cz - 0.29, 0.035, h + 0.025, 0.59, '#556b6c', { metal: 0.2 });
   }
-  b.interiorObstacles.push(bounds(cx - 0.42, cz - 0.34, 0.84, 0.7));
+  b.interiorObstacles.push(bounds(storage));
   b.searchContainer = { start, count: m.data.length - start };
   const book =
     HOME_LORE_BOOKS[

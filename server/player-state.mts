@@ -1714,7 +1714,7 @@ export function createPlayerState({
           y: geometry.characterGround(h.x + 0.5, h.y + 0.5),
           hp: p.max,
         });
-        send(p, { type: 'position', ...movement.position(p), reason: 'respawn' });
+        send(p, { type: 'position', ...movement.position(p), reason: 'rehabilitation' });
       }
       r.save('sf-hitpoints-v1')({ hp: p.hp, max: p.max, xp: p.hitpointsXP });
       if (

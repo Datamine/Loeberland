@@ -86,6 +86,9 @@ export function createPvpCombat({
   function weaponFor(p: ServerPlayer) {
     return selectedWeapon(p.appearance.weapon, p.inventory.economy.state);
   }
+  function rangeFor(p: ServerPlayer) {
+    return ITEM_STATS[weaponFor(p)].range;
+  }
   function validate(
     p: ServerPlayer,
     target: ServerPlayer | undefined,
@@ -150,10 +153,10 @@ export function createPvpCombat({
     if (!allowed.ok) return allowed;
     const target = allowed.target,
       weapon = weaponFor(p),
-      range = ITEM_STATS[weapon].range + 0.25;
+      range = ITEM_STATS[weapon].range;
     const restriction = railgunRestriction(p, weapon);
     if (restriction) return { ok: false, message: restriction };
-    if (Math.hypot(p.x - target.x, p.z - target.z) > range + 0.05 || Math.abs(p.y - target.y) > 2.5)
+    if (Math.hypot(p.x - target.x, p.z - target.z) > range || Math.abs(p.y - target.y) > 2.5)
       return {
         ok: false,
         code: 'range',
@@ -187,15 +190,16 @@ export function createPvpCombat({
       }
       const target = allowed.target,
         weapon = weaponFor(p),
-        range = ITEM_STATS[weapon].range + 0.25;
+        range = ITEM_STATS[weapon].range,
+        time = now();
       if (Math.hypot(p.x - target.x, p.z - target.z) > 38) {
         stop(p);
         continue;
       }
       if (
-        Math.hypot(p.x - target.x, p.z - target.z) > range + 0.05 ||
+        Math.hypot(p.x - target.x, p.z - target.z) > range ||
         Math.abs(p.y - target.y) > 2.5 ||
-        now() < (p.pvpNextHit || 0)
+        time < (p.pvpNextHit || 0)
       )
         continue;
       if (
@@ -212,13 +216,11 @@ export function createPvpCombat({
       if (supply.spent) send(p, { type: 'inventory', inventory: p.inventory.snapshot() });
       p.pvpNextHit =
         advanceAttackDeadline(
-          now() / 1000,
+          time / 1000,
           (p.pvpNextHit || 0) / 1000,
           weaponAttackInterval(weapon, p.inventory.economy.state),
         ) * 1000;
       p.angle = Math.atan2(target.z - p.z, target.x - p.x);
-      p.gesture = 'attack';
-      p.gestureUntil = now() + 450;
       const damage = Math.min(
         target.hp,
         Math.max(
@@ -236,6 +238,7 @@ export function createPvpCombat({
       onCombatDamage(p, damage);
       const event = {
         type: 'pvpHit',
+        time,
         attacker: p.id,
         target: target.id,
         damage,
@@ -284,5 +287,5 @@ export function createPvpCombat({
       }
     }
   }
-  return { status, setMode, attack, stop, tick, weaponFor, combatants, bindingTargets };
+  return { status, setMode, attack, stop, tick, weaponFor, rangeFor, combatants, bindingTargets };
 }

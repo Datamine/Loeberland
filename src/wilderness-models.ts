@@ -18,7 +18,7 @@ import type { Mesh } from './geometry.ts';
 import { pose, rand } from './geometry.ts';
 import { MONSTER_STATS } from './monster-drops.ts';
 import { drawBison } from './bison-model.ts';
-import { attackPulse } from './creature-attack-pose.ts';
+import { attackPulse, creatureLunge } from './creature-attack-pose.ts';
 import { GOBLIN_INCUBATOR } from './goblin-town.ts';
 import { IRON_ARMOR_COLORS } from './iron-armor-appearance.ts';
 import type { Actor } from './types/world.ts';
@@ -242,8 +242,13 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0, reduced =
   const attack = reduced ? 0 : (actor.attackAnimation ?? 0);
   const chasing = !reduced && actor.enemy != null;
   const progress = 1 - attack;
-  const load = attackPulse(progress, 0, 0.16, 0.36);
-  const strike = attackPulse(progress, 0.12, 0.39, 1);
+  const lunge = creatureLunge(actor.combatKind);
+  const load = lunge
+    ? attackPulse(progress, 0, 0.25, lunge.impact)
+    : attackPulse(progress, 0, 0.16, 0.36);
+  const strike = lunge
+    ? attackPulse(progress, 0.23, lunge.impact, 0.94)
+    : attackPulse(progress, 0.12, 0.39, 1);
   const stats = requiredValue(
     MONSTER_STATS[actor.combatKind],
     'Unknown monster model: ' + actor.combatKind,
@@ -515,18 +520,18 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0, reduced =
   if (stats.model === 'coyote' || stats.model === 'fox') {
     const fox = stats.model === 'fox';
     const phase = actor.phase || 0;
-    const run = fox && chasing ? (actor.motion || 0) * (1 - strike) : 0;
+    const run = chasing ? (actor.motion || 0) * (1 - Math.max(load, strike)) : 0;
     pose(m, actor.x, actor.base, actor.z, actor.angle, () => {
       const fur = fox ? '#c16a39' : '#9a805f',
         back = fox ? '#9b4a30' : '#756956',
         cream = fox ? '#eadbc5' : '#d6c3a1',
         feet = fox ? '#3d3030' : cream,
         stride = (actor.motion || 0) * (0.13 + 0.21 * run) * (1 - strike),
-        reach = (fox ? 0.49 : 0.48) * strike,
-        chest = (fox ? 0.23 : 0.14) * strike - 0.19 * load + (0.07 - 0.09 * Math.cos(phase)) * run,
-        headX = 0.39 + reach - 0.14 * load,
-        headY = 0.75 + chest - 0.09 * strike - 0.11 * run,
-        gape = (fox ? 0.16 : 0.115) * attackPulse(progress, 0, 0.28, 0.58);
+        reach = (fox ? 0.55 : 0.6) * strike,
+        chest = 0.32 * strike - 0.25 * load + (0.05 - 0.1 * Math.cos(phase)) * run,
+        headX = 0.39 + reach - 0.21 * load,
+        headY = 0.75 + chest - 0.13 * strike - 0.14 * run,
+        gape = (fox ? 0.19 : 0.175) * attackPulse(progress, 0.07, 0.36, 0.53);
       m.sphere(
         -0.06 + reach * 0.34,
         0.57 + chest * 0.5,
@@ -597,7 +602,9 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0, reduced =
             shoulderX = leg + (front > 0 ? reach * 0.65 : reach * 0.25),
             toe = leg + swing + (front > 0 ? reach * (side > 0 ? 1.2 : 0.83) : -0.1 * strike),
             stepLift = Math.max(0, Math.cos(footPhase)) * 0.24 * run,
-            lift = stepLift + (front > 0 ? (side > 0 ? 0.23 : 0.13) * strike + 0.04 * load : 0),
+            lift =
+              stepLift +
+              (front > 0 ? (side > 0 ? 0.31 : 0.22) * strike : 0.13 * strike - 0.018 * load),
             knee = (shoulderX + toe) / 2 + (front > 0 ? -0.024 : 0.07);
           m.rod(
             [shoulderX, 0.57 + chest * (front > 0 ? 1 : 0.45), side * 0.106],
@@ -647,14 +654,16 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0, reduced =
   }
   if (stats.model === 'seagull') {
     pose(m, actor.x, actor.base, actor.z, actor.angle, () => {
-      const step = Math.sin(actor.phase || 0) * (actor.motion || 0) * 0.08 * (1 - strike);
-      const hop = 0.26 * strike,
-        push = 0.31 * strike;
-      const headX = push + 0.18 + 0.26 * strike - 0.08 * load;
-      const headY = hop + 0.45 + 0.08 * load - 0.06 * strike;
-      const flare = attackPulse(progress, 0, 0.27, 0.86);
-      const upstroke = attackPulse(progress, 0, 0.19, 0.48);
-      m.sphere(push, 0.3 + hop - 0.07 * load, 0, 0.25, 0.18, 0.15, '#e6e5dc', 14, 8);
+      const run = chasing ? actor.motion || 0 : 0;
+      const step =
+        Math.sin(actor.phase || 0) * (actor.motion || 0) * (0.08 + 0.045 * run) * (1 - strike);
+      const hop = 0.62 * strike + Math.abs(step) * 0.45 * run,
+        push = 0.42 * strike;
+      const headX = push + 0.18 + 0.26 * strike - 0.12 * load;
+      const headY = hop + 0.45 + 0.13 * load - 0.13 * strike;
+      const flare = Math.max(run * 0.2, attackPulse(progress, 0, 0.4, 0.91));
+      const upstroke = attackPulse(progress, 0.03, 0.28, 0.52);
+      m.sphere(push, 0.3 + hop - 0.11 * load, 0, 0.25, 0.18, 0.15, '#e6e5dc', 14, 8);
       m.rod([push + 0.12, hop + 0.35, 0], [headX, headY - 0.025, 0], 0.074, '#efece1', 9);
       m.sphere(headX, headY, 0, 0.12, 0.13, 0.1, '#f5f0df', 12, 8);
       m.rod(
@@ -664,6 +673,14 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0, reduced =
         '#d6a23c',
         6,
       );
+      if (load > 0.02)
+        m.rod(
+          [headX + 0.065, headY - 0.05, 0],
+          [headX + 0.17, headY - 0.05 - 0.09 * load, 0],
+          0.024,
+          '#b47b32',
+          6,
+        );
       for (const side of [-1, 1]) {
         m.sphere(
           push - 0.06,
@@ -1008,9 +1025,9 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0, reduced =
           blackBear ? motion * (1 - strike) : motion,
           blackBear && chasing,
         ),
-        rearUp = blackBear ? 0.26 * load : 0,
-        forward = blackBear ? 0.25 * strike - 0.12 * load : 0,
-        bob = walk.bob + 0.21 * load + 0.09 * strike,
+        rearUp = blackBear ? 0.46 * load : 0,
+        forward = blackBear ? 0.45 * strike - 0.15 * load : 0,
+        bob = walk.bob + 0.24 * load + 0.06 * strike,
         sway = walk.sway + 0.12 * load - 0.09 * strike;
       const affection = actor.affection ? Math.sin(time * 0.006) * 0.035 : 0,
         head = walk.headBob + affection + 0.11 * load - 0.17 * strike + rearUp;
@@ -1040,6 +1057,32 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0, reduced =
       );
       m.sphere(sway * 0.7, 0.96 + bob + head, 0.72 + forward, 0.23, 0.17, 0.18, light, 14, 8);
       m.sphere(sway * 0.7, 1.02 + bob + head, 0.86 + forward, 0.1, 0.07, 0.06, '#303634', 12, 7);
+      const snarl = blackBear ? attackPulse(progress, 0.03, 0.34, 0.64) : 0;
+      if (snarl > 0.02) {
+        const jawY = 0.817 + bob + head;
+        m.sphere(
+          sway * 0.7,
+          jawY - snarl * 0.08,
+          0.77 + forward,
+          0.135,
+          0.067 + snarl * 0.04,
+          0.115,
+          '#372627',
+          12,
+          6,
+        );
+        m.sphere(
+          sway * 0.7,
+          jawY - snarl * 0.17,
+          0.755 + forward,
+          0.16,
+          0.068,
+          0.142,
+          light,
+          12,
+          7,
+        );
+      }
       for (const side of [-1, 1] satisfies [number, number]) {
         m.sphere(
           side * 0.25 + sway * 0.7,
@@ -1088,9 +1131,11 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0, reduced =
       }
       for (const paw of walk.paws) {
         const swipe = paw.side > 0 && paw.end > 0;
-        const x = paw.x + (swipe ? 0.22 * load - 0.6 * strike : 0);
-        const y = paw.y + (swipe ? 0.81 * load + 0.48 * strike : 0);
-        const z = paw.z + (swipe ? -0.24 * load + 0.82 * strike + forward : 0);
+        const x = paw.x + (swipe ? 0.35 * load - 0.71 * strike : 0);
+        const y =
+          paw.y +
+          (swipe ? 1.14 * load + 0.58 * strike : blackBear && paw.end > 0 ? 0.37 * load : 0);
+        const z = paw.z + (swipe ? -0.28 * load + 0.96 * strike + forward : 0);
         const shoulder = [
             paw.side * 0.3 + sway,
             0.67 + bob + (paw.end > 0 ? rearUp : 0),
@@ -1107,8 +1152,27 @@ export function drawWildMonster(m: Mesh, actor: MonsterPose, time = 0, reduced =
         m.sphere(...knee, 0.145, 0.17, 0.155, fur, 12, 7, 'stucco');
         m.rod(knee, ankle, 0.115, fur, 10);
         m.sphere(x, y, z + 0.06, 0.17, 0.1, 0.22, '#614a3d', 12, 7);
+        if (blackBear && swipe && load + strike > 0.05)
+          for (const offset of [-0.09, 0, 0.09])
+            m.rod(
+              [x + offset, y + 0.01, z + 0.21],
+              [x + offset, y - 0.04, z + 0.32],
+              0.022,
+              '#c8b59d',
+              6,
+            );
       }
-      m.sphere(sway, 0.85 + bob, -0.62, 0.13, 0.13, 0.13, fur, 10, 6);
+      m.sphere(
+        sway,
+        0.85 + bob + rearUp * 0.4,
+        -0.62 + forward * 0.6,
+        0.13,
+        0.13,
+        0.13,
+        fur,
+        10,
+        6,
+      );
     } else {
       const skin = ice ? '#9dcfdf' : '#d1ddd8',
         shade = ice ? '#5b94b9' : '#8fabb5',

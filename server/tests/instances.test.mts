@@ -489,9 +489,12 @@ test('a Kraken death leaves time for the collapse aboard and does not announce a
   );
   assert.equal(requiredFixture(await act(game, a, 'respawn')).ok, false);
   advance(3000);
-  assert.equal(requiredFixture(await act(game, a, 'respawn')).ok, true);
+  game.tick();
   assert.equal(a.p.instance.kind, 'world');
   assert.equal(a.p.x, requiredFixture(geometry.hospital).x + 0.5);
+  const transfer = requiredFixture(a.messages.filter((m) => m.type === 'instance').at(-1));
+  assert.equal(transfer.position.x, a.p.x);
+  assert.equal(transfer.position.z, a.p.z);
 });
 
 test('Berkeley lab requires both icy pieces and supports movement, combat and loot', async () => {

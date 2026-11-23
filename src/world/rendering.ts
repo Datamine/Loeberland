@@ -2189,9 +2189,12 @@ export function createRendering(context: WorldContext) {
       }
     }
     const deli = context.deli?.state;
-    if (deli?.pending || deli?.arrivals.length) {
+    const coolers =
+      context.multiplayerWorld?.actions.deliveryCoolers(t) ??
+      (deli?.pending ? [deli, ...deli.arrivals] : (deli?.arrivals ?? []));
+    if (coolers.length) {
       const serverTime = Date.now() + (context.multiplayer?.state.serverOffset || 0);
-      for (const cooler of deli.pending ? [deli, ...deli.arrivals] : deli.arrivals) {
+      for (const cooler of coolers) {
         if ('expiresAt' in cooler && cooler.expiresAt <= serverTime) continue;
         if (
           Math.hypot(cooler.position.x - context.player.x, cooler.position.y - context.player.y) >=
