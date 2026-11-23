@@ -2826,7 +2826,7 @@
       "format": "esm"
     },
     "src/multiplayer-world.ts": {
-      "bytes": 27924,
+      "bytes": 27891,
       "imports": [
         {
           "path": "src/monster-drops.ts",
@@ -10099,7 +10099,7 @@
       "imports": [],
       "exports": [],
       "inputs": {},
-      "bytes": 9454627
+      "bytes": 9454572
     },
     "explore.js": {
       "imports": [],
@@ -10599,7 +10599,7 @@
           "bytesInOutput": 3527
         },
         "src/multiplayer-world.ts": {
-          "bytesInOutput": 16210
+          "bytesInOutput": 16189
         },
         "src/encounters.ts": {
           "bytesInOutput": 3662
@@ -11160,7 +11160,7 @@
           "bytesInOutput": 1701
         }
       },
-      "bytes": 4343223
+      "bytes": 4343202
     }
   }
 }

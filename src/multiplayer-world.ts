@@ -440,7 +440,6 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
       api.refreshUI();
     } else if (message.type === 'pvpKill') {
       client.state.pvpTarget = null;
-      stopFollowing(true, true);
       announce(
         contentText(
           'world-message.src.multiplayer-world.you-defeated-their-possessions-dropped-where-they-fell',

@@ -6,6 +6,8 @@ import { createGame } from '../game.mts';
 import { createMemoryStore } from '../store.mts';
 import { fixtureGeometry, player, latestResult } from './fixtures.mts';
 import { decodePlayerFrame } from '../../src/multiplayer-protocol.ts';
+import { CAPTURE_DURATION, DEATH_DURATION } from '../../src/capture-animation.ts';
+import { TABLET_TELEPORT_SECONDS } from '../../src/teleport-tablets.ts';
 import type { ServerPlayer } from '../../src/types/server.ts';
 async function setup(geometry = fixtureGeometry()) {
   let time = 1000000;
@@ -132,6 +134,105 @@ test('following respects obstacles, guild admission, disconnects, map instances 
     await game.close();
   }
 });
+test('followers run to respawns and long-distance teleports, then follow an arrest to the jail fence', async () => {
+  const geometry = fixtureGeometry();
+  const jail = geometry.detention;
+  const landClearAt = geometry.landClearAt;
+  geometry.landClearAt = (x, y) => landClearAt(x, y) && !jail.walkable(x + 0.5, y + 0.5);
+  const { game, advance } = await setup(geometry);
+  const a = await player(game, 923);
+  const b = await player(game, 924);
+  const tick = () => {
+    advance(50);
+    game.tick(0.05);
+  };
+  const distance = () => Math.hypot(a.p.x - b.p.x, a.p.z - b.p.z);
+  const followUntil = (range: number) => {
+    for (let i = 0; i < 1000 && distance() > range; i++) {
+      tick();
+      assert.equal(a.p.following, b.p.id);
+    }
+    assert.ok(distance() <= range);
+  };
+  try {
+    b.p.x += 3;
+    assert.equal(requiredFixture(await act(game, a, 'followPlayer', { id: b.p.id })).ok, true);
+    b.p.hp = 0;
+    b.p.respawnAllowed = true;
+    followUntil(1.25);
+    assert.equal(requiredFixture(await act(game, b, 'respawn')).ok, false);
+    advance(DEATH_DURATION * 1000);
+    assert.equal(requiredFixture(await act(game, b, 'respawn')).ok, true);
+    followUntil(1.25);
+
+    assert.equal(requiredFixture(await act(game, b, 'teleport', { x: 175, z: 118 })).ok, true);
+    assert.ok(distance() > 80);
+    followUntil(1.25);
+
+    const { police } = game.personal.runtime(b.p);
+    police.state.wanted = true;
+    police.state.officers.push({
+      x: b.p.x - 0.5,
+      y: b.p.z - 0.5,
+      angle: 0,
+      phase: 0,
+      repath: 1,
+      index: 0,
+      path: [],
+    });
+    tick();
+    assert.ok(b.p.detainAt);
+    advance(CAPTURE_DURATION * 1000);
+    tick();
+    assert.ok(jail.walkable(b.p.x, b.p.z));
+    followUntil(Math.max(jail.w, jail.d) / 2 + 0.8);
+    tick();
+    assert.equal(a.p.following, b.p.id);
+    assert.equal(a.p.moving, false);
+    assert.ok(!jail.walkable(a.p.x, a.p.z));
+
+    assert.equal(
+      requiredFixture(await act(game, b, 'playerAction', { verb: 'rehabilitate' })).ok,
+      true,
+    );
+    advance(3500);
+    tick();
+    assert.equal(b.p.personalJailed, false);
+    followUntil(1.25);
+  } finally {
+    await game.close();
+  }
+});
+
+test('followers head for the tablet landing while the target is still in transit', async () => {
+  const geometry = fixtureGeometry();
+  geometry.tabletDestinations = { downtown: { x: 140, y: 1.15, z: 119, label: 'Downtown' } };
+  const { game, advance } = await setup(geometry);
+  const a = await player(game, 925);
+  const b = await player(game, 926);
+  try {
+    assert.equal(requiredFixture(await act(game, a, 'followPlayer', { id: b.p.id })).ok, true);
+    b.p.inventory.meta.tablets.downtown = 1;
+    assert.equal(requiredFixture(await act(game, b, 'useTablet', { destination: 'downtown' })).ok, true);
+    const start = a.p.x;
+    advance(50);
+    game.tick(0.05);
+    assert.ok(b.p.tabletTeleport);
+    assert.ok(a.p.x > start);
+    assert.equal(a.p.following, b.p.id);
+    advance(TABLET_TELEPORT_SECONDS * 1000);
+    for (let i = 0; i < 250; i++) {
+      advance(50);
+      game.tick(0.05);
+    }
+    assert.equal(b.p.mode, 'walk');
+    assert.ok(Math.hypot(a.p.x - b.p.x, a.p.z - b.p.z) <= 1.25);
+    assert.equal(a.p.following, b.p.id);
+  } finally {
+    await game.close();
+  }
+});
+
 test('server chase-to-attack continues to approach and fight without a focused client', async () => {
   const { game, advance } = await setup(),
     gear = {

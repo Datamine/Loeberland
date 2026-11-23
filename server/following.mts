@@ -22,7 +22,8 @@ const FOLLOW_SPEED = 4.6,
   FOLLOW_RANGE = 1.2,
   ORBIT_RANGE = 2.2,
   ORBIT_MIN_RADIUS = 0.75,
-  ORBIT_SPEED = 1.7;
+  ORBIT_SPEED = 1.7,
+  REPLAN_JUMP_DISTANCE = 8;
 /** Routes and distance budgets belong to the fixed-step server. Neither
  * camera focus nor client pose packets advance a follower. */
 export function createServerFollowing({
@@ -81,17 +82,18 @@ export function createServerFollowing({
     target: ServerPlayer | undefined,
     attack = false,
     groundCache: Map<number, number> | null = null,
+    continuing = false,
   ) {
     if (!available(p)) return 'Stand on the ground before following another player.';
-    if (
-      !target ||
-      target === p ||
-      !target.transport.open ||
-      !sameMapInstance(p, target) ||
-      !target.hp ||
-      target.respawnAllowed
-    )
+    if (!target || target === p || !target.transport.open || !sameMapInstance(p, target))
       return 'That player is no longer nearby.';
+    if (
+      continuing &&
+      !attack &&
+      (!target.hp || target.respawnAllowed || target.tabletTeleport || target.personalJailed)
+    )
+      return '';
+    if (!target.hp || target.respawnAllowed) return 'That player is no longer nearby.';
     let ground = groundCache?.get(target.id);
     if (ground === undefined) {
       ground = geometry.characterGround(target.x, target.z);
@@ -118,14 +120,19 @@ export function createServerFollowing({
       return 'Both players must enable PvP.';
     return '';
   }
-  function plan(p: { x: number; z: number }, target: { x: number; z: number }, range: number) {
+  function plan(
+    p: { x: number; z: number },
+    target: { x: number; z: number },
+    range: number,
+    perimeter = false,
+  ) {
     const origin = { x: p.x - 0.5, y: p.z - 0.5 },
-      r = Math.min(0.9, range * 0.75),
+      radius = perimeter ? range - 0.2 : Math.min(0.9, range * 0.75),
       candidates = Array.from({ length: 12 }, (_, i) => ({
-        x: target.x - 0.5 + Math.cos((i * Math.PI) / 6) * r,
-        y: target.z - 0.5 + Math.sin((i * Math.PI) / 6) * r,
+        x: target.x - 0.5 + Math.cos((i * Math.PI) / 6) * radius,
+        y: target.z - 0.5 + Math.sin((i * Math.PI) / 6) * radius,
       }));
-    candidates.push({ x: target.x - 0.5, y: target.z - 0.5 });
+    if (!perimeter) candidates.push({ x: target.x - 0.5, y: target.z - 0.5 });
     candidates.sort(
       (a, b) =>
         Math.hypot(a.x - origin.x, a.y - origin.y) - Math.hypot(b.x - origin.x, b.y - origin.y),
@@ -247,8 +254,8 @@ export function createServerFollowing({
         active.delete(id);
         continue;
       }
-      const error = validate(p, target, state.attack, groundCache);
-      if (error || !target || Math.hypot(p.x - target.x, p.z - target.z) > 80) {
+      const error = validate(p, target, state.attack, groundCache, true);
+      if (error || !target || (state.attack && Math.hypot(p.x - target.x, p.z - target.z) > 80)) {
         stop(p, error || 'That player is no longer nearby.');
         continue;
       }
@@ -269,8 +276,19 @@ export function createServerFollowing({
         else orbit(target, p, reciprocal, dt);
         continue;
       }
-      const range = state.attack ? ITEM_STATS[pvp.weaponFor(p)].range + 0.1 : FOLLOW_RANGE,
-        distance = Math.hypot(target.x - p.x, target.z - p.z),
+      // The detention cell is fenced off. Follow the detainee to the
+      // perimeter and resume following their position when they leave.
+      const jail =
+        !state.attack && target.personalJailed && geometry.detention?.walkable(target.x, target.z)
+          ? geometry.detention
+          : null;
+      const destination = jail ?? target.tabletTeleport?.to ?? target;
+      const range = jail
+          ? Math.max(jail.w, jail.d) / 2 + 0.8
+          : state.attack
+            ? ITEM_STATS[pvp.weaponFor(p)].range + 0.1
+            : FOLLOW_RANGE,
+        distance = Math.hypot(destination.x - p.x, destination.z - p.z),
         clear =
           !state.attack ||
           distance > range ||
@@ -283,20 +301,27 @@ export function createServerFollowing({
         if (state.attack && p.pvpTarget !== target.id) pvp.attack(p, target.id);
         continue;
       }
-      const gx = Math.floor(target.x * 4),
-        gz = Math.floor(target.z * 4);
+      const gx = Math.floor(destination.x * 4),
+        gz = Math.floor(destination.z * 4);
+      if (
+        !state.attack &&
+        Math.hypot(gx - state.goalX, gz - state.goalZ) > REPLAN_JUMP_DISTANCE * 4
+      ) {
+        state.route = [];
+        state.replan = elapsed;
+      }
       if (
         elapsed >= state.replan &&
         (gx !== state.goalX || gz !== state.goalZ || !state.route.length) &&
         (!routes || routes.allowReplan())
       ) {
         nextCursor = (index + 1) % ids.length;
-        const route = plan(p, target, range);
-        state.replan = elapsed + 0.5;
+        const route = plan(p, destination, range, !!jail);
+        state.replan = elapsed + (route ? 0.5 : 2);
         state.goalX = gx;
         state.goalZ = gz;
         if (route) state.route = route;
-        else if (!state.route.length) {
+        else if (state.attack && !state.route.length) {
           stop(p, 'No walkable route to that player.');
           continue;
         }
@@ -349,7 +374,7 @@ export function createServerFollowing({
         traveled += step;
         budget -= step;
         if (length <= step + 1e-8) state.route.shift();
-        if (Math.hypot(target.x - p.x, target.z - p.z) <= range) break;
+        if (Math.hypot(destination.x - p.x, destination.z - p.z) <= range) break;
       }
       if (!active.has(id)) continue;
       p.moving = traveled > 0;
