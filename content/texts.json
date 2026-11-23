@@ -3867,12 +3867,6 @@
     },
     "world-label.sign.COASTAL%20GROCER": {
       "template": "COASTAL GROCER"
-    },
-    "world-label.sign.MOUNT%20TAM%20GOBLINS": {
-      "template": "MOUNT TAM GOBLINS"
-    },
-    "world-label.sign.FOG%20JAR%20CO-OP": {
-      "template": "FOG JAR CO-OP"
     }
   }
 }

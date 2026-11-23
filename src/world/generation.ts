@@ -701,8 +701,6 @@ export function createGeneration(context: WorldContext) {
     for (const [text, x, z] of [
       ['BOLINAS', -7, -42.5] satisfies [string, number, number],
       ['COASTAL GROCER', -3, -45.7] satisfies [string, number, number],
-      ['MOUNT TAM GOBLINS', 30, -17.2] satisfies [string, number, number],
-      ['FOG JAR CO-OP', 24.1, -20.1] satisfies [string, number, number],
     ]) {
       const base = characterGround(x, z);
       context.sceneMesh.rod([x - 0.7, base, z], [x - 0.7, base + 1.4, z], 0.035, '#8e7654', 8);

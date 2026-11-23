@@ -108,7 +108,7 @@
       "format": "esm"
     },
     "content/texts.json": {
-      "bytes": 157866,
+      "bytes": 157688,
       "imports": [],
       "format": "esm",
       "with": {
@@ -3581,7 +3581,7 @@
       "format": "esm"
     },
     "src/wilderness-models.ts": {
-      "bytes": 51776,
+      "bytes": 51525,
       "imports": [
         {
           "path": "src/types/assert.ts",
@@ -4888,7 +4888,7 @@
       "format": "esm"
     },
     "src/world-stream.ts": {
-      "bytes": 536512,
+      "bytes": 536527,
       "imports": [
         {
           "path": "src/types/json.ts",
@@ -6841,7 +6841,7 @@
       "format": "esm"
     },
     "src/world/generation.ts": {
-      "bytes": 254045,
+      "bytes": 253897,
       "imports": [
         {
           "path": "src/backyard-details.ts",
@@ -10215,7 +10215,7 @@
       "imports": [],
       "exports": [],
       "inputs": {},
-      "bytes": 9597292
+      "bytes": 9596710
     },
     "explore.js": {
       "imports": [],
@@ -10274,7 +10274,7 @@
           "bytesInOutput": 236
         },
         "content/texts.json": {
-          "bytesInOutput": 131379
+          "bytesInOutput": 131243
         },
         "content/world-messages.json": {
           "bytesInOutput": 89233
@@ -10793,7 +10793,7 @@
           "bytesInOutput": 2604
         },
         "src/wilderness-models.ts": {
-          "bytesInOutput": 27472
+          "bytesInOutput": 27546
         },
         "src/static-batches.ts": {
           "bytesInOutput": 1217
@@ -10922,7 +10922,7 @@
           "bytesInOutput": 2183
         },
         "src/world-stream.ts": {
-          "bytesInOutput": 501027
+          "bytesInOutput": 501042
         },
         "src/config/neighborhood-services.ts": {
           "bytesInOutput": 1397
@@ -11138,7 +11138,7 @@
           "bytesInOutput": 4042
         },
         "src/world/generation.ts": {
-          "bytesInOutput": 158726
+          "bytesInOutput": 158666
         },
         "src/minimap-layers.ts": {
           "bytesInOutput": 3872
@@ -11291,7 +11291,7 @@
           "bytesInOutput": 1701
         }
       },
-      "bytes": 4421011
+      "bytes": 4420904
     }
   }
 }
