@@ -1,3 +1,3 @@
-NPC:40 person line at Arsicault bakery at 10:40 on a Friday. All of these people are "working from home", I'm sure
+NPC:40 person line at Arsicault bakery at 10:40 on a Friday. All of these people are "working from home", I'm sure.
 CHARACTER: Ha! Who are all these people in the gym with me at 2pm? Don't they have jobs?
 NPC: I had a work meeting right next door!

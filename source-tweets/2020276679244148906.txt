@@ -12,10 +12,10 @@ NPC: I already regret not recording short YouTube videos of what it was like e.g
 ======
 {MALE NPC ONLY}
 NPC: I had an interesting "gender is real and not just a construct" moment the other day.
-NPC: I had a female Uber driver late at night. and we ended up chatting about the "female driver" feature for female riders and how it was a huge change in terms of safety perception for women, and really popular. 
+NPC: I had a female Uber driver late at night. And we ended up chatting about the "female driver" feature for female riders and how it was a huge change in terms of safety perception for women, and really popular. 
 NPC: For me as a man, this hadn't occurred to me at all. 
 ======
-Every day I have to log into like 50 different things and every single one of them wants to me to enter a 2FA code and click a link in my email and ENOUGH. 
+NPC: Every day I have to log into like 50 different things and every single one of them wants me to enter a 2FA code and click a link in my email and ENOUGH. 
 CHARACTER: This must end. 
 NPC: Let me have an API key and then interact with things programmatically. 
 NPC: If I lose, let's say, 10 minutes a day on average to just logging into things, then that's what -- 3600 minutes a year? 
@@ -25,7 +25,7 @@ NPC: At this point, do YouTube/TikTok/etc. still do any meaningful copyright enf
 NPC: I remember this being pretty tight in 2010, but it feels like this entire ship has sailed by now.
 ======
 NPC: "Culture as food" is an incredibly shallow view. 
-NPC: You mention any country, culture, ethnic group, etc. and the default response is "have you tried the [starch with meat]?" 
+NPC: You mention any country, culture, ethnic group, etc. and the default response is "Have you tried the [starch with meat]?" 
 CHARACTER: Or, for example, there are lots of good reasons to be pro-immigration, but "so I can have more [foreign vegetable soup] at low prices" is not one of them. 
 NPC: Cultures are more than just their culinary products, and reducing them to that feels deeply unsatisfying.
 ======

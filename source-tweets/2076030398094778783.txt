@@ -46,11 +46,11 @@ NPC: I'm now listening to the Odyssey as an audiobook, and it's working a lot be
 CHARACTER: Perhaps unsurprisingly: the old epics are meant to be read aloud!
 =======
 NPC: There's nothing more annoying than motorized trunk hatches on cars. 
-NPC: I want to throw in my bags and shut the trunk -- and so I put my hand on the license plate, and push -- it resists, starts beeping, and then the world's slowest motor begins whirring, it opens back up, i have to click some dumb small button with a hatch/door icon on it, and then it begins closing with a speed of maybe one inch per second. 
+NPC: I want to throw in my bags and shut the trunk -- and so I put my hand on the license plate, and push -- it resists, starts beeping, and then the world's slowest motor begins whirring, it opens back up, I have to click some dumb small button with a hatch/door icon on it, and then it begins closing with a speed of maybe one inch per second. 
 CHARACTER: Pathetic. 
 NPC: I have to stand there, waiting to make sure the damn thing is closing, feeling the seconds of my life leave my body.
 =======
-NPC: It is continuously amusing to me that the Bush family consists of the biggest WASPs there ever were, truly New Englanders incarnate, and then they decided to remake themselves as humble Texans
+NPC: It is continuously amusing to me that the Bush family consists of the biggest WASPs there ever were, truly New Englanders incarnate, and then they decided to remake themselves as humble Texans.
 =======
 NPC: Looking back, it's interesting how "thin" the machine learning skill tree is now. LSTMs, Random Forests, SVMs, etc. etc. have turned out to be ~irrelevant. 
 NPC: Depth along one particularly powerful set of techniques beats all breadth.
@@ -59,7 +59,7 @@ CHARACTER: Yep! There are a few remarkable things about rapidly climbing the exp
 NPC: History is a strong quality filter for media: Herodotus, Chaucer, Shakespeare, etc. were the best of their time, most other stuff simply didn't survive because it had to be manually replicated, and that's a high bar. 
 NPC: Now we have a non-stop explosion of new cultural artifacts, not just due to AI, but internet-era connectedness in the first place. 
 CHARACTER: I wonder if (1) it's possible to measure the outputs on a relative scale, e.g. every year we produce more cultural media than we have remaining from 2000BC to 1900AD combined, and...
-CHARACTER: (2) if there's a similar filter in the modern day -- like, there's so much ephemeral output that the act of reviewing, recommending, or replicating something carries a huge amount of weight.
+CHARACTER: (2) If there's a similar filter in the modern day -- like, there's so much ephemeral output that the act of reviewing, recommending, or replicating something carries a huge amount of weight.
 =======
 NPC: If you're sending an email to ask someone for something, the probability of getting a reply is far-and-away maximized if you only ask for one thing as clearly as possible. 
 ======

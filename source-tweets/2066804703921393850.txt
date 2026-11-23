@@ -10,7 +10,7 @@ CHARACTER: Often, being great means being early.
 ======
 NPC: On Elon being the first trillionaire, part of his magic is that he's the world's greatest capital raiser. 
 CHARACTER: Even his haters will admit that.
-NPC: He's an extremely talented financier. Warren Buffett is also an extremely talented financier, but in a raw minimax, i-win-every-deal way, and much less inspiring when you consider his investments: coca cola, cigarettes... 
+NPC: He's an extremely talented financier. Warren Buffett is also an extremely talented financier, but in a raw minimax, I-win-every-deal way, and much less inspiring when you consider his investments: coca cola, cigarettes... 
 CHARACTER: It's not the same as building rockets or moving electric vehicles forward by a decade. 
 NPC: You don't have to like Elon to admit that it's pretty cool for our first trillionaire to get there by creating the cutting edge rather than being some kind of merchant.
 =======
@@ -23,11 +23,11 @@ CHARACTER: Even if you have a subscription, all these journals are quite similar
 NPC: Netflix killed torrenting by ease-of-use, and I wonder if an aggregator like Substack may have the same effect.
 ======
 NPC: At Manifest, moral philosopher Richard Chappell said that it is important that it is okay for us to sometimes not act on our moral beliefs. 
-NPC: There are practical constraints and trade-offs to our efforts -- "we can only be so good". 
+NPC: There are practical constraints and trade-offs to our efforts -- "We can only be so good". 
 NPC: Society frowns upon hypocrisy, but it is exceedingly difficult, if not impossible, to be fully internally consistent. 
 CHARACTER: Acceptance of imperfect moral action is also a natural brake against getting carried away with a crazy moral belief.
 =======
-NPC: The fact that people listen to sports broadcasts on the radio is proof of the power of imagination
+NPC: The fact that people listen to sports broadcasts on the radio is proof of the power of imagination.
 ======
 NPC: For many months, I saw Ed Zitron posting his fingers numb about the "impending AI crash", while those businesses speedran their way to the moon.
 NPC: I model folks like Zitron or Peter Schiff not really as genuine opinion-havers interested in being right, but as what Sebastian Bensusan would call participants in the "Market for Takes"...
@@ -36,7 +36,7 @@ CHARACTER: I suppose that debasing yourself for money is sort of the world's old
 =======
 NPC: The password-protected PDF was a terrible invention.
 CHARACTER: These are my least favorite things to receive. 
-NPC: Totally insecure because they are trivial to bruteforce, but still annoying for me to hunt through my email inbox looking for the password. 
+NPC: Totally insecure because they are trivial to brute-force, but still annoying for me to hunt through my email inbox looking for the password. 
 =======
 NPC: HTML5 has now for many years been as good and capable as Flash back in the day, probably even more so, but we still have nothing like the Flash games ecosystem. 
 CHARACTER: I wonder why. 
@@ -46,7 +46,7 @@ NPC: Bitcoin is an interesting AI trade for a couple of reasons, but one of them
 CHARACTER: Everyone keeps asking this question as if the scarce thing is going to be some kind of expert labor or secret (dubious), when there's already a machine out there that provides provable scarcity. 
 ======
 NPC: One of the most common failure modes of people interviewing with me is that I'll ask them a question, and they try to match it to their closest prepared script -- and they don't answer my actual question. 
-NPC: I'll ask "what are your areas of technical expertise? where do you go deepest?" and they'll go in chronological order over everything they've ever worked on. 
+NPC: I'll ask "What are your areas of technical expertise? Where do you go deepest?" and they'll go in chronological order over everything they've ever worked on. 
 ======
 NPC: Paul Graham's "Hackers and Painters" feels much less relevant now than it did a decade ago. 
 NPC: Modern software founders are usually not really hackers. 
@@ -74,7 +74,7 @@ NPC: The former is played for achievement and fun, the latter is a numbing agent
 ======
 {MALE NPC ONLY}
 NPC: I don't think anyone told me that one of the joys of childhood is never having to shave. 
-NPC: Rosy smooth cheeks -- nobody ever said "enjoy it while lasts, one day you'll be permanently covered in stubble"
+NPC: Rosy smooth cheeks -- nobody ever said "Enjoy it while it lasts, one day you'll be permanently covered in stubble."
 ======
 NPC: Public markets and accredited investor laws interact in interesting ways. 
 NPC: Public markets were regulated to protect retail investors with laws on what financial data must be reported, what accounting standards are acceptable, and so on. 

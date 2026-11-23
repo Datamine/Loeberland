@@ -5,7 +5,7 @@ CHARACTER: Literally, the thief might make a couple hundred bucks, and the city 
 NPC: Yes and the streetlights are out, which may lead to traffic accidents or other problems. It's an extremely antisocial crime.
 NPC: Astoundingly, the city seems unwilling to do something about this. A guy invented a better way to lock down streetlights -- they didn't want it. The idea of "look for the thieves and put them in jail" has been unpopular for reasons unclear to me. 
 NPC: Proposed solutions, like making scrap yards record who sold them copper wiring, seem ineffective.
-CHARCTER: The most cynical explanation for this is that the incentives lead to crime. 
+CHARACTER: The most cynical explanation for this is that the incentives lead to crime. 
 NPC: Right. The money spent on repairs is primarily spent on local union labor. For them, this is great. There's a whole industry for servicing these problems. 
 CHARACTER: And the city gets to say that it is working on fixing the issues. 
 NPC: Up to some limit, the more of these issues, the better.

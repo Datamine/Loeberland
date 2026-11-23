@@ -5,6 +5,6 @@ NPC: Or suppose I'm going to a restaurant, but I'm taking a Waymo there vs. walk
 CHARACTER: This reality is most revealed on DoorDash: the meal itself might cost only $20. But you're willing to pay another $15 to have it delivered. If you're willing to pay that, you're probably also willing to pay much more for the meal. 
 NPC: This is why some DoorDash restaurants are absurdly expensive -- like $30 for a normal Indian curry -- because they've observed that the price of the dish doesn't really matter. 
 NPC: Somehow the customer is already in a weird price-insensitive situation. They'll pay anything! They'll pay it on installments! (Really.)
-CHARACTER: This is a great insight and most consumer businesses don't grasp it well enough
-NPC: I can't believe are clapping for "doordash is expensive because people will pay for it" and yet my multi-month gestation of "we seem to be on a billion-plus year old trend of increasing compute per second per unit matter" like a religious epiphany, gets crickets. 
+CHARACTER: This is a great insight and most consumer businesses don't grasp it well enough.
+NPC: I can't believe are clapping for "DoorDash is expensive because people will pay for it" and yet my multi-month gestation of "We seem to be on a billion-plus year old trend of increasing compute per second per unit matter" like a religious epiphany, gets crickets. 
 CHARACTER: You never know what hits.

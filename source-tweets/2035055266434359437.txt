@@ -1,4 +1,4 @@
-NPC: I frequently ask engineering candidates what the difference between a git rebase and a git merge is
-NPC: I have heard so many (100+) garbled, nonsensical, or subtly wrong answers -- but always using the right vocab -- over the past few months, that at this point i feel totally fried and would not personally answer this question as well as i would have before i started doing this. 
-NPC: I frequently have to look it up just to override all the wrong stuff i am hearing. 
+NPC: I frequently ask engineering candidates what the difference between a git rebase and a git merge is.
+NPC: I have heard so many (100+) garbled, nonsensical, or subtly wrong answers -- but always using the right vocab -- over the past few months, that at this point I feel totally fried and would not personally answer this question as well as I would have before I started doing this. 
+NPC: I frequently have to look it up just to override all the wrong stuff I am hearing. 
 CHARACTER: This is like context window pollution for LLMs!

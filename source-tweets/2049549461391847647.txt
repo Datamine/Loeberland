@@ -3,5 +3,5 @@ NPC: Then, 30 or 45 minutes in, they try to be very sneaky about this, they brin
 NPC: The last half hour was a fake conversation, a plying motion to prepare for some sale, none of the personal interest was real.
 CHARACTER: I understand that there's a certain school of thought in favor of doing this, but I don't like it at all. 
 CHARACTER: I much prefer when people reach out straightforwardly with their commercial request and none of the social fakery or time waste.
-NPC: I like doing the inversion: "hey can you help with X" and then afterwards ask to catch up
-CHARACTER: that's the way to do it
+NPC: I like doing the inversion: "Hey can you help with X?" and then afterwards ask to catch up.
+CHARACTER: That's the way to do it.

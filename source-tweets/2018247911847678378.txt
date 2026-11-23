@@ -1,6 +1,6 @@
-NPC:The Epstein/Gates saga has a funny lesson for utilitarians
+NPC:The Epstein/Gates saga has a funny lesson for utilitarians.
 NPC: Gates has given more money to charity than anyone alive, and personally accounts for saving 80M+ lives.
 NPC: Yet this has never done anything for him, or the perception of his ethics.
 CHARACTER: The public hates him all the same. 
-CHARACTER: To the average news reader, his legacy right now looks to be "the guy who gave his wife an std from a prostitute and tried to surreptitiously sneak her the meds"
-NPC: Make of this what you will
+CHARACTER: To the average news reader, his legacy right now looks to be "the guy who gave his wife an std from a prostitute and tried to surreptitiously sneak her the meds."
+NPC: Make of this what you will.

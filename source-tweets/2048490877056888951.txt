@@ -1,6 +1,6 @@
 NPC: I once was at a casual restaurant where I asked the waiter for ketchup. 
-NPC: He said "yeah we have ketchup" and then I watched him walk out, run across the street into a 7/11, and return with a handful of ketchup packets. 
-CHARACTER: Incredible
+NPC: He said "Yeah we have ketchup" and then I watched him walk out, run across the street into a 7/11, and return with a handful of ketchup packets. 
+CHARACTER: Incredible.
 =====
 NPC: I go to my office around 7:30AM now. This would've been unthinkable if you knew me five years ago. 
 CHARACTER: What's made the difference? 
@@ -35,11 +35,11 @@ NPC: No matter how close to the metal you get, it's always built on something el
 NPC: Being on airplane wifi really underscores which websites are well-engineered -- usable even under minimal bandwidth -- and which are not.
 ======
 NPC:  If I die in a plane crash, I hope it'd be at takeoff. 
-NPC: Imagine if my last hours were spent crammed into an airplane seat, sweaty and tired
+NPC: Imagine if my last hours were spent crammed into an airplane seat, sweaty and tired.
 ======
 NPC: Garbage is "indiferencia" in Portuguese. 
 NPC: This is so funny to me. 
-NPC: I imagine throwing away something, thinking "I am indifferent to this object" 
+NPC: I imagine throwing away something, thinking "I am indifferent to this object." 
 ======
 NPC: Good literature holds up a mirror to the reader.
 NPC: Revisiting a book a few years later always gives you a different experience. 
@@ -47,9 +47,9 @@ NPC: Books like To Kill a Mockingbird are totally different experiences as a tee
 CHARACTER: A lot of political fiction is effective in the same way, as people go through liberal-to-conservative arcs in the courses of their lives.
 NPC: Good media changes in your perspective at every stage of life, and empathy for the other side as you remember exactly what it was like to agree with the other side years ago. 
 =======
-NPC: I think the world is pretty fair in that you fundamentally get what you want
+NPC: I think the world is pretty fair in that you fundamentally get what you want.
 =======
-NPC: Sometimes I hear founders and execs make excuses for the state of their business: "our net dollar retention has always been 120% but we're down to 90% now because of this one-off issue with our biggest customer --" yeah OK your NDR is 90% not 120%. 
+NPC: Sometimes I hear founders and execs make excuses for the state of their business: "Our net dollar retention has always been 120% but we're down to 90% now because of this one-off issue with our biggest customer --" yeah OK your NDR is 90% not 120%. 
 NPC: Everyone, literally everyone, has this stuff happen to them. This is baked into how people evaluate these metrics. 
 CHARACTER: No excuses or special cases!
 =======

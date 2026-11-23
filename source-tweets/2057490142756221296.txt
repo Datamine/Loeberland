@@ -1,5 +1,5 @@
 NPC: If you are interested in mongering, you only have three options:
-NPC: 1. Fear
-NPC: 2. War
-NPC: 3. Fish
+NPC: 1. Fear.
+NPC: 2. War.
+NPC: 3. Fish.
 CHARACTER: It's tough.
