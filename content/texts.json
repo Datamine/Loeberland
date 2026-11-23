@@ -653,13 +653,13 @@
       "template": "Freemasons' Guild"
     },
     "guild.module.description-3": {
-      "template": "A sandstone lodge with a checkerboard floor, brass compasses and an unusually well-funded refreshments committee. Ray, in the red suit, handles admission."
+      "template": "A sandstone lodge with a checkerboard floor, brass compasses and a landlord nobody discusses. Ray, in the red suit, handles admission."
     },
     "guild.module.description-6": {
       "template": "Heirloom produce, black coats and exceptionally small sunglasses. The farmers grow the future, mostly in vials."
     },
     "guild.guildDialogue.intro-8.yes": {
-      "template": "Ray closes the ledger. “Full member. The library is yours, and the biscuits are in the usual place.”"
+      "template": "Ray closes the ledger. “Full member. The library is yours. Mind the fine print.”"
     },
     "guild.guildDialogue.intro-8.no": {
       "template": "Ray turns the ledger toward you. “Rank {v0}. I keep the admissions book. What did you want to know?”"
@@ -3152,7 +3152,7 @@
       "template": "How is the committee?"
     },
     "service.illuminati-member.root.choices.0.receipt": {
-      "template": "The committee takes its privacy very seriously. Also its biscuits."
+      "template": "The committee takes its privacy very seriously. Even the minutes are redacted."
     },
     "service.airship.root.intro": {
       "template": "Your quoted price is {price} coins. {availability} Another renter may outbid you. The next scheduled return is in {countdown}."
@@ -3542,10 +3542,10 @@
       "template": "Some lodge traditions are best discussed quietly."
     },
     "service.guild-rumours.root.choices.0.label": {
-      "template": "Who sponsors the refreshments?"
+      "template": "Who owns the lodge?"
     },
     "service.guild-rumours.root.choices.0.receipt": {
-      "template": "Ray lowers his voice. “The Powerful and Evil Goose Corporation. An old arrangement. Please don’t repeat it near the biscuits.”"
+      "template": "Ray lowers his voice. “The Powerful and Evil Goose Corporation. An old arrangement. We own the secrets; they own the building.”"
     },
     "guild.guildDialogue.shortcut.label": {
       "template": "Is there any way to move things along?"

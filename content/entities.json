@@ -4905,7 +4905,7 @@
       "name": "Freemasons' Guild",
       "category": "object",
       "kind": "building",
-      "description": "A sandstone lodge with a checkerboard floor, brass compasses and an unusually well-funded refreshments committee. Ray, in the red suit, handles admission.",
+      "description": "A sandstone lodge with a checkerboard floor, brass compasses and a landlord nobody discusses. Ray, in the red suit, handles admission.",
       "menus": [
         {
           "id": "place:freemasons-guild.menu-1",
@@ -8245,10 +8245,10 @@
     },
     "sight:lore-freemasons-guild": {
       "id": "sight:lore-freemasons-guild",
-      "name": "Minutes of the Refreshments Committee",
+      "name": "Minutes of the Lodge Committee",
       "category": "object",
       "kind": "lore-book",
-      "description": "A red ledger rests open beside the lodge\u2019s biscuits.",
+      "description": "A red ledger records the lodge\u2019s more discreet arrangements.",
       "menus": [
         {
           "id": "sight:lore-freemasons-guild.menu-1",

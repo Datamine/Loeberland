@@ -129,7 +129,7 @@ test('Ray and the bookseller discuss Goose Corp without triggering a promotion o
       ),
     );
     f.advance();
-    f.click('Who sponsors the refreshments?');
+    f.click('Who owns the lodge?');
     assert.match(f.element.textContent, /Powerful and Evil Goose Corporation/);
     f.advance();
     assert.equal(promotions, 0);

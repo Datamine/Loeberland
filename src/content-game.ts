@@ -142,6 +142,8 @@ export function compileSharedConversation<T extends RuntimeDialogue>(
     return {
       contentNodeId: chain.id + '/' + key,
       intro: source.text,
+      speaker: source.speaker === 'player' ? 'player' : 'npc',
+      next: source.next ? node(source.next) : undefined,
       repeat: false,
       choices: (source.choices || [])
         .filter(
@@ -206,7 +208,11 @@ export function compileEntityDialogue<T extends RuntimeDialogue>(
     };
   const variant = selectedVariant;
   if (variant.shared) {
-    const ids = Object.keys(CONTENT.dialogues.shared);
+    const gender = person.gender || (person.female ? 'woman' : 'man');
+    const ids = Object.keys(CONTENT.dialogues.shared).filter((id) => {
+      const eligibility = CONTENT.dialogues.shared[id].npc_eligibility;
+      return !eligibility || eligibility.genders.includes(gender);
+    });
     return compileSharedConversation(
       person.conversationId && CONTENT.dialogues.shared[person.conversationId]
         ? person.conversationId

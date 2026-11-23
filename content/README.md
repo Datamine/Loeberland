@@ -5,7 +5,7 @@ The editor writes these source files directly; a text/menu edit does not rebuild
 
 - `entities.json`: shared entity definitions, names, NPC/object categories, descriptions, placement references, ordered action menus and registered capabilities. There are 238 definitions and 316 placements. Repeated cows/houses share definitions. Changing a name keeps its ID.
 - `dialogues.json`: state variants with explicitly identified nodes, choices, links and action IDs, plus service templates.
-- [`dialogues/tweet-derived/chains.json`](dialogues/tweet-derived/chains.json) contains the 100 tweet-derived pedestrian conversations.
+- [`dialogues/tweet-derived/chains.json`](dialogues/tweet-derived/chains.json) contains 125 conversations imported from `source-tweets/`, plus the preserved bakery queue conversation. Run `npm run import:tweet-dialogues` after editing the source text, then rebuild to publish it.
 - [`dialogues/other/chains.json`](dialogues/other/chains.json) contains the special-purpose pedestrian conversations, including the Goose Corp rumors and the pond rumor children use.
 - `texts.json`: reusable text templates. `{name}` or `{v0}` placeholders are substituted with values supplied by registered code or declarative state bindings. They are never evaluated as JavaScript.
 - [`world-messages.json`](world-messages.json): adventure log messages, action receipts and gameplay errors. Browse or edit them in **World messages**. Keep message IDs and placeholder names stable. Examine text is under its object's or NPC's entry.

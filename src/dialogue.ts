@@ -83,6 +83,8 @@ export function createDialogue({
       'trade',
       'receipt',
       'skipIntro',
+      'speaker',
+      'next',
     ] as const)
       delete person[key];
     current = { ...person, ...node };
@@ -237,7 +239,7 @@ export function createDialogue({
   function render(message?: string) {
     if (!current) return;
     element.replaceChildren();
-    const player = stage === 'choices',
+    const player = stage === 'choices' || (stage === 'intro' && current.speaker === 'player'),
       person = player ? getPlayer() : current;
     const portrait = document.createElement('div');
     portrait.className = 'sf-chat-head';
@@ -258,7 +260,7 @@ export function createDialogue({
     portrait.append(name, face);
     const copy = document.createElement('div');
     copy.className = 'sf-chat-copy';
-    if (!player && !amount) {
+    if (stage !== 'choices' && !amount) {
       const text = document.createElement('p'),
         body = message ?? current.intro ?? '';
       text.textContent = typeof body === 'function' ? body() : body;
@@ -281,19 +283,30 @@ export function createDialogue({
       controls.append(thinking, button('Keep exploring', cancel));
     } else {
       controls.append(
-        button(stage === 'intro' && choicesFor(current!).length ? 'Respond' : 'OK', () => {
-          if (stage === 'intro' && choicesFor(current!).length) {
-            stage = 'choices';
-            render();
-          } else if (stage === 'receipt' && !after && receiptRepeat) {
-            stage = 'choices';
-            committed = false;
-            render();
-          } else finish();
-        }),
+        button(
+          stage === 'intro' && current.next
+            ? 'Continue'
+            : stage === 'intro' && choicesFor(current!).length
+              ? 'Respond'
+              : current.ambientConversation
+                ? 'Continue'
+                : 'OK',
+          () => {
+            if (stage === 'intro' && current!.next) {
+              branch(current!.next);
+            } else if (stage === 'intro' && choicesFor(current!).length) {
+              stage = 'choices';
+              render();
+            } else if (stage === 'receipt' && !after && receiptRepeat) {
+              stage = 'choices';
+              committed = false;
+              render();
+            } else finish();
+          },
+        ),
       );
       if (
-        (stage === 'intro' && choicesFor(current!).length) ||
+        (stage === 'intro' && (current.next || choicesFor(current!).length)) ||
         (stage === 'receipt' && receiptRepeat && !after)
       )
         controls.append(button('Leave', cancel));

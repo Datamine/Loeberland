@@ -814,7 +814,13 @@ function renderTree(
   }
   const section = element('div', 'dialogue-node dialogue-tree');
   if (!node.skipIntro || node.intro)
-    section.append(field(speaker, root, [...path, 'intro'], { rows: 3, className: 'npc-line' }));
+    section.append(
+      field(node.speaker === 'player' ? 'You' : speaker, root, [...path, 'intro'], {
+        rows: 3,
+        className: 'npc-line',
+      }),
+    );
+  if (node.next) renderTree(section, root, [...path, 'next'], speaker, depth + 1);
   if (node.question) {
     const q = element('details', 'prompt-note');
     q.append(
@@ -890,7 +896,7 @@ function renderPreview(
     return;
   }
   const box = element('section', 'preview');
-  box.append(element('h3', '', speaker));
+  box.append(element('h3', '', node.speaker === 'player' ? 'You' : speaker));
   const options = element('div', 'preview-choices');
   if (state.receipt) {
     box.append(element('p', 'preview-line', state.receipt));
@@ -926,6 +932,13 @@ function renderPreview(
         }),
       );
     });
+    if (node.next)
+      options.append(
+        button('Continue', () => {
+          state.preview.push([...nodePath, 'next']);
+          renderDetail();
+        }),
+      );
     options.append(
       button(
         read(root, [...nodePath, 'decline']),

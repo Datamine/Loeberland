@@ -18,7 +18,7 @@ test('all migrated content and default player state validate', () => {
   validateContent(CONTENT);
   validatePlayerDocument(createPlayerDocument());
   assert.equal(Object.keys(CONTENT.entities.placements).length, 316);
-  assert.equal(Object.keys(CONTENT.dialogues.shared).length, 105);
+  assert.equal(Object.keys(CONTENT.dialogues.shared).length, 131);
 });
 test('safe JSON conditions read quest progress and collections', () => {
   const state = createPlayerDocument();

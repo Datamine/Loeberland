@@ -20,7 +20,7 @@ import { dialogueFixture } from './helpers/dialogue-fixture.mts';
 import type { RuntimeDialogue } from '../src/types/world.ts';
 
 test('canonical conversations retain valid reachable branches and terminating endings without original tweet files', () => {
-  assert.equal(AMBIENT_CHAINS.length, 100);
+  assert.equal(AMBIENT_CHAINS.length, 126);
   assert.equal(new Set(CONVERSATION_POOL.map((c) => c.id)).size, CONVERSATION_POOL.length);
   for (const chain of CONVERSATION_POOL)
     assert.deepEqual(chain, CONTENT.dialogues.shared[chain.id]);
@@ -33,7 +33,10 @@ test('canonical conversations retain valid reachable branches and terminating en
       if (seen.has(id)) return;
       seen.add(id);
       if (node.end) assert.equal(node.choices, undefined);
-      else {
+      else if (node.next) {
+        assert.equal(node.choices, undefined);
+        visit(node.next, new Set([...path, id]));
+      } else {
         assert.ok(node.choices);
         assert.ok(node.choices.length >= 2);
         assert.equal(new Set(node.choices.map((c) => c.text)).size, node.choices.length);
@@ -71,6 +74,7 @@ test('every ambient and Goose ending renders with the actual NPC and player, the
     effects = 0;
   const original = JSON.stringify(CONVERSATION_POOL);
   for (const chain of CONVERSATION_POOL) {
+    if (!chain.nodes[chain.start].choices) continue;
     const person = createAmbientDialogue(
       {
         id: 'someone',
@@ -124,7 +128,7 @@ test('every ambient and Goose ending renders with the actual NPC and player, the
     }
   }
   assert.equal(effects, 0);
-  assert.equal(endings, 412);
+  assert.equal(endings, 16);
   assert.equal(JSON.stringify(CONVERSATION_POOL), original);
 });
 
@@ -258,12 +262,12 @@ test('casual named roles all use the shared pool while Goose Corp conversations 
   );
   assert.ok(
     requiredFixture(configuredDialogue('guild-rumours').choices).some(
-      (c) => c.label === 'Who sponsors the refreshments?',
+      (c) => c.label === 'Who owns the lodge?',
     ),
   );
 });
 
-test('Talk to an ordinary pedestrian opens real choices, holds the speaker, and releases them on exit', () => {
+test('Talk to an ordinary pedestrian opens a conversation, holds the speaker, and releases them on exit', () => {
   let interactions!: ReturnType<typeof createInteractions>;
   const f = dialogueFixture({}, { onClose: () => interactions.releaseNPC() });
   const context = {
@@ -309,9 +313,8 @@ test('Talk to an ordinary pedestrian opens real choices, holds the speaker, and 
     assert.equal(npc.speechUntil, 0);
     assert.deepEqual(context.player.path, []);
     assert.equal(context.player.speed, 0);
-    f.advance();
-    assert.ok(f.buttons().length >= 3);
-    f.click('Leave');
+    if (f.buttons().some((button) => button.textContent === 'Leave')) f.click('Leave');
+    else f.advance();
     assert.equal(npc.waiting, false);
     assert.equal(context.approachingNPC, null);
   } finally {

@@ -166,6 +166,9 @@
                 "text": {
                   "type": "string"
                 },
+                "next": {
+                  "type": "string"
+                },
                 "end": {
                   "type": "boolean"
                 },

@@ -30,8 +30,8 @@
       "intro": "Some lodge traditions are best discussed quietly.",
       "choices": [
         {
-          "label": "Who sponsors the refreshments?",
-          "receipt": "Ray lowers his voice. “The Powerful and Evil Goose Corporation. An old arrangement. Please don’t repeat it near the biscuits.”"
+          "label": "Who owns the lodge?",
+          "receipt": "Ray lowers his voice. “The Powerful and Evil Goose Corporation. An old arrangement. We own the secrets; they own the building.”"
         }
       ]
     }
@@ -63,7 +63,7 @@
         },
         "company": {
           "speaker": "npc",
-          "text": "The Powerful and Evil Goose Corporation. Their legal department insists that is the full name. Please keep your voice down near the refreshments.",
+          "text": "The Powerful and Evil Goose Corporation. Their legal department insists that is the full name. Please keep your voice down. They own the walls.",
           "choices": [
             {
               "text": "Why put Evil in the name?",
@@ -77,7 +77,7 @@
         },
         "reading": {
           "speaker": "npc",
-          "text": "Ask Leo about The Quarterly Honk, or Ray about the lodge refreshments. Some houses have books on ponds and executive waterfowl. Read carefully. Quietly.",
+          "text": "Ask Leo about The Quarterly Honk, or Ray about who owns the lodge. Some houses have books on ponds and executive waterfowl. Read carefully. Quietly.",
           "end": true
         },
         "leave": {
@@ -123,7 +123,7 @@
         },
         "company": {
           "speaker": "npc",
-          "text": "The Powerful and Evil Goose Corporation. Their legal department insists that is the full name. Please keep your voice down near the refreshments.",
+          "text": "The Powerful and Evil Goose Corporation. Their legal department insists that is the full name. Please keep your voice down. They own the walls.",
           "choices": [
             {
               "text": "Why put Evil in the name?",
@@ -137,7 +137,7 @@
         },
         "reading": {
           "speaker": "npc",
-          "text": "Ask Leo about The Quarterly Honk, or Ray about the lodge refreshments. Some houses have books on ponds and executive waterfowl. Read carefully. Quietly.",
+          "text": "Ask Leo about The Quarterly Honk, or Ray about who owns the lodge. Some houses have books on ponds and executive waterfowl. Read carefully. Quietly.",
           "end": true
         },
         "leave": {
@@ -192,19 +192,19 @@
       "subtitle": "A household magazine, addressed to “The Current Beneficial Occupant”.",
       "paragraphs": [
         "Dear stakeholder: thank you for your continued presence in our addressable habitat. Your local pond has exceeded expectations.",
-        "Our subsidiaries now include Anser Analytics, a refreshments distributor, and a company that owns the idea of walking away briskly. We remain committed to long-term pursuit.",
+        "Our subsidiaries now include Anser Analytics, a property management company, and a company that owns the idea of walking away briskly. We remain committed to long-term pursuit.",
         "A photograph shows an empty boardroom. Every chair has been nibbled at precisely the same height. The caption reads: “Management is delighted.”"
       ]
     },
     "lodge-minutes": {
-      "title": "Minutes of the Refreshments Committee",
+      "title": "Minutes of the Lodge Committee",
       "color": "#793c40",
-      "subtitle": "A red ledger rests open beside the lodge’s biscuits.",
+      "subtitle": "A red ledger records the lodge’s more discreet arrangements.",
       "paragraphs": [
-        "Motion 1: renew the tea contract. Carried unanimously, apart from an unusually forceful honk from the empty chair.",
+        "Motion 1: renew the lodge lease. Carried unanimously, apart from an unusually forceful honk from the empty chair.",
         "Motion 2: thank our discreet benefactor, the Powerful and Evil Goose Corporation. The secretary asks whether “Evil” is strictly necessary in the minutes. The motion to omit it is defeated.",
         "Motion 3: remove the pond from the balance sheet. Deferred. The pond is apparently our balance sheet.",
-        "The final page is blank except for a webbed footprint and the instruction: “Please do not discuss the parent company within earshot of the refreshments.”"
+        "The final page is blank except for a webbed footprint and the instruction: “Please do not discuss the parent company. The walls are company property.”"
       ]
     }
   },

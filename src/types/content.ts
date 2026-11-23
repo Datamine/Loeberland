@@ -112,6 +112,7 @@ export interface SharedNode {
   id: string;
   speaker?: string;
   text: string;
+  next?: string;
   end?: boolean;
   choices?: SharedChoice[];
 }
@@ -122,6 +123,7 @@ export interface SharedConversation {
   nodes: Record<string, SharedNode>;
   source_files?: string[];
   source_directory?: string;
+  npc_eligibility?: { genders: string[] };
 }
 export interface ServiceNode {
   id?: string;

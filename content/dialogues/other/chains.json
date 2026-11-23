@@ -29,7 +29,7 @@
       },
       "company": {
         "speaker": "npc",
-        "text": "The Powerful and Evil Goose Corporation. Their legal department insists that is the full name. Please keep your voice down near the refreshments.",
+        "text": "The Powerful and Evil Goose Corporation. Their legal department insists that is the full name. Please keep your voice down. They own the walls.",
         "choices": [
           {
             "id": "company.choice-1",
@@ -46,7 +46,7 @@
       },
       "reading": {
         "speaker": "npc",
-        "text": "Ask Leo about The Quarterly Honk, or Ray about the lodge refreshments. Some houses have books on ponds and executive waterfowl. Read carefully. Quietly.",
+        "text": "Ask Leo about The Quarterly Honk, or Ray about who owns the lodge. Some houses have books on ponds and executive waterfowl. Read carefully. Quietly.",
         "end": true,
         "id": "reading"
       },
@@ -100,7 +100,7 @@
       },
       "company": {
         "speaker": "npc",
-        "text": "The Powerful and Evil Goose Corporation. Their legal department insists that is the full name. Please keep your voice down near the refreshments.",
+        "text": "The Powerful and Evil Goose Corporation. Their legal department insists that is the full name. Please keep your voice down. They own the walls.",
         "choices": [
           {
             "id": "company.choice-1",
@@ -117,7 +117,7 @@
       },
       "reading": {
         "speaker": "npc",
-        "text": "Ask Leo about The Quarterly Honk, or Ray about the lodge refreshments. Some houses have books on ponds and executive waterfowl. Read carefully. Quietly.",
+        "text": "Ask Leo about The Quarterly Honk, or Ray about who owns the lodge. Some houses have books on ponds and executive waterfowl. Read carefully. Quietly.",
         "end": true,
         "id": "reading"
       },

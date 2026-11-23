@@ -63,6 +63,8 @@ export interface ContentEntity extends Appearance {
 }
 export type EditableEntity = Omit<ContentEntity, 'id'> & { id?: string | number };
 export interface RuntimeDialogue extends ContentEntity, DialogueTextBindings {
+  speaker?: 'npc' | 'player';
+  next?: RuntimeDialogue;
   combatKind?: string;
   id?: string;
   name?: string;

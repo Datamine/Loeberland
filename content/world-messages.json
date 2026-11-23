@@ -1191,7 +1191,7 @@
     "template": "Welcome back. The lodge is open to you."
   },
   "world-message.src.guild.you-are-already-a-member-keep-your-peptides-the-refreshments-c": {
-    "template": "You are already a member. Keep your peptides; the refreshments committee is quite lively enough."
+    "template": "You are already a member. Keep your peptides; the lodge has enough secrets."
   },
   "world-message.src.guild.you-are-now-rank-promotions-completed": {
     "template": "You are now Rank {value1}. {visits} promotions completed."
@@ -1698,7 +1698,7 @@
     "template": "A brain floats inside a magnetic ring. The GPU racks make more noise than it does. Ask the recruiter about the two-minute arithmetic interview."
   },
   "world-message.src.world.interactions.you-enter-the-lodge-a-checkerboard-floor-brass-compasses-and-e": {
-    "template": "You enter the lodge. A checkerboard floor, brass compasses, and extremely exclusive biscuits."
+    "template": "You enter the lodge. A checkerboard floor, brass compasses, and a ledger nobody will explain."
   },
   "world-message.src.world.interactions.you-enter-the-the-farmers-wear-black-coats-and-sunglasses-the": {
     "template": "You enter the {TECHNOLOGIST_MARKET}. The farmers wear black coats and sunglasses. The produce may know kung fu."

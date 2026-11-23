@@ -29,14 +29,20 @@ export function childConversation(random = Math.random) {
 /** Draw without replacement so a walk through town does not repeat one topic. */
 export function createConversationPicker({ pool = CONVERSATION_POOL, random = Math.random } = {}) {
   if (!pool.length) throw new Error('The NPC conversation pool is empty.');
-  let bag: SharedConversation[] = [];
-  return () => {
+  const bags = new Map<string, SharedConversation[]>();
+  return (npc: Pick<RuntimeDialogue, 'female' | 'gender'> = {}) => {
+    const gender = npc.gender || (npc.female ? 'woman' : 'man');
+    let bag = bags.get(gender) || [];
     if (!bag.length) {
-      bag = [...pool];
+      bag = pool.filter(
+        (chain) => !chain.npc_eligibility || chain.npc_eligibility.genders.includes(gender),
+      );
+      if (!bag.length) throw new Error('No conversations are eligible for this NPC.');
       for (let i = bag.length - 1; i > 0; i--) {
         const j = Math.floor(random() * (i + 1));
         [bag[i], bag[j]] = [bag[j], bag[i]];
       }
+      bags.set(gender, bag);
     }
     return bag.pop()!;
   };
@@ -49,7 +55,7 @@ const pickConversation = createConversationPicker();
  * purchase callback, repeat flag, or deferred quest action. */
 export function createAmbientDialogue<T extends RuntimeDialogue>(
   npc: T = {} as T,
-  { chain = pickConversation() }: { chain?: SharedConversation } = {},
+  { chain = pickConversation(npc) }: { chain?: SharedConversation } = {},
 ): T & RuntimeDialogue {
   const person = { ...npc };
   for (const key of [
@@ -65,41 +71,11 @@ export function createAmbientDialogue<T extends RuntimeDialogue>(
     'skipIntro',
     'after',
     'ambientConversation',
+    'contentResolved',
+    'speaker',
+    'next',
   ] as const)
     delete person[key];
-  function node(id: string, path = new Set<string>()): RuntimeDialogue {
-    const source = chain.nodes[id];
-    if (!source || path.has(id))
-      throw new Error('Invalid conversation edge in ' + chain.id + ': ' + id);
-    const nextPath = new Set([...path, id]);
-    return {
-      intro: source.text,
-      repeat: false,
-      choices: (source.choices || [])
-        .filter(
-          (choice) =>
-            !/^(?:i should get going[.!]?|leave[.!]?|goodbye[.!]?)$/i.test(choice.text.trim()),
-        )
-        .map((choice) => {
-          const target = chain.nodes[choice.next];
-          if (!target)
-            throw new Error('Missing conversation node in ' + chain.id + ': ' + choice.next);
-          return target.end
-            ? {
-                label: choice.text,
-                receipt: target.text,
-                repeat: false,
-                contentNodeId: 'dialogues.ambient.node.node-3',
-              }
-            : {
-                label: choice.text,
-                next: node(choice.next, nextPath),
-                contentNodeId: 'dialogues.ambient.node.node-6',
-              };
-        }),
-      contentNodeId: 'dialogues.ambient.node.node-1',
-    };
-  }
   return applyDialogueEdits(
     {
       ...person,
@@ -107,7 +83,6 @@ export function createAmbientDialogue<T extends RuntimeDialogue>(
       decline: contentText('dialogues.ambient.createAmbientDialogue.decline-9', {}),
       ambientConversation: true,
       conversationId: chain.id,
-      ...node(chain.start),
     },
     'shared:' + chain.id,
   );

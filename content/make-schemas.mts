@@ -232,6 +232,7 @@ const sharedNode = object(
     id: str,
     speaker: str,
     text: str,
+    next: str,
     end: bool,
     choices: {
       type: 'array',

@@ -131,12 +131,12 @@
       "format": "esm"
     },
     "content/validate.js": {
-      "bytes": 145813,
+      "bytes": 146113,
       "imports": [],
       "format": "esm"
     },
     "content/entities.json": {
-      "bytes": 585635,
+      "bytes": 585616,
       "imports": [],
       "format": "esm",
       "with": {
@@ -152,7 +152,7 @@
       }
     },
     "content/dialogues/tweet-derived/chains.json": {
-      "bytes": 296090,
+      "bytes": 162072,
       "imports": [],
       "format": "esm",
       "with": {
@@ -160,7 +160,7 @@
       }
     },
     "content/dialogues/other/chains.json": {
-      "bytes": 7716,
+      "bytes": 7704,
       "imports": [],
       "format": "esm",
       "with": {
@@ -173,7 +173,7 @@
       "format": "esm"
     },
     "content/texts.json": {
-      "bytes": 148573,
+      "bytes": 148533,
       "imports": [],
       "format": "esm",
       "with": {
@@ -181,7 +181,7 @@
       }
     },
     "content/world-messages.json": {
-      "bytes": 98354,
+      "bytes": 98333,
       "imports": [],
       "format": "esm",
       "with": {
@@ -484,7 +484,7 @@
       "format": "esm"
     },
     "src/dialogues/services.json": {
-      "bytes": 32611,
+      "bytes": 32623,
       "imports": [],
       "format": "esm",
       "with": {
@@ -492,7 +492,7 @@
       }
     },
     "content/dialogues/other/goose-corp-lore.json": {
-      "bytes": 9350,
+      "bytes": 9326,
       "imports": [],
       "format": "esm",
       "with": {
@@ -1705,7 +1705,7 @@
       "format": "esm"
     },
     "src/content-game.ts": {
-      "bytes": 10735,
+      "bytes": 11089,
       "imports": [
         {
           "path": "src/content-runtime.ts",
@@ -1752,7 +1752,7 @@
       "format": "esm"
     },
     "src/dialogues/ambient.ts": {
-      "bytes": 4007,
+      "bytes": 3231,
       "imports": [
         {
           "path": "src/content-runtime.ts",
@@ -8952,7 +8952,7 @@
       "format": "esm"
     },
     "src/dialogue.ts": {
-      "bytes": 13064,
+      "bytes": 13503,
       "imports": [
         {
           "path": "src/content-runtime.ts",
@@ -10089,7 +10089,7 @@
       "imports": [],
       "exports": [],
       "inputs": {},
-      "bytes": 9649105
+      "bytes": 9452828
     },
     "explore.js": {
       "imports": [],
@@ -10097,7 +10097,7 @@
       "entryPoint": "src/world.ts",
       "inputs": {
         "content/validate.js": {
-          "bytesInOutput": 145867
+          "bytesInOutput": 146167
         },
         "src/types/assert.ts": {
           "bytesInOutput": 91
@@ -10157,25 +10157,25 @@
           "bytesInOutput": 1568
         },
         "content/entities.json": {
-          "bytesInOutput": 336364
+          "bytesInOutput": 336345
         },
         "content/dialogues.json": {
           "bytesInOutput": 259048
         },
         "content/dialogues/tweet-derived/chains.json": {
-          "bytesInOutput": 184173
+          "bytesInOutput": 121052
         },
         "content/dialogues/other/chains.json": {
-          "bytesInOutput": 5013
+          "bytesInOutput": 5001
         },
         "content/dialogue-sources.ts": {
           "bytesInOutput": 236
         },
         "content/texts.json": {
-          "bytesInOutput": 124159
+          "bytesInOutput": 124116
         },
         "content/world-messages.json": {
-          "bytesInOutput": 88653
+          "bytesInOutput": 88632
         },
         "content/world-message-sources.ts": {
           "bytesInOutput": 96
@@ -10226,10 +10226,10 @@
           "bytesInOutput": 2853
         },
         "src/dialogues/services.json": {
-          "bytesInOutput": 23949
+          "bytesInOutput": 23961
         },
         "content/dialogues/other/goose-corp-lore.json": {
-          "bytesInOutput": 7055
+          "bytesInOutput": 7028
         },
         "src/dialogues/catalog.ts": {
           "bytesInOutput": 1065
@@ -10421,13 +10421,13 @@
           "bytesInOutput": 6356
         },
         "src/content-game.ts": {
-          "bytesInOutput": 6853
+          "bytesInOutput": 7128
         },
         "src/world-edits.ts": {
           "bytesInOutput": 1549
         },
         "src/dialogues/ambient.ts": {
-          "bytesInOutput": 2244
+          "bytesInOutput": 1784
         },
         "src/config/economy.ts": {
           "bytesInOutput": 668
@@ -11129,7 +11129,7 @@
           "bytesInOutput": 1977
         },
         "src/dialogue.ts": {
-          "bytesInOutput": 7887
+          "bytesInOutput": 8106
         },
         "src/combat-feedback.ts": {
           "bytesInOutput": 2728
@@ -11150,7 +11150,7 @@
           "bytesInOutput": 1701
         }
       },
-      "bytes": 4405371
+      "bytes": 4342474
     }
   }
 }

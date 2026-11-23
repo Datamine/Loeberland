@@ -30,6 +30,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "build:editor": "node --import tsx tools/build-editor.mts",
+    "import:tweet-dialogues": "node --import tsx tools/import-tweet-dialogues.mts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "build:runtime": "node --import tsx tools/build-runtime.mts",
     "build:client": "npm run typecheck && node --import tsx tools/build.mts",

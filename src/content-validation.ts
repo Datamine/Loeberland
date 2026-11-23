@@ -108,11 +108,18 @@ export function validateContent(value: unknown): ContentBundle {
       throw new Error('Invalid shared conversation: ' + id);
     function visit(nodeId: string, stack = new Set<string>()) {
       if (stack.has(nodeId)) throw new Error('Shared dialogue cycle: ' + id);
+      const node = chain.nodes[nodeId];
+      if (!node) throw new Error('Broken shared dialogue link: ' + nodeId);
       const next = new Set([...stack, nodeId]);
-      for (const choice of chain.nodes[nodeId]?.choices || []) visit(choice.next, next);
+      if (node.next) visit(node.next, next);
+      for (const choice of node.choices || []) visit(choice.next, next);
     }
     visit(chain.start);
     for (const node of Object.values(chain.nodes)) {
+      if (node.next && (node.end || node.choices?.length))
+        throw new Error('Conflicting shared dialogue continuation: ' + id + '/' + node.id);
+      if (node.next && !chain.nodes[node.next])
+        throw new Error('Broken shared dialogue link: ' + node.next);
       unique(node.choices || [], id + '/' + node.id);
       for (const choice of node.choices || [])
         if (!chain.nodes[choice.next])

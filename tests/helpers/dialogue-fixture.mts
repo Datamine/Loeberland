@@ -110,7 +110,14 @@ export function dialogueFixture(
     doc,
     buttons,
     click,
-    advance: () => click(buttons().some((b) => b.textContent === 'Respond') ? 'Respond' : 'OK'),
+    advance: () =>
+      click(
+        buttons().some((b) => b.textContent === 'Continue')
+          ? 'Continue'
+          : buttons().some((b) => b.textContent === 'Respond')
+            ? 'Respond'
+            : 'OK',
+      ),
     restore: () => (globalThis.document = previous),
   };
 }

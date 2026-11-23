@@ -291,6 +291,8 @@ export function projectCatalog(bundle: ContentBundle, revision = bundle.revision
       return {
         id,
         intro: text(r, [...dto, 'intro'], 'dialogues', [...np, 'text'], n.text),
+        speaker: n.speaker === 'player' ? 'player' : 'npc',
+        ...(n.next ? { next: node(n.next, [...dto, 'next']) } : {}),
         decline: 'Leave',
         choices: (n.choices || []).map((c, i) => {
           const dp = [...dto, 'choices', i],

@@ -157,6 +157,8 @@ export interface EditorChoice {
   sharedPool?: boolean;
 }
 export interface EditorDialogueNode {
+  speaker?: 'npc' | 'player';
+  next?: EditorDialogueNode;
   id?: string;
   intro?: string;
   question?: string;
