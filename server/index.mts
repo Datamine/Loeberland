@@ -33,6 +33,7 @@ import { createStore } from './store.mts';
 import { createCheckpointManager } from './checkpoints.mts';
 import { readServerBuild } from './build-info.mts';
 import { readChatPolicy } from './chat-policy.mts';
+import { readDebugTeleportSetting } from './tuning.mts';
 import { createGoogleChatRoutes, readGoogleChatConfig } from './google-chat.mts';
 import { MP_PROTOCOL, MP_TICK_HZ, MP_BROADCAST_HZ } from '../src/multiplayer-protocol.ts';
 
@@ -66,6 +67,7 @@ export async function startServer({
   const serverBuild = readServerBuild();
   const googleChat = readGoogleChatConfig();
   const chatPolicy = readChatPolicy();
+  const debugTeleportAll = readDebugTeleportSetting(host);
   const geometry: ServerGeometry = providedGeometry || createWorldModel();
   if (!providedGeometry) {
     console.log('Preparing the authoritative map and its tile adjacency…');
@@ -96,6 +98,7 @@ export async function startServer({
       maxPlayers,
       serverBuild,
       googleChatAvailable: !!googleChat,
+      debugTeleportAll,
       ...chatPolicy,
     });
   try {

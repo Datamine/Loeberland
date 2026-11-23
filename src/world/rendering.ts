@@ -13,7 +13,7 @@ import { isPickTarget } from '../picking.ts';
 import { requiredValue } from '../types/assert.ts';
 import type { TargetMetadata } from '../types/scene-state.ts';
 import type { GeometryGPU, UploadMesh, ShaderProgram } from '../types/rendering.ts';
-import type { Actor, Site } from '../types/world.ts';
+import type { Actor, Site, InteractionSight } from '../types/world.ts';
 import { drawSwingRider, drawSwingSeat } from '../swings.ts';
 import { BURNING_MAN } from '../burning-man.ts';
 import { drawTheMan } from '../burning-man-models.ts';
@@ -47,6 +47,8 @@ import { drawNeuralLabAnimation } from '../ai-lab-interior.ts';
 import {
   createMaterialTexture,
   createSignTexture,
+  authoredSignLabel,
+  authoredSignSlots,
   MATERIAL_ATLAS,
   MATERIAL_IDS,
 } from '../materials.ts';
@@ -82,6 +84,7 @@ import {
 } from '../jurassic-models.ts';
 import { applyForwardRollMesh } from '../forward-roll.ts';
 import { drawDeliveryCooler } from '../deli.ts';
+import { applyEntityEdits } from '../world-edits.ts';
 import { drawGymExercise } from '../gym-exercises.ts';
 import { drawConstructionWorker } from '../construction-animation.ts';
 import { drawFerrari } from '../ferrari.ts';
@@ -288,12 +291,13 @@ export function createRendering(context: WorldContext) {
     context.gl.enable(context.gl.DEPTH_TEST);
     context.gl.depthFunc(context.gl.LEQUAL);
     context.gl.clearColor(0.56, 0.7, 0.73, 1);
-    const names = context.signNames();
+    const names = authoredSignSlots(context.signNames());
     context.atlasTexture = createSignTexture(context.gl, names, context.signs, {
       preserveCase: [...RESTAURANTS.map((r) => r.name), 'California high-speed rail'],
       artwork: [...BILLBOARD_ART, ...RESEARCH_ART],
       billboardController: context.signTextureControls,
       revealed: context.playerLook.sunglasses,
+      labelText: authoredSignLabel,
     });
     context.materialState = createMaterialTexture(context.gl);
     context.materialTexture = context.materialState.texture;
@@ -1533,6 +1537,8 @@ export function createRendering(context: WorldContext) {
     context.actorTags = [];
     const addTarget = (start: number, metadata: TargetMetadata, end = m.data.length) =>
       context.dynamicTargets.push(actorTarget(m, start, end, metadata));
+    const addEditableSight = (start: number, sight: InteractionSight) =>
+      addTarget(start, { sight: applyEntityEdits(sight, 'sight:' + sight.id) });
     const man = context.sightById(BURNING_MAN.statue);
     if (
       man &&
@@ -1573,17 +1579,15 @@ export function createRendering(context: WorldContext) {
     ) {
       const start = m.data.length;
       drawWaymo(m, { ...cab, y: context.characterGround(cab.x, cab.z) });
-      addTarget(start, {
-        sight: {
-          id: 'called-waymo',
-          kind: 'called-waymo',
-          label: 'Your Waymo',
-          description:
-            cab.phase === 'parked'
-              ? 'Your Waymo rental is ready to board.'
-              : 'Your Waymo is driving to the pickup.',
-          entry: { x: cab.x - 0.5, y: cab.z - 0.5 },
-        },
+      addEditableSight(start, {
+        id: 'called-waymo',
+        kind: 'called-waymo',
+        label: 'Your Waymo',
+        description:
+          cab.phase === 'parked'
+            ? 'Your Waymo rental is ready to board.'
+            : 'Your Waymo is driving to the pickup.',
+        entry: { x: cab.x - 0.5, y: cab.z - 0.5 },
       });
     }
     if (occupiedFerrariTarget)
@@ -1598,7 +1602,9 @@ export function createRendering(context: WorldContext) {
         context.player.y + 0.5 - SOUTHERN_LAKE.z,
       ) < 40
     )
-      drawRedwoodLakeLife(m, context.reduced ? 0 : t, addTarget);
+      drawRedwoodLakeLife(m, context.reduced ? 0 : t, (start, { sight }) =>
+        addEditableSight(start, sight),
+      );
     drawExpeditionActors(m, t, addTarget);
     if (
       Math.hypot(
@@ -1610,7 +1616,7 @@ export function createRendering(context: WorldContext) {
         m,
         (Date.now() + (context.multiplayer?.state.serverOffset || 0)) / 1000,
         context.characterGround,
-        (start, sight) => addTarget(start, { sight }),
+        addEditableSight,
       );
     for (const monster of context.wilderness?.actors || [])
       if (
@@ -1987,6 +1993,7 @@ export function createRendering(context: WorldContext) {
         female,
         longHair: female,
       };
+      applyEntityEdits(traveler, 'actor:airship-traveler-' + (female ? 'woman' : 'man'));
       drawHumanNPC(m, traveler, t, {
         phase: aboard ? 0 : (p.y * Math.PI * 2) / 0.56,
         appearance: {
@@ -2170,14 +2177,32 @@ export function createRendering(context: WorldContext) {
         addTarget(start, { sight: bus.sight });
       }
     }
-    if (
-      context.deli?.state.pending &&
-      Math.hypot(
-        context.deli.state.position.x - context.player.x,
-        context.deli.state.position.y - context.player.y,
-      ) < 32
-    )
-      drawDeliveryCooler(m, context.deli.state, context.characterGround);
+    const deli = context.deli?.state;
+    if (deli?.pending || deli?.arrivals.length) {
+      const serverTime = Date.now() + (context.multiplayer?.state.serverOffset || 0);
+      for (const cooler of deli.pending ? [deli, ...deli.arrivals] : deli.arrivals) {
+        if ('expiresAt' in cooler && cooler.expiresAt <= serverTime) continue;
+        if (
+          Math.hypot(cooler.position.x - context.player.x, cooler.position.y - context.player.y) >=
+          32
+        )
+          continue;
+        const start = m.data.length;
+        drawDeliveryCooler(m, cooler, context.characterGround);
+        addTarget(start, {
+          npc: applyEntityEdits(
+            {
+              id: 'delivery-cooler',
+              kind: 'delivery-cooler',
+              label: 'DoorDash Cooler',
+              x: cooler.position.x + 0.5,
+              z: cooler.position.y + 0.5,
+            },
+            'actor:delivery-cooler',
+          ),
+        });
+      }
+    }
     context.cityLife.draw(
       m,
       t,
@@ -2473,7 +2498,7 @@ export function createRendering(context: WorldContext) {
         z,
         base,
         height: water ? 3.3 : 1.95,
-        label: contentText('world.rendering.makeActors.label-4', {}),
+        label: context.npcLabel(officer, false),
         police: true,
         chasing,
         speech,
@@ -2499,7 +2524,7 @@ export function createRendering(context: WorldContext) {
     if (dynamicInView(car.x, car.z, carGround, 2, 3)) {
       const start = m.data.length;
       drawStreetcar(m, car.x, carGround, car.z, car.angle);
-      addTarget(start, { sight: MARKET_STREETCAR });
+      addEditableSight(start, { ...MARKET_STREETCAR });
     }
     context.drawHillsideLifts(m, t, context.reduced, actorInView);
     return m;

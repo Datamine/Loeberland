@@ -63,6 +63,7 @@ export async function buildRuntime(): Promise<void> {
     'content/validate.js',
     'content/runtime.json',
     'content/manifest.json',
+    'content/items.json',
     'server/package.json',
     'server/admin.html',
   ]) {

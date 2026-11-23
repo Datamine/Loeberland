@@ -9,6 +9,7 @@ import { MP_PROTOCOL } from '../../src/multiplayer-protocol.ts';
 import { POLICE_PURSUIT_SECONDS } from '../../src/encounters.ts';
 import { SF_FITNESS } from '../../src/southern-layout.ts';
 import { CAPTURE_DURATION } from '../../src/capture-animation.ts';
+import { readDebugTeleportSetting } from '../tuning.mts';
 
 async function fixture() {
   let time = 1000000;
@@ -62,6 +63,78 @@ test('debug teleport only follows the saved permission on the authenticated char
     assert.equal(reconnect.messages.find((message) => message.type === 'welcome')?.debug, true);
   } finally {
     await game.close();
+  }
+});
+
+test('debug teleport snaps blocked coordinates to the nearest walkable ground', async () => {
+  const geometry = fixtureGeometry();
+  const requested = { x: 84.125, z: 52.125 };
+  const nearest = { x: 81.625, z: 49.625 };
+  const farther = { x: 88.125, z: 52.125 };
+  geometry.landClearAt = (x, y) =>
+    [nearest, farther].some((point) => point.x === x + 0.5 && point.z === y + 0.5);
+  geometry.characterGround = (x, z) => x + z;
+  const game = await createGame({ geometry, store: createMemoryStore() });
+  try {
+    const character = await player(game, 805);
+    assert.equal((await act(game, character, 'teleport', requested))?.ok, true);
+    assert.equal(character.p.x, nearest.x);
+    assert.equal(character.p.z, nearest.z);
+    const position = character.messages.find(
+      (message) => message.type === 'position' && message.reason === 'teleport',
+    );
+    assert.equal(position?.type, 'position');
+    assert.deepEqual(
+      { x: position.x, z: position.z, y: position.y },
+      { ...nearest, y: geometry.characterGround(nearest.x, nearest.z) },
+    );
+
+    for (const x of [requested.x + 40, Number.MAX_VALUE]) {
+      assert.equal((await act(game, character, 'teleport', { x, z: requested.z }))?.ok, false);
+      assert.equal(character.p.x, nearest.x);
+      assert.equal(character.p.z, nearest.z);
+    }
+  } finally {
+    await game.close();
+  }
+});
+
+test('the development teleport setting defaults to loopback and accepts server overrides', () => {
+  assert.equal(readDebugTeleportSetting('127.0.0.1', {}), true);
+  assert.equal(readDebugTeleportSetting('::1', {}), true);
+  assert.equal(readDebugTeleportSetting('0.0.0.0', {}), false);
+  assert.equal(readDebugTeleportSetting('127.0.0.1', { NODE_ENV: 'production' }), false);
+  assert.equal(readDebugTeleportSetting('127.0.0.1', { DEBUG_TELEPORT_ALL: 'False' }), false);
+  assert.equal(readDebugTeleportSetting('0.0.0.0', { DEBUG_TELEPORT_ALL: 'True' }), true);
+  assert.throws(
+    () => readDebugTeleportSetting('127.0.0.1', { DEBUG_TELEPORT_ALL: 'yes' }),
+    /must be true or false/,
+  );
+});
+
+test('the server setting grants teleport to characters without changing their saved permissions', async () => {
+  const store = createMemoryStore();
+  const geometry = fixtureGeometry();
+  const game = await createGame({ geometry, store, debugTeleportAll: true });
+  try {
+    for (const id of [803, 804]) {
+      const character = await player(game, id, {}, false);
+      assert.equal(character.messages.find((message) => message.type === 'welcome')?.debug, true);
+      assert.equal((await act(game, character, 'teleport', { x: 500, z: 500 }))?.ok, false);
+      assert.equal((await act(game, character, 'teleport', { x: 84, z: 52 }))?.ok, true);
+      assert.equal(character.p.profile.debugTeleport, false);
+      assert.equal(character.p.x, 84);
+      assert.equal(character.p.z, 52);
+    }
+  } finally {
+    await game.close();
+  }
+  const production = await createGame({ geometry, store });
+  try {
+    const character = await player(production, 803, {}, false);
+    assert.equal(character.messages.find((message) => message.type === 'welcome')?.debug, false);
+  } finally {
+    await production.close();
   }
 });
 

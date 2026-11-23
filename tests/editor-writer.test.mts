@@ -201,9 +201,18 @@ async function temporary(t: test.TestContext, rebuild?: (() => Promise<never>) |
 }
 test('filesystem saves publish fresh JSON and editor content without a world build', async (t) => {
   const { root, writer, source } = await temporary(t),
+    oldDefense = Number(source.items?.items['combat-boots'].defense),
     payload = {
       catalogFingerprint: source.revision,
-      changes: [change(['name'], 'Goblin', 'Workshop goblin')],
+      changes: [
+        change(['name'], 'Goblin', 'Workshop goblin'),
+        {
+          record: 'item:combat-boots',
+          path: ['fields', 'defense'],
+          before: String(oldDefense),
+          after: String(oldDefense + 3),
+        },
+      ],
     };
   assert.equal((await request(writer, payload, 'invalid')).code, 403);
   assert.equal((await request(writer, { ...payload, catalogFingerprint: 'stale' })).code, 409);
@@ -214,6 +223,8 @@ test('filesystem saves publish fresh JSON and editor content without a world bui
   assert.equal((await readContent(root)).entities.definitions.goblin.name, 'Workshop goblin');
   const runtime = JSON.parse(await readFile(join(root, 'content/runtime.json'), 'utf8'));
   assert.equal(runtime.entities.definitions.goblin.name, 'Workshop goblin');
+  assert.equal(runtime.items.items['combat-boots'].defense, oldDefense + 3);
+  assert.equal((await readContent(root)).items?.items['combat-boots'].defense, oldDefense + 3);
   assert.equal(
     JSON.parse(await readFile(join(root, 'content/manifest.json'), 'utf8')).revision,
     runtime.revision,
@@ -235,6 +246,52 @@ test('filesystem saves publish fresh JSON and editor content without a world bui
   assert.ok(status != null, 'Missing test fixture: status');
   assert.equal(status.job, null, 'an external rebuild must not cause a stale-job reload loop');
 });
+test('saving examine text through the writer only changes the selected placement', async (t) => {
+  const { root, writer, source } = await temporary(t);
+  const result = await request(writer, {
+    catalogFingerprint: source.revision,
+    changes: [change(['description'], 'A local.', 'A regular at the cafe.', 'actor:goblin-2')],
+  });
+  assert.equal(result.code, 200, JSON.stringify(result.result));
+  const saved = await readContent(root);
+  assert.equal(saved.entities.definitions.goblin.description, 'A local.');
+  assert.equal(saved.entities.placements['actor:goblin'].description, undefined);
+  assert.equal(saved.entities.placements['actor:goblin-2'].description, 'A regular at the cafe.');
+  const published = JSON.parse(await readFile(join(root, 'content/runtime.json'), 'utf8'));
+  assert.deepEqual(published.entities, saved.entities);
+  assert.deepEqual(
+    projectCatalog(saved).records.map((r) => r.description),
+    ['A local.', 'A regular at the cafe.'],
+  );
+});
+
+test('separate examine edits preserve the conditions and bindings of a shared template', () => {
+  const source = contentFixture();
+  const select = [{ when: { path: 'quests.monkey.stage', eq: 'accepted' }, text: 'An envoy.' }];
+  source.entities.definitions.goblin.description = { select, default: { text: 'hello' } };
+  const bindings = { v0: { value: 'friend' } };
+  source.texts.texts.hello.bindings = bindings;
+  const before = source.texts.texts.hello.template;
+  const saved = planEditorWrite(projectCatalog(source), source, [
+    change(['description'], before, 'A guide for {v0}.'),
+    change(['description'], before, 'A host for {v0}.', 'actor:goblin-2'),
+  ]);
+  assert.deepEqual(saved.texts.texts.hello, source.texts.texts.hello);
+  const expected = ['A guide for {v0}.', 'A host for {v0}.'];
+  const records = projectCatalog(saved).records;
+  assert.deepEqual(
+    records.map((r) => r.description),
+    expected,
+  );
+  for (const [index, record] of records.entries()) {
+    const spec = saved.entities.placements[record.key].description;
+    assert.ok(spec && typeof spec === 'object' && 'select' in spec);
+    assert.deepEqual(spec.select, select);
+    assert.ok(typeof spec.default === 'object' && 'text' in spec.default);
+    assert.deepEqual(saved.texts.texts[spec.default.text], { template: expected[index], bindings });
+  }
+});
+
 test('shared dialogue edits save in their original source folders', async (t) => {
   const { root, writer, source } = await temporary(t);
   const result = await request(writer, {

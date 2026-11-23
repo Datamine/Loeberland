@@ -1,5 +1,6 @@
 import type { ContentBundle, TextValues } from './types/content.ts';
 import { validateContent } from '../content/validate.js';
+import items from '../content/items.json' with { type: 'json' };
 import entities from '../content/entities.json' with { type: 'json' };
 import dialogues from '../content/dialogues.json' with { type: 'json' };
 import tweetDerived from '../content/dialogues/tweet-derived/chains.json' with { type: 'json' };
@@ -11,6 +12,7 @@ import { mergeWorldMessages } from '../content/world-message-sources.ts';
 
 export const CONTENT: ContentBundle = validateContent({
   entities,
+  items,
   dialogues: mergeDialogueSources(dialogues, tweetDerived, other),
   texts: mergeWorldMessages(texts, worldMessages),
 });
@@ -18,6 +20,7 @@ const listeners = new Set<(content: ContentBundle) => void>();
 export function installContent(bundle: ContentBundle) {
   for (const key of ['entities', 'dialogues', 'texts'] as const)
     Object.assign(CONTENT, { [key]: bundle[key] });
+  CONTENT.items = bundle.items;
   CONTENT.revision = bundle.revision;
   for (const listener of listeners) listener(CONTENT);
   return CONTENT;

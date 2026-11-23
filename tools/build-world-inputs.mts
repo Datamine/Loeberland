@@ -9,6 +9,8 @@ import { parse } from 'espree';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const runtimeModules = new Set([
+  'content/items.json',
+  'src/config/item-stats.ts',
   'src/world/hud.ts',
   'src/world/interactions.ts',
   'src/world/runtime.ts',

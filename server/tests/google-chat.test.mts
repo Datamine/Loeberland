@@ -100,7 +100,7 @@ test('Google OAuth unlocks only the character that began the flow and persists a
     assert.ok(!actor.messages.some((message) => message.type === 'say'));
     game.receive(actor.p, { type: 'say', text: 'ok' });
     await actor.p.queue;
-    assert.ok(actor.messages.some((message) => message.type === 'say' && message.text === 'OK'));
+    assert.ok(actor.messages.some((message) => message.type === 'say' && message.text === 'Ok'));
     assert.equal(
       (await request('/auth/google/chat/start')).get('Location'),
       '/auth/google/chat/result?status=failed',

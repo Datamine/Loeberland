@@ -297,6 +297,10 @@ input::placeholder {
   color: #c6d7ff;
   font-size: 12px;
 }
+.audit-tag {
+  color: var(--accent);
+  font-size: 11px;
+}
 .catalog-footer {
   border-top: 1px solid var(--line);
   padding: 12px 18px;

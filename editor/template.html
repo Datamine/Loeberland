@@ -38,6 +38,8 @@
               <i class="npc-dot"></i> NPCs <span id="npc-count"></span>
             </button>
             <button data-group="message" aria-pressed="false">World messages</button>
+            <button data-group="label" aria-pressed="false">World labels</button>
+            <button data-group="item" aria-pressed="false">Items</button>
           </div>
           <label class="kind-filter"
             >Type
@@ -47,6 +49,9 @@
           >
           <label class="catalog-checkbox">
             <input id="show-duplicates" type="checkbox" /> Show duplicates
+          </label>
+          <label class="catalog-checkbox">
+            <input id="only-label-audit-imports" type="checkbox" /> Only label audit imports
           </label>
           <label class="catalog-checkbox">
             <input id="only-duplicate-npc-names" type="checkbox" /> Only duplicate NPC names
@@ -60,7 +65,7 @@
         <nav id="entity-list" aria-label="Catalog entries"></nav>
         <footer class="catalog-footer">
           <span class="object-text">Teal · objects</span><span class="npc-text">Yellow · NPCs</span
-          ><small>Man, Woman & Child NPCs are excluded.</small>
+          ><small>Generic pedestrians are excluded.</small>
         </footer>
       </aside>
       <main id="detail" tabindex="-1"></main>

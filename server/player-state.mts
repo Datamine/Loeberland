@@ -266,6 +266,7 @@ export function createPlayerState({
       origin = geometry.sights?.find((n) => n.id === 'lucindas-deli')?.entry || geometry.spawn;
     const deli = createDeli({
       capacity: () => sandwichCapacity(economy.state),
+      now,
       economy,
       health,
       origin,
@@ -1618,7 +1619,7 @@ export function createPlayerState({
           }
         }
       }
-      if (r.deli.state.pending)
+      if (r.deli.state.pending || r.deli.state.arrivals.length)
         r.deli.update(dt, { x: p.x - 0.5, y: p.z - 0.5 }, { deliverable: eligible(p) });
       if (r.interview.state.phase === 'running') r.interview.update();
       if (r.interview.state.phase === 'finished' && !r.lastInterview) {

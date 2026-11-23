@@ -8,6 +8,7 @@ export function npcOffersAttack(npc: ActorMetadata = {}) {
   if (
     npc.networkPlayer ||
     npc.id === 'nia' ||
+    npc.kind === 'delivery-cooler' ||
     npc.kind === AIRSHIP_TRAVELER ||
     npc.kind === POOL_SWIMMER ||
     npc.kind === 'cafe-patron' ||
@@ -105,7 +106,7 @@ export function npcPrimaryVerb(npc: ActorMetadata, revealed = false) {
           npc.combatKind === 'unusual-pastor'
         ? 'talk'
         : 'attack';
-  if (npc.police) return 'examine';
+  if (npc.police || npc.kind === 'delivery-cooler') return 'examine';
   if (npc.networkPlayer) return 'walk';
   return revealed || ['raptor', 'cow', 'kraken'].includes(npc.combatKind || '') ? 'attack' : 'talk';
 }
@@ -116,6 +117,7 @@ export function npcContextActions(
   npc: ActorMetadata = {},
   { primary = 'talk', duel = false, pvp = false } = {},
 ) {
+  if (npc.kind === 'delivery-cooler') return ['examine'];
   if (npc.kind === AIRSHIP_TRAVELER) return ['talk', 'examine'];
   if (npc.networkPlayer)
     return ['trade', ...(duel ? ['duel'] : []), 'follow', ...(pvp ? ['attack'] : []), 'walk'];

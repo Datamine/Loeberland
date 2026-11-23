@@ -14,6 +14,13 @@ export function contentDefinition(key: string | undefined) {
   return p ? CONTENT.entities.definitions[p.definition] : null;
 }
 
+export function entityDialogueVariant(key: string, state: unknown) {
+  const variants = contentDefinition(key)
+    ?.dialogues.map((id) => CONTENT.dialogues.variants[id])
+    .filter((variant) => variant.placements.includes(key));
+  return variants ? selectContentVariant(variants, state) : null;
+}
+
 export function resolveContentText(
   spec: TextSpec | undefined,
   { state = {}, values = {} }: { state?: unknown; values?: TextValues } = {},
@@ -76,7 +83,7 @@ export function menuFromContent<B extends object>(
 ) {
   const key = typeof entity === 'string' ? entity : entity?.editorKey;
   const def = contentDefinition(key);
-  if (!def || !key) return null;
+  if (!def?.menus.length || !key) return null;
   const placement = contentPlacement(key);
   const state = playerDocumentFromContext(context, typeof entity === 'string' ? null : entity);
   state.capabilities = [...bindings.keys()].filter((key): key is string => typeof key === 'string');
@@ -186,15 +193,12 @@ export function compileEntityDialogue<T extends RuntimeDialogue>(
     )!;
   if (person.contentResolved) return person;
   const definition = contentDefinition(key);
-  if (!definition) return person;
+  if (!definition || (!definition.menus.length && !definition.dialogues.length)) return person;
   const def = definition;
   const state = playerDocumentFromContext(context, person);
   const raw = rawBindings(person);
   state.capabilities = [...raw.actions.keys()];
-  const variants = def.dialogues
-    .map((id) => CONTENT.dialogues.variants[id])
-    .filter((v) => v.placements.includes(key));
-  const selectedVariant = selectContentVariant(variants, state);
+  const selectedVariant = entityDialogueVariant(key, state);
   if (!selectedVariant)
     return {
       ...person,

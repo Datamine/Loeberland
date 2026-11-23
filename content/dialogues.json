@@ -1769,6 +1769,22 @@
     }
   },
   "variants": {
+    "sight:nia.conversation": {
+      "id": "sight:nia.conversation",
+      "states": ["Inside this building"],
+      "placements": ["sight:nia"],
+      "when": {
+        "path": "activities.insideTarget",
+        "eq": true
+      },
+      "shared": true
+    },
+    "sight:nia.tip": {
+      "id": "sight:nia.tip",
+      "states": ["New visitor"],
+      "placements": ["sight:nia"],
+      "speech": "\"Best way to see the city? Borrow the bicycle, take Market west, and go say hello to the ducks.\""
+    },
     "actor:ai-lab-recruiter.dialogue-1": {
       "id": "actor:ai-lab-recruiter.dialogue-1",
       "states": [
@@ -4072,8 +4088,8 @@
       "placements": ["actor:cotogna-diner-2", "actor:cotogna-diner-3"],
       "shared": true
     },
-    "actor:southern-corner-124-neighbor.dialogue-1": {
-      "id": "actor:southern-corner-124-neighbor.dialogue-1",
+    "actor:southern-corner-123-neighbor.dialogue-1": {
+      "id": "actor:southern-corner-123-neighbor.dialogue-1",
       "states": [
         "New visitor",
         "Monkey quest: accepted",
@@ -4111,7 +4127,7 @@
         "In custody",
         "Equipment and rentals available"
       ],
-      "placements": ["actor:southern-corner-124-neighbor", "actor:southern-craft-41-neighbor"],
+      "placements": ["actor:southern-corner-123-neighbor", "actor:southern-craft-41-neighbor"],
       "root": "service.neighborhood-flowers.root",
       "nodes": {
         "service.neighborhood-flowers.root": {
@@ -6134,7 +6150,7 @@
         "Dog surfing: judging",
         "Equipment and rentals available"
       ],
-      "placements": ["actor:ferrari-dealer-attendant", "actor:fuel-tahoe-attendant"],
+      "placements": ["actor:ferrari-dealer-attendant"],
       "root": "service.fuel-free.root",
       "nodes": {
         "service.fuel-free.root": {
@@ -6143,14 +6159,14 @@
             {
               "id": "refuel",
               "label": {
-                "text": "refuel.label"
+                "text": "actor:ferrari-dealer-attendant.refuel-label"
               },
               "action": "service.fuel-free.refuel:[]"
             },
             {
               "id": "service.fuel-free.root.choices.1",
               "label": {
-                "text": "service.fuel-free.root.choices.1.label"
+                "text": "actor:ferrari-dealer-attendant.fuel-can-label"
               },
               "action": "service.fuel-free.fuelCan:[]"
             }
@@ -6158,7 +6174,7 @@
           "repeat": false,
           "skipIntro": false,
           "intro": {
-            "text": "service.fuel-free.root.intro"
+            "text": "actor:ferrari-dealer-attendant.intro"
           },
           "question": "",
           "decline": "Leave"
@@ -6228,8 +6244,8 @@
         }
       }
     },
-    "actor:ferrari-dealer-attendant.dialogue-2": {
-      "id": "actor:ferrari-dealer-attendant.dialogue-2",
+    "actor:fuel-outbound-attendant.dialogue-1": {
+      "id": "actor:fuel-outbound-attendant.dialogue-1",
       "states": [
         "New visitor",
         "Monkey quest: accepted",
@@ -6266,7 +6282,7 @@
         "Dog surfing: judging",
         "Equipment and rentals available"
       ],
-      "placements": ["actor:fuel-outbound-attendant", "actor:fuel-return-attendant"],
+      "placements": ["actor:fuel-outbound-attendant"],
       "root": "service.fuel-paid.root",
       "nodes": {
         "service.fuel-paid.root": {
@@ -6275,14 +6291,14 @@
             {
               "id": "refuel",
               "label": {
-                "text": "refuel.label"
+                "text": "actor:fuel-outbound-attendant.refuel-label"
               },
               "action": "service.fuel-paid.refuel:[]"
             },
             {
               "id": "service.fuel-paid.root.choices.1",
               "label": {
-                "text": "service.fuel-paid.root.choices.1.label"
+                "text": "actor:fuel-outbound-attendant.fuel-can-label"
               },
               "action": "service.fuel-paid.fuelCan:[]"
             }
@@ -6290,7 +6306,7 @@
           "repeat": false,
           "skipIntro": false,
           "intro": {
-            "text": "service.fuel-paid.root.intro"
+            "text": "actor:fuel-outbound-attendant.intro"
           },
           "question": "",
           "decline": "Leave"
@@ -6356,6 +6372,269 @@
           "phonePrice": 100,
           "robotaxiPrice": 100,
           "fuelPrice": "all carried coins"
+        }
+      }
+    },
+    "actor:fuel-return-attendant.dialogue-1": {
+      "id": "actor:fuel-return-attendant.dialogue-1",
+      "states": [
+        "New visitor",
+        "Monkey quest: accepted",
+        "Monkey quest: carrying",
+        "Monkey quest: completed",
+        "Sunglasses found",
+        "Evidence certified",
+        "Permit issued",
+        "Bayonet collected",
+        "All aliens defeated",
+        "Alien quest complete",
+        "Raptor quest: escaped",
+        "Raptor quest: carrying",
+        "Raptor quest: completed",
+        "Aboard the Pequod",
+        "Kraken defeated, aboard",
+        "Kraken reward collected",
+        "Guild applicant",
+        "Guild member",
+        "Illuminati initiate",
+        "Motorcycle rented",
+        "AI lab employee",
+        "iPhone owned, put away",
+        "iPhone equipped",
+        "Robotaxi owned",
+        "Software pitch pending",
+        "Carrying a conservation letter",
+        "Conservation letter delivered",
+        "Founder funding claimed",
+        "All shop hats owned",
+        "Airship rented by another player",
+        "Airship prepaid",
+        "Airship reserved by another player",
+        "Dog surfing: judging",
+        "Equipment and rentals available"
+      ],
+      "placements": ["actor:fuel-return-attendant"],
+      "root": "service.fuel-paid.root",
+      "nodes": {
+        "service.fuel-paid.root": {
+          "id": "service.fuel-paid.root",
+          "choices": [
+            {
+              "id": "refuel",
+              "label": {
+                "text": "actor:fuel-return-attendant.refuel-label"
+              },
+              "action": "service.fuel-paid.refuel:[]"
+            },
+            {
+              "id": "service.fuel-paid.root.choices.1",
+              "label": {
+                "text": "actor:fuel-return-attendant.fuel-can-label"
+              },
+              "action": "service.fuel-paid.fuelCan:[]"
+            }
+          ],
+          "repeat": false,
+          "skipIntro": false,
+          "intro": {
+            "text": "actor:fuel-return-attendant.intro"
+          },
+          "question": "",
+          "decline": "Leave"
+        }
+      },
+      "sampleValues": {
+        "service.fuel-paid.root:intro": {
+          "equityPrice": 10,
+          "secondaryPrice": 20,
+          "grainPrice": 1,
+          "fishPrice": 5,
+          "sandPrice": 20,
+          "passengerPrice": 5,
+          "rocketPrice": 1,
+          "skiPrice": 1,
+          "tabletPrice": 20,
+          "sandwichPrice": 3,
+          "deliveryPrice": 15,
+          "healing": 15,
+          "burgerPrice": 2,
+          "softwarePrice": 10,
+          "softwareResalePrice": 20,
+          "phonePrice": 100,
+          "robotaxiPrice": 100,
+          "fuelPrice": "all carried coins"
+        },
+        "refuel:label": {
+          "equityPrice": 10,
+          "secondaryPrice": 20,
+          "grainPrice": 1,
+          "fishPrice": 5,
+          "sandPrice": 20,
+          "passengerPrice": 5,
+          "rocketPrice": 1,
+          "skiPrice": 1,
+          "tabletPrice": 20,
+          "sandwichPrice": 3,
+          "deliveryPrice": 15,
+          "healing": 15,
+          "burgerPrice": 2,
+          "softwarePrice": 10,
+          "softwareResalePrice": 20,
+          "phonePrice": 100,
+          "robotaxiPrice": 100,
+          "fuelPrice": "all carried coins"
+        },
+        "service.fuel-paid.root.choices.1:label": {
+          "equityPrice": 10,
+          "secondaryPrice": 20,
+          "grainPrice": 1,
+          "fishPrice": 5,
+          "sandPrice": 20,
+          "passengerPrice": 5,
+          "rocketPrice": 1,
+          "skiPrice": 1,
+          "tabletPrice": 20,
+          "sandwichPrice": 3,
+          "deliveryPrice": 15,
+          "healing": 15,
+          "burgerPrice": 2,
+          "softwarePrice": 10,
+          "softwareResalePrice": 20,
+          "phonePrice": 100,
+          "robotaxiPrice": 100,
+          "fuelPrice": "all carried coins"
+        }
+      }
+    },
+    "actor:fuel-tahoe-attendant.dialogue-1": {
+      "id": "actor:fuel-tahoe-attendant.dialogue-1",
+      "states": [
+        "New visitor",
+        "Monkey quest: accepted",
+        "Monkey quest: carrying",
+        "Monkey quest: completed",
+        "Sunglasses found",
+        "Evidence certified",
+        "Permit issued",
+        "Bayonet collected",
+        "All aliens defeated",
+        "Alien quest complete",
+        "Raptor quest: escaped",
+        "Raptor quest: carrying",
+        "Raptor quest: completed",
+        "Aboard the Pequod",
+        "Kraken defeated, aboard",
+        "Kraken reward collected",
+        "Guild applicant",
+        "Guild member",
+        "Illuminati initiate",
+        "Motorcycle rented",
+        "AI lab employee",
+        "iPhone owned, put away",
+        "iPhone equipped",
+        "Robotaxi owned",
+        "Software pitch pending",
+        "Carrying a conservation letter",
+        "Conservation letter delivered",
+        "Founder funding claimed",
+        "All shop hats owned",
+        "Airship rented by another player",
+        "Airship prepaid",
+        "Airship reserved by another player",
+        "Dog surfing: judging",
+        "Equipment and rentals available"
+      ],
+      "placements": ["actor:fuel-tahoe-attendant"],
+      "root": "service.fuel-free.root",
+      "nodes": {
+        "service.fuel-free.root": {
+          "id": "service.fuel-free.root",
+          "choices": [
+            {
+              "id": "refuel",
+              "label": {
+                "text": "actor:fuel-tahoe-attendant.refuel-label"
+              },
+              "action": "service.fuel-free.refuel:[]"
+            },
+            {
+              "id": "service.fuel-free.root.choices.1",
+              "label": {
+                "text": "actor:fuel-tahoe-attendant.fuel-can-label"
+              },
+              "action": "service.fuel-free.fuelCan:[]"
+            }
+          ],
+          "repeat": false,
+          "skipIntro": false,
+          "intro": {
+            "text": "actor:fuel-tahoe-attendant.intro"
+          },
+          "question": "",
+          "decline": "Leave"
+        }
+      },
+      "sampleValues": {
+        "service.fuel-free.root:intro": {
+          "leaseOffer": "",
+          "equityPrice": 10,
+          "secondaryPrice": 20,
+          "grainPrice": 1,
+          "fishPrice": 5,
+          "sandPrice": 20,
+          "passengerPrice": 5,
+          "rocketPrice": 1,
+          "skiPrice": 1,
+          "tabletPrice": 20,
+          "sandwichPrice": 3,
+          "deliveryPrice": 15,
+          "healing": 15,
+          "burgerPrice": 2,
+          "softwarePrice": 10,
+          "softwareResalePrice": 20,
+          "phonePrice": 100,
+          "robotaxiPrice": 100,
+          "fuelPrice": "Free"
+        },
+        "refuel:label": {
+          "equityPrice": 10,
+          "secondaryPrice": 20,
+          "grainPrice": 1,
+          "fishPrice": 5,
+          "sandPrice": 20,
+          "passengerPrice": 5,
+          "rocketPrice": 1,
+          "skiPrice": 1,
+          "tabletPrice": 20,
+          "sandwichPrice": 3,
+          "deliveryPrice": 15,
+          "healing": 15,
+          "burgerPrice": 2,
+          "softwarePrice": 10,
+          "softwareResalePrice": 20,
+          "phonePrice": 100,
+          "robotaxiPrice": 100,
+          "fuelPrice": "Free"
+        },
+        "service.fuel-free.root.choices.1:label": {
+          "equityPrice": 10,
+          "secondaryPrice": 20,
+          "grainPrice": 1,
+          "fishPrice": 5,
+          "sandPrice": 20,
+          "passengerPrice": 5,
+          "rocketPrice": 1,
+          "skiPrice": 1,
+          "tabletPrice": 20,
+          "sandwichPrice": 3,
+          "deliveryPrice": 15,
+          "healing": 15,
+          "burgerPrice": 2,
+          "softwarePrice": 10,
+          "softwareResalePrice": 20,
+          "phonePrice": 100,
+          "robotaxiPrice": 100,
+          "fuelPrice": "Free"
         }
       }
     },
@@ -11567,8 +11846,8 @@
         "eq": true
       }
     },
-    "actor:southern-corner-127-neighbor.dialogue-1": {
-      "id": "actor:southern-corner-127-neighbor.dialogue-1",
+    "actor:southern-corner-126-neighbor.dialogue-1": {
+      "id": "actor:southern-corner-126-neighbor.dialogue-1",
       "states": [
         "New visitor",
         "Monkey quest: accepted",
@@ -11606,7 +11885,7 @@
         "In custody",
         "Equipment and rentals available"
       ],
-      "placements": ["actor:southern-corner-127-neighbor", "actor:southern-corner-45-neighbor"],
+      "placements": ["actor:southern-corner-126-neighbor", "actor:southern-corner-45-neighbor"],
       "root": "service.neighborhood-bakery.root",
       "nodes": {
         "service.neighborhood-bakery.root": {
@@ -13421,8 +13700,8 @@
         }
       }
     },
-    "actor:southern-corner-85-neighbor.dialogue-1": {
-      "id": "actor:southern-corner-85-neighbor.dialogue-1",
+    "actor:southern-corner-65-neighbor.dialogue-1": {
+      "id": "actor:southern-corner-65-neighbor.dialogue-1",
       "states": [
         "New visitor",
         "Monkey quest: accepted",
@@ -13460,7 +13739,7 @@
         "In custody",
         "Equipment and rentals available"
       ],
-      "placements": ["actor:southern-corner-85-neighbor"],
+      "placements": ["actor:southern-corner-65-neighbor"],
       "root": "service.neighborhood-tea.root",
       "nodes": {
         "service.neighborhood-tea.root": {

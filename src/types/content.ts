@@ -65,6 +65,7 @@ export interface EntityPlacement {
   definition: string;
   actor: boolean;
   source: string;
+  labelAuditImport?: boolean;
   position: Partial<WorldPoint>;
   description?: TextSpec;
   appearance?: Appearance;
@@ -150,8 +151,14 @@ export type LegacyServiceNode = Omit<
     next?: LegacyServiceNode;
   };
 export type LegacyServiceChoice = Omit<LegacyServiceNode, 'label'> & { label: string };
+export interface ItemCatalog {
+  schema: 1;
+  items: Record<string, import('../config/item-stats.ts').ItemDefinition>;
+}
+
 export interface ContentBundle {
   revision?: string;
+  items?: ItemCatalog;
   entities: {
     schema: 1;
     definitions: Record<string, EntityDefinition>;

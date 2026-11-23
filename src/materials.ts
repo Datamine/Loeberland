@@ -7,6 +7,7 @@ export interface AtlasArtwork {
 export interface BillboardController {
   pending?: number;
   setRevealed?: (value: boolean) => boolean;
+  refreshLabels?: () => void;
 }
 interface BillboardSlot {
   art: AtlasArtwork;
@@ -18,7 +19,19 @@ interface BillboardSlot {
 import type { SignAtlas } from './types/world.ts';
 import { drawRevealedBillboard } from './billboards.ts';
 import { MATERIAL_IDS, MATERIAL_ATLAS } from './material-catalog.mts';
+import { CONTENT } from './content-runtime.ts';
 export { MATERIAL_IDS, MATERIAL_ATLAS };
+
+const signLabelPrefix = 'world-label.sign.';
+export function authoredSignSlots(fallback: Iterable<string>) {
+  const slots = Object.keys(CONTENT.texts.texts)
+    .filter((key) => key.startsWith(signLabelPrefix))
+    .map((key) => decodeURIComponent(key.slice(signLabelPrefix.length)));
+  return slots.length ? slots : fallback;
+}
+export function authoredSignLabel(slot: string) {
+  return CONTENT.texts.texts[signLabelPrefix + encodeURIComponent(slot)]?.template ?? slot;
+}
 
 // Names, artwork and numeric GPU slots share the catalog. The generated atlas
 // is one image; individual SVG element IDs are not queried by the renderer.
@@ -150,11 +163,13 @@ export function createSignTexture(
     artwork = [],
     billboardController = null,
     revealed = false,
+    labelText = (name: string) => name,
   }: {
     preserveCase?: Iterable<string>;
     artwork?: readonly AtlasArtwork[];
     billboardController?: BillboardController | null;
     revealed?: boolean;
+    labelText?: (name: string) => string;
   } = {},
 ) {
   const exactCase = new Set(preserveCase),
@@ -167,10 +182,14 @@ export function createSignTexture(
   const c = image.getContext('2d')!;
   c.fillStyle = '#342e23';
   c.fillRect(0, 0, image.width, image.height);
-  unique.forEach((name, i) => {
+  const drawnNames = new Map<string, string>();
+  function drawLabel(name: string, i: number) {
+    const label = labelText(name);
+    if (drawnNames.get(name) === label) return false;
+    drawnNames.set(name, label);
     const x = (i % 4) * 256,
       y = Math.floor(i / 4) * 64,
-      lines = (exactCase.has(name) ? name : name.toUpperCase()).split('\n');
+      lines = (exactCase.has(name) ? label : label.toUpperCase()).split('\n');
     c.fillStyle = '#453b27';
     c.fillRect(x, y, 256, 64);
     c.strokeStyle = '#bc9e5d';
@@ -188,6 +207,12 @@ export function createSignTexture(
     lines.forEach((line, j) =>
       c.fillText(line, x + 128, y + 32 + (j - (lines.length - 1) / 2) * (size + 1), 238),
     );
+    return true;
+  }
+  unique.forEach((name, i) => {
+    drawLabel(name, i);
+    const x = (i % 4) * 256,
+      y = Math.floor(i / 4) * 64;
     signs.set(name, [
       [x / 1024, (y + 64) / image.height] satisfies [number, number],
       [(x + 256) / 1024, (y + 64) / image.height] satisfies [number, number],
@@ -251,7 +276,10 @@ export function createSignTexture(
     };
     graphic.src = art.src;
   }
-  if (billboardController)
+  if (billboardController) {
+    billboardController.refreshLabels = () => {
+      if (unique.map(drawLabel).includes(true)) uploadSigns();
+    };
     billboardController.setRevealed = (value: boolean) => {
       value = !!value;
       if (value === hiddenLayer) return false;
@@ -260,6 +288,7 @@ export function createSignTexture(
       uploadSigns();
       return true;
     };
+  }
   if (artwork.length) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
   return texture;
 }

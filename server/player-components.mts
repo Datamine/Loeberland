@@ -86,6 +86,7 @@ export function createPlayerComponents({
       !!s.waymo ||
       fishing.active ||
       delivery.pending ||
+      delivery.arrivals.length > 0 ||
       !!pitch ||
       police.wanted ||
       keeper.phase !== 'idle' ||
@@ -144,6 +145,7 @@ export function createPlayerComponents({
           ? { position: delivery.position, angle: delivery.angle, travel: delivery.travel }
           : null,
     );
+    publish('deliveryArrivals', [delivery.arrivals], () => delivery.arrivals);
     publish('pitch', [pitch?.npc.id, pitch?.remaining, pitch?.chance], () =>
       pitch ? { id: pitch.npc.id, remaining: pitch.remaining, chance: pitch.chance } : null,
     );

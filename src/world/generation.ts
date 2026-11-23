@@ -39,7 +39,7 @@ import { WIZARD_HOUSE } from '../wizard-house.ts';
 import { drawSouthernCountryside } from '../southern-countryside.ts';
 import { compileMinimapRoads } from '../world-minimap.ts';
 import { packWorldTiles, unpackWorldTiles } from '../world-tile-codec.ts';
-import { signAtlasLayout } from '../materials.ts';
+import { authoredSignSlots, signAtlasLayout } from '../materials.ts';
 import { restoreTileNavigation, navigationObstacles } from '../navigation.ts';
 import { createWorldStream } from '../world-stream.ts';
 import { drawCupertinoGardens } from '../cupertino-gardens.ts';
@@ -756,7 +756,8 @@ export function createGeneration(context: WorldContext) {
         description:
           'Sea urchins creep between tide pools and driftwood on the beach south of Bolinas.',
       });
-    if (!context.sights.some((s) => s.id === POINT_REYES.id)) context.sights.push(POINT_REYES);
+    if (!context.sights.some((s) => s.id === POINT_REYES.id))
+      context.sights.push({ ...POINT_REYES });
     if (!context.sights.some((s) => s.id === 'bolinas'))
       context.sights.push({
         id: 'bolinas',
@@ -6292,7 +6293,10 @@ export function createGeneration(context: WorldContext) {
     await refreshContent().catch((error) => console.warn('Content refresh:', error));
     if (!context.$('sf-log').children.length)
       context.announce(contentText('world-message.welcome'));
-    subscribeContent(() => applyWorldEdits(context));
+    subscribeContent(() => {
+      applyWorldEdits(context);
+      context.signTextureControls.refreshLabels?.();
+    });
     const contentTimer = setInterval(
       () => refreshContent().catch((error) => console.warn('Content refresh:', error)),
       3000,
@@ -6487,7 +6491,10 @@ export function createGeneration(context: WorldContext) {
   function* buildSteps() {
     yield [8, 'Preparing graphics…'] satisfies [number, string];
     if (context.headless) {
-      const layout = signAtlasLayout(signNames(), [...BILLBOARD_ART, ...RESEARCH_ART]);
+      const layout = signAtlasLayout(authoredSignSlots(signNames()), [
+        ...BILLBOARD_ART,
+        ...RESEARCH_ART,
+      ]);
       for (const [name, uv] of layout.signs) context.signs.set(name, uv);
     } else context.initGPU();
     yield [16, 'Building the hills and shoreline…'] satisfies [number, string];

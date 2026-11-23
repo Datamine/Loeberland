@@ -108,6 +108,45 @@ test('a pending delivery reserves its sandwich slot so ground loot cannot overfi
     await f.game.close();
   }
 });
+test('an arrived DoorDash cooler stays at its delivery position for two seconds', async () => {
+  const f = await setup();
+  try {
+    const a = await player(f.game, 56004);
+    await command(f.game, a.p, 'inventory', { op: 'order' });
+    assert.equal(requiredResult(a.messages).ok, true);
+    const arrivedAt = f.advance(50);
+    f.game.tick(0.05);
+    f.game.broadcast();
+    assert.equal(a.p.inventory.meta.deliveryPending, false);
+    assert.equal(a.p.inventory.meta.sandwiches, 1);
+    const snapshot = a.messages.findLast(
+      (m) => m.type === 'playerState' && m.state?.deliveryArrivals,
+    );
+    assert.ok(snapshot?.type === 'playerState');
+    const arrivals = snapshot.state?.deliveryArrivals;
+    assert.equal(arrivals?.length, 1);
+    assert.equal(arrivals?.[0].expiresAt, arrivedAt + 2000);
+
+    a.p.x += 8;
+    f.advance(1999);
+    f.game.tick(0.05);
+    assert.deepEqual(f.game.personal.runtime(a.p).deli.state.arrivals, arrivals);
+    f.advance(1);
+    f.game.tick(0.05);
+    assert.deepEqual(f.game.personal.runtime(a.p).deli.state.arrivals, []);
+    for (let i = 0; i < 4; i++) f.game.tick(0.05);
+    f.game.broadcast();
+    const expired = a.messages.findLast(
+      (m) => m.type === 'playerState' && m.state?.deliveryArrivals,
+    );
+    assert.ok(expired?.type === 'playerState');
+    assert.deepEqual(expired.state?.deliveryArrivals, []);
+    assert.equal(a.p.inventory.meta.sandwiches, 1);
+  } finally {
+    await f.game.close();
+  }
+});
+
 test('Mazarine sweeping pays one coin, animates work, and retains its three-minute cooldown after restart', async () => {
   const f = await setup();
   let game = f.game;

@@ -5,6 +5,7 @@ interface EditableLife {
 interface EditableWorld {
   places?: EditableEntity[];
   sights?: EditableEntity[];
+  niaCitizen?: EditableEntity;
   merchants?: EditableEntity[];
   parrots?: EditableEntity[];
   jailStaff?: EditableEntity[];
@@ -47,6 +48,8 @@ export const applyEntityEdits = applyContentEntity;
 export function applyWorldEdits(world: EditableWorld) {
   for (const p of world.places || []) applyContentEntity(p, 'place:' + p.id);
   for (const s of world.sights || []) applyContentEntity(s, 'sight:' + s.id);
+  const bani = applyContentEntity(world.niaCitizen, 'sight:nia');
+  if (bani) bani.named = bani.label;
   const people = [
     ...(world.merchants || []),
     ...(world.parrots || []),

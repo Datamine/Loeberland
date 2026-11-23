@@ -8,11 +8,25 @@ import { pose } from './geometry.ts';
 import type { Point } from './types/geometry.ts';
 
 export const DELI_PRICES = Object.freeze({
-  pickup: ITEM_STATS.sandwich.pickupPrice,
-  delivery: ITEM_STATS.sandwich.deliveryPrice,
-  inNOut: ITEM_STATS.sandwich.inNOutPrice,
+  get pickup() {
+    return ITEM_STATS.sandwich.pickupPrice;
+  },
+  get delivery() {
+    return ITEM_STATS.sandwich.deliveryPrice;
+  },
+  get inNOut() {
+    return ITEM_STATS.sandwich.inNOutPrice;
+  },
 });
 export const DELIVERY_SPEED = 6;
+const DELIVERY_LINGER_MS = 2000;
+
+export interface DeliveryArrival {
+  position: Point;
+  angle: number;
+  expiresAt: number;
+}
+
 /** Coordinates here are the navigation model's logical x/y, not mesh centers.
  * A delivery is paid for only after a real route exists. Replanning is bounded
  * to once per second; every movement follows that same adjacency graph. */
@@ -26,6 +40,7 @@ export function createDeli({
   onSave = () => {},
   onMessage = () => {},
   capacity = () => 5,
+  now = Date.now,
 }: {
   economy: Economy;
   health: Pick<Health, 'heal' | 'state'>;
@@ -36,6 +51,7 @@ export function createDeli({
   onSave?: (value: { sandwiches: number; pending: boolean }) => void;
   onMessage?: (message: string) => void;
   capacity?: () => number;
+  now?: () => number;
 }) {
   const saved = isRecord(savedInput) ? savedInput : {};
   const state = {
@@ -46,6 +62,7 @@ export function createDeli({
     angle: 0,
     travel: 0,
     arrived: false,
+    arrivals: [] as DeliveryArrival[],
   };
   let replan = 1,
     lastGoal: { x: number; y: number } | null = null;
@@ -171,7 +188,11 @@ export function createDeli({
       target: Point,
       { deliverable = true }: { deliverable?: boolean } | undefined = {},
     ) {
-      if (!state.pending || !isFiniteNumber(dt) || dt <= 0) return;
+      if (!isFiniteNumber(dt) || dt <= 0) return;
+      const time = now();
+      if (state.arrivals.length && state.arrivals[0].expiresAt <= time)
+        state.arrivals = state.arrivals.filter((arrival) => arrival.expiresAt > time);
+      if (!state.pending) return;
       replan += dt;
       if (replan >= 1) {
         replan = 0;
@@ -206,6 +227,14 @@ export function createDeli({
       ) {
         state.pending = false;
         state.arrived = true;
+        state.arrivals = [
+          ...state.arrivals,
+          {
+            position: { ...state.position },
+            angle: state.angle,
+            expiresAt: time + DELIVERY_LINGER_MS,
+          },
+        ];
         state.sandwiches++;
         state.path = [];
         save();

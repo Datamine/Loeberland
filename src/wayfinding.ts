@@ -5,67 +5,89 @@ import { navigationRegions } from './navigation.ts';
 // Shapes remain code-native: no font glyph dependency or downloaded icon set.
 export const PLACE_ICONS = Object.freeze({
   home: {
-    label: contentText('wayfinding.module.label-1', {}),
+    get label() {
+      return contentText('wayfinding.module.label-1', {});
+    },
     detail: "John's place",
     color: '#e9c76e',
     path: 'M8 7a4 4 0 1 0 8 0a4 4 0 1 0-8 0M4 21v-3c0-5 16-5 16 0v3M8 20v-3m8 3v-3',
   },
   writing: {
-    label: contentText('wayfinding.module.label-2', {}),
+    get label() {
+      return contentText('wayfinding.module.label-2', {});
+    },
     detail: 'City Lights · Essays',
     color: '#a9cfff',
     path: 'M4 20l3-7L17 3l4 4-10 10-7 3M7 13l4 4M3 22h10M15 5l4 4',
   },
   books: {
-    label: contentText('wayfinding.module.label-3', {}),
+    get label() {
+      return contentText('wayfinding.module.label-3', {});
+    },
     detail: 'Main Library · Reading list',
     color: '#c7b5f3',
     path: 'M12 6Q8 3 3 5v14q5-2 9 1q4-3 9-1V5q-5-2-9 1v14M6 8l3 1m6 0 3-1M6 12l3 1m6 0 3-1',
   },
   links: {
-    label: contentText('wayfinding.module.label-4', {}),
+    get label() {
+      return contentText('wayfinding.module.label-4', {});
+    },
     detail: 'Mazarine Coffee · Web links',
     color: '#f2bd8d',
     path: 'M4 7h12v7a6 6 0 0 1-12 0V7M16 8h2a3 3 0 0 1 0 6h-2M3 21h15M7 2v2m5-2v2',
   },
   press: {
-    label: contentText('wayfinding.module.label-5', {}),
+    get label() {
+      return contentText('wayfinding.module.label-5', {});
+    },
     detail: 'The newsstand',
     color: '#f3d9a0',
     path: 'M4 3h15v17H4zM19 8h3v10q0 2-3 2M7 6h9M7 10h4v4H7zM14 10h2m-2 4h2M7 17h9',
   },
   green: {
-    label: contentText('wayfinding.module.label-6', {}),
+    get label() {
+      return contentText('wayfinding.module.label-6', {});
+    },
     detail: 'Founding · Financial infrastructure',
     color: '#9cdeb7',
     path: 'M5 19C0 8 12 3 21 3c0 9-5 18-13 15M4 22L17 8M11 14v-4m0 4h5',
   },
   limit: {
-    label: contentText('wayfinding.module.label-7', {}),
+    get label() {
+      return contentText('wayfinding.module.label-7', {});
+    },
     detail: 'Founding · Insurance technology',
     color: '#9cdbdf',
     path: 'M12 2l9 4v6c0 6-9 10-9 10S3 18 3 12V6zM9 7v9h7',
   },
   rose: {
-    label: contentText('wayfinding.module.label-8', {}),
+    get label() {
+      return contentText('wayfinding.module.label-8', {});
+    },
     detail: 'Founding · Healthy homes',
     color: '#eda7b4',
     path: 'M12 5C4-3-1 11 6 12c-7 4 4 13 6 5c2 8 13-1 6-5c7-1 2-15-6-7ZM12 9a3 3 0 1 0 0 6a3 3 0 1 0 0-6M12 18v5',
   },
   venture: {
-    label: contentText('wayfinding.module.label-9', {}),
+    get label() {
+      return contentText('wayfinding.module.label-9', {});
+    },
     detail: 'Venture exchange · Companies',
     color: '#eab9f1',
     path: 'M3 21V4M3 21h18M6 16l5-6 4 2 6-8M16 4h5v5',
   },
   'ai-lab': {
-    label: contentText('wayfinding.module.label-10', {}),
+    get label() {
+      return contentText('wayfinding.module.label-10', {});
+    },
     detail: 'SoMa · arithmetic interview & employment',
     color: '#9ddde4',
     path: 'M7 7h10v10H7zM10 10h4v4h-4zM9 3v4m6-4v4M9 17v4m6-4v4M3 9h4m-4 6h4m10-6h4m-4 6h4',
   },
   etc: {
-    label: contentText('wayfinding.module.label-11', {}),
+    get label() {
+      return contentText('wayfinding.module.label-11', {});
+    },
     detail: 'Curiosity shop · Other corners',
     color: '#b7e0c7',
     path: 'M12 2l3 7 7 3-7 3-3 7-3-7-7-3 7-3zM19 2v4m-2-2h4',

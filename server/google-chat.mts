@@ -93,7 +93,7 @@ const resultMessages = {
   failed: 'Chat could not be unlocked. Return to your game tab to try again.',
   linked:
     'That Google account is already linked to another character. Return to your game tab to try again.',
-  unavailable: 'Google sign-in is unavailable. You can still use Yo, OK, and No in the game.',
+  unavailable: 'Google sign-in is unavailable. You can still use Yo, Ok, and No in the game.',
 } as const;
 
 export function createGoogleChatRoutes(

@@ -107,10 +107,17 @@
           <div id="sf-chat-panel">
             <div id="sf-log" role="log" aria-label="Chat and adventure log"></div>
             <div id="sf-quick-chat" class="sf-quick-chat" role="group" aria-label="Quick chat">
-              <button type="button" data-quick-chat>Yo</button>
-              <button type="button" data-quick-chat>OK</button>
-              <button type="button" data-quick-chat>No</button>
-              <button id="sf-chat-unlock" type="button" aria-haspopup="dialog">Unlock</button>
+              <button class="sf-bike-button" type="button" data-quick-chat>Yo</button>
+              <button class="sf-bike-button" type="button" data-quick-chat>Ok</button>
+              <button class="sf-bike-button" type="button" data-quick-chat>No</button>
+              <button
+                id="sf-chat-unlock"
+                class="sf-bike-button"
+                type="button"
+                aria-haspopup="dialog"
+              >
+                Unlock Chat
+              </button>
             </div>
             <form id="sf-chat-form" class="sf-chat-form" autocomplete="off" hidden>
               <span aria-hidden="true">*</span>
@@ -128,10 +135,10 @@
             class="sf-chat-unlock-dialog"
             aria-labelledby="sf-chat-unlock-title"
           >
-            <h2 id="sf-chat-unlock-title">Unlock chat</h2>
+            <h2 id="sf-chat-unlock-title">Unlock Chat</h2>
             <p>Sign in with Google to type messages as this character.</p>
             <p id="sf-chat-unavailable" hidden>
-              Google sign-in is unavailable. You can still use Yo, OK, and No.
+              Google sign-in is unavailable. You can still use Yo, Ok, and No.
             </p>
             <div class="sf-trade-buttons">
               <form method="dialog"><button type="submit">Cancel</button></form>
@@ -1085,7 +1092,7 @@
           <dt>Chat</dt>
           <dd>
             Type to start a chat message, then press Enter to send it to nearby players. If you see
-            Yo, OK, and No, choose Unlock and sign in with Google to type.
+            Yo, Ok, and No, choose Unlock Chat and sign in with Google to type.
           </dd>
           <dt>Server chat</dt>
           <dd>
@@ -1124,7 +1131,10 @@
           </dt>
           <dd>Sit or stand, dance, or roll forward.</dd>
           <dt><kbd class="sf-key">Esc</kbd> then <kbd class="sf-key">T</kbd></dt>
-          <dd>Choose a teleport destination.</dd>
+          <dd>
+            Choose a teleport destination. If you cannot use a tablet, opens the coordinate prompt
+            when the server permits it.
+          </dd>
           <dt>
             <kbd class="sf-key">Esc</kbd> then <kbd class="sf-key">B</kbd> /
             <kbd class="sf-key">K</kbd> / <kbd class="sf-key">M</kbd>

@@ -2775,11 +2775,12 @@ export function createSFWorld({
   const flying = () => airship.state.active && !rope.onGround;
   const searchSites: Site[] = [],
     loreSites: Site[] = [];
+  const baniName = 'Bani';
   const labelPool: ActorLabel[] = [],
     niaCitizen = {
       id: 'nia',
-      label: contentText('world.scene.createSFWorld.label-6', {}),
-      named: 'Bani',
+      label: baniName,
+      named: baniName,
       ...BANI_APPEARANCE,
     };
   const HILLS = SF_HILLS.map((h) => ({
@@ -3540,7 +3541,7 @@ export function createSFWorld({
     },
     {
       id: 'nia',
-      label: contentText('world.scene.createSFWorld.label-84', {}),
+      label: baniName,
       category: 'Mazarine Coffee',
       kind: 'guest',
       x: 44,
@@ -3967,6 +3968,7 @@ export function createSFWorld({
         cityPathTo: cityPathTo!,
         navigationRegionAt: navigationRegionAt!,
         nearestNavigation: nearestNavigation!,
+        signNames,
         approaches: {
           bunny: bunnyApproach,
           sutro: sutroApproach,
@@ -4128,6 +4130,16 @@ export function createSFWorld({
   const chatPanel = $('sf-chat-panel');
   const actionsPanel = $('sf-actions-panel');
   const log = $('sf-log');
+  let chatScrollTimer = 0;
+  log.addEventListener(
+    'scroll',
+    () => {
+      log.classList.add('sf-scrolling');
+      window.clearTimeout(chatScrollTimer);
+      chatScrollTimer = window.setTimeout(() => log.classList.remove('sf-scrolling'), 500);
+    },
+    { passive: true },
+  );
   function bindPanelToggle(
     button: HTMLButtonElement,
     panel: HTMLElement,
@@ -4421,7 +4433,7 @@ export function createSFWorld({
         entries.set(key, {
           label,
           run: () => {
-            if (id === 'sf-sit-button' || id === 'sf-teleport-button') expandActions(true);
+            if (id === 'sf-sit-button') expandActions(true);
             button.click();
           },
         });
@@ -4433,7 +4445,6 @@ export function createSFWorld({
     control('x', 'sf-sit-button', 'Sit or stand');
     control('d', 'sf-dance-button', 'Dance');
     control('v', 'sf-roll-button', 'Forward roll');
-    control('t', 'sf-teleport-button', 'Teleport');
     control('b', 'sf-bike-button', 'Bicycle');
     control('k', 'sf-skateboard-button', 'Skateboard');
     control('e', 'sf-ski-button', 'Tahoe activity');
@@ -4462,6 +4473,18 @@ export function createSFWorld({
         }
       }
     }
+    entries.set('t', {
+      label: 'Teleport',
+      run: () => {
+        const teleport = $('sf-teleport-button');
+        if (!teleport.disabled && !teleport.hidden) {
+          expandActions(true);
+          teleport.click();
+        } else if (!debugConsole?.openTeleport()) {
+          announce(teleport.title || 'Teleport unavailable', 'Teleport');
+        }
+      },
+    });
     return entries;
   }
   function showShortcuts() {

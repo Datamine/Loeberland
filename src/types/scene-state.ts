@@ -85,6 +85,7 @@ export interface MinimapIcon extends Point {
 export interface PlaceMarkerView {
   place: Place;
   button: HTMLButtonElement;
+  legendLabel: HTMLElement;
   lastCheck: number;
   version: number;
   blocked: boolean;

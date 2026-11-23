@@ -311,9 +311,23 @@ export function createDialogue({
       )
         controls.append(button('Leave', cancel));
     }
-    if (!amount) copy.append(controls);
     element.dataset.speaker = player ? 'player' : 'npc';
-    element.append(portrait, copy);
+    const labels = Array.from(controls.children, (button) =>
+      button.textContent?.trim().toLowerCase(),
+    );
+    const navigationOnly =
+      labels.length > 0 &&
+      labels.length <= 2 &&
+      labels.every((label) => label === 'continue' || label === 'leave');
+    if (navigationOnly) {
+      element.dataset.layout = 'navigation';
+      if (labels.length === 1 && labels[0] === 'leave') controls.dataset.leaveOnly = '';
+      element.append(portrait, copy, controls);
+    } else {
+      delete element.dataset.layout;
+      if (!amount) copy.append(controls);
+      element.append(portrait, copy);
+    }
     const input = amount && !committed ? element.querySelector('input') : null;
     (input || element.querySelector<HTMLButtonElement>('button:not([disabled])'))?.focus({
       preventScroll: true,

@@ -30,12 +30,16 @@ import {
 const catalog = JSON.parse(editorElement('editor-catalog').textContent || '{}') as EditorCatalog;
 const $ = editorElement;
 const showDuplicates = $('show-duplicates');
+const onlyAuditImports = $('only-label-audit-imports');
 const onlyDuplicateNPCNames = $('only-duplicate-npc-names');
 const records = new Map(catalog.records.map((r) => [r.key, r]));
 const worldMessages = new Map(catalog.worldMessages.map((r) => [r.key, r]));
+const worldLabels = new Map(catalog.labels.map((r) => [r.key, r]));
+const items = new Map(catalog.items.map((r) => [r.key, r]));
 const groups = groupEditorRecords(catalog.records);
 const recordGroups = new Map(groups.flatMap((g) => g.members.map((r) => [r.key, g])));
 const placementRows = catalog.records.map((record) => ({ ...record, members: [record] }));
+const auditRows = placementRows.filter((r) => r.labelAuditImport);
 const shared = catalog.sharedDialogue.map((r) => ({
   ...r,
   key: 'shared:' + r.id,
@@ -46,6 +50,8 @@ const roots = new Map<string, BoundRecord & { key: string; name: string }>([
   ...records,
   ...shared.map((r): [string, typeof r] => [r.key, r]),
   ...worldMessages,
+  ...worldLabels,
+  ...items,
 ]);
 const storageKey = 'sf-world-editor-drafts-v2';
 let drafts: Drafts = {},
@@ -59,7 +65,7 @@ try {
 }
 if (!drafts || Array.isArray(drafts) || typeof drafts !== 'object') drafts = {};
 const state = {
-  group: worldMessages.has(decodeHash()) ? 'message' : 'all',
+  group: sectionFor(decodeHash()) || 'all',
   query: '',
   kind: 'all',
   key: decodeHash(),
@@ -80,6 +86,18 @@ function decodeHash() {
   } catch {
     return '';
   }
+}
+function sectionFor(key: string) {
+  if (worldMessages.has(key)) return 'message';
+  if (worldLabels.has(key)) return 'label';
+  if (items.has(key)) return 'item';
+  return null;
+}
+function extraSection() {
+  if (state.group === 'message') return [worldMessages, 'world messages'] as const;
+  if (state.group === 'label') return [worldLabels, 'world labels'] as const;
+  if (state.group === 'item') return [items, 'items'] as const;
+  return null;
 }
 function element<K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -276,8 +294,12 @@ function field(
     roots.get(root)?.bindings?.[JSON.stringify(path)] &&
     typeof valueAt(roots.get(root), path) === 'string'
   ) {
-    const input = element('textarea', 'edit-field');
-    input.rows = rows;
+    const numeric = roots.get(root)?.bindings[JSON.stringify(path)].kind === 'number';
+    const input = numeric ? element('input', 'edit-field') : element('textarea', 'edit-field');
+    if (input instanceof HTMLInputElement) {
+      input.type = 'number';
+      input.step = 'any';
+    } else input.rows = rows;
     input.value = text;
     input.id = 'editor-field-' + fieldSerial++;
     caption.htmlFor = input.id;
@@ -302,10 +324,13 @@ function field(
   return box;
 }
 function catalogRows() {
+  if (onlyAuditImports.checked) return auditRows;
   return showDuplicates.checked ? placementRows : groups;
 }
 function catalogRowKey(key: string) {
-  return showDuplicates.checked ? key : (recordGroups.get(key)?.key ?? key);
+  return onlyAuditImports.checked || showDuplicates.checked
+    ? key
+    : (recordGroups.get(key)?.key ?? key);
 }
 function counts() {
   const rows = catalogRows();
@@ -313,10 +338,11 @@ function counts() {
   $('npc-count').textContent = String(rows.filter((r) => identity(r).group === 'npc').length);
 }
 function updateKinds() {
-  $('kind').closest('label')!.hidden = state.group === 'message';
+  $('kind').closest('label')!.hidden = !!extraSection();
   const kinds = [
     ...new Set(
       catalog.records
+        .filter((r) => !onlyAuditImports.checked || r.labelAuditImport)
         .filter((r) => state.group === 'all' || identity(r).group === state.group)
         .map((r) => r.kind),
     ),
@@ -347,9 +373,14 @@ function differentExamineFilterActive() {
   return npcFiltersAvailable() && $('different-examine').checked;
 }
 function renderList({ chooseFirst = false } = {}) {
-  if (state.group === 'message') {
-    const matches = [...worldMessages.values()].filter((r) =>
-      (r.name + ' ' + rawRead(r.key, ['template'])).toLowerCase().includes(state.query),
+  const section = extraSection();
+  if (section) {
+    const [entries, title] = section;
+    const matches = [...entries.values()].filter((r) =>
+      [r.name, r.key, rawRead(r.key, ['template']), rawRead(r.key, ['fields', 'name'])]
+        .join(' ')
+        .toLowerCase()
+        .includes(state.query),
     );
     $('entity-list').replaceChildren(
       ...matches.map((r) => {
@@ -358,17 +389,20 @@ function renderList({ chooseFirst = false } = {}) {
         row.setAttribute('aria-current', String(r.key === state.key));
         row.append(
           element('span', 'draft-dot'),
-          element('span', 'entity-name', rawRead(r.key, ['template'])),
-          element('small', '', r.name),
+          element(
+            'span',
+            'entity-name',
+            'fields' in r ? rawRead(r.key, ['fields', 'name']) : rawRead(r.key, ['template']),
+          ),
+          element('small', '', 'fields' in r ? r.key.slice(5) : r.name),
         );
         return row;
       }),
     );
-    $('result-count').textContent = matches.length + ' of ' + worldMessages.size + ' messages';
+    $('result-count').textContent = matches.length + ' of ' + entries.size + ' ' + title;
     if (chooseFirst && !matches.some((r) => r.key === state.key)) {
       if (matches.length) select(matches[0].key);
-      else
-        $('detail').replaceChildren(element('div', 'empty-panel', 'No matching world messages.'));
+      else $('detail').replaceChildren(element('div', 'empty-panel', 'No matching ' + title + '.'));
     }
     updateDraftStatus();
     return;
@@ -405,6 +439,7 @@ function renderList({ chooseFirst = false } = {}) {
     row.dataset.key = record.key;
     row.dataset.group = identity(record).group;
     row.setAttribute('aria-current', String(record.key === selectedKey));
+    const audited = record.members.filter((member) => member.labelAuditImport).length;
     row.append(
       element('span', 'draft-dot'),
       element('span', 'entity-name', identity(record).name),
@@ -416,10 +451,28 @@ function renderList({ chooseFirst = false } = {}) {
           (record.members.length > 1 ? record.members.length + ' placements' : record.id),
       ),
     );
+    if (audited) {
+      row.append(
+        element(
+          'span',
+          'audit-tag',
+          audited === record.members.length
+            ? 'Label audit import'
+            : 'Label audit import · ' + audited + ' of ' + record.members.length,
+        ),
+      );
+    }
     $('entity-list').append(row);
   }
   $('result-count').textContent =
-    visible.length + ' of ' + rows.length + (rows === groups ? ' unique entries' : ' placements');
+    visible.length +
+    ' of ' +
+    rows.length +
+    (rows === auditRows
+      ? ' label audit placements'
+      : rows === groups
+        ? ' unique entries'
+        : ' placements');
   const selected = visible.find((r) => r.key === selectedKey);
   if (chooseFirst && visible.length && (!selected || !current() || !matches(current()!)))
     select(matchingMember(selected || visible[0]).key);
@@ -435,7 +488,7 @@ function matchingMember(group: ReturnType<typeof groupEditorRecords<EditorRecord
   return group.members.find(matches) || group.members[0];
 }
 function select(key: string, setHash = true) {
-  if (!records.has(key) && !worldMessages.has(key)) return;
+  if (!records.has(key) && !sectionFor(key)) return;
   state.key = key;
   state.action = 0;
   state.dialogue = 0;
@@ -485,17 +538,46 @@ function stateNote(variant: { states: readonly string[] }) {
   return details;
 }
 function renderDetail() {
-  const message = worldMessages.get(state.key);
-  if (state.group === 'message' && message) {
+  const item = items.get(state.key);
+  if (state.group === 'item' && item) {
     fieldSerial = 0;
     const header = element('header', 'entity-header');
     const copy = element('div', 'header-copy');
-    copy.append(element('div', 'eyebrow', 'World message'), element('h2', '', message.name));
+    copy.append(
+      element('div', 'eyebrow', item.key.slice(5)),
+      element('h2', '', rawRead(item.key, ['fields', 'name'])),
+    );
     header.append(copy);
-    const source = element('p', 'muted', 'content/world-messages.json');
+    const fields = element('div', 'identity-fields');
+    for (const key of Object.keys(item.fields)) {
+      const label =
+        key[0].toUpperCase() + key.slice(1).replace(/[A-Z]/g, (c) => ' ' + c.toLowerCase());
+      fields.append(
+        field(label, item.key, ['fields', key], { rows: key === 'description' ? 3 : 1 }),
+      );
+    }
+    $('detail').replaceChildren(header, fields);
+    return;
+  }
+  const message = worldMessages.get(state.key) || worldLabels.get(state.key);
+  if (extraSection() && message) {
+    fieldSerial = 0;
+    const header = element('header', 'entity-header');
+    const copy = element('div', 'header-copy');
+    const isLabel = state.group === 'label';
+    copy.append(
+      element('div', 'eyebrow', isLabel ? 'World label' : 'World message'),
+      element('h2', '', message.name),
+    );
+    header.append(copy);
+    const source = element(
+      'p',
+      'muted',
+      isLabel ? 'content/texts.json' : 'content/world-messages.json',
+    );
     $('detail').replaceChildren(
       header,
-      field('Message template', message.key, ['template'], { rows: 4 }),
+      field(isLabel ? 'Label text' : 'Message template', message.key, ['template'], { rows: 4 }),
       source,
     );
     return;
@@ -528,15 +610,16 @@ function renderDetail() {
     element('h2', display.group === 'object' ? 'object-text' : 'npc-text', display.name),
   );
   const meta = element('div', 'entity-meta');
-  const group = recordGroups.get(r.key)!;
+  const group = onlyAuditImports.checked ? { ...r, members: [r] } : recordGroups.get(r.key)!;
   meta.append(
     element('span', '', r.kind),
     element(
       'code',
       '',
-      group.members.length > 1 ? group.members.length + ' world placements' : r.id,
+      group.members.length > 1 && !state.edit ? group.members.length + ' world placements' : r.id,
     ),
   );
+  if (r.labelAuditImport) meta.append(element('span', 'audit-tag', 'Label audit import'));
   copy.append(meta);
   const coords = element('div', 'coordinates');
   if (isFiniteNumber(r.position.x) && isFiniteNumber(r.position.z)) {
@@ -658,7 +741,7 @@ function renderIdentityEditor(main: HTMLElement, r: EditorRecord) {
 function renderActions(main: HTMLElement, r: EditorRecord) {
   const variant = r.actions[state.action];
   if (!variant) {
-    main.append(element('div', 'empty-panel', 'This entry has no context menu.'));
+    main.append(element('div', 'empty-panel', 'This entry uses the game’s default context menu.'));
     return;
   }
   const toolbar = element('div', 'section-toolbar');
@@ -1006,7 +1089,8 @@ function syncGroupFilters() {
     tab.setAttribute('aria-pressed', String(tab.dataset.group === state.group));
   $('different-examine').closest('label')!.hidden = !npcFiltersAvailable();
   onlyDuplicateNPCNames.closest('label')!.hidden = !npcFiltersAvailable();
-  showDuplicates.closest('label')!.hidden = state.group === 'message';
+  onlyAuditImports.closest('label')!.hidden = !!extraSection();
+  showDuplicates.closest('label')!.hidden = !!extraSection() || onlyAuditImports.checked;
 }
 for (const b of document.querySelectorAll<HTMLButtonElement>('.filters [data-group]'))
   b.addEventListener('click', () => {
@@ -1028,6 +1112,13 @@ onlyDuplicateNPCNames.addEventListener('change', () => renderList({ chooseFirst:
 showDuplicates.addEventListener('change', () => {
   counts();
   renderList({ chooseFirst: true });
+});
+onlyAuditImports.addEventListener('change', () => {
+  syncGroupFilters();
+  updateKinds();
+  counts();
+  renderList({ chooseFirst: true });
+  if (visible.some((r) => r.members.some((member) => member.key === state.key))) renderDetail();
 });
 $('edit-mode').addEventListener('change', (e) => {
   state.edit = $('edit-mode').checked;
@@ -1152,7 +1243,12 @@ async function connectWriter() {
 }
 window.addEventListener('hashchange', () => {
   const key = decodeHash();
-  if (records.has(key)) select(key, false);
+  if (!records.has(key) && !sectionFor(key)) return;
+  state.group = sectionFor(key) || 'all';
+  syncGroupFilters();
+  updateKinds();
+  renderList();
+  select(key, false);
 });
 document.addEventListener('keydown', (e) => {
   if (!(e.target instanceof HTMLElement)) return;
@@ -1169,7 +1265,7 @@ document.addEventListener('keydown', (e) => {
     (['ArrowDown', 'ArrowUp'] satisfies [string, string]).includes(e.key)
   ) {
     e.preventDefault();
-    if (state.group === 'message') {
+    if (extraSection()) {
       const rows = [...$('entity-list').querySelectorAll<HTMLButtonElement>('button')];
       const index = rows.findIndex((row) => row.dataset.key === state.key);
       const next = rows[(index + (e.key === 'ArrowDown' ? 1 : -1) + rows.length) % rows.length];
@@ -1193,7 +1289,7 @@ counts();
 syncGroupFilters();
 updateKinds();
 renderList();
-select(records.has(state.key) || worldMessages.has(state.key) ? state.key : catalog.records[0].key);
+select(records.has(state.key) || sectionFor(state.key) ? state.key : catalog.records[0].key);
 $('catalog-version').textContent =
   'Catalog ' +
   catalog.fingerprint +

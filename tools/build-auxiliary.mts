@@ -11,7 +11,7 @@ export async function buildAuxiliary(): Promise<void> {
   ) as ContentBundle['texts'];
   const adminText = Object.fromEntries(
     Object.entries(texts)
-      .filter(([id]) => /^config\.(item-stats|hats|monster-drops)\./.test(id))
+      .filter(([id]) => /^config\.(hats|monster-drops)\./.test(id))
       .map(([id, { template }]) => [id, template]),
   );
   const admin = await build({
@@ -28,6 +28,8 @@ export async function buildAuxiliary(): Promise<void> {
           // Bundle the static equipment and monster catalog text for the standalone admin editor.
           build.onLoad({ filter: /\/content-runtime\.ts$/ }, () => ({
             contents: `const texts = ${JSON.stringify(adminText)};
+              export const CONTENT = {};
+              export function subscribeContent() {}
               export function contentText(id) {
                 if (!Object.hasOwn(texts, id)) throw new Error('Missing admin catalog text: ' + id);
                 return texts[id];

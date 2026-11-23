@@ -164,6 +164,7 @@ export function createMultiplayerActions({
       else if (key === 'sf-hitpoints-v1') Object.assign(health.state, value);
     }
     if (state) {
+      deli.state.arrivals = state.deliveryArrivals ?? [];
       if (state.fishing) {
         Object.assign(fishing.state, state.fishing);
         fishing.state.site = controllers.fishingSite;

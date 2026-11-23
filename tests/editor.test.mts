@@ -12,12 +12,16 @@ import { readContent } from '../content/build.mts';
 import { duplicateNPCNames, groupEditorRecords } from '../editor/groups.ts';
 import { projectCatalog } from '../editor/project.mts';
 import { planEditorWrite } from '../editor/write-plan.mts';
+import { CONTENT, installContent } from '../src/content-runtime.ts';
+import { equipmentDefense } from '../src/item-stats.ts';
+import { authoredSignLabel, authoredSignSlots } from '../src/materials.ts';
 import {
   applicableDraft,
   draftKey,
   identityDraftChanges,
   readDraft,
   renamedActionLabel,
+  valueAt,
 } from '../editor/drafts.ts';
 import {
   collectTargets,
@@ -106,24 +110,23 @@ test('the eight cows have separately editable examine text under a shared defini
 test('restaurant diners and the former shared pottery placements have independent editor definitions', async () => {
   const source = await readContent();
   const catalog = projectCatalog(source);
-  const names = new Map([
-    ['actor:lucindas-deli-diner-0', "Lucinda's Deli Diner"],
-    ['actor:lucindas-deli-diner-1', "Lucinda's Deli Diner"],
-    ['actor:shanghai-kelly-diner-0', "Shanghai Kelly's Diner"],
-    ['actor:shanghai-kelly-diner-1', "Shanghai Kelly's Diner"],
-    ['actor:rich-table-diner-0', 'Rich Table Diner'],
-    ['actor:rich-table-diner-1', 'Rich Table Diner'],
-    ['sight:southern-corner-129', 'Palmetto Pottery'],
-    ['sight:southern-corner-53', 'The Mill'],
-    ['actor:southern-corner-129-neighbor', 'Palmetto Pottery Shopkeeper'],
-    ['actor:southern-corner-53-neighbor', 'The Mill Barista'],
+  const placements = new Set([
+    'actor:lucindas-deli-diner-0',
+    'actor:lucindas-deli-diner-1',
+    'actor:shanghai-kelly-diner-0',
+    'actor:shanghai-kelly-diner-1',
+    'actor:rich-table-diner-0',
+    'actor:rich-table-diner-1',
+    'sight:southern-corner-129',
+    'sight:southern-corner-53',
+    'actor:southern-corner-129-neighbor',
+    'actor:southern-corner-53-neighbor',
   ]);
-  const records = catalog.records.filter(({ key }) => names.has(key));
-  assert.equal(records.length, names.size);
-  assert.equal(groupEditorRecords(records).length, names.size);
+  const records = catalog.records.filter(({ key }) => placements.has(key));
+  assert.equal(records.length, placements.size);
+  assert.equal(groupEditorRecords(records).length, placements.size);
   for (const record of records) {
     assert.equal(record.definitionId, record.key);
-    assert.equal(record.name, names.get(record.key));
     assert.equal(catalog.records.filter((r) => r.definitionId === record.definitionId).length, 1);
     for (const variant of record.dialogues) {
       assert.deepEqual(source.dialogues.variants[variant.id].placements, [record.key]);
@@ -159,6 +162,88 @@ test('restaurant diners and the former shared pottery placements have independen
     updated.find(({ key }) => key === peer.key),
     peer,
   );
+});
+
+test('editing a fuel attendant leaves the other stations and dealership untouched', async () => {
+  const source = await readContent();
+  const catalog = projectCatalog(source);
+  const attendants = catalog.records.filter((record) => record.kind === 'fuel-attendant');
+  assert.equal(attendants.length, 4);
+  assert.equal(groupEditorRecords(attendants).length, 4);
+  for (const attendant of attendants) {
+    assert.equal(attendant.definitionId, attendant.key);
+    assert.equal(
+      attendant.name,
+      attendant.key === 'actor:ferrari-dealer-attendant'
+        ? 'Ferrari Lease Manager'
+        : 'Fuel Attendant',
+    );
+    assert.deepEqual(source.dialogues.variants[attendant.dialogues[0].id].placements, [
+      attendant.key,
+    ]);
+  }
+
+  for (const attendant of attendants) {
+    const changes = [
+      { path: ['name'], after: 'Station Manager' },
+      { path: ['description'], after: 'Works at this station.' },
+      { path: ['actions', 0, 'actions', 1, 'label'], after: 'Talk with {name}' },
+      { path: ['dialogues', 0, 'dialogue', 'intro'], after: 'Welcome to my station.' },
+      { path: ['dialogues', 0, 'dialogue', 'choices', 0, 'label'], after: 'Fill the tank' },
+      { path: ['dialogues', 0, 'dialogue', 'choices', 1, 'label'], after: 'Buy a can' },
+    ].map(({ path, after }) => ({
+      record: attendant.key,
+      path,
+      before: valueAt(attendant, path),
+      after,
+    }));
+    const next = projectCatalog(planEditorWrite(catalog, source, changes));
+    const edited = requiredFixture(next.records.find(({ key }) => key === attendant.key));
+    for (const { path, after } of changes) assert.equal(valueAt(edited, path), after);
+    for (const peer of attendants) {
+      if (peer.key !== attendant.key)
+        assert.deepEqual(
+          next.records.find(({ key }) => key === peer.key),
+          peer,
+        );
+    }
+  }
+});
+
+test('editor item saves change equipment defense and sign saves preserve atlas slots', async () => {
+  const source = await readContent();
+  const catalog = projectCatalog(source);
+  const item = requiredFixture(catalog.items.find(({ key }) => key === 'item:combat-boots'));
+  const sign = requiredFixture(
+    catalog.labels.find(({ key }) => key === 'world-label.sign.Mazarine%20Coffee'),
+  );
+  const original = structuredClone(CONTENT);
+  const slots = [...authoredSignSlots([])];
+  const defense = item.fields.defense;
+  const newDefense = Number(defense) + 1;
+  const change = {
+    record: item.key,
+    path: ['fields', 'defense'],
+    before: defense,
+    after: String(newDefense),
+  };
+  assert.throws(() => planEditorWrite(catalog, source, [{ ...change, after: '-1' }]), /item field/);
+  assert.throws(
+    () => planEditorWrite(catalog, source, [{ ...change, after: '' }]),
+    /finite number/,
+  );
+  const next = planEditorWrite(catalog, source, [
+    change,
+    { record: sign.key, path: ['template'], before: sign.template, after: 'Mazarine Test' },
+  ]);
+  try {
+    installContent(next);
+    assert.equal(equipmentDefense({ boots: true }), newDefense);
+    assert.equal(authoredSignLabel('Mazarine Coffee'), 'Mazarine Test');
+    assert.deepEqual([...authoredSignSlots([])], slots);
+  } finally {
+    installContent(original);
+  }
 });
 
 test('duplicate NPC names can be filtered with or without matching examine text', () => {
@@ -395,10 +480,20 @@ test('generated editor embeds its full catalog and shared conversation trees wit
   const data = JSON.parse(match[1]) as EditorCatalog;
   assert.ok(data.records.filter((r) => r.group === 'object').length > 150);
   assert.ok(data.records.filter((r) => r.group === 'npc').length > 100);
-  assert.ok(!data.records.some((r) => /^(Man|Woman|Child)$/.test(r.name)));
   assert.ok(
-    data.records.every((r) => r.actions.length && r.actions.every((v) => v.actions.length)),
+    !data.records.some((r) => r.source !== 'runtime' && /^(Man|Woman|Child)$/.test(r.name)),
   );
+  assert.ok(
+    data.records.every((r) => r.actions.every((v) => v.actions.length)),
+  );
+  assert.ok(data.records.some((r) => r.key === 'actor:delivery-cooler' && r.actions.length));
+  assert.ok(data.items.some((r) => r.key === 'item:combat-boots' && r.fields.defense));
+  assert.ok(data.labels.some((r) => r.key === 'world-label.sign.Mazarine%20Coffee'));
+  const auditImports = data.records.filter((r) => r.labelAuditImport);
+  assert.equal(auditImports.length, 173);
+  assert.ok(auditImports.some((r) => r.key === 'sight:southern-corner-126'));
+  assert.ok(!auditImports.some((r) => r.key === 'sight:southern-corner-45'));
+  assert.ok(!auditImports.some((r) => r.key === 'actor:delivery-cooler'));
   assert.ok(data.records.some((r) => r.id === 'ssf-battery-seller' && r.dialogues.length));
   assert.equal(
     requiredFixture(data.records.find((r) => r.id === 'illuminati-stairway')).source,

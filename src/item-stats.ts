@@ -21,7 +21,7 @@ export const PLAYER_WEAPONS = [
   'missile-launcher',
 ] as const;
 
-/** Runtime inventory helpers; editable definitions live in config/item-stats.js. */
+/** Runtime inventory helpers for the editable item catalog. */
 export function itemById(id: PropertyKey) {
   return Object.hasOwn(ITEM_STATS, id) ? ITEM_STATS[String(id)] : null;
 }

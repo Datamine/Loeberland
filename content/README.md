@@ -3,7 +3,9 @@
 Run `npm run dev`, then open **http://localhost:8080/editor.html**.
 The editor writes these source files directly; a text/menu edit does not rebuild map geometry.
 
-- `entities.json`: shared entity definitions, names, NPC/object categories, descriptions, placement references, ordered action menus and registered capabilities. There are 238 definitions and 316 placements. Repeated cows/houses share definitions. Changing a name keeps its ID.
+- `entities.json`: entity definitions, NPC/object categories, descriptions, placement references, action menus and registered capabilities. Changing a name keeps its ID. An empty menu or dialogue list leaves that interaction to the game’s default behavior.
+- `items.json`: the Items tab edits names, descriptions and the stats already supported by each item. The client and server use the same published values.
+- The World labels tab includes model signs and wayfinding captions. A sign edit updates every in-game copy of that sign artwork.
 - `dialogues.json`: state variants with explicitly identified nodes, choices, links and action IDs, plus service templates.
 - [`dialogues/tweet-derived/chains.json`](dialogues/tweet-derived/chains.json) contains 125 conversations imported from `source-tweets/`, plus the preserved bakery queue conversation. Run `npm run import:tweet-dialogues` after editing the source text, then rebuild to publish it.
 - [`dialogues/other/chains.json`](dialogues/other/chains.json) contains the special-purpose pedestrian conversations, including the Goose Corp rumors and the pond rumor children use.
@@ -55,7 +57,7 @@ Text records can bind a placeholder to state:
 
 ## Publishing and development
 
-Editor saves validate the complete candidate content, reject stale revisions, and write fields using stable source IDs. Repeated placements and shared text references update together. If publication fails, the writer restores the previous source files. Browser drafts are retained when a save fails.
+Editor saves validate the complete candidate content, reject stale revisions, and write fields using stable source IDs. Examine text saves to the selected placement. Names, categories, and other shared fields use their source definitions. If publication fails, the writer restores the previous source files. Browser drafts are retained when a save fails.
 
 `npm run build:editor` validates JSON and publishes the runtime document, revision manifest and standalone editor. Use this after editing JSON in a text editor. HTTP game clients check for published revisions every three seconds; the server watches publication and refreshes entity metadata. Reopen an existing menu/conversation to see its new options. The production build embeds defaults for `file://` and also reads published JSON when served over HTTP. Rebuild for changes to geometry, action implementations, schemas or the player document shape.
 

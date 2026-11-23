@@ -132,7 +132,7 @@ export interface PreviewWorld {
   wilderness?: { actors: readonly PreviewEntity[] };
 }
 
-export type ContentFile = 'entities' | 'dialogues' | 'texts';
+export type ContentFile = 'entities' | 'dialogues' | 'texts' | 'items';
 export type EditorPath = readonly (string | number)[];
 export interface SourceBinding {
   file: ContentFile;
@@ -197,6 +197,7 @@ export interface EditorRecord extends BoundRecord {
   definitionId: string;
   kind: string;
   source: string;
+  labelAuditImport?: boolean;
   name: string;
   group: 'npc' | 'object';
   description: string;
@@ -215,12 +216,19 @@ export interface WorldMessageRecord extends BoundRecord {
   name: string;
   template: string;
 }
+export interface EditorItemRecord extends BoundRecord {
+  key: string;
+  name: string;
+  fields: Record<string, string>;
+}
 export interface EditorCatalog {
   schema: 2;
   fingerprint: string | undefined;
   records: EditorRecord[];
   sharedDialogue: SharedEditorRecord[];
   worldMessages: WorldMessageRecord[];
+  labels: WorldMessageRecord[];
+  items: EditorItemRecord[];
   playerState: PlayerDocument;
 }
 export interface DraftChange {

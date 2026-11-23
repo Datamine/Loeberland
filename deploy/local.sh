@@ -14,6 +14,7 @@ case "$action" in
 esac
 if [[ $# -gt 1 ]]; then exit 2; fi
 export ADMIN_ENV_FILE="${ADMIN_ENV_FILE:-$root/.deploy/local-admin.env}"
+export LOCAL_DEBUG_TELEPORT_ALL=true
 if [[ $ADMIN_ENV_FILE != /* ]]; then export ADMIN_ENV_FILE="$PWD/$ADMIN_ENV_FILE"; fi
 
 if [[ $action == credentials ]]; then

@@ -234,7 +234,8 @@ the same name and different examine text** to further narrow the results by
 examine text. Both filters work with search and type selection.
 
 Enable **Draft edits** to rename entries, switch their category between NPC and
-Object, or edit their examine text and menus. Names and categories update the
+Object, or edit their examine text and menus. Examine edits apply to the selected
+placement. Names and categories update the
 editor's labels, colors, filters and action previews immediately. Name and category
 edits apply to all placements using the selected definition. Categories control
 NPC/object classification and menu colors while preserving each target's existing

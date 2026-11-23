@@ -21,17 +21,29 @@ const dialogueDefaults = {
   grainPrice: TRADE_PRICES.grain,
   coffeePrice: TRADE_PRICES.coffee,
   fishPrice: TRADE_PRICES.fish,
-  crowbarPrice: ITEM_STATS.crowbar.price,
+  get crowbarPrice() {
+    return ITEM_STATS.crowbar.price;
+  },
   uniPrice: TRADE_PRICES.uni,
   sandPrice: TRADE_PRICES.sand,
   passengerPrice: TRADE_PRICES.passenger,
   rocketPrice: 1,
   skiPrice: 1,
-  tabletPrice: ITEM_STATS['tahoe-tablet'].price,
-  sandwichPrice: ITEM_STATS.sandwich.pickupPrice,
-  deliveryPrice: ITEM_STATS.sandwich.deliveryPrice,
-  healing: ITEM_STATS.sandwich.healing,
-  burgerPrice: ITEM_STATS.sandwich.inNOutPrice,
+  get tabletPrice() {
+    return ITEM_STATS['tahoe-tablet'].price;
+  },
+  get sandwichPrice() {
+    return ITEM_STATS.sandwich.pickupPrice;
+  },
+  get deliveryPrice() {
+    return ITEM_STATS.sandwich.deliveryPrice;
+  },
+  get healing() {
+    return ITEM_STATS.sandwich.healing;
+  },
+  get burgerPrice() {
+    return ITEM_STATS.sandwich.inNOutPrice;
+  },
   softwarePrice: TRADE_PRICES.salesSoftware,
   softwareResalePrice: TRADE_PRICES.salesSoftwareResale,
   phonePrice: TRADE_PRICES.iphone,

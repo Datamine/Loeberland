@@ -4,6 +4,8 @@ import entitiesSchema from '../content/schemas/entities.schema.json' with { type
 import dialoguesSchema from '../content/schemas/dialogues.schema.json' with { type: 'json' };
 import textsSchema from '../content/schemas/texts.schema.json' with { type: 'json' };
 import playerSchema from '../content/schemas/player-state.schema.json' with { type: 'json' };
+import itemDefaults from '../content/items.json' with { type: 'json' };
+import { isRecord } from './types/json.ts';
 
 const ajv = new Ajv({ allErrors: true, jsonPointers: true, strictNumbers: true });
 const validators = {
@@ -37,6 +39,39 @@ export function validatePlayerDocument(value: unknown): PlayerDocument {
 export function validateContent(value: unknown): ContentBundle {
   const bundle = value as ContentBundle;
   for (const kind of ['entities', 'dialogues', 'texts'] as const) assertSchema(kind, bundle[kind]);
+  if (bundle.items !== undefined) {
+    const expected = Object.entries(itemDefaults.items);
+    if (
+      bundle.items?.schema !== 1 ||
+      !isRecord(bundle.items.items) ||
+      Object.keys(bundle.items.items).length !== expected.length
+    )
+      throw new Error('Invalid item catalog.');
+    for (const [id, defaults] of expected) {
+      const item = bundle.items.items[id];
+      if (!isRecord(item) || Object.keys(item).length !== Object.keys(defaults).length)
+        throw new Error('Invalid item: ' + id);
+      for (const [field, original] of Object.entries(defaults)) {
+        const stat = item[field];
+        if (
+          typeof stat !== typeof original ||
+          (typeof stat === 'number' &&
+            (!Number.isFinite(stat) ||
+              stat < 0 ||
+              ((field === 'range' || field === 'interval') && stat === 0) ||
+              (field.startsWith('accuracy') && stat > 1) ||
+              ((/price$/i.test(field) || field === 'coins') && !Number.isSafeInteger(stat)))) ||
+          (field === 'name' && (typeof stat !== 'string' || !stat.trim() || stat.length > 80)) ||
+          ((field === 'color' || field === 'trim') &&
+            (typeof stat !== 'string' || !/^#[0-9a-f]{6}$/i.test(stat))) ||
+          (['slot', 'hatId', 'pickup', 'pickupMessageId'].includes(field) && stat !== original)
+        )
+          throw new Error('Invalid item field: ' + id + '.' + field);
+      }
+      if (typeof item.min === 'number' && typeof item.max === 'number' && item.min > item.max)
+        throw new Error('Minimum damage exceeds maximum damage for ' + id + '.');
+    }
+  }
   const { definitions, placements } = bundle.entities;
   const variants = bundle.dialogues.variants;
   function text(value: TextSpec | undefined) {

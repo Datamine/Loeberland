@@ -4,16 +4,74 @@ import { actionTargetKind, orderPrimaryActions } from '../src/context-menu.ts';
 import { ATV_RAMP_KIND } from '../src/atv.ts';
 import { AIRSHIP_TRAVELER } from '../src/airship-rope.ts';
 import { MARKET_STREETCAR } from '../src/market-streetcar.ts';
-import { menuFromContent } from '../src/content-game.ts';
+import { projectCatalog } from '../editor/project.mts';
+import { entityDialogueVariant, menuFromContent } from '../src/content-game.ts';
+import { CONTENT } from '../src/content-runtime.ts';
+import { describeCharacter } from '../src/descriptions.ts';
 import { npcContextActions, npcDisplayLabel, npcPrimaryVerb } from '../src/npc-interactions.ts';
 import { createInteractions } from '../src/world/interactions.ts';
+import { applyWorldEdits } from '../src/world-edits.ts';
 import type { WorldContext } from '../src/world/scene.ts';
+import type { Actor } from '../src/types/world.ts';
 
-test('Bani has no combat level or hostile menu actions', () => {
-  const bani = { id: 'nia', label: 'Bani' };
-  assert.equal(npcDisplayLabel(bani), 'Bani');
+test('Bani uses the editor identity when selected as a character or a sight', () => {
+  const bani: Pick<Actor, 'id' | 'label' | 'editorKey'> = {
+    id: 'nia',
+    label: 'Bani · Mazarine Coffee',
+  };
+  const sight = { id: 'nia', label: 'Bani · café regular', description: '', kind: 'guest' };
+  applyWorldEdits({ sights: [sight], niaCitizen: bani });
+  assert.equal(bani.editorKey, 'sight:nia');
+  assert.equal(npcDisplayLabel(bani), sight.label);
+  assert.equal(describeCharacter(bani), sight.description);
   assert.equal(npcPrimaryVerb(bani), 'talk');
   assert.deepEqual(npcContextActions(bani), ['talk', 'walk', 'examine']);
+  let directHit = true;
+  const { worldTarget, primaryWorldAction } = createInteractions({
+    niaCitizen: bani,
+    sights: [sight],
+    pick: () => (directHit ? { sight } : null),
+    hitCitizen: () => (directHit ? null : bani),
+    flying: () => false,
+    clearAt: () => true,
+    tileAt: () => ({ x: 45, y: 29 }),
+  } as unknown as WorldContext);
+  for (const direct of [true, false]) {
+    directHit = direct;
+    const target = worldTarget(20, 20);
+    assert.equal(target.sight, sight);
+    assert.equal(target.npc, null);
+    const primary = primaryWorldAction(target);
+    const bindings = new Map([
+      [primary.id, {}],
+      ['walk', {}],
+      ['examine', {}],
+    ]);
+    const menu = menuFromContent(target.sight, bindings, {});
+    assert.deepEqual(
+      menu?.map(({ label }) => label),
+      ['Walk here', primary.label, 'Examine ' + sight.label],
+    );
+    assert.equal(primary.label, 'Talk to ' + sight.label);
+  }
+
+  const record = projectCatalog(CONTENT).records.find(({ key }) => key === bani.editorKey);
+  assert.equal(record?.dialogues.length, 2);
+  assert.equal(record?.dialogues[0].dialogue?.sharedPool, true);
+  const inside = entityDialogueVariant(bani.editorKey, { activities: { insideTarget: true } });
+  assert.equal(inside?.id, record?.dialogues[0].id);
+  const outside = entityDialogueVariant(bani.editorKey, { activities: { insideTarget: false } });
+  assert.equal(outside?.id, record?.dialogues[1].id);
+  assert.match(outside?.speech ?? '', /Borrow the bicycle/);
+});
+
+test('the delivery cooler can be examined as an NPC during a delivery', () => {
+  const cooler = { id: 'delivery-cooler', label: 'DoorDash Cooler', kind: 'delivery-cooler' };
+  assert.equal(npcPrimaryVerb(cooler), 'examine');
+  assert.deepEqual(npcContextActions(cooler), ['examine']);
+  const menu = menuFromContent('actor:delivery-cooler', new Map([['npc.examine', {}]]), {});
+  assert.equal(menu?.[0].label, 'Examine DoorDash Cooler');
+  assert.match(describeCharacter(cooler) || '', /cooler on wheels/);
 });
 
 test('clicking the cable car while aboard uses the shared exit action and the standard object color', () => {

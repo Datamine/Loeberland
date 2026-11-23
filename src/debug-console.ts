@@ -164,6 +164,12 @@ export function createDebugConsole({
     input.focus({ preventScroll: true });
     input.setSelectionRange(value.length, value.length);
   }
+  function openTeleport() {
+    if (!canTeleport()) return false;
+    const p = getPosition();
+    openCommand(':tp ' + Number(p.x.toFixed(4)) + ',' + Number(p.y.toFixed(4)));
+    return true;
+  }
   function execute() {
     const value = input.value,
       command = parseWorldCommand(value);
@@ -234,16 +240,14 @@ export function createDebugConsole({
       focusWorld();
     },
   );
-  teleportButton.addEventListener('click', () => {
-    const p = getPosition();
-    openCommand(':tp ' + Number(p.x.toFixed(4)) + ',' + Number(p.y.toFixed(4)));
-  });
+  teleportButton.addEventListener('click', openTeleport);
   document.addEventListener('pointerdown', (event) => {
     if (!form.hidden && !form.contains(event.target as Node | null)) closeCommand(false);
   });
   return {
     handleKey,
     openCommand,
+    openTeleport,
     update,
     close() {
       panel.hidden = true;

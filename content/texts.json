@@ -148,153 +148,6 @@
     "config.hats.module.name-13": {
       "template": "Pirate's hat"
     },
-    "config.item-stats.module.name-1": {
-      "template": "Tinfoil suit"
-    },
-    "config.item-stats.module.description-2": {
-      "template": "A crinkling silver suit, folded with restaurant precision."
-    },
-    "config.item-stats.module.name-3": {
-      "template": "Weaponry upgrade kit"
-    },
-    "config.item-stats.module.description-4": {
-      "template": "Increases the fire rate of your railgun and Akimbos by 10% while owned."
-    },
-    "config.item-stats.module.name-5": {
-      "template": "Combat boots"
-    },
-    "config.item-stats.module.description-6": {
-      "template": "Tall black leather boots with chrome buckles, steel toe caps, and heavy soles. Block 2 damage from each incoming combat hit."
-    },
-    "config.item-stats.module.name-7": {
-      "template": "Ball chair"
-    },
-    "config.item-stats.module.description-8": {
-      "template": "A sculptural white sphere with red upholstery and a chrome pedestal. Choose Ball chair from the Sit menu to settle inside."
-    },
-    "config.item-stats.module.name-9": {
-      "template": "Fist"
-    },
-    "config.item-stats.module.name-10": {
-      "template": "Bayonet"
-    },
-    "config.item-stats.module.name-11": {
-      "template": "Battleaxe"
-    },
-    "config.item-stats.module.name-12": {
-      "template": "Railgun"
-    },
-    "config.item-stats.module.name-13": {
-      "template": "Akimbos"
-    },
-    "config.item-stats.module.name-14": {
-      "template": "New Year’s rocket"
-    },
-    "config.item-stats.module.description-15": {
-      "template": "An oversized decorative rocket. Light it for ten seconds, once a minute. Press Space while it burns to hop about a character-height into the air."
-    },
-    "config.item-stats.module.name-16": {
-      "template": "Clock amulet"
-    },
-    "config.item-stats.module.description-17": {
-      "template": "A tiny clock on a chain. It keeps its own appointments."
-    },
-    "config.item-stats.module.name-18": {
-      "template": "Hiking backpack"
-    },
-    "config.item-stats.module.description-19": {
-      "template": "A sturdy hiking pack with room for twenty sandwiches."
-    },
-    "config.item-stats.module.name-20": {
-      "template": "Bison hide"
-    },
-    "config.item-stats.module.description-21": {
-      "template": "A heavy, shaggy hide. Yohji could make something remarkable from this."
-    },
-    "config.item-stats.module.name-22": {
-      "template": "Black cloak top"
-    },
-    "config.item-stats.module.description-23": {
-      "template": "An oversized black top with dropped shoulders, generous sleeves and a long, loose hem."
-    },
-    "config.item-stats.module.name-24": {
-      "template": "Black cloak bottom"
-    },
-    "config.item-stats.module.description-25": {
-      "template": "A sweeping black skirt. Enough fabric to consider the wind a collaborator."
-    },
-    "config.item-stats.module.name-26": {
-      "template": "Downtown Teleport"
-    },
-    "config.item-stats.module.description-27": {
-      "template": "A small purple tablet. Break it to return to downtown San Francisco."
-    },
-    "config.item-stats.module.name-28": {
-      "template": "Tahoe Teleport"
-    },
-    "config.item-stats.module.description-29": {
-      "template": "A snowy sigil in purple stone. Break it to appear beside the Tahoe gondola."
-    },
-    "config.item-stats.module.name-30": {
-      "template": "Ice top"
-    },
-    "config.item-stats.module.description-31": {
-      "template": "A crystalline cuirass. While equipped, blocks up to 5 damage per incoming combat hit."
-    },
-    "config.item-stats.module.name-32": {
-      "template": "Ice pants"
-    },
-    "config.item-stats.module.description-33": {
-      "template": "Frosted greaves. While equipped, block up to 5 damage per incoming combat hit."
-    },
-    "config.item-stats.module.name-34": {
-      "template": "Sandwich"
-    },
-    "config.item-stats.module.description-35": {
-      "template": "A sandwich. Store it in your food bag and eat it to recover hitpoints."
-    },
-    "config.item-stats.module.name-36": {
-      "template": "Peptides"
-    },
-    "config.item-stats.module.description-37": {
-      "template": "A tiny vial with a very large social network. Ray accepts these at the Freemasons’ Guild."
-    },
-    "config.item-stats.module.name-38": {
-      "template": "Coins"
-    },
-    "config.item-stats.module.description-39": {
-      "template": "Loose coins, awaiting a less theoretical owner."
-    },
-    "config.item-stats.module.name-40": {
-      "template": "Goose Corp membership card"
-    },
-    "config.item-stats.module.description-41": {
-      "template": "A very official-looking card. The fine print seems to be turning to dust."
-    },
-    "config.item-stats.module.name-42": {
-      "template": "Stetson"
-    },
-    "config.item-stats.module.description-43": {
-      "template": "A sand-dusted cowboy hat. The shark was keeping it under its hat."
-    },
-    "config.item-stats.module.name-44": {
-      "template": "Pirate's hat"
-    },
-    "config.item-stats.module.description-45": {
-      "template": "A salt-stained tricorn. The previous owner had an unusually flexible interpretation of navigation."
-    },
-    "config.item-stats.module.name-46": {
-      "template": "Velociraptor remains"
-    },
-    "config.item-stats.module.description-47": {
-      "template": "The emergency recovery protocol is now considerably less mobile."
-    },
-    "config.item-stats.module.name-48": {
-      "template": "Kraken spoils"
-    },
-    "config.item-stats.module.description-49": {
-      "template": "The spoils of an extremely unwise maritime expedition."
-    },
     "config.monster-drops.module.name-1": {
       "template": "Goblin"
     },
@@ -2440,9 +2293,6 @@
     "world.rendering.makeActors.description-3": {
       "template": "A tireless police officer. Their cardio budget is apparently unlimited."
     },
-    "world.rendering.makeActors.label-4": {
-      "template": "Police"
-    },
     "world.scene.createSFWorld.label-1": {
       "template": "Stairs to the guild"
     },
@@ -2454,9 +2304,6 @@
     },
     "world.scene.createSFWorld.description-4": {
       "template": "Your personal flying wing, its dark fuselage disappearing into the hangar’s shadows."
-    },
-    "world.scene.createSFWorld.label-6": {
-      "template": "Bani · Mazarine Coffee"
     },
     "world.scene.createSFWorld.name-7": {
       "template": "John's place"
@@ -2688,9 +2535,6 @@
     },
     "world.scene.createSFWorld.description-83": {
       "template": "A freshwater lake near the southwestern edge of the city, south of the Sunset and close to the Pacific."
-    },
-    "world.scene.createSFWorld.label-84": {
-      "template": "Bani · café regular"
     },
     "world.scene.createSFWorld.description-85": {
       "template": "A friendly woman with warm brown skin and long dark hair, enjoying her coffee at a table inside Mazarine."
@@ -3131,6 +2975,42 @@
       "template": "{leaseOffer}Complimentary fuel, including portable cans. Take a can along if your Ferrari is stranded."
     },
     "service.fuel-free.root.choices.1.label": {
+      "template": "Fuel can · {fuelPrice}"
+    },
+    "actor:ferrari-dealer-attendant.intro": {
+      "template": "{leaseOffer}Complimentary fuel, including portable cans. Take a can along if your Ferrari is stranded."
+    },
+    "actor:ferrari-dealer-attendant.refuel-label": {
+      "template": "Refuel · {fuelPrice}"
+    },
+    "actor:ferrari-dealer-attendant.fuel-can-label": {
+      "template": "Fuel can · {fuelPrice}"
+    },
+    "actor:fuel-outbound-attendant.intro": {
+      "template": "Fuel costs every coin you carry. If your Ferrari is stranded, take a full fuel can back to it. The can costs the same as a refill."
+    },
+    "actor:fuel-outbound-attendant.refuel-label": {
+      "template": "Refuel · {fuelPrice}"
+    },
+    "actor:fuel-outbound-attendant.fuel-can-label": {
+      "template": "Fuel can · {fuelPrice}"
+    },
+    "actor:fuel-return-attendant.intro": {
+      "template": "Fuel costs every coin you carry. If your Ferrari is stranded, take a full fuel can back to it. The can costs the same as a refill."
+    },
+    "actor:fuel-return-attendant.refuel-label": {
+      "template": "Refuel · {fuelPrice}"
+    },
+    "actor:fuel-return-attendant.fuel-can-label": {
+      "template": "Fuel can · {fuelPrice}"
+    },
+    "actor:fuel-tahoe-attendant.intro": {
+      "template": "{leaseOffer}Complimentary fuel, including portable cans. Take a can along if your Ferrari is stranded."
+    },
+    "actor:fuel-tahoe-attendant.refuel-label": {
+      "template": "Refuel · {fuelPrice}"
+    },
+    "actor:fuel-tahoe-attendant.fuel-can-label": {
       "template": "Fuel can · {fuelPrice}"
     },
     "service.growth-capital.root.intro": {
@@ -3603,6 +3483,366 @@
     },
     "service.neighborhood-the-mill.root.coffee.receipt": {
       "template": "You drink a hot coffee. It can restore 1 HP."
+    },
+    "world-label.sign.DOG%20%26%20PONY%20SHOW": {
+      "template": "DOG & PONY SHOW"
+    },
+    "world-label.sign.PACIFICA%20DOG%20SURFING": {
+      "template": "PACIFICA DOG SURFING"
+    },
+    "world-label.sign.South%20Mission%20Dynamite%20Depot": {
+      "template": "South Mission Dynamite Depot"
+    },
+    "world-label.sign.THE%20PRESENT%20TENSE": {
+      "template": "THE PRESENT TENSE"
+    },
+    "world-label.sign.QUALIA%20BOOKS": {
+      "template": "QUALIA BOOKS"
+    },
+    "world-label.sign.DUEL%20ARENA": {
+      "template": "DUEL ARENA"
+    },
+    "world-label.sign.50%20%2F%2050%20%C2%B7%20EQUAL%20STAKES": {
+      "template": "50 / 50 · EQUAL STAKES"
+    },
+    "world-label.sign.STOCK%20EXCHANGE": {
+      "template": "STOCK EXCHANGE"
+    },
+    "world-label.sign.THE%20ARMORY": {
+      "template": "THE ARMORY"
+    },
+    "world-label.sign.Hardware%20Store": {
+      "template": "Hardware Store"
+    },
+    "world-label.sign.Fighter%20Yard": {
+      "template": "Fighter Yard"
+    },
+    "world-label.sign.Ren%C3%A9%20Girard%E2%80%99s%20House": {
+      "template": "René Girard’s House"
+    },
+    "world-label.sign.Communal%20Pool": {
+      "template": "Communal Pool"
+    },
+    "world-label.sign.Construction%20Site": {
+      "template": "Construction Site"
+    },
+    "world-label.sign.Coffee%20Stall": {
+      "template": "Coffee Stall"
+    },
+    "world-label.sign.Mud%20Bath": {
+      "template": "Mud Bath"
+    },
+    "world-label.sign.SEABREEZE%20BAKERY": {
+      "template": "SEABREEZE BAKERY"
+    },
+    "world-label.sign.PALMETTO%20POTTERY": {
+      "template": "PALMETTO POTTERY"
+    },
+    "world-label.sign.MENOTTI'S": {
+      "template": "MENOTTI'S"
+    },
+    "world-label.sign.GARDEN%20MARKET": {
+      "template": "GARDEN MARKET"
+    },
+    "world-label.sign.OCEAN%20WORKSHOP": {
+      "template": "OCEAN WORKSHOP"
+    },
+    "world-label.sign.THE%20TERRACE": {
+      "template": "THE TERRACE"
+    },
+    "world-label.sign.CYPRESS%20FLOWERS": {
+      "template": "CYPRESS FLOWERS"
+    },
+    "world-label.sign.THE%20MILL": {
+      "template": "THE MILL"
+    },
+    "world-label.sign.POSTING%20HQ": {
+      "template": "POSTING HQ"
+    },
+    "world-label.sign.BOTTLE%20POST": {
+      "template": "BOTTLE POST"
+    },
+    "world-label.sign.SOFTWARE%20SALES%20CONFERENCE": {
+      "template": "SOFTWARE SALES CONFERENCE"
+    },
+    "world-label.sign.SELL%20MORE%20SALES%20SOFTWARE": {
+      "template": "SELL MORE SALES SOFTWARE"
+    },
+    "world-label.sign.TIM%20APPLE": {
+      "template": "TIM APPLE"
+    },
+    "world-label.sign.iPHONE%20%C2%B7%20100%20COINS": {
+      "template": "iPHONE · 100 COINS"
+    },
+    "world-label.sign.TESLA%20ROBOTAXI": {
+      "template": "TESLA ROBOTAXI"
+    },
+    "world-label.sign.100%20COINS%20%C2%B7%2020%20%2F%20MINUTE": {
+      "template": "100 COINS · 20 / MINUTE"
+    },
+    "world-label.sign.Waymo%20Dispatch": {
+      "template": "Waymo Dispatch"
+    },
+    "world-label.sign.HABERDASHER": {
+      "template": "HABERDASHER"
+    },
+    "world-label.sign.HATS%20%C2%B7%201%20TO%20100%2C000%20COINS": {
+      "template": "HATS · 1 TO 100,000 COINS"
+    },
+    "world-label.sign.BAY%20AREA%20SALT%20FLATS": {
+      "template": "BAY AREA SALT FLATS"
+    },
+    "world-label.sign.SAVE%20THE%20SALT%20PONDS": {
+      "template": "SAVE THE SALT PONDS"
+    },
+    "world-label.sign.GPU%20FACTORY": {
+      "template": "GPU FACTORY"
+    },
+    "world-label.sign.OCEAN%20BEACH%20SAND": {
+      "template": "OCEAN BEACH SAND"
+    },
+    "world-label.sign.MARKET%20ST": {
+      "template": "MARKET ST"
+    },
+    "world-label.sign.NIGHTLIFE": {
+      "template": "NIGHTLIFE"
+    },
+    "world-label.sign.JURASSIC%20BIOSCIENCES": {
+      "template": "JURASSIC BIOSCIENCES"
+    },
+    "world-label.sign.AUTHORIZED%20PERSONNEL%20ONLY": {
+      "template": "AUTHORIZED PERSONNEL ONLY"
+    },
+    "world-label.sign.THE%20PEQUOD": {
+      "template": "THE PEQUOD"
+    },
+    "world-label.sign.I%20KILLED%20THE%20KRAKEN": {
+      "template": "I KILLED THE KRAKEN"
+    },
+    "world-label.sign.AND%20ALL%20I%20GOT%20WAS": {
+      "template": "AND ALL I GOT WAS"
+    },
+    "world-label.sign.THIS%20LOUSY%20CAPE": {
+      "template": "THIS LOUSY CAPE"
+    },
+    "world-label.sign.John's%20Place": {
+      "template": "John's Place"
+    },
+    "world-label.sign.Mazarine%20Coffee": {
+      "template": "Mazarine Coffee"
+    },
+    "world-label.sign.City%20Lights%20-%20Essays": {
+      "template": "City Lights - Essays"
+    },
+    "world-label.sign.Main%20Library%20-%20Bookshelf": {
+      "template": "Main Library - Bookshelf"
+    },
+    "world-label.sign.The%20Newsstand": {
+      "template": "The Newsstand"
+    },
+    "world-label.sign.Green%20Bank": {
+      "template": "Green Bank"
+    },
+    "world-label.sign.Limit": {
+      "template": "Limit"
+    },
+    "world-label.sign.Rose": {
+      "template": "Rose"
+    },
+    "world-label.sign.Demo%20Day%20Hall": {
+      "template": "Demo Day Hall"
+    },
+    "world-label.sign.AI%20Lab": {
+      "template": "AI Lab"
+    },
+    "world-label.sign.Curiosity%20Shop": {
+      "template": "Curiosity Shop"
+    },
+    "world-label.sign.Freemasons'%20Guild": {
+      "template": "Freemasons' Guild"
+    },
+    "world-label.sign.Technologist's%20Farmers%20Market": {
+      "template": "Technologist's Farmers Market"
+    },
+    "world-label.sign.Technologist's%0AFarmers%20Market": {
+      "template": "Technologist's\nFarmers Market"
+    },
+    "world-label.sign.House": {
+      "template": "House"
+    },
+    "world-label.sign.Cultist%E2%80%99s%20cottage": {
+      "template": "Cultist’s cottage"
+    },
+    "world-label.sign.Orin's%20house": {
+      "template": "Orin's house"
+    },
+    "world-label.sign.Golden%20Gate%20Park": {
+      "template": "Golden Gate Park"
+    },
+    "world-label.sign.Lake%20Merced": {
+      "template": "Lake Merced"
+    },
+    "world-label.sign.The%20Panhandle": {
+      "template": "The Panhandle"
+    },
+    "world-label.sign.Presidio": {
+      "template": "Presidio"
+    },
+    "world-label.sign.Goblin%20Furniture%20Factory": {
+      "template": "Goblin Furniture Factory"
+    },
+    "world-label.sign.Goblin%20Frog%20Farm": {
+      "template": "Goblin Frog Farm"
+    },
+    "world-label.sign.Goblin%20Phone%20Campus": {
+      "template": "Goblin Phone Campus"
+    },
+    "world-label.sign.Goblin%20AI%20Lab": {
+      "template": "Goblin AI Lab"
+    },
+    "world-label.sign.Goblin%20Space%20Program": {
+      "template": "Goblin Space Program"
+    },
+    "world-label.sign.City%20Lights": {
+      "template": "City Lights"
+    },
+    "world-label.sign.FERRY%20BUILDING": {
+      "template": "FERRY BUILDING"
+    },
+    "world-label.sign.CHINATOWN": {
+      "template": "CHINATOWN"
+    },
+    "world-label.sign.de%20Young": {
+      "template": "de Young"
+    },
+    "world-label.sign.Conservatory": {
+      "template": "Conservatory"
+    },
+    "world-label.sign.Academy%20of%20Sciences": {
+      "template": "Academy of Sciences"
+    },
+    "world-label.sign.Crissy%20Field": {
+      "template": "Crissy Field"
+    },
+    "world-label.sign.TAX%20AUTHORITY": {
+      "template": "TAX AUTHORITY"
+    },
+    "world-label.sign.California%20high-speed%20rail": {
+      "template": "California high-speed rail"
+    },
+    "world-label.sign.SPACEX%20%C2%B7%201%20COIN": {
+      "template": "SPACEX · 1 COIN"
+    },
+    "world-label.sign.PRIVATE%20JET%20TERMINAL": {
+      "template": "PRIVATE JET TERMINAL"
+    },
+    "world-label.sign.PROMETHEUS": {
+      "template": "PROMETHEUS"
+    },
+    "world-label.sign.Fire%20is%20for%20everyone.": {
+      "template": "Fire is for everyone."
+    },
+    "world-label.sign.TIMES%20SQUARE": {
+      "template": "TIMES SQUARE"
+    },
+    "world-label.sign.BROADWAY": {
+      "template": "BROADWAY"
+    },
+    "world-label.sign.BLUE%20BOTTLE": {
+      "template": "BLUE BOTTLE"
+    },
+    "world-label.sign.USED%20BOOKS": {
+      "template": "USED BOOKS"
+    },
+    "world-label.sign.HILLSBOROUGH%20WORKS": {
+      "template": "HILLSBOROUGH WORKS"
+    },
+    "world-label.sign.NOTICE%20%C2%B7%20PUBLIC%20PLAZA": {
+      "template": "NOTICE · PUBLIC PLAZA"
+    },
+    "world-label.sign.AMERICAN%20INDUSTRIAL%20CENTER": {
+      "template": "AMERICAN INDUSTRIAL CENTER"
+    },
+    "world-label.sign.BERKELEY%20INSTITUTE%0AFOR%20ESOTERIC%20STUDIES": {
+      "template": "BERKELEY INSTITUTE\nFOR ESOTERIC STUDIES"
+    },
+    "world-label.sign.CHURCH%20NOTICEBOARD": {
+      "template": "CHURCH NOTICEBOARD"
+    },
+    "world-label.sign.GOOSE%20CORP%0ATRUST%20THE%20SIMULATION": {
+      "template": "GOOSE CORP\nTRUST THE SIMULATION"
+    },
+    "world-label.sign.LEGACY%20SOFTWARE%20COMPANY": {
+      "template": "LEGACY SOFTWARE COMPANY"
+    },
+    "world-label.sign.CALIFORNIA%20INSTITUTE%0AOF%20CONSCIOUSNESS%0ARESEARCH": {
+      "template": "CALIFORNIA INSTITUTE\nOF CONSCIOUSNESS\nRESEARCH"
+    },
+    "world-label.sign.CALIFORNIAN%20RESEARCH%0AINSTITUTE%20FOR%0ACONSCIOUSNESS": {
+      "template": "CALIFORNIAN RESEARCH\nINSTITUTE FOR\nCONSCIOUSNESS"
+    },
+    "world-label.sign.PACIFICA%20COMMONS": {
+      "template": "PACIFICA COMMONS"
+    },
+    "world-label.sign.BUS": {
+      "template": "BUS"
+    },
+    "world-label.sign.OCEAN%20TERRACE%20GARDEN": {
+      "template": "OCEAN TERRACE GARDEN"
+    },
+    "world-label.sign.BAYSHORE%20COURTYARD": {
+      "template": "BAYSHORE COURTYARD"
+    },
+    "world-label.sign.IN-N-OUT": {
+      "template": "IN-N-OUT"
+    },
+    "world-label.sign.FERRARI": {
+      "template": "FERRARI"
+    },
+    "world-label.sign.EXTORTIONATE%20GAS": {
+      "template": "EXTORTIONATE GAS"
+    },
+    "world-label.sign.FREE%20GAS": {
+      "template": "FREE GAS"
+    },
+    "world-label.sign.SF%20FITNESS": {
+      "template": "SF FITNESS"
+    },
+    "world-label.sign.Sand%20Hill%20Road%20Capital%20Partners": {
+      "template": "Sand Hill Road Capital Partners"
+    },
+    "world-label.sign.STRENGTH%20TRAINING": {
+      "template": "STRENGTH TRAINING"
+    },
+    "world-label.sign.GONDOLA": {
+      "template": "GONDOLA"
+    },
+    "world-label.sign.SKIS%20%C2%B7%201%20COIN": {
+      "template": "SKIS · 1 COIN"
+    },
+    "world-label.sign.HIKING%20SUPPLIES": {
+      "template": "HIKING SUPPLIES"
+    },
+    "world-label.sign.SF%20ZOO": {
+      "template": "SF ZOO"
+    },
+    "world-label.sign.TIGER": {
+      "template": "TIGER"
+    },
+    "world-label.sign.UCSF%20HOSPITAL": {
+      "template": "UCSF HOSPITAL"
+    },
+    "world-label.sign.Lucinda's%20Deli": {
+      "template": "Lucinda's Deli"
+    },
+    "world-label.sign.Shanghai%20Kelly's": {
+      "template": "Shanghai Kelly's"
+    },
+    "world-label.sign.cotogna": {
+      "template": "cotogna"
+    },
+    "world-label.sign.Rich%20Table": {
+      "template": "Rich Table"
     }
   }
 }

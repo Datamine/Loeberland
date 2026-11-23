@@ -87,6 +87,7 @@ test('every imported turn renders with its authored speaker and closes without g
         const node: SharedNode = chain.nodes[id];
         const speaker = node.speaker === 'player' ? 'Actual Player' : 'Actual NPC';
         assert.equal(f.element.dataset.speaker, node.speaker, `${chain.id}/${id}`);
+        assert.equal(f.element.dataset.layout, 'navigation', `${chain.id}/${id}`);
         assert.equal(f.element.children[0].children[0].textContent, speaker);
         assert.equal(f.element.children[1].children[0].textContent, node.text);
         assert.equal(f.dialogue.active, true);

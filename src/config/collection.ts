@@ -30,7 +30,9 @@ export const COLLECTION_ITEMS = Object.freeze(
       .filter(([, item]) => item.slot !== 'hat' && item.pickup !== 'disintegrate')
       .map(([id, item]) => ({
         id,
-        name: item.name,
+        get name() {
+          return item.name;
+        },
         group: collectionGroup(id, item.slot),
       })),
     ...HAT_CATALOG.map((h) => ({ id: 'hat:' + h.id, name: h.name, group: 'wearables' as const })),

@@ -170,6 +170,7 @@ export interface PersonalSnapshot extends PersonalPursuits {
   training?: boolean;
   fishing?: { active: boolean; elapsed: number };
   delivery?: { position: import('./geometry.ts').Point; angle: number; travel: number } | null;
+  deliveryArrivals?: import('../deli.ts').DeliveryArrival[];
   pitch?: { id: string; remaining: number; chance: number; percent?: number } | null;
   ship?: ReturnType<typeof import('../jurassic.ts').createExpeditions>['ship'];
   kraken?: Partial<ReturnType<typeof import('../jurassic.ts').createExpeditions>['kraken']>;

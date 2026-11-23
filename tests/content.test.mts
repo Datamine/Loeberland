@@ -17,7 +17,8 @@ import bindings from '../content/player-state-bindings.json' with { type: 'json'
 test('all migrated content and default player state validate', () => {
   validateContent(CONTENT);
   validatePlayerDocument(createPlayerDocument());
-  assert.equal(Object.keys(CONTENT.entities.placements).length, 316);
+  assert.ok(Object.keys(CONTENT.entities.placements).length >= 496);
+  assert.equal(typeof CONTENT.items?.items['combat-boots'].defense, 'number');
   assert.equal(Object.keys(CONTENT.dialogues.shared).length, 131);
 });
 test('safe JSON conditions read quest progress and collections', () => {

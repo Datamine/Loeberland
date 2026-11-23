@@ -10,6 +10,7 @@ import type { BuildInfo } from '../src/types/network.ts';
 import type { Appearance } from '../src/types/content.ts';
 import type { ServerGeometry, PlayerTransport, ServerPlayer } from '../src/types/server.ts';
 import type { GameplayStore, NameReservation, StorageEntry } from '../src/types/storage.ts';
+import { nearestMinimapPoint } from '../src/minimap-navigation.ts';
 
 interface GameOptions {
   geometry: ServerGeometry;
@@ -20,6 +21,7 @@ interface GameOptions {
   googleChatAvailable?: boolean;
   oauthRequired?: boolean;
   upgradeRequiredForServerChat?: boolean;
+  debugTeleportAll?: boolean;
   serverBuild?: BuildInfo;
   tuning?: Partial<{ [K in keyof typeof SERVER_TUNING]: number }>;
 }
@@ -64,6 +66,7 @@ import { createRoutePlanner } from './routes.mts';
 import { createPerformanceMetrics } from './performance.mts';
 import { SERVER_TUNING } from './tuning.mts';
 
+const DEBUG_TELEPORT_RADIUS = 32;
 const clone = <T,>(value: T) => structuredClone(value);
 const parse = (
   value: string | undefined,
@@ -123,10 +126,13 @@ export async function createGame({
   googleChatAvailable = false,
   oauthRequired = true,
   upgradeRequiredForServerChat = true,
+  debugTeleportAll = false,
   serverBuild,
   tuning: tuningOverrides = {},
 }: GameOptions) {
   const tuning = { ...SERVER_TUNING, ...tuningOverrides };
+  const canDebugTeleport = (profile: PlayerProfile) =>
+    debugTeleportAll || profile.debugTeleport === true;
   const accounts = createCharacterAccounts(store, now);
   const players = new Map<number, ServerPlayer>(),
     profiles = new Map<string, PlayerProfile>(),
@@ -750,7 +756,7 @@ export async function createGame({
         pvp: pvp.status(p),
         level: p.level,
         pendingAwards: profile.awards,
-        debug: profile.debugTeleport,
+        debug: canDebugTeleport(profile),
         time: now(),
         shared: shared.snapshot(p),
       });
@@ -1448,35 +1454,53 @@ export async function createGame({
         }
       }
     } else if (action === 'teleport') {
-      if (p.profile.debugTeleport !== true)
+      if (!canDebugTeleport(p.profile))
         result = {
           ok: false,
-          message: contentText(
-            'world-message.debug.teleport-not-enabled',
-          ),
+          message: contentText('world-message.debug.teleport-not-enabled'),
         };
       else if (
         !isFiniteNumber(args.x) ||
         !isFiniteNumber(args.z) ||
-        !geometry.landClearAt(args.x - 0.5, args.z - 0.5)
+        Math.abs(args.x) > 1e6 ||
+        Math.abs(args.z) > 1e6
       )
         result = {
           ok: false,
           message: contentText('world-message.server.game.that-point-is-blocked'),
         };
       else {
-        p.tabletTeleport = null;
-        if (instances.kind(p) !== 'world' || p.bomberActive) instances.reset(p);
-        shared.leave(p);
-        Object.assign(p, {
-          x: args.x,
-          z: args.z,
-          y: geometry.characterGround(args.x, args.z),
-          mode: 'walk',
-          lastPoseAt: now(),
+        const requested = { x: args.x, y: args.z };
+        const landing = nearestMinimapPoint(requested, requested, {
+          maxRadius: DEBUG_TELEPORT_RADIUS,
+          // World-space centers of the quarter-tile navigation cells.
+          offset: 0.125,
+          eligible: ({ x, y }) => geometry.landClearAt(x - 0.5, y - 0.5),
+          reachable: () => true,
         });
-        correction(p, 'teleport');
-        result = { ok: true };
+        if (
+          !landing ||
+          Math.hypot(landing.x - requested.x, landing.y - requested.y) > DEBUG_TELEPORT_RADIUS
+        ) {
+          result = {
+            ok: false,
+            message: contentText('world-message.server.game.that-point-is-blocked'),
+          };
+        } else {
+          const { x, y: z } = landing;
+          p.tabletTeleport = null;
+          if (instances.kind(p) !== 'world' || p.bomberActive) instances.reset(p);
+          shared.leave(p);
+          Object.assign(p, {
+            x,
+            z,
+            y: geometry.characterGround(x, z),
+            mode: 'walk',
+            lastPoseAt: now(),
+          });
+          correction(p, 'teleport');
+          result = { ok: true };
+        }
       }
     } else if (action === 'personalTransit') {
       if (args.kind === 'jail' && p.detainAt) {

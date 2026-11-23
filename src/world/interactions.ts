@@ -34,7 +34,8 @@ import {
   placeEntryVerb,
 } from '../context-menu.ts';
 import { applyEntityEdits } from '../world-edits.ts';
-import { menuFromContent, compileEntityDialogue } from '../content-game.ts';
+import { menuFromContent, compileEntityDialogue, entityDialogueVariant } from '../content-game.ts';
+import { playerDocumentFromContext } from '../player-document.ts';
 import { dialogueChoices } from '../dialogue-choices.ts';
 import { POOL_SWIMMER } from '../communal-pool.ts';
 import { createAmbientDialogue, childConversation } from '../dialogues/ambient.ts';
@@ -2179,8 +2180,14 @@ export function createInteractions(context: WorldContext) {
     }
     if (s.kind === 'ducks') return feedDucks();
     if (s.kind === 'guest') {
-      walkTo(s.entry.x, s.entry.y, talkToBani);
-      return;
+      const bani = context.niaCitizen;
+      const state = playerDocumentFromContext(context, s);
+      state.activities.insideTarget = !!bani?.interior && context.currentInterior === bani.interior;
+      const variant = entityDialogueVariant(s.editorKey || 'sight:' + s.id, state);
+      if (variant?.shared) return interactCitizen(bani, 'talk');
+      const speech = variant?.speech;
+      if (speech) return walkTo(s.entry.x, s.entry.y, () => announce(speech, s.label));
+      return false;
     }
     return examine(s);
   }
@@ -2310,15 +2317,6 @@ export function createInteractions(context: WorldContext) {
           beer: () => context.inebriation.drink(context.economy),
         }),
       ),
-    );
-  }
-
-  function talkToBani() {
-    announce(
-      contentText(
-        'world-message.src.world.interactions.best-way-to-see-the-city-borrow-the-bicycle-take-market-west-a',
-      ),
-      'Bani',
     );
   }
 
@@ -4232,8 +4230,9 @@ export function createInteractions(context: WorldContext) {
         : null);
     const sight = pressed?.sight || (!npc ? context.hitSight?.(sx, sy) : null) || picked?.sight;
     const useLoot = sight?.kind === 'loot' && !npc?.networkPlayer && !npc?.police;
-    const selectedNPC = useLoot ? null : npc;
-    const selectedSight = selectedNPC ? null : (sight ?? null);
+    const guest = npc && npc === context.niaCitizen ? sightById(npc.id) : null;
+    const selectedNPC = useLoot || guest ? null : npc;
+    const selectedSight = selectedNPC ? null : ((useLoot ? sight : guest || sight) ?? null);
     let tile: Point | undefined;
     return {
       sx,
@@ -4488,8 +4487,12 @@ export function createInteractions(context: WorldContext) {
         return action('interaction.33', 'Paddle out');
       case 'whale':
         return action('interaction.34', 'Jump over ' + label);
-      case 'guest':
-        return action('interaction.35', 'Talk to Bani', undefined, { label: 'Bani', kind: 'npc' });
+      case 'guest': {
+        const id = 'interaction.35';
+        const talk = action(id, 'Talk to ' + label, undefined, { label, kind: 'npc' });
+        const menu = menuFromContent(sight, new Map([[id, talk]]), context);
+        return { ...talk, label: menu?.[0]?.label ?? talk.label };
+      }
       case 'ducks':
         return action('interaction.36', 'Feed ducks', undefined, { label: 'ducks', kind: 'npc' });
       case 'nightlife':
@@ -4965,7 +4968,10 @@ export function createInteractions(context: WorldContext) {
             },
             'interaction.37',
           );
-        else if ((s?.kind === 'secret-stairs' || s?.kind === 'cave-exit') && hasSiteEntry(s)) {
+        else if (
+          (s?.kind === 'secret-stairs' || s?.kind === 'cave-exit' || s?.kind === 'guest') &&
+          hasSiteEntry(s)
+        ) {
           add('Walk here', () => walkTo(s.entry.x, s.entry.y), 'walk');
         } else if (s?.kind === 'ferrari' && s.entry) {
           const { x, y } = roadTarget || (context.clearAt(t.x, t.y) ? t : s.entry);
@@ -4984,10 +4990,15 @@ export function createInteractions(context: WorldContext) {
       const examineTarget =
         s || p || caveFloor || (!inCave && context.inPark(t.x, t.y) ? sightById('park') : null);
       if (examineTarget)
-        add('Examine ' + examineTarget.label, () => examine(examineTarget), 'examine', {
-          label: examineTarget.label,
-          kind: actionTargetKind(examineTarget),
-        });
+        add(
+          'Examine ' + examineTarget.label,
+          () =>
+            s?.kind === 'guest' && context.niaCitizen
+              ? examineNPC(context.niaCitizen)
+              : examine(examineTarget),
+          'examine',
+          { label: examineTarget.label, kind: actionTargetKind(examineTarget) },
+        );
     }
     if (!npc && !s && !p && context.skateboard.riding)
       for (const trick of SKATE_TRICKS)

@@ -1258,6 +1258,7 @@ export function createMinimap(context: WorldContext) {
       context.placeMarkerViews.push({
         place: p,
         button,
+        legendLabel: title,
         lastCheck: -Infinity,
         version: -1,
         blocked: false,
@@ -1271,7 +1272,14 @@ export function createMinimap(context: WorldContext) {
       return;
     }
     for (const marker of context.placeMarkerViews) {
-      const { place: p, button } = marker;
+      const { place: p, button, legendLabel } = marker;
+      const icon = placeIcon(p.id);
+      const title = icon.label + ' · ' + p.label;
+      if (legendLabel.textContent !== icon.label) legendLabel.textContent = icon.label;
+      if (button.title !== title) {
+        button.title = title;
+        button.setAttribute('aria-label', 'Visit ' + p.label + ' · ' + icon.label);
+      }
       if (context.chase.state.jailed || context.currentInterior === p) {
         button.hidden = true;
         continue;

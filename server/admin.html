@@ -295,8 +295,361 @@
     return values.includes(value);
   }
 
+  // content/items.json
+  var items_default = {
+    schema: 1,
+    items: {
+      "tinfoil-suit": {
+        name: "Tinfoil suit",
+        slot: "top",
+        description: "A crinkling silver suit, folded with restaurant precision."
+      },
+      "railgun-upgrade": {
+        name: "Weaponry upgrade kit",
+        description: "Increases the fire rate of your railgun and Akimbos by 10% while owned."
+      },
+      "combat-boots": {
+        name: "Combat boots",
+        slot: "feet",
+        defense: 2,
+        description: "Tall black leather boots with chrome buckles, steel toe caps, and heavy soles. Block 2 damage from each incoming combat hit."
+      },
+      "party-boots": {
+        name: "Party Boots",
+        slot: "feet",
+        description: "Matilda\u2019s tall rainbow boots, with platform soles and rows of metal studs."
+      },
+      "eames-chair": {
+        name: "Eames Chair",
+        description: "A walnut lounge chair with dark leather cushions from the Goblin Furniture Factory."
+      },
+      "bertoia-chair": {
+        name: "Bertoia Chair",
+        description: "A wire-frame chair from the Goblin Furniture Factory."
+      },
+      "marshmallow-sofa": {
+        name: "Marshmallow Sofa",
+        description: "Eighteen red upholstered discs on a slim tubular steel frame."
+      },
+      "ovalia-chair": {
+        name: "Ovalia Chair",
+        description: "A tall fiberglass egg with beige upholstery and an aluminum pedestal."
+      },
+      "ball-chair": {
+        name: "Ball chair",
+        description: "A sculptural white sphere with red upholstery and a chrome pedestal. Choose Ball chair from the Sit menu to settle inside."
+      },
+      unarmed: {
+        name: "Fist",
+        slot: "weapon",
+        range: 1.35,
+        interval: 1.05,
+        min: 1,
+        max: 2,
+        minPerLevel: 0,
+        maxPerLevel: 0.8,
+        accuracy: 0.65,
+        accuracyPerLevel: 0.02,
+        accuracyCap: 0.9
+      },
+      "rolling-pin": {
+        name: "Metal rolling pin",
+        slot: "weapon",
+        price: 20,
+        range: 1.4,
+        interval: 1,
+        min: 2,
+        max: 5,
+        minPerLevel: 0.15,
+        maxPerLevel: 0.8,
+        accuracy: 0.78,
+        accuracyPerLevel: 0.012,
+        accuracyCap: 0.94,
+        description: "A stainless-steel rolling pin from Cotogna, with a solid barrel and worn wooden handles."
+      },
+      crowbar: {
+        name: "Crowbar",
+        slot: "weapon",
+        price: 35,
+        range: 1.5,
+        interval: 1,
+        min: 2,
+        max: 6,
+        minPerLevel: 0.15,
+        maxPerLevel: 0.8,
+        accuracy: 0.78,
+        accuracyPerLevel: 0.012,
+        accuracyCap: 0.94,
+        description: "A steel crowbar with a red shaft and a forged hook."
+      },
+      bayonet: {
+        name: "Bayonet",
+        slot: "weapon",
+        range: 1.35,
+        interval: 1.05,
+        min: 4,
+        max: 11,
+        minPerLevel: 0.4,
+        maxPerLevel: 1,
+        accuracy: 0.92,
+        accuracyPerLevel: 6e-3,
+        accuracyCap: 0.98
+      },
+      battleaxe: {
+        name: "Battleaxe",
+        slot: "weapon",
+        price: 50,
+        range: 1.5,
+        interval: 1.05,
+        min: 6,
+        max: 11.5,
+        minPerLevel: 0.35,
+        maxPerLevel: 0.85,
+        accuracy: 0.935,
+        accuracyPerLevel: 5e-3,
+        accuracyCap: 0.985
+      },
+      railgun: {
+        name: "Railgun",
+        slot: "weapon",
+        range: 5,
+        interval: 0.8,
+        min: 8,
+        max: 12,
+        minPerLevel: 0.3,
+        maxPerLevel: 0.7,
+        accuracy: 0.95,
+        accuracyPerLevel: 4e-3,
+        accuracyCap: 0.99
+      },
+      akibo: {
+        name: "Akimbos",
+        slot: "weapon",
+        range: 7,
+        interval: 0.8,
+        min: 8,
+        max: 12,
+        minPerLevel: 0.3,
+        maxPerLevel: 0.7,
+        accuracy: 0.95,
+        accuracyPerLevel: 4e-3,
+        accuracyCap: 0.99
+      },
+      "new-year-rocket": {
+        name: "New Year\u2019s rocket",
+        slot: "back",
+        description: "An oversized decorative rocket. Light it for ten seconds, once a minute. Press Space while it burns to hop about a character-height into the air."
+      },
+      uni: {
+        name: "Uni",
+        description: "Fresh sea urchin roe. Rich Table buys it for 40 coins."
+      },
+      "sand-bucket": {
+        name: "Bucket of sand",
+        description: "A bucket filled with ordinary sand."
+      },
+      "iron-armor": {
+        name: "Iron torso armor",
+        slot: "torso",
+        defense: 3,
+        price: 120,
+        description: "A dark gray iron breastplate and pauldrons."
+      },
+      "iron-armor-legs": {
+        name: "Iron leg armor",
+        slot: "legs",
+        defense: 2,
+        price: 100,
+        description: "Articulated iron plates that cover the thighs, knees, and shins."
+      },
+      "gold-trimmed-iron-armor": {
+        name: "Gold-trimmed iron armor",
+        slot: "torso",
+        defense: 3,
+        description: "A dark iron breastplate edged with polished gold."
+      },
+      "armor-trimming-kit": {
+        name: "Armor trimming kit",
+        description: "Apply it to a suit of iron armor to add gold trim."
+      },
+      "bind-tablet": {
+        name: "Bind Tablet",
+        description: "Binds nearby PvP opponents for ten seconds. Breaking it deals 10 damage to you."
+      },
+      "recoil-amulet": {
+        name: "Recoil Amulet",
+        slot: "neck",
+        description: "Returns one fifth of damage taken to the attacker."
+      },
+      "missile-launcher": {
+        name: "Missile Launcher",
+        slot: "weapon",
+        description: "A heavy shoulder launcher built in the Berkeley lab. Uses one missile per shot.",
+        interval: 2.4,
+        range: 12,
+        min: 17,
+        max: 60,
+        minPerLevel: 0.9,
+        maxPerLevel: 2.95,
+        accuracy: 0.95,
+        accuracyPerLevel: 4e-3,
+        accuracyCap: 0.99
+      },
+      "clock-amulet": {
+        name: "Clock amulet",
+        slot: "neck",
+        description: "A tiny clock on a chain. It keeps its own appointments."
+      },
+      backpack: {
+        name: "Hiking backpack",
+        slot: "back",
+        price: 100,
+        description: "A sturdy hiking pack with room for twenty sandwiches."
+      },
+      "bison-hide": {
+        name: "Bison hide",
+        description: "A heavy, shaggy hide. Yohji could make something remarkable from this."
+      },
+      "bear-pelt": {
+        name: "Bear pelt",
+        description: "Thick, dark Tahoe fur. The decorative robe clothier buys it for trim."
+      },
+      "fox-pelt": {
+        name: "Fox pelt",
+        description: "Russet Tahoe fur with a white underside. The decorative robe clothier buys it for trim."
+      },
+      "fighter-yard-pass": {
+        name: "Fighter Yard pass",
+        description: "A signed waiver and receipt for 10 coins, recorded by Tyler at the Fighter Yard."
+      },
+      "goblin-phone": {
+        name: "Goblin Phone",
+        price: 10,
+        description: "A clay brick. The industrialist says it makes a good notepad."
+      },
+      "decorative-robe-top": {
+        name: "Decorative robe top",
+        slot: "top",
+        price: 10,
+        description: "A pink long-sleeved robe top with rainbow trim."
+      },
+      "cashmere-turtleneck": {
+        name: "Cream cashmere turtleneck",
+        description: "A soft cream cashmere sweater with a thick, folded ribbed collar.",
+        slot: "top",
+        price: 500
+      },
+      "goose-corp-shirt": {
+        name: "Goose Corp T-shirt",
+        description: "A charcoal T-shirt with a white goose logo on the chest.",
+        slot: "top"
+      },
+      "goose-costume": {
+        name: "Goose Costume",
+        slot: "torso",
+        description: "A padded white goose costume with an orange bill."
+      },
+      "decorative-robe-bottom": {
+        name: "Decorative robe bottom",
+        slot: "legs",
+        price: 10,
+        description: "A pink robe skirt with a rainbow hem."
+      },
+      "black-cloak-top": {
+        name: "Black cloak top",
+        slot: "top",
+        description: "An oversized black top with dropped shoulders, generous sleeves and a long, loose hem."
+      },
+      "black-cloak-bottom": {
+        name: "Black cloak bottom",
+        slot: "legs",
+        description: "A sweeping black skirt. Enough fabric to consider the wind a collaborator."
+      },
+      "downtown-tablet": {
+        name: "Downtown Teleport",
+        price: 20,
+        description: "A small purple tablet. Break it to return to downtown San Francisco."
+      },
+      "cupertino-tablet": {
+        name: "Cupertino Teleport",
+        price: 20
+      },
+      "tahoe-tablet": {
+        name: "Tahoe Teleport",
+        price: 20,
+        description: "A snowy sigil in purple stone. Break it to appear beside the Tahoe gondola."
+      },
+      "goblin-village-tablet": {
+        name: "Goblin Village Teleport",
+        price: 20
+      },
+      "ice-top": {
+        name: "Ice top",
+        slot: "top",
+        defense: 5,
+        color: "#92d9ed",
+        trim: "#e1faff",
+        description: "A crystalline cuirass. While equipped, blocks up to 5 damage per incoming combat hit."
+      },
+      "ice-pants": {
+        name: "Ice pants",
+        slot: "legs",
+        defense: 5,
+        color: "#78bde5",
+        trim: "#d1f4ff",
+        description: "Frosted greaves. While equipped, block up to 5 damage per incoming combat hit."
+      },
+      sandwich: {
+        name: "Sandwich",
+        healing: 15,
+        pickupPrice: 3,
+        deliveryPrice: 15,
+        inNOutPrice: 2,
+        description: "A sandwich. Store it in your food bag and eat it to recover hitpoints."
+      },
+      peptides: {
+        name: "Peptides",
+        description: "A tiny vial with a very large social network. Ray accepts these at the Freemasons\u2019 Guild."
+      },
+      coins: {
+        name: "Coins",
+        description: "Loose coins, awaiting a less theoretical owner."
+      },
+      "goose-membership-card": {
+        name: "Goose Corp membership card",
+        description: "A very official-looking card. The fine print seems to be turning to dust.",
+        pickup: "disintegrate",
+        pickupMessageId: "world-message.loot.goose-card-disintegrates"
+      },
+      "stetson-hat": {
+        name: "Stetson",
+        slot: "hat",
+        hatId: "stetson",
+        description: "A sand-dusted cowboy hat. The shark was keeping it under its hat."
+      },
+      "pirate-hat": {
+        name: "Pirate's hat",
+        slot: "hat",
+        hatId: "pirate",
+        description: "A salt-stained tricorn. The previous owner had an unusually flexible interpretation of navigation."
+      },
+      raptor: {
+        name: "Velociraptor remains",
+        description: "The emergency recovery protocol is now considerably less mobile."
+      },
+      kraken: {
+        name: "Kraken spoils",
+        coins: 100,
+        description: "The spoils of an extremely unwise maritime expedition."
+      }
+    }
+  };
+
   // src/content-runtime.ts
-  var texts = { "config.hats.module.name-1": "Folded paper hat", "config.hats.module.name-2": "Dockside beanie", "config.hats.module.name-3": "Panama", "config.hats.module.name-4": "Velvet beret", "config.hats.module.name-5": "Silk top hat", "config.hats.module.name-6": "Plumed cavalier", "config.hats.module.name-7": "Astronomer\u2019s hat", "config.hats.module.name-8": "Golden laurel", "config.hats.module.name-9": "Stone of Jordan", "config.hats.module.name-10": "Santa Hat", "config.hats.module.name-11": "Blue Partyhat", "config.hats.module.name-12": "Stetson", "config.hats.module.name-13": "Pirate's hat", "config.item-stats.module.name-1": "Tinfoil suit", "config.item-stats.module.description-2": "A crinkling silver suit, folded with restaurant precision.", "config.item-stats.module.name-3": "Weaponry upgrade kit", "config.item-stats.module.description-4": "Increases the fire rate of your railgun and Akimbos by 10% while owned.", "config.item-stats.module.name-5": "Combat boots", "config.item-stats.module.description-6": "Tall black leather boots with chrome buckles, steel toe caps, and heavy soles. Block 2 damage from each incoming combat hit.", "config.item-stats.module.name-7": "Ball chair", "config.item-stats.module.description-8": "A sculptural white sphere with red upholstery and a chrome pedestal. Choose Ball chair from the Sit menu to settle inside.", "config.item-stats.module.name-9": "Fist", "config.item-stats.module.name-10": "Bayonet", "config.item-stats.module.name-11": "Battleaxe", "config.item-stats.module.name-12": "Railgun", "config.item-stats.module.name-13": "Akimbos", "config.item-stats.module.name-14": "New Year\u2019s rocket", "config.item-stats.module.description-15": "An oversized decorative rocket. Light it for ten seconds, once a minute. Press Space while it burns to hop about a character-height into the air.", "config.item-stats.module.name-16": "Clock amulet", "config.item-stats.module.description-17": "A tiny clock on a chain. It keeps its own appointments.", "config.item-stats.module.name-18": "Hiking backpack", "config.item-stats.module.description-19": "A sturdy hiking pack with room for twenty sandwiches.", "config.item-stats.module.name-20": "Bison hide", "config.item-stats.module.description-21": "A heavy, shaggy hide. Yohji could make something remarkable from this.", "config.item-stats.module.name-22": "Black cloak top", "config.item-stats.module.description-23": "An oversized black top with dropped shoulders, generous sleeves and a long, loose hem.", "config.item-stats.module.name-24": "Black cloak bottom", "config.item-stats.module.description-25": "A sweeping black skirt. Enough fabric to consider the wind a collaborator.", "config.item-stats.module.name-26": "Downtown Teleport", "config.item-stats.module.description-27": "A small purple tablet. Break it to return to downtown San Francisco.", "config.item-stats.module.name-28": "Tahoe Teleport", "config.item-stats.module.description-29": "A snowy sigil in purple stone. Break it to appear beside the Tahoe gondola.", "config.item-stats.module.name-30": "Ice top", "config.item-stats.module.description-31": "A crystalline cuirass. While equipped, blocks up to 5 damage per incoming combat hit.", "config.item-stats.module.name-32": "Ice pants", "config.item-stats.module.description-33": "Frosted greaves. While equipped, block up to 5 damage per incoming combat hit.", "config.item-stats.module.name-34": "Sandwich", "config.item-stats.module.description-35": "A sandwich. Store it in your food bag and eat it to recover hitpoints.", "config.item-stats.module.name-36": "Peptides", "config.item-stats.module.description-37": "A tiny vial with a very large social network. Ray accepts these at the Freemasons\u2019 Guild.", "config.item-stats.module.name-38": "Coins", "config.item-stats.module.description-39": "Loose coins, awaiting a less theoretical owner.", "config.item-stats.module.name-40": "Goose Corp membership card", "config.item-stats.module.description-41": "A very official-looking card. The fine print seems to be turning to dust.", "config.item-stats.module.name-42": "Stetson", "config.item-stats.module.description-43": "A sand-dusted cowboy hat. The shark was keeping it under its hat.", "config.item-stats.module.name-44": "Pirate's hat", "config.item-stats.module.description-45": "A salt-stained tricorn. The previous owner had an unusually flexible interpretation of navigation.", "config.item-stats.module.name-46": "Velociraptor remains", "config.item-stats.module.description-47": "The emergency recovery protocol is now considerably less mobile.", "config.item-stats.module.name-48": "Kraken spoils", "config.item-stats.module.description-49": "The spoils of an extremely unwise maritime expedition.", "config.monster-drops.module.name-1": "Goblin", "config.monster-drops.module.description-2": "A Mount Tam goblin in heavy boots. The morning fog followed him down from the mountain.", "config.monster-drops.module.name-3": "EMF warrior", "config.monster-drops.module.description-4": "A coastal campaigner surrounded by an agitated chorus of radios.", "config.monster-drops.module.name-5": "Lost Goblin", "config.monster-drops.module.description-6": "A Mount Tam resident who took a wrong turn at the redwoods. He blames the trail signs.", "config.monster-drops.module.name-7": "Goblin furniture maker", "config.monster-drops.module.description-8": "Mount Tam\u2019s most temperamental modernist. His ball chairs are round; his customer service is pointed.", "config.monster-drops.module.name-9": "Seagull", "config.monster-drops.module.description-10": "A waterfront regular with strong opinions about unattended sandwiches.", "config.monster-drops.module.name-11": "Cow", "config.monster-drops.module.name-12": "Velociraptor", "config.monster-drops.module.name-13": "Kraken", "config.monster-drops.module.name-14": "Friendly bear", "config.monster-drops.module.name-15": "Bison", "config.monster-drops.module.description-16": "An enormous, shaggy park resident. The haircut is self-maintained.", "config.monster-drops.module.name-17": "Snow giant", "config.monster-drops.module.name-18": "Ice giant", "config.monster-drops.module.name-19": "Terminator", "config.monster-drops.module.description-20": "An abandoned building, a red eye, and a very persistent tenant.", "config.monster-drops.module.name-21": "Landshark", "config.monster-drops.module.description-22": "don't let him ride", "config.monster-drops.module.name-23": "Outlaw", "config.monster-drops.module.description-24": "A woodland entrepreneur whose entire business model is your pockets.", "config.monster-drops.module.name-25": "Lost Pirate", "config.monster-drops.module.description-26": "He followed the treasure map exactly. Unfortunately, it was a restaurant menu." };
+  var texts = { "config.hats.module.name-1": "Folded paper hat", "config.hats.module.name-2": "Dockside beanie", "config.hats.module.name-3": "Panama", "config.hats.module.name-4": "Velvet beret", "config.hats.module.name-5": "Silk top hat", "config.hats.module.name-6": "Plumed cavalier", "config.hats.module.name-7": "Astronomer\u2019s hat", "config.hats.module.name-8": "Golden laurel", "config.hats.module.name-9": "Stone of Jordan", "config.hats.module.name-10": "Santa Hat", "config.hats.module.name-11": "Blue Partyhat", "config.hats.module.name-12": "Stetson", "config.hats.module.name-13": "Pirate's hat", "config.monster-drops.module.name-1": "Goblin", "config.monster-drops.module.description-2": "A Mount Tam goblin in heavy boots. The morning fog followed him down from the mountain.", "config.monster-drops.module.name-3": "EMF warrior", "config.monster-drops.module.description-4": "A coastal campaigner surrounded by an agitated chorus of radios.", "config.monster-drops.module.name-5": "Lost Goblin", "config.monster-drops.module.description-6": "A Mount Tam resident who took a wrong turn at the redwoods. He blames the trail signs.", "config.monster-drops.module.name-7": "Goblin furniture maker", "config.monster-drops.module.description-8": "Mount Tam\u2019s most temperamental modernist. His ball chairs are round; his customer service is pointed.", "config.monster-drops.module.name-9": "Seagull", "config.monster-drops.module.description-10": "A waterfront regular with strong opinions about unattended sandwiches.", "config.monster-drops.module.name-11": "Cow", "config.monster-drops.module.name-12": "Velociraptor", "config.monster-drops.module.name-13": "Kraken", "config.monster-drops.module.name-14": "Friendly bear", "config.monster-drops.module.name-15": "Bison", "config.monster-drops.module.description-16": "An enormous, shaggy park resident. The haircut is self-maintained.", "config.monster-drops.module.name-17": "Snow giant", "config.monster-drops.module.name-18": "Ice giant", "config.monster-drops.module.name-19": "Terminator", "config.monster-drops.module.description-20": "An abandoned building, a red eye, and a very persistent tenant.", "config.monster-drops.module.name-21": "Landshark", "config.monster-drops.module.description-22": "don't let him ride", "config.monster-drops.module.name-23": "Outlaw", "config.monster-drops.module.description-24": "A woodland entrepreneur whose entire business model is your pockets.", "config.monster-drops.module.name-25": "Lost Pirate", "config.monster-drops.module.description-26": "He followed the treasure map exactly. Unfortunately, it was a restaurant menu." };
+  var CONTENT = {};
+  function subscribeContent() {
+  }
   function contentText(id) {
     if (!Object.hasOwn(texts, id)) throw new Error("Missing admin catalog text: " + id);
     return texts[id];
@@ -304,347 +657,18 @@
 
   // src/config/item-stats.ts
   function defineItems(items) {
-    return Object.freeze(items);
+    const copies = Object.fromEntries(
+      Object.entries(items).map(([id, item]) => [id, { ...item }])
+    );
+    return Object.freeze(copies);
   }
-  var ITEM_STATS = defineItems({
-    "tinfoil-suit": {
-      name: contentText("config.item-stats.module.name-1", {}),
-      slot: "top",
-      description: contentText("config.item-stats.module.description-2", {})
-    },
-    "railgun-upgrade": {
-      name: contentText("config.item-stats.module.name-3", {}),
-      description: contentText("config.item-stats.module.description-4", {})
-    },
-    "combat-boots": {
-      name: contentText("config.item-stats.module.name-5", {}),
-      slot: "feet",
-      defense: 2,
-      description: contentText("config.item-stats.module.description-6", {})
-    },
-    "party-boots": {
-      name: "Party Boots",
-      slot: "feet",
-      description: "Matilda\u2019s tall rainbow boots, with platform soles and rows of metal studs."
-    },
-    "eames-chair": {
-      name: "Eames Chair",
-      description: "A walnut lounge chair with dark leather cushions from the Goblin Furniture Factory."
-    },
-    "bertoia-chair": {
-      name: "Bertoia Chair",
-      description: "A wire-frame chair from the Goblin Furniture Factory."
-    },
-    "marshmallow-sofa": {
-      name: "Marshmallow Sofa",
-      description: "Eighteen red upholstered discs on a slim tubular steel frame."
-    },
-    "ovalia-chair": {
-      name: "Ovalia Chair",
-      description: "A tall fiberglass egg with beige upholstery and an aluminum pedestal."
-    },
-    "ball-chair": {
-      name: contentText("config.item-stats.module.name-7", {}),
-      description: contentText("config.item-stats.module.description-8", {})
-    },
-    unarmed: {
-      name: contentText("config.item-stats.module.name-9", {}),
-      slot: "weapon",
-      range: 1.35,
-      interval: 1.05,
-      min: 1,
-      max: 2,
-      minPerLevel: 0,
-      maxPerLevel: 0.8,
-      accuracy: 0.65,
-      accuracyPerLevel: 0.02,
-      accuracyCap: 0.9
-    },
-    "rolling-pin": {
-      name: "Metal rolling pin",
-      slot: "weapon",
-      price: 20,
-      range: 1.4,
-      interval: 1,
-      min: 2,
-      max: 5,
-      minPerLevel: 0.15,
-      maxPerLevel: 0.8,
-      accuracy: 0.78,
-      accuracyPerLevel: 0.012,
-      accuracyCap: 0.94,
-      description: "A stainless-steel rolling pin from Cotogna, with a solid barrel and worn wooden handles."
-    },
-    crowbar: {
-      name: "Crowbar",
-      slot: "weapon",
-      price: 35,
-      range: 1.5,
-      interval: 1,
-      min: 2,
-      max: 6,
-      minPerLevel: 0.15,
-      maxPerLevel: 0.8,
-      accuracy: 0.78,
-      accuracyPerLevel: 0.012,
-      accuracyCap: 0.94,
-      description: "A steel crowbar with a red shaft and a forged hook."
-    },
-    bayonet: {
-      name: contentText("config.item-stats.module.name-10", {}),
-      slot: "weapon",
-      range: 1.35,
-      interval: 1.05,
-      min: 4,
-      max: 11,
-      minPerLevel: 0.4,
-      maxPerLevel: 1,
-      accuracy: 0.92,
-      accuracyPerLevel: 6e-3,
-      accuracyCap: 0.98
-    },
-    battleaxe: {
-      name: contentText("config.item-stats.module.name-11", {}),
-      slot: "weapon",
-      price: 50,
-      range: 1.5,
-      interval: 1.05,
-      min: 6,
-      max: 11.5,
-      minPerLevel: 0.35,
-      maxPerLevel: 0.85,
-      accuracy: 0.935,
-      accuracyPerLevel: 5e-3,
-      accuracyCap: 0.985
-    },
-    railgun: {
-      name: contentText("config.item-stats.module.name-12", {}),
-      slot: "weapon",
-      range: 5,
-      interval: 0.8,
-      min: 8,
-      max: 12,
-      minPerLevel: 0.3,
-      maxPerLevel: 0.7,
-      accuracy: 0.95,
-      accuracyPerLevel: 4e-3,
-      accuracyCap: 0.99
-    },
-    akibo: {
-      name: contentText("config.item-stats.module.name-13", {}),
-      slot: "weapon",
-      range: 7,
-      interval: 0.8,
-      min: 8,
-      max: 12,
-      minPerLevel: 0.3,
-      maxPerLevel: 0.7,
-      accuracy: 0.95,
-      accuracyPerLevel: 4e-3,
-      accuracyCap: 0.99
-    },
-    "new-year-rocket": {
-      name: contentText("config.item-stats.module.name-14", {}),
-      slot: "back",
-      description: contentText("config.item-stats.module.description-15", {})
-    },
-    uni: { name: "Uni", description: "Fresh sea urchin roe. Rich Table buys it for 40 coins." },
-    "sand-bucket": { name: "Bucket of sand", description: "A bucket filled with ordinary sand." },
-    "iron-armor": {
-      name: "Iron torso armor",
-      slot: "torso",
-      defense: 3,
-      price: 120,
-      description: "A dark gray iron breastplate and pauldrons."
-    },
-    "iron-armor-legs": {
-      name: "Iron leg armor",
-      slot: "legs",
-      defense: 2,
-      price: 100,
-      description: "Articulated iron plates that cover the thighs, knees, and shins."
-    },
-    "gold-trimmed-iron-armor": {
-      name: "Gold-trimmed iron armor",
-      slot: "torso",
-      defense: 3,
-      description: "A dark iron breastplate edged with polished gold."
-    },
-    "armor-trimming-kit": {
-      name: "Armor trimming kit",
-      description: "Apply it to a suit of iron armor to add gold trim."
-    },
-    "bind-tablet": {
-      name: "Bind Tablet",
-      description: "Binds nearby PvP opponents for ten seconds. Breaking it deals 10 damage to you."
-    },
-    "recoil-amulet": {
-      name: "Recoil Amulet",
-      slot: "neck",
-      description: "Returns one fifth of damage taken to the attacker."
-    },
-    "missile-launcher": {
-      name: "Missile Launcher",
-      slot: "weapon",
-      description: "A heavy shoulder launcher built in the Berkeley lab. Uses one missile per shot.",
-      interval: 2.4,
-      range: 12,
-      min: 17,
-      max: 60,
-      minPerLevel: 0.9,
-      maxPerLevel: 2.95,
-      accuracy: 0.95,
-      accuracyPerLevel: 4e-3,
-      accuracyCap: 0.99
-    },
-    "clock-amulet": {
-      name: contentText("config.item-stats.module.name-16", {}),
-      slot: "neck",
-      description: contentText("config.item-stats.module.description-17", {})
-    },
-    backpack: {
-      name: contentText("config.item-stats.module.name-18", {}),
-      slot: "back",
-      price: 100,
-      description: contentText("config.item-stats.module.description-19", {})
-    },
-    "bison-hide": {
-      name: contentText("config.item-stats.module.name-20", {}),
-      description: contentText("config.item-stats.module.description-21", {})
-    },
-    "bear-pelt": {
-      name: "Bear pelt",
-      description: "Thick, dark Tahoe fur. The decorative robe clothier buys it for trim."
-    },
-    "fox-pelt": {
-      name: "Fox pelt",
-      description: "Russet Tahoe fur with a white underside. The decorative robe clothier buys it for trim."
-    },
-    "fighter-yard-pass": {
-      name: "Fighter Yard pass",
-      description: "A signed waiver and receipt for 10 coins, recorded by Tyler at the Fighter Yard."
-    },
-    "goblin-phone": {
-      name: "Goblin Phone",
-      price: 10,
-      description: "A clay brick. The industrialist says it makes a good notepad."
-    },
-    "decorative-robe-top": {
-      name: "Decorative robe top",
-      slot: "top",
-      price: 10,
-      description: "A pink long-sleeved robe top with rainbow trim."
-    },
-    "cashmere-turtleneck": {
-      name: "Cream cashmere turtleneck",
-      description: "A soft cream cashmere sweater with a thick, folded ribbed collar.",
-      slot: "top",
-      price: 500
-    },
-    "goose-corp-shirt": {
-      name: "Goose Corp T-shirt",
-      description: "A charcoal T-shirt with a white goose logo on the chest.",
-      slot: "top"
-    },
-    "goose-costume": {
-      name: "Goose Costume",
-      slot: "torso",
-      description: "A padded white goose costume with an orange bill."
-    },
-    "decorative-robe-bottom": {
-      name: "Decorative robe bottom",
-      slot: "legs",
-      price: 10,
-      description: "A pink robe skirt with a rainbow hem."
-    },
-    "black-cloak-top": {
-      name: contentText("config.item-stats.module.name-22", {}),
-      slot: "top",
-      description: contentText("config.item-stats.module.description-23", {})
-    },
-    "black-cloak-bottom": {
-      name: contentText("config.item-stats.module.name-24", {}),
-      slot: "legs",
-      description: contentText("config.item-stats.module.description-25", {})
-    },
-    "downtown-tablet": {
-      name: contentText("config.item-stats.module.name-26", {}),
-      price: 20,
-      description: contentText("config.item-stats.module.description-27", {})
-    },
-    "cupertino-tablet": {
-      name: "Cupertino Teleport",
-      price: 20
-    },
-    "tahoe-tablet": {
-      name: contentText("config.item-stats.module.name-28", {}),
-      price: 20,
-      description: contentText("config.item-stats.module.description-29", {})
-    },
-    "goblin-village-tablet": {
-      name: "Goblin Village Teleport",
-      price: 20
-    },
-    "ice-top": {
-      name: contentText("config.item-stats.module.name-30", {}),
-      slot: "top",
-      defense: 5,
-      color: "#92d9ed",
-      trim: "#e1faff",
-      description: contentText("config.item-stats.module.description-31", {})
-    },
-    "ice-pants": {
-      name: contentText("config.item-stats.module.name-32", {}),
-      slot: "legs",
-      defense: 5,
-      color: "#78bde5",
-      trim: "#d1f4ff",
-      description: contentText("config.item-stats.module.description-33", {})
-    },
-    sandwich: {
-      name: contentText("config.item-stats.module.name-34", {}),
-      healing: 15,
-      pickupPrice: 3,
-      deliveryPrice: 15,
-      inNOutPrice: 2,
-      description: contentText("config.item-stats.module.description-35", {})
-    },
-    peptides: {
-      name: contentText("config.item-stats.module.name-36", {}),
-      description: contentText("config.item-stats.module.description-37", {})
-    },
-    coins: {
-      name: contentText("config.item-stats.module.name-38", {}),
-      description: contentText("config.item-stats.module.description-39", {})
-    },
-    "goose-membership-card": {
-      name: contentText("config.item-stats.module.name-40", {}),
-      description: contentText("config.item-stats.module.description-41", {}),
-      pickup: "disintegrate",
-      pickupMessageId: "world-message.loot.goose-card-disintegrates"
-    },
-    "stetson-hat": {
-      name: contentText("config.item-stats.module.name-42", {}),
-      slot: "hat",
-      hatId: "stetson",
-      description: contentText("config.item-stats.module.description-43", {})
-    },
-    "pirate-hat": {
-      name: contentText("config.item-stats.module.name-44", {}),
-      slot: "hat",
-      hatId: "pirate",
-      description: contentText("config.item-stats.module.description-45", {})
-    },
-    raptor: {
-      name: contentText("config.item-stats.module.name-46", {}),
-      description: contentText("config.item-stats.module.description-47", {})
-    },
-    kraken: {
-      name: contentText("config.item-stats.module.name-48", {}),
-      coins: 100,
-      description: contentText("config.item-stats.module.description-49", {})
-    }
-  });
+  var ITEM_STATS = defineItems(items_default.items);
+  function applyItemContent(catalog) {
+    for (const [id, defaults] of Object.entries(items_default.items))
+      Object.assign(ITEM_STATS[id], defaults, catalog.items?.items[id]);
+  }
+  applyItemContent(CONTENT);
+  subscribeContent(applyItemContent);
   var EQUIPMENT_IDS = Object.freeze([
     "tinfoil-suit",
     "railgun-upgrade",

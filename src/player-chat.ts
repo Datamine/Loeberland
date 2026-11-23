@@ -1,6 +1,6 @@
 export const PLAYER_CHAT_LIMIT = 140;
 export const PLAYER_CHAT_COOLDOWN_MS = 700;
-export const QUICK_CHAT = ['Yo', 'OK', 'No'] as const;
+export const QUICK_CHAT = ['Yo', 'Ok', 'No'] as const;
 
 export function quickChatLine(value: unknown) {
   if (typeof value !== 'string' || value.length > 2) return '';

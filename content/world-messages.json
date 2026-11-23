@@ -279,7 +279,7 @@
     "template": "That personal journey is unavailable."
   },
   "world-message.server.game.that-point-is-blocked": {
-    "template": "That point is blocked."
+    "template": "No walkable ground near that point."
   },
   "world-message.server.game.unable-to-complete-this-action-try-again": {
     "template": "Unable to complete this action. Try again."
@@ -1543,9 +1543,6 @@
   },
   "world-message.src.world.interactions.a-traveler-accepts-your-offer-and-starts-climbing-they-will-pa": {
     "template": "A traveler accepts your offer and starts climbing. They will pay you 5 coins once aboard."
-  },
-  "world-message.src.world.interactions.best-way-to-see-the-city-borrow-the-bicycle-take-market-west-a": {
-    "template": "“Best way to see the city? Borrow the bicycle, take Market west, and go say hello to the ducks.”"
   },
   "world-message.src.world.interactions.borrow-a-windsurf-board-at-crissy-field-to-jump-over-the-whale": {
     "template": "Borrow a windsurf board at Crissy Field to jump over the whales."

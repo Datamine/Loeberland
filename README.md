@@ -25,6 +25,8 @@ REDIS_URL=redis://127.0.0.1:6379 npm --prefix server start
 
 Open **http://127.0.0.1:8787/** to play. The server saves world and player checkpoints to Redis when `REDIS_URL` is set. With `REDIS_URL` unset, `npm --prefix server start` uses SQLite at `server/data/world.sqlite` by default. Existing saves stay in their original backend when you switch. Docker Compose configures Redis by default. [Docker Compose setup](server/README.md#run-locally)
 
+Local loopback servers and `./deploy/local.sh` enable `:tp` for every character by default. Set `DEBUG_TELEPORT_ALL=false` to use individual character permissions. [Server settings](server/README.md#configuration)
+
 ### Game editor (authored content)
 
 Run the development server from the repository root:
@@ -33,7 +35,7 @@ Run the development server from the repository root:
 npm run dev
 ```
 
-Open **http://127.0.0.1:8080/editor.html** to edit authored content such as dialogue, NPC definitions, and interaction menus. Saving writes directly to `content/`.
+Open **http://127.0.0.1:8080/editor.html** to edit entities, dialogue, menus, world labels, and item stats. Saving writes directly to `content/`.
 
 With the game server running, open **http://127.0.0.1:8080/?server=ws://127.0.0.1:8787/ws** to play using the source client. Use `/?built` to preview the generated client.
 

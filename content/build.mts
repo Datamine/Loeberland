@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { validateContent } from './validate.js';
 import type { PathLike } from 'fs';
 import type { ContentBundle } from '../src/types/content.ts';
+import itemDefaults from './items.json' with { type: 'json' };
 import { mergeDialogueSources, type SharedChains } from './dialogue-sources.ts';
 import {
   mergeWorldMessages,
@@ -11,16 +12,17 @@ import {
   type WorldMessageSources,
 } from './world-message-sources.ts';
 
-const contentFiles = ['entities', 'dialogues', 'texts'] as const;
+const contentFiles = ['entities', 'dialogues', 'texts', 'items'] as const;
 export const contentSourcePaths = {
   entities: 'entities.json',
+  items: 'items.json',
   dialogues: 'dialogues.json',
   texts: 'texts.json',
   worldMessages: 'world-messages.json',
   tweetDerived: 'dialogues/tweet-derived/chains.json',
   other: 'dialogues/other/chains.json',
 } as const;
-type ContentSources = Pick<ContentBundle, 'entities' | 'texts'> & {
+type ContentSources = Pick<ContentBundle, 'entities' | 'texts' | 'items'> & {
   dialogues: Omit<ContentBundle['dialogues'], 'shared'>;
   tweetDerived: SharedChains;
   other: SharedChains;
@@ -46,6 +48,7 @@ export function writableContentSources(
     (ids.has(id) ? tweetDerived : other)[id] = chain;
   return {
     entities: bundle.entities,
+    items: bundle.items ?? { schema: 1, items: itemDefaults.items },
     dialogues,
     ...splitWorldMessages(bundle.texts),
     tweetDerived,
@@ -60,9 +63,10 @@ export async function readAuthoredContent(root = gameRoot) {
     ]),
   );
   const sources = Object.fromEntries(values) as ContentSources;
-  const { entities, dialogues, texts, worldMessages, tweetDerived, other } = sources;
+  const { entities, items, dialogues, texts, worldMessages, tweetDerived, other } = sources;
   const bundle = validateContent({
     entities,
+    items,
     dialogues: mergeDialogueSources(dialogues, tweetDerived, other),
     texts: mergeWorldMessages(texts, worldMessages),
   });

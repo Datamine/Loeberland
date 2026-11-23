@@ -38,7 +38,7 @@ For Docker Compose with Redis:
 ```sh
 npm ci
 npm run build
-docker compose -f server/compose.yaml up --build -d game
+DEBUG_TELEPORT_ALL=true docker compose -f server/compose.yaml up --build -d game
 docker compose -f server/compose.yaml logs -f game
 ```
 
@@ -331,6 +331,7 @@ allowed origins. It publishes game port 8787 on host loopback only.
 | `MAX_PLAYERS`                       | `2000`; admission limit, not a capacity guarantee                          |
 | `ALLOWED_ORIGINS`                   | Comma-separated exact frontend origins; loopback is accepted locally       |
 | `ALLOW_FILE_ORIGIN`                 | Off for non-loopback servers; explicitly allows `file://` clients          |
+| `DEBUG_TELEPORT_ALL`                | Allow every character to use `:tp`. Default follows the launch mode.      |
 | `ADMIN_HOST` / `ADMIN_PORT`         | Editor bind address/port: `127.0.0.1` / `8788`                             |
 | `ADMIN_USERNAME` / `ADMIN_PASSWORD` | Required HTTP Basic Auth credentials; no default                           |
 | `ADMIN_ENV_FILE`                    | Admin credentials/settings file; defaults to `server/.env`                 |
@@ -345,6 +346,11 @@ and other persistent settings in `server/.env` and use that file for every
 Compose command. Terraform stores its host settings at
 `/etc/loeberland/compose.env`; pass it with `--env-file` to avoid selecting a
 different Compose project or Redis database.
+
+`DEBUG_TELEPORT_ALL` accepts `true` or `false`. Non-production Node servers on
+loopback and `./deploy/local.sh` enable it by default. Production and shared
+Compose deployments default to individual character permissions. The direct Node
+default for local development is set in [tuning.mts](tuning.mts).
 
 ## Health and diagnostics
 

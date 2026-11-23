@@ -12,7 +12,6 @@ import { skillStatus, hitpointMaximum } from './progression.ts';
 import { ITEM_STATS } from './item-stats.ts';
 export const MAX_HITPOINTS = GAMEPLAY.maxHitpoints;
 export const ALIEN_HITPOINTS = 36;
-export const SANDWICH_HEALING = ITEM_STATS.sandwich.healing;
 
 const combatLevel = (value: number) => Math.max(1, Math.min(50, Math.floor(value) || 1));
 const combatRandom = (random: () => number) =>
@@ -88,7 +87,7 @@ export function createHitpoints(
       save();
       return hit;
     },
-    heal(amount = SANDWICH_HEALING) {
+    heal(amount = ITEM_STATS.sandwich.healing) {
       const healed = Math.min(state.max - state.hp, Math.max(0, Math.floor(amount)));
       state.hp += healed;
       save();

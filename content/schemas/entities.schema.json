@@ -33,7 +33,6 @@
           },
           "menus": {
             "type": "array",
-            "minItems": 1,
             "items": {
               "type": "object",
               "properties": {
@@ -136,6 +135,9 @@
           },
           "source": {
             "type": "string"
+          },
+          "labelAuditImport": {
+            "type": "boolean"
           },
           "position": {
             "type": "object",

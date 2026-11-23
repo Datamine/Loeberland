@@ -1,6 +1,6 @@
 import type { Actor, InteractionSight, SignAtlas } from './types/world.ts';
 // CONTENT-BINDINGS-MIGRATED
-import { contentText } from './content-runtime.ts';
+import { CONTENT, contentText } from './content-runtime.ts';
 import type { Mesh } from './geometry.ts';
 import { pose } from './geometry.ts';
 import { westernCoastX } from './coastline.ts';
@@ -15,6 +15,12 @@ export const DOG_SURFING = Object.freeze({
   sign: 'PACIFICA DOG SURFING',
   names: ['Biscuit', 'Nori', 'Captain Pickles'] satisfies [string, string, string],
 });
+function contestantName(index: number) {
+  return (
+    CONTENT.entities.definitions['sight:pacifica-surf-dog-' + index]?.name ??
+    DOG_SURFING.names[index]
+  );
+}
 const dogColors = ['#b28958', '#e3d5bd', '#5b5b56'];
 const jerseyColors = ['#d46c57', '#62a9c2', '#e9b44c'];
 const boardColors = ['#e38f58', '#64aeb4', '#ab82bd'];
@@ -24,8 +30,8 @@ export function dogSurfingRound(seconds: number) {
   const round = Math.floor(seconds / DOG_SURFING.roundSeconds),
     elapsed =
       ((seconds % DOG_SURFING.roundSeconds) + DOG_SURFING.roundSeconds) % DOG_SURFING.roundSeconds,
-    scores = DOG_SURFING.names.map((name, i) => ({
-      name,
+    scores = DOG_SURFING.names.map((_, i) => ({
+      name: contestantName(i),
       score: 7 + ((round * 7 + i * 3) % 30) / 10,
     }));
   const winner = scores.reduce((a, b) => (a.score >= b.score ? a : b));
@@ -219,7 +225,7 @@ export function drawDogSurfingCompetition(
   addTarget: (start: number, sight: InteractionSight) => void,
 ) {
   const { elapsed } = dogSurfingRound(seconds);
-  for (const [i, name] of DOG_SURFING.names.entries()) {
+  for (const [i] of DOG_SURFING.names.entries()) {
     const run = dogSurfingRun(elapsed, i);
     drawCompetitionWave(m, run, seconds);
     const { x, z, angle } = run;
@@ -256,7 +262,7 @@ export function drawDogSurfingCompetition(
     addTarget(start, {
       id: 'pacifica-surf-dog-' + i,
       kind: 'surfing-dog',
-      label: name,
+      label: contestantName(i),
       description: contentText('dog-surfing.contestant-' + i + '.description'),
     });
   }

@@ -10,6 +10,7 @@ import type {
   SharedEditorRecord,
   EditorCatalog,
   WorldMessageRecord,
+  EditorItemRecord,
 } from '../src/types/editor.ts';
 import type { TextSpec, TextValues, DialogueVariant, ContentBundle } from '../src/types/content.ts';
 import { isRecord } from '../src/types/json.ts';
@@ -59,7 +60,7 @@ export function projectCatalog(bundle: ContentBundle, revision = bundle.revision
     file: ContentFile,
     path: readonly string[],
     value: T,
-    kind?: 'text' | 'scalar',
+    kind?: 'text' | 'scalar' | 'number',
     values?: TextValues,
   ): T;
   function bind(
@@ -189,6 +190,7 @@ export function projectCatalog(bundle: ContentBundle, revision = bundle.revision
       definitionId: d.id,
       kind: d.kind,
       source: p.source,
+      ...(p.labelAuditImport && { labelAuditImport: true }),
       position: p.position,
       appearance: p.appearance,
       bindings: {},
@@ -327,23 +329,59 @@ export function projectCatalog(bundle: ContentBundle, revision = bundle.revision
     r.dialogue = node(chain.start, ['dialogue']);
     return r;
   });
-  return {
-    schema: 2,
-    fingerprint: revision,
-    records,
-    sharedDialogue,
-    worldMessages: Object.entries(texts.texts)
-      .filter(([id]) => id.startsWith(WORLD_MESSAGE_PREFIX))
+  const labelsAndMessages = (include: (id: string) => boolean, prefix = '') =>
+    Object.entries(texts.texts)
+      .filter(([id]) => include(id))
       .map(([id, { template }]) => {
         const record: WorldMessageRecord = {
           key: id,
-          name: id.slice(WORLD_MESSAGE_PREFIX.length),
+          name: id.startsWith('world-label.sign.')
+            ? 'Sign · ' + decodeURIComponent(id.slice('world-label.sign.'.length))
+            : id.slice(prefix.length),
           bindings: {},
           template: '',
         };
         record.template = bind(record, ['template'], 'texts', ['texts', id, 'template'], template);
         return record;
-      }),
+      });
+  const items = Object.entries(bundle.items?.items || {}).map(([id, item]) => {
+    const record: EditorItemRecord = {
+      key: 'item:' + id,
+      name: item.name,
+      bindings: {},
+      fields: {},
+    };
+    for (const [key, value] of Object.entries(item)) {
+      if (['slot', 'hatId', 'pickup', 'pickupMessageId'].includes(key)) continue;
+      const path = ['fields', key];
+      record.fields[key] = bind(
+        record,
+        path,
+        'items',
+        ['items', id, key],
+        String(value),
+        typeof value === 'number' ? 'number' : 'scalar',
+      );
+      record.bindings[JSON.stringify(path)].value = value;
+    }
+    return record;
+  });
+  return {
+    schema: 2,
+    fingerprint: revision,
+    records,
+    sharedDialogue,
+    worldMessages: labelsAndMessages(
+      (id) => id.startsWith(WORLD_MESSAGE_PREFIX),
+      WORLD_MESSAGE_PREFIX,
+    ),
+    labels: labelsAndMessages(
+      (id) =>
+        !id.startsWith(WORLD_MESSAGE_PREFIX) &&
+        (/\.(?:label|name|named|serviceTitle|signText|choice)(?:-|\.|$)/.test(id) ||
+          id.startsWith('world-label.')),
+    ),
+    items,
     playerState: structuredClone(validatePlayerDocument(defaults)),
   };
 }
