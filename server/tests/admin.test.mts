@@ -135,7 +135,16 @@ test('editor reads and atomically edits checkpoint-backed players and names inst
   assert.equal((await store.list()).names[0].name, 'NewPilot');
   const raw = await store.get('state', 'player:alice');
   assert.equal(JSON.parse(raw).inventory.coins, 20);
-  await store.save('state', 'player:alice', raw, { inventory: { coins: 40 } });
+  const character = await store.get('player', 'alice');
+  const value = JSON.parse(character);
+  await assert.rejects(
+    store.save('player', 'alice', character, { ...value, state: { ...value.state, debugTeleport: 'true' } }),
+    /debug teleport must be true or false/,
+  );
+  await store.save('player', 'alice', character, {
+    ...value,
+    state: { inventory: { coins: 40 }, debugTeleport: true },
+  });
   await assert.rejects(
     store.save('state', 'player:alice', raw, { inventory: { coins: 0 } }),
     /changed or was deleted/,
@@ -164,6 +173,7 @@ test('editor reads and atomically edits checkpoint-backed players and names inst
     );
     assert.equal(saved.version, 10);
     assert.equal(saved.records[1][1].inventory.coins, 40);
+    assert.equal(saved.records[1][1].debugTeleport, true);
     assert.equal(saved.names[0].name, 'RiverPilot');
     assert.equal(
       JSON.parse(

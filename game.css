@@ -915,6 +915,9 @@ body.sf-mode .sf-toggle {
 #sf-world #sf-minimap {
   border-radius: 1px;
 }
+.sf-help a {
+  color: #ffdf93;
+}
 .sf-hover {
   background: #25251deb;
   border-color: #9d8b60;
@@ -1149,6 +1152,41 @@ body.sf-mode .sf-toggle {
 }
 .sf-side-hud > * {
   pointer-events: auto;
+}
+.sf-side-hud,
+.sf-journal {
+  position: relative;
+}
+#sf-world .sf-panel-toggle {
+  position: absolute;
+  inset-inline-end: 0;
+  inset-block-end: 100%;
+  display: grid;
+  width: 26px;
+  height: 23px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #a39370;
+  border-radius: 3px 3px 0 0;
+  background: #554e3e;
+  color: #efdfb1;
+  font: 16px/1 Tahoma, sans-serif;
+}
+#sf-world .sf-panel-toggle:hover {
+  background: #74654b;
+}
+.sf-journal:has(> #sf-chat-panel[hidden]):not(.sf-conversing, :has(> #sf-server-update:not([hidden]))) {
+  width: max-content;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+#sf-world .sf-side-hud:has(> #sf-actions-panel[hidden]) > .sf-panel-toggle,
+#sf-world .sf-journal:has(> #sf-chat-panel[hidden]):not(.sf-conversing, :has(> #sf-server-update:not([hidden]))) > .sf-panel-toggle {
+  position: static;
+  border-radius: 3px;
 }
 .sf-actions {
   position: relative;
@@ -1553,6 +1591,7 @@ body.sf-mode .sf-toggle {
     -1px -1px 2px #171b15;
 }
 .sf-character {
+  --sf-character-padding-inline: 32px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -1560,11 +1599,15 @@ body.sf-mode .sf-toggle {
   width: min(680px, calc(100% - 32px));
   height: 560px;
   max-height: calc(100dvh - 32px);
+  padding-inline: var(--sf-character-padding-inline);
   overflow: hidden;
 }
 .sf-character-panels {
+  --sf-character-scroll-inset: calc(var(--sf-character-padding-inline) - 4px);
   flex: 1;
   min-height: 0;
+  margin-inline-end: calc(-1 * var(--sf-character-scroll-inset));
+  padding-inline-end: var(--sf-character-scroll-inset);
   overflow: auto;
   scrollbar-gutter: stable;
 }
@@ -1609,7 +1652,8 @@ body.sf-mode .sf-toggle {
 }
 @media (max-width: 510px) {
   .sf-character {
-    padding: 16px;
+    --sf-character-padding-inline: 16px;
+    padding-block: 16px;
   }
   .sf-character-body {
     grid-template-columns: minmax(0, 1fr);

@@ -257,8 +257,8 @@
   "world-message.server.game.a-grappling-hook-costs-5-coins": {
     "template": "A grappling hook costs 5 coins."
   },
-  "world-message.server.game.debug-teleporting-is-disabled-on-this-server": {
-    "template": "Debug teleporting is disabled on this server."
+  "world-message.debug.teleport-not-enabled": {
+    "template": "Debug teleport is not enabled for this character."
   },
   "world-message.server.game.detention-is-controlled-by-the-server": {
     "template": "Detention is controlled by the server."

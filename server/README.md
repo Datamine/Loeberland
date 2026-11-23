@@ -334,7 +334,6 @@ allowed origins. It publishes game port 8787 on host loopback only.
 | `SHUTDOWN_TIMEOUT_MS`               | `10000`                                                                    |
 | `MAX_PLAYERS`                       | `2000`; admission limit, not a capacity guarantee                          |
 | `ALLOWED_ORIGINS`                   | Comma-separated exact frontend origins; loopback is accepted locally       |
-| `ALLOW_DEBUG`                       | `0`; set to `1` only for local/debug server actions                        |
 | `ALLOW_FILE_ORIGIN`                 | Off for non-loopback servers; explicitly allows `file://` clients          |
 | `ADMIN_HOST` / `ADMIN_PORT`         | Editor bind address/port: `127.0.0.1` / `8788`                             |
 | `ADMIN_USERNAME` / `ADMIN_PASSWORD` | Required HTTP Basic Auth credentials; no default                           |

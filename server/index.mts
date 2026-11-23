@@ -10,7 +10,6 @@ interface ServerOptions {
   store?: CheckpointStore | null;
   geometry?: ServerGeometry | null;
   maxPlayers?: number;
-  allowDebug?: boolean;
   allowedOrigins?: string[];
   checkpointIntervalMs?: number;
   shutdownTimeoutMs?: number;
@@ -52,7 +51,6 @@ export async function startServer({
   store: providedStore = null,
   geometry: providedGeometry = null,
   maxPlayers = Number(process.env.MAX_PLAYERS) || 2000,
-  allowDebug = process.env.ALLOW_DEBUG === '1',
   allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
     .split(',')
     .map((s) => s.trim())
@@ -99,7 +97,6 @@ export async function startServer({
       geometry,
       store: ram,
       maxPlayers,
-      allowDebug,
       serverBuild,
       googleChatAvailable: !!googleChat,
       ...chatPolicy,

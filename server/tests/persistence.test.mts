@@ -23,7 +23,6 @@ test('SQLite restarts retain identity, username cooldown, private progress and s
       geometry: fixtureGeometry(),
       store,
       now: () => 1000000,
-      allowDebug: true,
       random: () => 0.5,
     });
     const a = await player(game, 43, { 'sf-sunglasses-v1': '{"owned":true}' });

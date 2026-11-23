@@ -100,9 +100,10 @@ node --import ./node_modules/tsx/dist/loader.mjs server/load-test.mts --url ws:/
 | `mixed`   | 20% paired PvP, 20% followers, remainder walking; PvP deaths request respawn                                                                                        |
 | `follow`  | All but one player follow a moving leader                                                                                                                           |
 | `idle`    | Idle connections and application pings                                                                                                                              |
-| `spread`  | Walking at authored positions; requires a disposable `ALLOW_DEBUG=1` server and `--locations file.json` containing safe world positions `[{"x":92.2,"z":120}, ...]` |
+| `spread`  | Walking at authored positions from `--locations file.json` containing safe world positions `[{"x":92.2,"z":120}, ...]` |
 
-Keep debug teleportation disabled publicly. Warmup learns accepted walking
+Runs with authored locations require a fixed `--identity-seed` and saved
+benchmark characters with **Allow debug teleport** enabled. Warmup learns accepted walking
 destinations, then measured movement cycles those endpoints. Check
 `clientsWithLearnedRoutes` and rejection reasons to assess actual workload.
 Walking/fighting clients submit up to two requests/second, staggered in 25 ms
@@ -119,7 +120,7 @@ Inspect rejected actions separately; they are still answered requests.
 Mixed runs also count actual received PvP hit messages and followers observed
 moving. A mixed run with no hits fails. For a repeatable native-map combat site,
 use `--locations` with two verified, adjacent clear positions on a disposable
-debug-enabled backend; combatants are returned there after respawning.
+backend with authorized benchmark characters. Combatants are returned there after respawning.
 `follow --locations file.json` also places followers near the leader before
 starting; use this when reusing identities previously scattered across the map.
 `--identity-seed disposable-test-name` reuses the same anonymous test accounts

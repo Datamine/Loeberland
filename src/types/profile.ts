@@ -7,6 +7,7 @@ export interface PlayerProfile {
   hasPlayed?: boolean;
   chatUnlocked?: boolean;
   upgrade: boolean;
+  debugTeleport: boolean;
   characterPlaySeconds?: number;
   characterReminderAt?: number;
   privateState: Record<string, string>;

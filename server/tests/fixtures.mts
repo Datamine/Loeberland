@@ -48,7 +48,6 @@ export async function fixture() {
       store,
       now: () => time,
       random: () => 0.5,
-      allowDebug: true,
     });
   return { game, store, geometry, advance: (ms: number) => (time += ms) };
 }
@@ -56,6 +55,7 @@ export async function player(
   game: TestGame,
   number: number,
   privateState: Record<string, string> = {},
+  debugTeleport = true,
 ) {
   const messages: CapturedMessage[] = [],
     transport = {
@@ -83,6 +83,7 @@ export async function player(
         'player:' + owner,
         {
           privateState: seeded,
+          debugTeleport,
           inventory: {
             epoch: 0,
             revision: 0,

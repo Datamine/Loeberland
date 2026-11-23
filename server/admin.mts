@@ -79,7 +79,7 @@ function validate(
   if (kind === 'player') {
     if (Object.keys(value).sort().join(',') !== 'state,username')
       throw fail(400, 'Player fields must be state and username.');
-    if (value.state !== null) validate('state', key, value.state);
+    if (value.state !== null) validate('state', 'player:' + key, value.state);
     if (value.username !== null) validate('usernames', key, value.username);
   }
   if (kind === 'usernames') {
@@ -96,6 +96,13 @@ function validate(
     if (Object.keys(value).sort().join(',') !== 'canonical,changed,name,owner')
       throw fail(400, 'Username fields must be owner, canonical, name and changed.');
   }
+  if (
+    kind === 'state' &&
+    key.startsWith('player:') &&
+    Object.hasOwn(value, 'debugTeleport') &&
+    typeof value.debugTeleport !== 'boolean'
+  )
+    throw fail(400, 'Allow debug teleport must be true or false.');
 }
 
 export async function openAdminStore({

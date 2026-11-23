@@ -64,6 +64,10 @@
         border: 1px solid #b9c2cf;
         border-radius: 6px;
       }
+      #debug-teleport {
+        width: auto;
+        margin: 0 6px 0 0;
+      }
       button {
         cursor: pointer;
         padding: 9px 14px;
@@ -249,6 +253,10 @@
           <button id="reload" disabled>Reload record</button>
           <span id="dirty"></span>
         </div>
+        <label id="debug-teleport-field" hidden>
+          <input id="debug-teleport" type="checkbox" />
+          Allow debug teleport
+        </label>
         <label for="editor">Record value (JSON)</label>
         <div class="record-fields">
           <textarea
@@ -968,17 +976,21 @@
     $("equipment-fields").append(label);
     equipmentFields.set(key, select);
   }
-  function playerDraft() {
+  function characterDraft() {
     try {
       const root = JSON.parse($("editor").value);
-      const record = isRecord(root) ? root.state : null;
-      if (!isRecord(record)) return null;
-      const player = isRecord(record.playerState) ? record.playerState : record;
-      if (!isRecord(player.inventory) || !isRecord(player.quests)) return null;
-      return { root, record, player, inventory: player.inventory, quests: player.quests };
+      return isRecord(root) && isRecord(root.state) ? { root, record: root.state } : null;
     } catch {
       return null;
     }
+  }
+  function playerDraft() {
+    const draft = characterDraft();
+    if (!draft) return null;
+    const { record } = draft;
+    const player = isRecord(record.playerState) ? record.playerState : record;
+    if (!isRecord(player.inventory) || !isRecord(player.quests)) return null;
+    return { ...draft, player, inventory: player.inventory, quests: player.quests };
   }
   function renderEquipment() {
     $("equipment").hidden = selected?.kind !== "player";
@@ -1034,6 +1046,10 @@
     $("editor").disabled = busy || !selected;
     $("refresh").disabled = busy;
     $("dirty").textContent = changed() ? "Unsaved changes" : "";
+    const character = selected?.kind === "player" ? characterDraft() : null;
+    $("debug-teleport-field").hidden = selected?.kind !== "player";
+    $("debug-teleport").checked = character?.record.debugTeleport === true;
+    $("debug-teleport").disabled = readOnly || busy || !character;
     renderEquipment();
   }
   async function api(path, options = {}) {
@@ -1143,6 +1159,13 @@
     if (selected) void load(selected);
   };
   $("refresh").onclick = () => refresh().catch((error) => status(errorMessage(error), "error"));
+  $("debug-teleport").onchange = () => {
+    const draft = characterDraft();
+    if (readOnly || busy || selected?.kind !== "player" || !draft) return;
+    draft.record.debugTeleport = $("debug-teleport").checked;
+    $("editor").value = JSON.stringify(draft.root, null, 2);
+    controls();
+  };
   $("search").oninput = draw;
   $("editor").oninput = controls;
   window.addEventListener("beforeunload", (event) => {

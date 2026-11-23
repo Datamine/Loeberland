@@ -324,7 +324,9 @@ backend together. Old clients must reload.
 
 The server builds the authored map without DOM or GPU resources. Clients send
 movement destinations; the server advances routes and returns authoritative
-poses, which the browser interpolates. Debug teleporting requires `ALLOW_DEBUG=1`.
+poses, which the browser interpolates. To grant debug teleport, select a
+character in the admin editor, check **Allow debug teleport**, and save. The
+character can then use `:tp x,y` when the game loads the updated record.
 
 ### Following and replication
 

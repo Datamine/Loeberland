@@ -121,7 +121,7 @@
       "format": "esm"
     },
     "src/types/ui.ts": {
-      "bytes": 10970,
+      "bytes": 11180,
       "imports": [],
       "format": "esm"
     },
@@ -181,7 +181,7 @@
       }
     },
     "content/world-messages.json": {
-      "bytes": 98380,
+      "bytes": 98354,
       "imports": [],
       "format": "esm",
       "with": {
@@ -442,7 +442,7 @@
       "format": "esm"
     },
     "src/multiplayer-client.ts": {
-      "bytes": 27412,
+      "bytes": 27421,
       "imports": [
         {
           "path": "src/types/json.ts",
@@ -709,7 +709,7 @@
       "format": "esm"
     },
     "src/characters.ts": {
-      "bytes": 84543,
+      "bytes": 86395,
       "imports": [
         {
           "path": "src/wearable-models.ts",
@@ -1653,7 +1653,7 @@
       "format": "esm"
     },
     "src/player-document.ts": {
-      "bytes": 10584,
+      "bytes": 10642,
       "imports": [
         {
           "path": "src/types/json.ts",
@@ -7871,7 +7871,7 @@
       "format": "esm"
     },
     "src/debug-console.ts": {
-      "bytes": 8313,
+      "bytes": 8551,
       "imports": [
         {
           "path": "src/content-runtime.ts",
@@ -8204,7 +8204,7 @@
       }
     },
     "src/world/interactions.ts": {
-      "bytes": 200952,
+      "bytes": 201102,
       "imports": [
         {
           "path": "src/backyard-details.ts",
@@ -9011,7 +9011,7 @@
       "format": "esm"
     },
     "src/world/scene.ts": {
-      "bytes": 146328,
+      "bytes": 147732,
       "imports": [
         {
           "path": "src/ui/tabs.ts",
@@ -10089,7 +10089,7 @@
       "imports": [],
       "exports": [],
       "inputs": {},
-      "bytes": 9643175
+      "bytes": 9649105
     },
     "explore.js": {
       "imports": [],
@@ -10175,7 +10175,7 @@
           "bytesInOutput": 124159
         },
         "content/world-messages.json": {
-          "bytesInOutput": 88679
+          "bytesInOutput": 88653
         },
         "content/world-message-sources.ts": {
           "bytesInOutput": 96
@@ -10220,7 +10220,7 @@
           "bytesInOutput": 1287
         },
         "src/multiplayer-client.ts": {
-          "bytesInOutput": 16823
+          "bytesInOutput": 16828
         },
         "src/server-connection.ts": {
           "bytesInOutput": 2853
@@ -10286,7 +10286,7 @@
           "bytesInOutput": 930
         },
         "src/characters.ts": {
-          "bytesInOutput": 42678
+          "bytesInOutput": 43906
         },
         "src/surfing.ts": {
           "bytesInOutput": 7614
@@ -11033,7 +11033,7 @@
           "bytesInOutput": 184
         },
         "src/debug-console.ts": {
-          "bytesInOutput": 5034
+          "bytesInOutput": 5189
         },
         "src/sales-conference.ts": {
           "bytesInOutput": 2588
@@ -11084,7 +11084,7 @@
           "bytesInOutput": 1477
         },
         "src/world/interactions.ts": {
-          "bytesInOutput": 135563
+          "bytesInOutput": 135675
         },
         "src/ai-lab.ts": {
           "bytesInOutput": 3137
@@ -11141,7 +11141,7 @@
           "bytesInOutput": 3175
         },
         "src/world/scene.ts": {
-          "bytesInOutput": 81692
+          "bytesInOutput": 82676
         },
         "src/world/model.ts": {
           "bytesInOutput": 85
@@ -11150,7 +11150,7 @@
           "bytesInOutput": 1701
         }
       },
-      "bytes": 4402913
+      "bytes": 4405371
     }
   }
 }

@@ -281,7 +281,6 @@ test('a reward waits for its own durable revision when an older background flush
   const game = await createGame({
       geometry: fixtureGeometry(),
       store,
-      allowDebug: true,
       random: () => 0.5,
     }),
     a = await player(game, 98),
@@ -315,7 +314,6 @@ test('disconnecting during a loot commit cannot evict or discard the pending rew
   const game = await createGame({
       geometry: fixtureGeometry(),
       store,
-      allowDebug: true,
       random: () => 0.5,
     }),
     a = await player(game, 99),

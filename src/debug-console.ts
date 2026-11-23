@@ -18,6 +18,7 @@ interface DebugConsoleOptions {
   performanceOutputs?: Record<string, HTMLElement | null>;
   getPerformance?: () => Record<string, string>;
   getPosition: () => Point;
+  canTeleport: () => boolean;
   teleport: (x: number, y: number) => ActionReceipt;
   beforeOpen: () => void;
   onMessage: (message: string) => void;
@@ -96,12 +97,17 @@ export function createDebugConsole({
   performanceOutputs = {},
   getPerformance = () => ({}),
   getPosition,
+  canTeleport,
   teleport,
   beforeOpen,
   onMessage,
   focusWorld,
 }: DebugConsoleOptions) {
   const history: string[] = [];
+  const teleportButton = requiredValue(
+    panel.querySelector<HTMLButtonElement>('[data-debug-teleport]'),
+    'Debug teleport button',
+  );
   let historyIndex = 0,
     draft = '';
   const editing = (target: EventTarget | null) =>
@@ -112,6 +118,8 @@ export function createDebugConsole({
       ));
   function update() {
     if (panel.hidden) return;
+    const teleportHidden = !canTeleport();
+    if (teleportButton.hidden !== teleportHidden) teleportButton.hidden = teleportHidden;
     const build = getServerBuild();
     const commit = build?.commit ?? '';
     const shortCommit = commit.slice(0, 12) || '—';
@@ -226,10 +234,7 @@ export function createDebugConsole({
       focusWorld();
     },
   );
-  requiredValue(
-    panel.querySelector('[data-debug-teleport]'),
-    'Debug teleport button',
-  ).addEventListener('click', () => {
+  teleportButton.addEventListener('click', () => {
     const p = getPosition();
     openCommand(':tp ' + Number(p.x.toFixed(4)) + ',' + Number(p.y.toFixed(4)));
   });

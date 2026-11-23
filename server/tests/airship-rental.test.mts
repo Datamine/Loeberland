@@ -294,7 +294,6 @@ test('the persisted 20-minute reset returns the next rental to 5 coins, includin
     geometry: fixtureGeometry(),
     store: f.store,
     now: () => time,
-    allowDebug: true,
   });
   const again = await player(game, 432);
   atAgent(again);
@@ -308,7 +307,6 @@ test('the persisted 20-minute reset returns the next rental to 5 coins, includin
     geometry: fixtureGeometry(),
     store: f.store,
     now: () => time,
-    allowDebug: true,
   });
   assert.equal(ship(game).resetAt, next + 4 * AIRSHIP_RULES.resetIntervalMs);
   assert.equal(ship(game).rentalPrice, 5);
@@ -353,7 +351,6 @@ test('a paid bid and price survive reconnect and restart without exposing the an
     geometry: fixtureGeometry(),
     store: f.store,
     now: () => 1001000,
-    allowDebug: true,
   });
   const again = await player(game, 442);
   atAgent(again);

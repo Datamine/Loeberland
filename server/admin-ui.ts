@@ -35,6 +35,8 @@ interface AdminElements {
   source: HTMLParagraphElement;
   title: HTMLHeadingElement;
   key: HTMLParagraphElement;
+  'debug-teleport-field': HTMLLabelElement;
+  'debug-teleport': HTMLInputElement;
   equipment: HTMLElement;
   'equipment-fields': HTMLDivElement;
   'equipment-hint': HTMLParagraphElement;
@@ -68,17 +70,21 @@ for (const [key, caption] of Object.entries(slots) as [AdminEquipmentSlot, strin
   $('equipment-fields').append(label);
   equipmentFields.set(key, select);
 }
-function playerDraft() {
+function characterDraft() {
   try {
     const root: unknown = JSON.parse($('editor').value);
-    const record = isRecord(root) ? root.state : null;
-    if (!isRecord(record)) return null;
-    const player = isRecord(record.playerState) ? record.playerState : record;
-    if (!isRecord(player.inventory) || !isRecord(player.quests)) return null;
-    return { root, record, player, inventory: player.inventory, quests: player.quests };
+    return isRecord(root) && isRecord(root.state) ? { root, record: root.state } : null;
   } catch {
     return null;
   }
+}
+function playerDraft() {
+  const draft = characterDraft();
+  if (!draft) return null;
+  const { record } = draft;
+  const player = isRecord(record.playerState) ? record.playerState : record;
+  if (!isRecord(player.inventory) || !isRecord(player.quests)) return null;
+  return { ...draft, player, inventory: player.inventory, quests: player.quests };
 }
 function renderEquipment() {
   $('equipment').hidden = selected?.kind !== 'player';
@@ -143,6 +149,10 @@ function controls() {
   $('editor').disabled = busy || !selected;
   $('refresh').disabled = busy;
   $('dirty').textContent = changed() ? 'Unsaved changes' : '';
+  const character = selected?.kind === 'player' ? characterDraft() : null;
+  $('debug-teleport-field').hidden = selected?.kind !== 'player';
+  $('debug-teleport').checked = character?.record.debugTeleport === true;
+  $('debug-teleport').disabled = readOnly || busy || !character;
   renderEquipment();
 }
 function api(path: 'records', options?: RequestInit): Promise<AdminList>;
@@ -261,6 +271,13 @@ $('reload').onclick = () => {
   if (selected) void load(selected);
 };
 $('refresh').onclick = () => refresh().catch((error) => status(errorMessage(error), 'error'));
+$('debug-teleport').onchange = () => {
+  const draft = characterDraft();
+  if (readOnly || busy || selected?.kind !== 'player' || !draft) return;
+  draft.record.debugTeleport = $('debug-teleport').checked;
+  $('editor').value = JSON.stringify(draft.root, null, 2);
+  controls();
+};
 $('search').oninput = draw;
 $('editor').oninput = controls;
 window.addEventListener('beforeunload', (event) => {

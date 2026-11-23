@@ -2633,6 +2633,7 @@ export function createSFWorld({
                 ' MiB scenery',
         }),
         getPosition: () => debugMapPosition(player),
+        canTeleport: () => multiplayer?.state.debug === true,
         teleport: debugTeleport,
         beforeOpen: () => {
           keys.clear();
@@ -4124,6 +4125,35 @@ export function createSFWorld({
     closeCharacter();
     questMenu?.close();
   });
+  const chatPanel = $('sf-chat-panel');
+  const actionsPanel = $('sf-actions-panel');
+  const log = $('sf-log');
+  function bindPanelToggle(
+    button: HTMLButtonElement,
+    panel: HTMLElement,
+    name: string,
+    onExpand?: () => void,
+  ) {
+    function setExpanded(expanded: boolean) {
+      if (panel.hidden === !expanded) return;
+      panel.hidden = !expanded;
+      const label = (expanded ? 'Minimize ' : 'Restore ') + name;
+      button.setAttribute('aria-expanded', String(expanded));
+      button.setAttribute('aria-label', label);
+      button.title = label;
+      button.textContent = expanded ? '−' : '+';
+      if (expanded) onExpand?.();
+    }
+    button.addEventListener('click', () => setExpanded(panel.hidden));
+    button.addEventListener('keydown', (event) => {
+      if (event.key === ' ' || event.key === 'Enter') event.stopPropagation();
+    });
+    return setExpanded;
+  }
+  const expandChat = bindPanelToggle($('sf-chat-toggle'), chatPanel, 'chat', () => {
+    log.scrollTop = log.scrollHeight;
+  });
+  const expandActions = bindPanelToggle($('sf-actions-toggle'), actionsPanel, 'controls');
   const chatDraft = $('sf-chat-draft');
   const chatForm = $('sf-chat-form');
   const quickChat = $('sf-quick-chat');
@@ -4148,6 +4178,7 @@ export function createSFWorld({
     $('sf-google-account-label').textContent = accountLabel || '';
     if (unlocked && chatUnlockDialog.open) {
       chatUnlockDialog.close();
+      expandChat(true);
       chatDraft.focus({ preventScroll: true });
     }
   }
@@ -4387,7 +4418,13 @@ export function createSFWorld({
     const control = (key: string, id: keyof GameElements, label: string) => {
       const button = $(id);
       if (button instanceof HTMLButtonElement && !button.hidden && !button.disabled)
-        entries.set(key, { label, run: () => button.click() });
+        entries.set(key, {
+          label,
+          run: () => {
+            if (id === 'sf-sit-button' || id === 'sf-teleport-button') expandActions(true);
+            button.click();
+          },
+        });
     };
     control('c', 'sf-character-button', 'Character');
     control('q', 'sf-quests-button', 'Quests');
@@ -4449,6 +4486,7 @@ export function createSFWorld({
     if (chatForm.hidden || !$('sf-reader').hidden || !$('sf-context').hidden) return false;
     if (event.key === ' ' && event.target instanceof HTMLButtonElement) return false;
     if ([...event.key].length !== 1 && event.key !== 'Dead' && !event.isComposing) return false;
+    expandChat(true);
     chatDraft.focus({ preventScroll: true });
     if (event.isComposing || event.key === 'Dead') return true;
     event.preventDefault();
@@ -4647,6 +4685,7 @@ export function createSFWorld({
       (e.target === canvas || e.target === document.body)
     ) {
       e.preventDefault();
+      expandChat(true);
       if (chatDraft.value) chatForm.requestSubmit();
       else chatDraft.focus({ preventScroll: true });
       return;

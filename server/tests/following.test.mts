@@ -14,7 +14,6 @@ async function setup(geometry = fixtureGeometry()) {
     store: createMemoryStore(),
     now: () => time,
     random: () => 0.5,
-    allowDebug: true,
   });
   return { game, advance: (ms: number) => (time += ms) };
 }

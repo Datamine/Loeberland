@@ -17,7 +17,7 @@ The mixed run delivered 39,892 PvP hit messages and observed all 400 followers m
 
 ## Reproduce
 
-Use an isolated Redis/database and a disposable backend with ALLOW_DEBUG=1 for the authored teleport positions below. Keep debug teleportation off publicly. Reuse the same identity seed between runs to avoid accumulating benchmark accounts.
+Use an isolated Redis/database and a disposable backend for the authored teleport positions below. Create the benchmark characters with the same identity seed first and grant those characters **Allow debug teleport**. Reuse that identity seed between runs.
 
 ```sh
 node --import ./node_modules/tsx/dist/loader.mjs server/load-test.mts --players 2000 --seconds 60 --warmup 8 \

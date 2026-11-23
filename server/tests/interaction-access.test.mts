@@ -18,7 +18,7 @@ import type { Point } from '../../src/types/geometry.ts';
 // Exercise actual production geometry and command handlers. No browser clicks,
 // replacement pathfinder, guessed building center or saved screenshot is used.
 const geometry = createWorldModel(),
-  game = await createGame({ geometry, store: createMemoryStore(), allowDebug: true });
+  game = await createGame({ geometry, store: createMemoryStore() });
 after(() => game.close());
 let serial = 20000;
 async function visitor(point: Point | null, extra: { 'sf-purse-v1'?: string } | undefined = {}) {

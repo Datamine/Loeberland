@@ -97,6 +97,7 @@ export function hydratePlayerProfile<T extends object>(input: T): T & PlayerProf
   const profile = input as T & PlayerProfile;
   if (attached.has(profile)) return profile;
   profile.upgrade = profile.upgrade === true;
+  profile.debugTeleport = profile.debugTeleport === true;
   const legacy = profile.privateState || {};
   const document = createPlayerDocument(profile.playerState || {});
   if (!profile.playerState) {

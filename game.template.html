@@ -92,24 +92,37 @@
 
       <div class="sf-bottom-bar">
         <div class="sf-journal">
+          <button
+            id="sf-chat-toggle"
+            class="sf-panel-toggle"
+            type="button"
+            aria-label="Minimize chat"
+            aria-controls="sf-chat-panel"
+            aria-expanded="true"
+            title="Minimize chat"
+          >
+            −
+          </button>
           <div id="sf-server-update" role="status" hidden></div>
-          <div id="sf-log" role="log" aria-label="Chat and adventure log"></div>
-          <div id="sf-quick-chat" class="sf-quick-chat" role="group" aria-label="Quick chat">
-            <button type="button" data-quick-chat>Yo</button>
-            <button type="button" data-quick-chat>OK</button>
-            <button type="button" data-quick-chat>No</button>
-            <button id="sf-chat-unlock" type="button" aria-haspopup="dialog">Unlock</button>
+          <div id="sf-chat-panel">
+            <div id="sf-log" role="log" aria-label="Chat and adventure log"></div>
+            <div id="sf-quick-chat" class="sf-quick-chat" role="group" aria-label="Quick chat">
+              <button type="button" data-quick-chat>Yo</button>
+              <button type="button" data-quick-chat>OK</button>
+              <button type="button" data-quick-chat>No</button>
+              <button id="sf-chat-unlock" type="button" aria-haspopup="dialog">Unlock</button>
+            </div>
+            <form id="sf-chat-form" class="sf-chat-form" autocomplete="off" hidden>
+              <span aria-hidden="true">*</span>
+              <input
+                id="sf-chat-draft"
+                type="text"
+                maxlength="140"
+                enterkeyhint="send"
+                aria-label="Chat message"
+              />
+            </form>
           </div>
-          <form id="sf-chat-form" class="sf-chat-form" autocomplete="off" hidden>
-            <span aria-hidden="true">*</span>
-            <input
-              id="sf-chat-draft"
-              type="text"
-              maxlength="140"
-              enterkeyhint="send"
-              aria-label="Chat message"
-            />
-          </form>
           <dialog
             id="sf-chat-unlock-dialog"
             class="sf-chat-unlock-dialog"
@@ -142,7 +155,24 @@
           ></div>
         </div>
         <div class="sf-side-hud">
-          <div class="sf-actions" role="group" aria-label="Exploration controls" data-mode="ground">
+          <button
+            id="sf-actions-toggle"
+            class="sf-panel-toggle"
+            type="button"
+            aria-label="Minimize controls"
+            aria-controls="sf-actions-panel"
+            aria-expanded="true"
+            title="Minimize controls"
+          >
+            −
+          </button>
+          <div
+            id="sf-actions-panel"
+            class="sf-actions"
+            role="group"
+            aria-label="Exploration controls"
+            data-mode="ground"
+          >
             <div id="sf-you-panel" class="sf-you" role="tabpanel" aria-labelledby="sf-you-tab">
               <div class="sf-purse" aria-live="polite">
                 <span>◉ <strong id="sf-coins">25</strong> coins</span
@@ -622,11 +652,11 @@
               </button>
               <span id="sf-online-count" class="sf-online-count">0 online</span>
             </div>
-            <section id="sf-shortcut-menu" class="sf-shortcut-menu" aria-label="Shortcuts" hidden>
-              <h3>Shortcuts</h3>
-              <ul id="sf-shortcut-list"></ul>
-            </section>
           </div>
+          <section id="sf-shortcut-menu" class="sf-shortcut-menu" aria-label="Shortcuts" hidden>
+            <h3>Shortcuts</h3>
+            <ul id="sf-shortcut-list"></ul>
+          </section>
         </div>
       </div>
       <section
@@ -1116,6 +1146,19 @@
           role="list"
           aria-label="Content icon legend"
         ></div>
+        <p>
+          Loeberland is open source.
+          <a href="https://github.com/datamine/loeberland" target="_blank" rel="noopener noreferrer"
+            >View the source on GitHub</a
+          >
+          or
+          <a
+            href="https://github.com/datamine/loeberland/issues"
+            target="_blank"
+            rel="noopener noreferrer"
+            >report a bug as a GitHub issue</a
+          >.
+        </p>
       </section>
     </section>
     <section id="sf-debug" class="sf-debug" aria-label="Debug menu" hidden>
@@ -1156,7 +1199,7 @@
         <dd><output id="sf-debug-cache">—</output></dd>
       </dl>
       <p>X increases east. Y increases south.</p>
-      <button type="button" data-debug-teleport>Teleport…</button>
+      <button type="button" data-debug-teleport hidden>Teleport…</button>
     </section>
     <form id="sf-command" class="sf-command" aria-label="World command" autocomplete="off" hidden>
       <label for="sf-command-input">World command</label>

@@ -252,6 +252,10 @@ function charHermite(a: number, b: number, da: number, db: number, t: number) {
     (2 * t3 - 3 * t2 + 1) * a + (t3 - 2 * t2 + t) * da + (-2 * t3 + 3 * t2) * b + (t3 - t2) * db
   );
 }
+function charEase(t: number) {
+  const x = charClamp(t, 0, 1);
+  return x * x * (3 - 2 * x);
+}
 function charStep(f: number, stride: number, stance: number, lift: number) {
   const reach = (stride * stance) / 2;
   if (f < stance)
@@ -306,6 +310,14 @@ export function sampleCharacterPose(
   const gesture = options.action,
     gestureT = charClamp(options.actionT || 0, 0, 1),
     gestureWeight = gestureT === 0 || gestureT === 1 ? 0 : Math.sin(Math.PI * gestureT);
+  const meleeSwing =
+    gesture === 'attack' &&
+    (options.bayonet || options.crowbar || options.battleaxe || options.rollingPin);
+  const swingLift = meleeSwing ? charEase(gestureT / 0.34) : 0,
+    swingDown = meleeSwing ? charEase((gestureT - 0.34) / 0.25) : 0,
+    swingBlend = swingLift * (1 - charEase((gestureT - 0.62) / 0.38)),
+    swingLoad = swingBlend * (1 - swingDown),
+    swingImpact = swingBlend * swingDown;
   const danceBeat = time * 7.2,
     rollTuck = gesture === 'forward-roll' ? sampleForwardRoll(gestureT).tuck : 0;
   const danceWeight = charClamp(options.danceBlend ?? 1, 0, 1);
@@ -487,7 +499,12 @@ export function sampleCharacterPose(
     hip -= hop.tuck;
     lean += hop.tuck * 0.3;
   }
-  if (gesture === 'attack') twist += 0.18 * gestureWeight;
+  if (meleeSwing) {
+    twist += -0.24 * swingLoad + 0.18 * swingImpact;
+    lean += -0.12 * swingLoad + 0.22 * swingImpact;
+    hip -= 0.065 * swingImpact;
+    rootZ += -0.02 * swingLoad + 0.085 * swingImpact;
+  } else if (gesture === 'attack') twist += 0.18 * gestureWeight;
   if (gesture === 'pet') {
     hip -= 0.34 * gestureWeight;
     lean += 0.28 * gestureWeight;
@@ -688,7 +705,8 @@ export function sampleCharacterPose(
         charMix(1.05, 0.6, mode === 'sit' ? 1 : restEase),
         side ? 0.21 - gestureWeight * 0.06 : 0.49 - gestureWeight * 0.06,
       ];
-    else if (side && options.phone) wrist = [0.23, 1.06, 0.24] satisfies [number, number, number];
+    else if (side && options.phone && !meleeSwing)
+      wrist = [0.23, 1.06, 0.24] satisfies [number, number, number];
     else if (!side && options.carryingFish)
       wrist = [-0.3, 0.86, 0.12] satisfies [number, number, number];
     else if (options.pushingStroller)
@@ -775,7 +793,31 @@ export function sampleCharacterPose(
         end = charRotate(lower, [0, -0.275, 0] satisfies [number, number, number]).map(
           (v, i) => v + elbow[i],
         );
-      if (side === 1 && gesture === 'hammer') {
+      if (swingBlend > 0) {
+        const arc = 4 * swingDown * (1 - swingDown);
+        const target = side
+          ? [
+              charMix(0.36, 0.24, swingDown),
+              charMix(1.87, 1.06, swingDown) + 0.08 * arc,
+              charMix(-0.11, 0.5, swingDown) + 0.26 * arc,
+            ]
+          : [charMix(-0.25, -0.42, swingDown), 1.1, charMix(0.23, 0.03, swingDown)];
+        const goal = end.map((v, i) => charMix(v, target[i], swingBlend));
+        const limb = charIK(shoulder, goal, 0.31, 0.275, [
+          sign * 0.72,
+          -0.36,
+          -0.2,
+        ]);
+        charSegment(out, arm, shoulder, limb.knee);
+        charSegment(out, forearm, limb.knee, limb.end);
+        const wristPitch = side ? charMix(-0.28, 2.26, swingDown) : -0.32;
+        charFrame(
+          out,
+          hand,
+          limb.end,
+          charMultiply(lower, charEuler(wristPitch * swingBlend)),
+        );
+      } else if (side === 1 && gesture === 'hammer') {
         const lift = (1 - Math.cos(time * 8)) / 2;
         const target = [0.19, 0.91 + lift * 0.42, 0.36 - lift * 0.14];
         const limb = charIK(shoulder, target, 0.31, 0.275, [0.7, -0.3, -0.1]);
@@ -2565,6 +2607,10 @@ export function drawCharacter(
           pushingStroller: appearance.pushingStroller,
           railgun: appearance.railgun,
           akibo: appearance.akibo,
+          bayonet: appearance.bayonet,
+          battleaxe: appearance.battleaxe,
+          rollingPin: appearance.rollingPin,
+          crowbar: appearance.crowbar,
           phone: appearance.phone,
           ground,
         },

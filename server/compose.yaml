@@ -14,7 +14,6 @@ services:
       HOST: 0.0.0.0
       MAX_PLAYERS: ${MAX_PLAYERS:-2000}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://johnloeber.com,https://www.johnloeber.com,https://datamine.github.io}
-      ALLOW_DEBUG: '0'
       DEPLOY_NOTICE_SOCKET: /tmp/loeberland-update.sock
       ADMIN_QUEUE_EDITS: ${ADMIN_QUEUE_EDITS:-0}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}

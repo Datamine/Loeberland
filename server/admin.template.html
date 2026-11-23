@@ -64,6 +64,10 @@
         border: 1px solid #b9c2cf;
         border-radius: 6px;
       }
+      #debug-teleport {
+        width: auto;
+        margin: 0 6px 0 0;
+      }
       button {
         cursor: pointer;
         padding: 9px 14px;
@@ -249,6 +253,10 @@
           <button id="reload" disabled>Reload record</button>
           <span id="dirty"></span>
         </div>
+        <label id="debug-teleport-field" hidden>
+          <input id="debug-teleport" type="checkbox" />
+          Allow debug teleport
+        </label>
         <label for="editor">Record value (JSON)</label>
         <div class="record-fields">
           <textarea

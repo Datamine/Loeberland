@@ -36,7 +36,7 @@ async function setup(t: test.TestContext) {
     merchant: () => null,
     combat: () => null,
   };
-  const game = await createGame({ geometry, store: createMemoryStore(), allowDebug: true });
+  const game = await createGame({ geometry, store: createMemoryStore() });
   t.after(() => game.close());
   const a = await player(game, 510);
   Object.assign(a.p, {

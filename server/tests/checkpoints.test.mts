@@ -306,7 +306,6 @@ test('real simulation mutations remain in RAM and checkpoint recovery sends a fr
     store: ram,
     now: () => 1000000,
     random: () => 0.5,
-    allowDebug: true,
   });
   manager.attach('world', { prepare: game.prepareCheckpoint, drain: game.close });
   const a = await player(game, 700, { 'sf-purse-v1': '{"coins":1234}' });

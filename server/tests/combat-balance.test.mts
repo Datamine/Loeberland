@@ -46,7 +46,6 @@ async function setup(t: test.TestContext) {
       geometry,
       store,
       random: () => 0,
-      allowDebug: true,
       now: () => time,
     });
   t.after(() => game.close());

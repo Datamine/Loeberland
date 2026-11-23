@@ -6,6 +6,8 @@ export function requiredElement<T extends HTMLElement>(id: string): T {
 }
 
 export interface GameElements {
+  'sf-actions-panel': HTMLElementTagNameMap['div'];
+  'sf-actions-toggle': HTMLElementTagNameMap['button'];
   'sf-actor-labels': HTMLElementTagNameMap['div'];
   'sf-ground-items': HTMLElementTagNameMap['div'];
   'sf-ai-interview': HTMLElementTagNameMap['div'];
@@ -152,6 +154,8 @@ export interface GameElements {
   'sf-sales-status': HTMLElementTagNameMap['span'];
   'sf-chat-draft': HTMLElementTagNameMap['input'];
   'sf-chat-form': HTMLElementTagNameMap['form'];
+  'sf-chat-panel': HTMLElementTagNameMap['div'];
+  'sf-chat-toggle': HTMLElementTagNameMap['button'];
   'sf-quick-chat': HTMLElementTagNameMap['div'];
   'sf-chat-unlock': HTMLElementTagNameMap['button'];
   'sf-chat-unlock-dialog': HTMLElementTagNameMap['dialog'];

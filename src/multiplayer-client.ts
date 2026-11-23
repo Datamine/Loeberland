@@ -393,7 +393,7 @@ export function createMultiplayerClient({
         state.renameAt = message.renameAt;
         state.serverOffset = message.time - Date.now();
         state.grapplingHook = message.grapplingHook;
-        state.debug = message.debug;
+        state.debug = message.debug === true;
         state.world = message.shared;
         state.position = message.position;
         state.pendingAwards = message.pendingAwards;

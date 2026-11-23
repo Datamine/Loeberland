@@ -38,6 +38,33 @@ async function act(
   return latestResult(a.messages);
 }
 
+test('debug teleport only follows the saved permission on the authenticated character', async () => {
+  const store = createMemoryStore();
+  const geometry = fixtureGeometry();
+  const game = await createGame({ geometry, store });
+  const destination = { x: 84, z: 52 };
+  try {
+    const permitted = await player(game, 801);
+    const other = await player(game, 802, { debugTeleport: 'true' }, false);
+    assert.equal(permitted.messages.find((message) => message.type === 'welcome')?.debug, true);
+    assert.equal(other.messages.find((message) => message.type === 'welcome')?.debug, false);
+    const initial = { x: other.p.x, z: other.p.z };
+    const denied = await act(game, other, 'teleport', { ...destination, debugTeleport: true });
+    assert.equal(denied?.ok, false);
+    assert.match(denied?.message || '', /this character/);
+    assert.equal(other.p.x, initial.x);
+    assert.equal(other.p.z, initial.z);
+    assert.equal((await act(game, permitted, 'teleport', { x: 500, z: 500 }))?.ok, false);
+    assert.equal((await act(game, permitted, 'teleport', destination))?.ok, true);
+    assert.equal(permitted.p.x, destination.x);
+    assert.equal(permitted.p.z, destination.z);
+    const reconnect = await player(game, 801, {}, false);
+    assert.equal(reconnect.messages.find((message) => message.type === 'welcome')?.debug, true);
+  } finally {
+    await game.close();
+  }
+});
+
 test('seizing a nearby NPC bicycle mounts it, saves it, and rolls the standard police pursuit', async () => {
   const geometry = fixtureGeometry();
   const at = { x: geometry.spawn.x + 0.5, z: geometry.spawn.y + 0.5 };
@@ -102,6 +129,7 @@ test('new identities cannot import money, XP, food, weapons or quest completion 
           'sf-deli-v1': '{"sandwiches":500}',
           'sf-expeditions-v1': '{"raptor":"escaped","railgun":true}',
           'sf-quests-v1': '{"theyLive":{"completed":true}}',
+          debugTeleport: 'true',
         },
       },
       { open: true, bufferedAmount: 0, send: (m) => messages.push(m), close() {} },
@@ -110,6 +138,7 @@ test('new identities cannot import money, XP, food, weapons or quest completion 
     assert.equal(p.inventory.economy.state.coins, 25);
     assert.equal(p.inventory.meta.sandwiches, 0);
     assert.equal(p.level, 1);
+    assert.equal(p.profile.debugTeleport, false);
     assert.equal(game.personal.runtime(p).expeditions.state.railgun, false);
     assert.equal(game.personal.runtime(p).quests.theyLive.state.completed, false);
   } finally {

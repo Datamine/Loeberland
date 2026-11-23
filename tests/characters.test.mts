@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { Mesh } from '../src/geometry.ts';
 import type { CharacterPose } from '../src/characters.ts';
 import {
+  CHARACTER_BONES,
   CHARACTER_CLIPS,
   getCharacterMesh,
   sampleCharacterPose,
@@ -13,6 +14,42 @@ import {
 const joint = (p: CharacterPose, i: number) => Array.from(p.joints.subarray(i * 3, i * 3 + 3));
 const distance = (a: readonly number[], b: readonly number[]) =>
   Math.hypot(...a.map((v, i) => v - b[i]));
+
+test('held melee weapons rise overhead, strike down and recover with planted feet', () => {
+  const { rightHand, rightArm, rightForearm, leftFoot, rightFoot, head } = CHARACTER_BONES;
+  for (const weapon of ['bayonet', 'crowbar', 'battleaxe', 'rollingPin'] as const) {
+    const settings = { [weapon]: true, action: 'attack' };
+    const sample = (actionT: number) => sampleCharacterPose('idle', 0, { ...settings, actionT });
+    const start = sample(0);
+    const raised = sample(0.34);
+    const hit = sample(0.59);
+    assert.ok(joint(raised, rightHand)[1] > joint(raised, head)[1] + 0.28, weapon);
+    assert.ok(joint(hit, rightHand)[1] < joint(raised, rightHand)[1] - 0.65, weapon);
+    assert.ok(joint(hit, rightHand)[2] > joint(raised, rightHand)[2] + 0.48, weapon);
+    // The grip's local up axis points along the carried item.
+    const weaponUp = rightHand * 12 + 5;
+    assert.ok(raised.matrices[weaponUp] > 0.75);
+    assert.ok(hit.matrices[weaponUp] < -0.5);
+    for (const frame of [raised, hit]) {
+      assert.ok(Math.abs(distance(joint(frame, rightArm), joint(frame, rightForearm)) - 0.31) < 1e-5);
+      assert.ok(Math.abs(distance(joint(frame, rightForearm), joint(frame, rightHand)) - 0.275) < 1e-5);
+      for (const foot of [leftFoot, rightFoot])
+        assert.ok(distance(joint(frame, foot), joint(start, foot)) < 1e-5);
+    }
+    assert.deepEqual(sample(1).matrices, start.matrices);
+  }
+  const fists = sampleCharacterPose('idle', 0, { action: 'attack', actionT: 0.34 });
+  assert.ok(joint(fists, rightHand)[1] < joint(fists, head)[1]);
+
+  const rendered = new Mesh();
+  drawCharacter(rendered, 0, 0, 0, Math.PI / 2, 0, false, '#bd9369', '#707b4b', {
+    mode: 'idle',
+    crowbar: true,
+    action: 'attack',
+    actionT: 0.34,
+  });
+  assert.ok(rendered.data.some((value, index) => index % 11 === 1 && value > 2.15));
+});
 
 test('petting crouches with planted feet, a lowered hand and an exact return to idle', () => {
   const idle = sampleCharacterPose('idle', 0, { motion: 0, time: 0 }),

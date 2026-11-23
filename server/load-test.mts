@@ -82,15 +82,20 @@ const locations = locationsFile
   ? (JSON.parse(await readFile(locationsFile, 'utf8')) as WorldPoint[])
   : null;
 const identitySeed = arg('identity-seed', null);
+const placeClients =
+  scenario === 'spread' ||
+  (locations !== null && ['crowded', 'follow', 'mixed'].includes(scenario));
 if (
-  scenario === 'spread' &&
+  placeClients &&
   (!Array.isArray(locations) ||
     !locations.length ||
     locations.some((p) => !Number.isFinite(p.x) || !Number.isFinite(p.z)))
 )
   throw Error(
-    'Spread needs --locations file.json containing safe world positions [{x,z}, ...] and a disposable ALLOW_DEBUG=1 backend',
+    'Use --locations file.json containing safe world positions [{x,z}, ...].',
   );
+if (placeClients && !identitySeed)
+  throw Error('Use --identity-seed with saved benchmark characters that have debug teleport enabled.');
 const healthURL = new URL(url);
 healthURL.protocol = healthURL.protocol === 'wss:' ? 'https:' : 'http:';
 healthURL.pathname = '/healthz';
@@ -200,10 +205,18 @@ async function connect(index: number) {
       }
       const message = JSON.parse(data.toString()) as ServerEvent;
       if (message.type === 'welcome') {
+        clearTimeout(timeout);
+        if (placeClients && message.debug !== true) {
+          reject(
+            Error(
+              'Enable debug teleport for benchmark character ' + message.name + ' in the admin editor.',
+            ),
+          );
+          return;
+        }
         client.spawn = message.position;
         client.id = message.id;
         client.epoch = message.inventory.epoch;
-        clearTimeout(timeout);
         resolve();
       }
       if (message.type === 'result') {
@@ -233,11 +246,7 @@ async function connect(index: number) {
       if (message.type === 'caught' && message.source === 'pvp') send(client, 'respawn', {}, false);
     });
   });
-  if (
-    scenario === 'spread' ||
-    ((['crowded', 'follow', 'mixed'] satisfies [string, string, string]).includes(scenario) &&
-      locations)
-  ) {
+  if (placeClients) {
     const points = requiredValue(locations, 'This scenario requires locations.'),
       p = points[scenario === 'crowded' ? 0 : index % points.length],
       request = send(client, 'teleport', p, false);

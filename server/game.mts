@@ -17,7 +17,6 @@ interface GameOptions {
   now?: () => number;
   random?: () => number;
   maxPlayers?: number;
-  allowDebug?: boolean;
   googleChatAvailable?: boolean;
   oauthRequired?: boolean;
   upgradeRequiredForServerChat?: boolean;
@@ -121,7 +120,6 @@ export async function createGame({
   now = Date.now,
   random = Math.random,
   maxPlayers = 2000,
-  allowDebug = false,
   googleChatAvailable = false,
   oauthRequired = true,
   upgradeRequiredForServerChat = true,
@@ -747,7 +745,7 @@ export async function createGame({
         pvp: pvp.status(p),
         level: p.level,
         pendingAwards: profile.awards,
-        debug: allowDebug,
+        debug: profile.debugTeleport,
         time: now(),
         shared: shared.snapshot(p),
       });
@@ -1445,11 +1443,11 @@ export async function createGame({
         }
       }
     } else if (action === 'teleport') {
-      if (!allowDebug)
+      if (p.profile.debugTeleport !== true)
         result = {
           ok: false,
           message: contentText(
-            'world-message.server.game.debug-teleporting-is-disabled-on-this-server',
+            'world-message.debug.teleport-not-enabled',
           ),
         };
       else if (

@@ -3735,7 +3735,9 @@ export function createInteractions(context: WorldContext) {
   }
 
   function debugTeleport(x: number, y: number, serverApproved = false) {
-    if (context.multiplayerWorld && !serverApproved) {
+    if (!serverApproved) {
+      if (!context.multiplayerWorld || context.multiplayer?.state.debug !== true)
+        return { ok: false, message: contentText('world-message.debug.teleport-not-enabled') };
       context.multiplayerWorld.teleport(x, y);
       return {
         ok: true,

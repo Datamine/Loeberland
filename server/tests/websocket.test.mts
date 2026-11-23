@@ -13,7 +13,6 @@ test('real WebSockets authenticate, exchange nearby avatars, moderate names and 
       port: 0,
       geometry: fixtureGeometry(),
       store: createMemoryStore(),
-      allowDebug: true,
     }),
     clients: WebSocket[] = [];
   const open = async (token: string) => {
