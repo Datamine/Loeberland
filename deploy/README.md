@@ -41,6 +41,20 @@ Gameplay state lives in RAM and checkpoints to Redis once per second by
 default. Cron exports Redis to SQLite every five minutes. Each run removes
 snapshots aged 24 hours or more from local disk and private S3.
 
+### Tunnel mode
+
+Set `tunnel_mode` with a public `game_domain`, an absolute
+`private_deploy_archive` path, and a `private_deploy_secret_arn` in the AWS
+region. The EC2 security group retains restricted SSH and closes inbound
+ports 80 and 443. Terraform uploads the private archive to the deployment
+bucket. The release installer verifies its checksum and uses its Compose
+override and readiness checks. EC2 reads the runtime secret from Secrets
+Manager using its instance role.
+
+Configure and test the public tunnel before enabling this mode on an existing
+directly served game. The private deployment checkout contains the Cloudflare
+stack and host setup instructions.
+
 ### SSH and admin
 
 After you approve the first plan, the script asks EC2 to create a key pair and saves the private key to **`.deploy/aws.pem`** with mode 600 before Terraform launches the instance. EC2 returns the private key only once. Keep secure copies of the PEM, `.deploy/aws-key-name`, and the local Terraform state in `server/deploy/`. Updates reuse that key and the instance recorded in Terraform state. Deployments originally set up with a locally generated PEM continue to use it. If your public IP changes, rerun the deployment to refresh the SSH rule.
