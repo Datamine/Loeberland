@@ -3,6 +3,8 @@ import type { NetworkPose, PoseCoordinates, NetworkNPC, PackedNPC } from './type
 
 import { GAMEPLAY } from './config/gameplay.ts';
 export const CHARACTER_IDENTITY_COOKIE = 'sf-mp-identity';
+export const MP_CHARACTER_CREATION_DELAYED = 4013;
+export const MP_CHARACTER_CONNECTION_LIMIT = 4014;
 export const MP_PROTOCOL = 4,
   MP_TICK_HZ = GAMEPLAY.simulationHz,
   MP_BROADCAST_HZ = GAMEPLAY.playerHz,

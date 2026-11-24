@@ -19,9 +19,11 @@ interface LiveSession {
   player: ServerPlayer | null;
   transport: PlayerTransport;
 }
+class CharacterCreationDelayed extends Error {}
+class CharacterConnectionLimit extends Error {}
 import { watchContent } from '../content/server.mts';
 import { applyWorldEdits } from '../src/world-edits.ts';
-import { createServer } from 'node:http';
+import { createServer, type IncomingMessage } from 'node:http';
 import { readFile, rm } from 'node:fs/promises';
 import { resolve, relative, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -29,13 +31,20 @@ import { monitorEventLoopDelay } from 'node:perf_hooks';
 import { WebSocketServer, WebSocket } from 'ws';
 import { createWorldModel } from '../src/world.ts';
 import { createGame } from './game.mts';
+import { loadGamePolicy } from './game-policy.mts';
 import { createStore } from './store.mts';
 import { createCheckpointManager } from './checkpoints.mts';
 import { readServerBuild } from './build-info.mts';
 import { readChatPolicy } from './chat-policy.mts';
 import { readDebugTeleportSetting } from './tuning.mts';
 import { createGoogleChatRoutes, readGoogleChatConfig } from './google-chat.mts';
-import { MP_PROTOCOL, MP_TICK_HZ, MP_BROADCAST_HZ } from '../src/multiplayer-protocol.ts';
+import {
+  MP_PROTOCOL,
+  MP_TICK_HZ,
+  MP_BROADCAST_HZ,
+  MP_CHARACTER_CREATION_DELAYED,
+  MP_CHARACTER_CONNECTION_LIMIT,
+} from '../src/multiplayer-protocol.ts';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const contentTypes: Record<string, string> = {
@@ -64,6 +73,7 @@ export async function startServer({
   shutdownTimeoutMs = Number(process.env.SHUTDOWN_TIMEOUT_MS ?? 10000),
   logger = console,
 }: ServerOptions = {}) {
+  const gamePolicy = await loadGamePolicy();
   const serverBuild = readServerBuild();
   const googleChat = readGoogleChatConfig();
   const chatPolicy = readChatPolicy();
@@ -99,6 +109,7 @@ export async function startServer({
       serverBuild,
       googleChatAvailable: !!googleChat,
       debugTeleportAll,
+      gamePolicy,
       ...chatPolicy,
     });
   try {
@@ -283,8 +294,18 @@ export async function startServer({
   });
   const aliveClients = new WeakSet<WebSocket>();
   const sessions = new Set<LiveSession>();
-  sockets.on('connection', (ws) => {
+  sockets.on('connection', (ws, req: IncomingMessage) => {
     let authenticating = false;
+    let releaseCharacter: (() => void) | undefined;
+    const admit = gamePolicy && ((owner: string, creating: boolean) => {
+      if (!transport.open) throw Error('Connection closed');
+      if (!releaseCharacter) {
+        const release = gamePolicy.reserveCharacter?.(req, owner);
+        if (release === false) throw new CharacterConnectionLimit();
+        releaseCharacter = release;
+      }
+      if (creating && !gamePolicy.allowNewCharacter(req)) throw new CharacterCreationDelayed();
+    });
     aliveClients.add(ws);
     const deadline = setTimeout(() => {
       if (!session.player) ws.close(4003, 'Authentication timeout');
@@ -337,11 +358,17 @@ export async function startServer({
         }
         authenticating = true;
         try {
-          session.player = await game.connect(message, transport);
+          session.player = await game.connect(message, transport, admit);
           clearTimeout(deadline);
           if (!transport.open && !reloading) game.disconnect(session.player);
         } catch (error) {
-          ws.close(4003, errorMessage(error).slice(0, 120));
+          releaseCharacter?.();
+          releaseCharacter = undefined;
+          if (error instanceof CharacterCreationDelayed)
+            ws.close(MP_CHARACTER_CREATION_DELAYED, 'Character creation is temporarily limited');
+          else if (error instanceof CharacterConnectionLimit)
+            ws.close(MP_CHARACTER_CONNECTION_LIMIT, 'Too many characters connected from this network');
+          else ws.close(4003, errorMessage(error).slice(0, 120));
         }
         return;
       }
@@ -349,6 +376,8 @@ export async function startServer({
     });
     ws.on('close', async () => {
       clearTimeout(deadline);
+      releaseCharacter?.();
+      releaseCharacter = undefined;
       if (reloading) await reloading;
       sessions.delete(session);
       if (session.player) game.disconnect(session.player);

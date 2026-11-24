@@ -10,6 +10,7 @@ import type { BuildInfo } from '../src/types/network.ts';
 import type { Appearance } from '../src/types/content.ts';
 import type { ServerGeometry, PlayerTransport, ServerPlayer } from '../src/types/server.ts';
 import type { GameplayStore, NameReservation, StorageEntry } from '../src/types/storage.ts';
+import type { GamePolicy } from './game-policy.mts';
 import { nearestMinimapPoint } from '../src/minimap-navigation.ts';
 
 interface GameOptions {
@@ -23,6 +24,7 @@ interface GameOptions {
   upgradeRequiredForServerChat?: boolean;
   debugTeleportAll?: boolean;
   serverBuild?: BuildInfo;
+  gamePolicy?: GamePolicy;
   tuning?: Partial<{ [K in keyof typeof SERVER_TUNING]: number }>;
 }
 import { DEATH_DURATION } from '../src/capture-animation.ts';
@@ -128,6 +130,7 @@ export async function createGame({
   upgradeRequiredForServerChat = true,
   debugTeleportAll = false,
   serverBuild,
+  gamePolicy,
   tuning: tuningOverrides = {},
 }: GameOptions) {
   const tuning = { ...SERVER_TUNING, ...tuningOverrides };
@@ -554,7 +557,12 @@ export async function createGame({
       return true;
     });
   }
-  async function connect(hello: ClientHello, transport: PlayerTransport, resumed?: ServerPlayer) {
+  async function connect(
+    hello: ClientHello,
+    transport: PlayerTransport,
+    admit?: (owner: string, creating: boolean) => void,
+    resumed?: ServerPlayer,
+  ) {
     if (closing) throw Error('Server restarting');
     if (
       !resumed &&
@@ -565,9 +573,10 @@ export async function createGame({
       throw Error('Invalid session credentials or protocol.');
     const owner =
       resumed?.owner ??
-      (await accounts.ownerFor(hello.token as string, () => {
+      (await accounts.ownerFor(hello.token as string, (newOwner) => {
         if (closing) throw Error('Server restarting');
         if (players.size >= maxPlayers) throw Error('The world is full. Please try again soon.');
+        admit?.(newOwner, true);
       }));
     if (players.size >= maxPlayers && !identities.has(owner))
       throw Error('The world is full. Please try again soon.');
@@ -576,6 +585,7 @@ export async function createGame({
     let complete!: () => void;
     authenticating.set(owner, new Promise<void>((resolve) => (complete = resolve)));
     try {
+      if (!resumed) admit?.(owner, false);
       const stored = profiles.get(owner) || (await store.get('player:' + owner));
       let profile: PlayerProfile | undefined = isRecord(stored)
         ? hydratePlayerProfile(stored)
@@ -1675,6 +1685,13 @@ export async function createGame({
         const text = serverWide ? line.slice(1).trimStart() : line;
         if (!text) return;
         p.spokeAt = time;
+        const filter = gamePolicy?.filterChat({
+          owner: p.owner,
+          text,
+          scope: serverWide ? 'server' : 'nearby',
+          quick: !canTypeChat(p.profile),
+        });
+        if (filter === false) return;
         const speech = JSON.stringify({
           type: 'say',
           id: p.id,
@@ -1683,7 +1700,7 @@ export async function createGame({
           ...(serverWide && { scope: 'server' }),
         });
         for (const other of serverWide ? players.values() : replication.observersOf(p, 25))
-          send(other, speech);
+          if (!filter || filter(other.owner)) send(other, speech);
       };
       if (store.inMemory) p.queue = enqueueMutation(say);
       else say();
@@ -1884,11 +1901,15 @@ export async function createGame({
   }
   return {
     restoreConnection: (player: ServerPlayer, transport: PlayerTransport) =>
-      connect({}, transport, player),
-    connect: store.inMemory
-      ? (hello: ClientHello, transport: PlayerTransport) =>
-          enqueueMutation(() => connect(hello, transport))
-      : connect,
+      connect({}, transport, undefined, player),
+    connect: (
+      hello: ClientHello,
+      transport: PlayerTransport,
+      admit?: (owner: string, creating: boolean) => void,
+    ) =>
+      store.inMemory
+        ? enqueueMutation(() => connect(hello, transport, admit))
+        : connect(hello, transport, admit),
     disconnect: store.inMemory
       ? (p: ServerPlayer) => (closing ? undefined : enqueueMutation(() => disconnect(p)))
       : disconnect,

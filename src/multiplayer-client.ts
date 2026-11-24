@@ -61,6 +61,8 @@ export function characterIdentityCookie(document: Pick<Document, 'cookie'>, secu
 import { contentText } from './content-runtime.ts';
 import {
   CHARACTER_IDENTITY_COOKIE,
+  MP_CHARACTER_CREATION_DELAYED,
+  MP_CHARACTER_CONNECTION_LIMIT,
   MP_PROTOCOL,
   MP_PRIVATE_KEYS,
   MP_INTERPOLATION_MS,
@@ -555,6 +557,16 @@ export function createMultiplayerClient({
     if (code === 4001) {
       stopped = true;
       status('Character open in another tab');
+      return;
+    }
+    if (code === MP_CHARACTER_CREATION_DELAYED || code === MP_CHARACTER_CONNECTION_LIMIT) {
+      const limited = code === MP_CHARACTER_CONNECTION_LIMIT;
+      status(
+        limited
+          ? 'Too many characters connected from this network. Retrying…'
+          : 'Character creation is temporarily limited. Retrying in about a minute…',
+      );
+      reconnect = setTimeout(connect, (limited ? 15_000 : 60_000) + Math.random() * 5000);
       return;
     }
     schedule();
