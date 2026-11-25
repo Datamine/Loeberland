@@ -13,27 +13,19 @@ variable "name" {
 }
 
 variable "game_domain" {
-  description = "Public game hostname. An empty value uses the Elastic IP with HTTPS in direct mode."
+  description = "Public hostname for the Cloudflare Tunnel."
   type        = string
-  default     = ""
   validation {
-    condition     = var.game_domain == "" || can(regex("^[a-zA-Z0-9][a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", var.game_domain))
+    condition     = can(regex("^[a-zA-Z0-9][a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", var.game_domain))
     error_message = "Supply a DNS hostname such as game.example.com, without a scheme or path."
   }
 }
 
-variable "tunnel_mode" {
-  description = "Use a private deployment bundle for ingress and close public HTTP and HTTPS on EC2."
-  type        = bool
-  default     = false
-}
-
 variable "private_deploy_archive" {
-  description = "Absolute path to the private deployment bundle for tunnel mode."
+  description = "Absolute path to the private tunnel deployment bundle."
   type        = string
-  default     = ""
   validation {
-    condition     = var.private_deploy_archive == "" || (startswith(var.private_deploy_archive, "/") && fileexists(var.private_deploy_archive))
+    condition     = startswith(var.private_deploy_archive, "/") && fileexists(var.private_deploy_archive)
     error_message = "Supply an absolute path to an existing private deployment archive."
   }
 }
@@ -41,9 +33,8 @@ variable "private_deploy_archive" {
 variable "private_deploy_secret_arn" {
   description = "ARN of a same-region AWS Secrets Manager secret read by the host's private deployment."
   type        = string
-  default     = ""
   validation {
-    condition     = var.private_deploy_secret_arn == "" || can(regex("^arn:[a-z0-9-]+:secretsmanager:[a-z0-9-]+:[0-9]{12}:secret:[a-zA-Z0-9/_+=.@-]+$", var.private_deploy_secret_arn))
+    condition     = can(regex("^arn:[a-z0-9-]+:secretsmanager:[a-z0-9-]+:[0-9]{12}:secret:[a-zA-Z0-9/_+=.@-]+$", var.private_deploy_secret_arn))
     error_message = "Supply a Secrets Manager secret ARN."
   }
 }

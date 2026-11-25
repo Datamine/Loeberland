@@ -75,20 +75,6 @@ services:
       interval: 2s
       timeout: 1s
       retries: 15
-  proxy:
-    image: caddy:2.11-alpine
-    profiles: [production]
-    restart: unless-stopped
-    ports: ['80:80', '443:443']
-    environment:
-      GAME_DOMAIN: ${GAME_DOMAIN:-localhost}
-    volumes:
-      - ./${CADDY_CONFIG:-Caddyfile}:/etc/caddy/Caddyfile:ro
-      - caddy-data:/data
-      - caddy-config:/config
-    depends_on: [game]
 volumes:
   world-data:
   redis-data:
-  caddy-data:
-  caddy-config:

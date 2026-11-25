@@ -1,10 +1,11 @@
+# Required Cloudflare Tunnel deployment settings.
+game_domain              = "game.example.com"
+private_deploy_archive   = "/absolute/path/to/private-deploy.tar.gz"
+private_deploy_secret_arn = "arn:aws:secretsmanager:us-west-2:123456789012:secret:loeberland/deploy-AbCdEf"
+
 # Optional settings. deploy/aws.sh supplies the SSH key configuration and CIDR.
 # aws_region = "us-west-2"
 # instance_type = "c8i.large"
 # max_players = 100
 # existing_elastic_ip = "203.0.113.10"
-# game_domain = "game.example.com"
-# tunnel_mode = true
-# private_deploy_archive = "/absolute/path/to/private-deploy.tar.gz"
-# private_deploy_secret_arn = "arn:aws:secretsmanager:us-west-2:123456789012:secret:loeberland/deploy-AbCdEf"
 # allowed_origins = ["https://www.example.com"]

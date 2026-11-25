@@ -49,26 +49,16 @@ replicas or put independent world processes behind a load balancer.
 
 ## Deployment
 
-### Docker Compose and static hosting
+### Production on EC2 with Cloudflare Tunnel
 
-GitHub Pages cannot run the backend. It can continue serving the homepage and
-`index.html`; run the backend on a host with long-lived WebSocket connections.
+Run `./deploy/aws.sh` from the repository root after configuring the tunnel and
+private bundle. The [deployment guide](../deploy/README.md) covers prerequisites,
+SSH, the password-protected admin panel and release updates. EC2 runs the game,
+admin, Redis, Caddy and the tunnel connector. It sends its five-minute checkpoint
+exports to private S3.
 
-```sh
-docker compose -f server/compose.yaml up --build -d game
-```
-
-This exposes the backend on host loopback port 8787 and stores checkpoints in
-the included Redis service's named volume. For public HTTPS/WSS using Caddy,
-point a backend hostname at the host, set `GAME_DOMAIN` and `ALLOWED_ORIGINS`, and run:
-
-```sh
-GAME_DOMAIN=game.example.com \
-ALLOWED_ORIGINS=https://johnloeber.com,https://www.johnloeber.com \
-docker compose -f server/compose.yaml --profile production up --build -d game proxy
-```
-
-Create `multiplayer-config.json` beside the statically hosted game:
+If GitHub Pages or another static host serves `index.html`, create
+`multiplayer-config.json` beside it with the production tunnel hostname:
 
 ```json
 { "endpoint": "wss://game.example.com/ws" }
@@ -79,13 +69,6 @@ local `file://` page can use `?server=ws://127.0.0.1:8787/ws`. Production HTTPS
 pages require `wss://`. File origins are accepted only by the default loopback
 server, unless explicitly enabled. Without a configured backend, the client
 shows the connection form and waits for authentication.
-
-### Single EC2 instance with Terraform
-
-Run `./deploy/aws.sh` from the repository root using your AWS credentials.
-The [deployment guide](../deploy/README.md) covers prerequisites, optional DNS,
-SSH, the password-protected admin panel and release updates. The same host runs the game,
-admin, Redis and Caddy, and sends its five-minute checkpoint exports to private S3.
 
 For off-host recovery, get the bucket name with
 `terraform -chdir=server/deploy output -raw backup_bucket` and choose a backup

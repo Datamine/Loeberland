@@ -133,7 +133,6 @@ resource "aws_s3_object" "release" {
 }
 
 resource "aws_s3_object" "private_deploy" {
-  count       = var.tunnel_mode ? 1 : 0
   bucket      = aws_s3_bucket.game.id
   key         = "private-deploy/${local.private_deploy_sha256}.tar.gz"
   source      = var.private_deploy_archive
@@ -142,6 +141,11 @@ resource "aws_s3_object" "private_deploy" {
   lifecycle {
     create_before_destroy = true
   }
+}
+
+moved {
+  from = aws_s3_object.private_deploy[0]
+  to   = aws_s3_object.private_deploy
 }
 
 resource "aws_iam_role" "game" {
@@ -180,8 +184,7 @@ resource "aws_iam_role_policy" "storage" {
 }
 
 resource "aws_iam_role_policy" "private_deploy" {
-  count = var.tunnel_mode ? 1 : 0
-  role  = aws_iam_role.game.id
+  role = aws_iam_role.game.id
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -189,6 +192,17 @@ resource "aws_iam_role_policy" "private_deploy" {
       { Effect = "Allow", Action = "secretsmanager:GetSecretValue", Resource = var.private_deploy_secret_arn },
     ]
   })
+  lifecycle {
+    precondition {
+      condition     = try(split(":", var.private_deploy_secret_arn)[3], "") == var.aws_region
+      error_message = "The private deployment secret must be in the EC2 region."
+    }
+  }
+}
+
+moved {
+  from = aws_iam_role_policy.private_deploy[0]
+  to   = aws_iam_role_policy.private_deploy
 }
 
 resource "aws_iam_instance_profile" "game" {
@@ -198,18 +212,8 @@ resource "aws_iam_instance_profile" "game" {
 
 resource "aws_security_group" "game" {
   name_prefix = "${var.name}-"
-  description = "Public HTTPS game and restricted SSH"
+  description = "Restricted SSH for the tunnel origin"
   vpc_id      = aws_vpc.game.id
-  dynamic "ingress" {
-    for_each = var.tunnel_mode ? {} : { "80" = "HTTP and ACME", "443" = "HTTPS and WebSockets" }
-    content {
-      description = ingress.value
-      from_port   = tonumber(ingress.key)
-      to_port     = tonumber(ingress.key)
-      protocol    = "tcp"
-      cidr_blocks = ["0.0.0.0/0"]
-    }
-  }
   ingress {
     description = "SSH from the operator network"
     from_port   = 22
@@ -224,14 +228,8 @@ resource "aws_security_group" "game" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   lifecycle {
-    precondition {
-      condition = !var.tunnel_mode || (
-        var.game_domain != "" &&
-        local.private_deploy_sha256 != "" &&
-        try(split(":", var.private_deploy_secret_arn)[3], "") == var.aws_region
-      )
-      error_message = "Tunnel mode requires a game hostname, a private deployment archive, and a Secrets Manager secret ARN in the AWS region."
-    }
+    # AWS would replace the existing group just to change its description.
+    ignore_changes = [description]
   }
 }
 
@@ -256,24 +254,23 @@ moved {
 locals {
   elastic_ip            = var.existing_elastic_ip == "" ? aws_eip.game[0].public_ip : data.aws_eip.reserved[0].public_ip
   allocation            = var.existing_elastic_ip == "" ? aws_eip.game[0].id : data.aws_eip.reserved[0].id
-  game_host             = var.game_domain == "" ? local.elastic_ip : lower(var.game_domain)
-  private_deploy_sha256 = var.private_deploy_archive == "" ? "" : filesha256(var.private_deploy_archive)
-  compose_environment = join("\n", concat([
+  game_host             = lower(var.game_domain)
+  private_deploy_sha256 = filesha256(var.private_deploy_archive)
+  compose_environment = join("\n", [
     "COMPOSE_PROJECT_NAME=${var.name}",
     "GAME_DOMAIN=${local.game_host}",
-    "CADDY_CONFIG=${var.game_domain == "" ? "Caddyfile.ip" : "Caddyfile"}",
     "ALLOWED_ORIGINS=${join(",", distinct(concat(var.allowed_origins, ["https://${local.game_host}"])))}",
     "MAX_PLAYERS=${var.max_players}",
     "PREBUILT_CLIENT=1",
     "ADMIN_ENV_FILE=/etc/loeberland/admin.env",
     "ADMIN_QUEUE_EDITS=1",
     "BACKUP_DIR=/var/lib/loeberland/backups",
-    ], var.tunnel_mode ? [
     "LOEBERLAND_DEPLOY_BUCKET=${aws_s3_bucket.game.id}",
     "LOEBERLAND_DEPLOY_REGION=${var.aws_region}",
     "LOEBERLAND_DEPLOY_SHA256=${local.private_deploy_sha256}",
     "LOEBERLAND_DEPLOY_SECRET_ARN=${var.private_deploy_secret_arn}",
-  ] : [], [""]))
+    "",
+  ])
 }
 
 resource "aws_instance" "game" {

@@ -22,8 +22,8 @@ edit        Stop the game for an editing session, then restart it on exit.
 credentials Display the active admin panel credentials.
 status      Show the status of the four services.
 
-Deploy requires AWS_ACCESS_KEY and AWS_SECRET_KEY. The defaults are Oregon,
-c8i.large, 100 players and HTTPS on the Elastic IP. Edit deploy/chat.env to
+Deploy requires AWS_ACCESS_KEY, AWS_SECRET_KEY and a Cloudflare Tunnel.
+The defaults are Oregon, c8i.large and 100 players. Edit deploy/chat.env to
 set chat permissions. See deploy/README.md.
 HELP
 }
@@ -172,7 +172,7 @@ ssh_client=(ssh -i "$key" -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeo
     -o ServerAliveInterval=20 -o StrictHostKeyChecking=accept-new
     -o "UserKnownHostsFile=$local_dir/known_hosts")
 host="ubuntu@$ip"
-compose='sudo docker compose --env-file /opt/loeberland/current/compose.env -f /opt/loeberland/current/sf/server/compose.yaml --profile production'
+compose='sudo env LOEBERLAND_DEPLOYMENT_DIR=/opt/loeberland/current/private-deploy docker compose --env-file /opt/loeberland/current/compose.env -f /opt/loeberland/current/sf/server/compose.yaml -f /opt/loeberland/current/private-deploy/production.compose.yaml --profile production'
 
 save_admin_credentials() {
     local temp_file
@@ -262,7 +262,7 @@ deadline=$((SECONDS + 240))
 until curl -fsS --max-time 8 "${url}healthz" >/dev/null 2>&1; do
     if (( SECONDS >= deadline )); then
         echo "The stack started, but $url is not healthy over HTTPS yet." >&2
-        echo "For a custom domain, check that its A record points to $ip. Check proxy logs over SSH." >&2
+        echo 'Check the proxied Cloudflare DNS record and tunnel route, then check the connector and proxy logs over SSH.' >&2
         exit 1
     fi
     sleep 5

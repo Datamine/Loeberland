@@ -18,7 +18,9 @@ Check that the version starts with `aws-cli/2.`. If a new Bash terminal cannot f
 
 ### Deploy the site
 
-Export your access key ID as `AWS_ACCESS_KEY` and your secret access key as `AWS_SECRET_KEY`. Both variables are required. Then run this command from the repository root.
+Configure the Cloudflare tunnel and build the private deployment bundle using the private deployment checkout. Set `game_domain`, `private_deploy_archive`, and `private_deploy_secret_arn` in `server/deploy/terraform.tfvars` or through their `TF_VAR_*` environment variables. Start from `server/deploy/terraform.tfvars.example`.
+
+Export your access key ID as `AWS_ACCESS_KEY` and your secret access key as `AWS_SECRET_KEY`. Then run this command from the repository root.
 
 ```sh
 ./deploy/aws.sh
@@ -26,34 +28,17 @@ Export your access key ID as `AWS_ACCESS_KEY` and your secret access key as `AWS
 
 The script builds the current checkout, presents the infrastructure plan, uploads a release to private S3, and waits for public HTTPS. Use the same command to publish updates. `DEPLOY_AUTO_APPROVE=1` skips the plan confirmation for unattended runs.
 
-The default is one **c8i.large in Oregon**, a **100-player cap**, a 40 GiB encrypted disk, and an Elastic IP. Ports 80 and 443 serve the game. SSH is limited to your public IPv4 address unless you set `TF_VAR_ssh_cidr`. The script uses the Elastic IP for the public HTTPS URL, with a short-lived Let's Encrypt certificate that Caddy renews. It creates its own VPC and public subnet. EC2, storage, the public IP, and traffic incur AWS charges.
-
-Optional configuration lives in `server/deploy/terraform.tfvars`. Start from `terraform.tfvars.example` or supply variables such as `TF_VAR_max_players=150`. For a custom hostname, set `TF_VAR_game_domain` and point its A record to the Elastic IP printed during deploy. Remove stale AAAA records. The script can finish the host setup before DNS is ready. It reports a failed HTTPS check until the hostname resolves and the certificate is issued.
+The default is one **c8i.large in Oregon**, a **100-player cap**, a 40 GiB encrypted disk, and an Elastic IP. Cloudflare Tunnel serves the public hostname over HTTPS. The only inbound EC2 rule is SSH, limited to your public IPv4 address unless you set `TF_VAR_ssh_cidr`. EC2, storage, the public IP, and traffic incur AWS charges.
 
 To reuse an Elastic IP, set `existing_elastic_ip` and its `aws_region` in
 `server/deploy/terraform.tfvars`. Terraform looks up the allocation in your
 account and associates it with the instance. The address stays allocated in
 your account if you tear down the instance. Detach it from any other resource
-before deploying. With `game_domain` unset, the Elastic IP is also the HTTPS
-hostname.
+before deploying.
 
 Gameplay state lives in RAM and checkpoints to Redis once per second by
 default. Cron exports Redis to SQLite every five minutes. Each run removes
 snapshots aged 24 hours or more from local disk and private S3.
-
-### Tunnel mode
-
-Set `tunnel_mode` with a public `game_domain`, an absolute
-`private_deploy_archive` path, and a `private_deploy_secret_arn` in the AWS
-region. The EC2 security group retains restricted SSH and closes inbound
-ports 80 and 443. Terraform uploads the private archive to the deployment
-bucket. The release installer verifies its checksum and uses its Compose
-override and readiness checks. EC2 reads the runtime secret from Secrets
-Manager using its instance role.
-
-Configure and test the public tunnel before enabling this mode on an existing
-directly served game. The private deployment checkout contains the Cloudflare
-stack and host setup instructions.
 
 ### SSH and admin
 
@@ -66,7 +51,7 @@ After you approve the first plan, the script asks EC2 to create a key pair and s
 ./deploy/aws.sh admin
 ```
 
-On a custom domain, open `/admin/` over HTTPS and sign in with the credentials in **`.deploy/aws-admin.env`**. An AWS deploy saves the current credentials there on first use. You can also use the SSH tunnel to open **http://127.0.0.1:8788/**. Saving queues the edited fields in Redis. The running game applies them to a fresh checkpoint and reloads its state while keeping player connections open. Edits to fields that changed since you opened the record are rejected.
+Open `/admin/` on the public game hostname and sign in with the credentials in **`.deploy/aws-admin.env`**. An AWS deploy saves the current credentials there on first use. You can also use the SSH tunnel to open **http://127.0.0.1:8788/**. Saving queues the edited fields in Redis. The running game applies them to a fresh checkpoint and reloads its state while keeping player connections open. Edits to fields that changed since you opened the record are rejected.
 
 To grant debug teleport, select the character, check **Allow debug teleport**, and save. Clear the checkbox and save to revoke it.
 
