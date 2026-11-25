@@ -341,7 +341,7 @@ export function createMultiplayerClient({
         verification?.abort();
         verification = new AbortController();
         status(
-          retrying ? 'Verification failed. Please try again.' : 'Verify to create a character',
+          retrying ? 'Verification failed. Please try again.' : 'Verify to connect',
         );
         if (typeof document === 'undefined' || location.origin === 'null') {
           attempt.close(MP_CHARACTER_VERIFICATION_FAILED);
@@ -622,8 +622,8 @@ export function createMultiplayerClient({
       const limited = code === MP_CHARACTER_CONNECTION_LIMIT;
       status(
         limited
-          ? 'Too many characters connected from this network. Retrying…'
-          : 'Character creation is temporarily limited. Retrying in about a minute…',
+          ? 'Character sign-in is temporarily unavailable. Retrying…'
+          : 'Character verification is temporarily unavailable. Retrying in about a minute…',
       );
       reconnect = setTimeout(connect, (limited ? 15_000 : 60_000) + Math.random() * 5000);
       return;

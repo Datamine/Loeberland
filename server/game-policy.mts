@@ -8,7 +8,11 @@ export interface GamePolicy {
     page(parentOrigin: string, challenge: string): { body: string; csp: string };
     verify(request: IncomingMessage, challenge: string, response: string): Promise<boolean>;
   };
-  reserveCharacter?(request: IncomingMessage, owner: string): false | (() => void);
+  reserveCharacter?(
+    request: IncomingMessage,
+    owner: string,
+    verified: boolean,
+  ): false | 'verify' | (() => void);
   filterChat(message: {
     owner: string;
     text: string;

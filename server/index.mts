@@ -337,7 +337,8 @@ export async function startServer({
       ((owner: string, creating: boolean) => {
         if (!transport.open) throw Error('Connection closed');
         if (!releaseCharacter) {
-          const release = gamePolicy.reserveCharacter?.(req, owner);
+          const release = gamePolicy.reserveCharacter?.(req, owner, verified);
+          if (release === 'verify') throw new CharacterVerificationRequired();
           if (release === false) throw new CharacterConnectionLimit();
           releaseCharacter = release;
         }
@@ -449,11 +450,14 @@ export async function startServer({
             error instanceof CharacterCreationDelayed ||
             error instanceof CharacterVerificationRequired
           )
-            ws.close(MP_CHARACTER_CREATION_DELAYED, 'Character creation is temporarily limited');
+            ws.close(
+              MP_CHARACTER_CREATION_DELAYED,
+              'Character verification is temporarily unavailable',
+            );
           else if (error instanceof CharacterConnectionLimit)
             ws.close(
               MP_CHARACTER_CONNECTION_LIMIT,
-              'Too many characters connected from this network',
+              'Character sign-in is temporarily unavailable',
             );
           else ws.close(4003, errorMessage(error).slice(0, 120));
         }

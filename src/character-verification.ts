@@ -21,9 +21,9 @@ export function showCharacterVerification(
 
   const dialog = document.createElement('dialog');
   dialog.className = 'sf-character-verification';
-  dialog.setAttribute('aria-label', 'Verify to create a character');
+  dialog.setAttribute('aria-label', 'Verify to connect');
   const title = document.createElement('h2');
-  title.textContent = 'Verify to create a character';
+  title.textContent = 'Verify to connect';
   const frame = document.createElement('iframe');
   frame.title = 'Character verification';
   const button = document.createElement('button');
