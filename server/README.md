@@ -180,7 +180,9 @@ database (here DB 1), preserving the previous DB 0:
 ```sh
 sudo -i
 cd /opt/loeberland/current
-compose=(docker compose --env-file compose.env -f sf/server/compose.yaml --profile production)
+export LOEBERLAND_DEPLOYMENT_DIR="$PWD/private-deploy"
+compose=(docker compose --env-file compose.env -f sf/server/compose.yaml
+  -f private-deploy/production.compose.yaml --profile production)
 "${compose[@]}" stop game
 # Copy the chosen SQLite file to /var/lib/loeberland/backups/restore.sqlite first.
 "${compose[@]}" run --rm --no-deps -T --user 0:0 --entrypoint node \
@@ -319,16 +321,15 @@ allowed origins. It publishes game port 8787 on host loopback only.
 | `ADMIN_USERNAME` / `ADMIN_PASSWORD` | Required HTTP Basic Auth credentials; no default                           |
 | `ADMIN_ENV_FILE`                    | Admin credentials/settings file; defaults to `server/.env`                 |
 | `ADMIN_READ_ONLY`                   | `0`; set `1` for inspection with writes disabled (`--view` sets it)        |
-| `GAME_DOMAIN`                       | Compose/Caddy hostname; default `localhost`, set a real hostname for HTTPS |
+| `GAME_DOMAIN`                       | Public Cloudflare Tunnel hostname in the production Compose environment      |
 | `BACKUP_DIR`                        | Compose backup bind directory; default `server/backups/`                   |
 | `COMPOSE_ENV_FILE`                  | Backup/admin launchers' Compose env file; default `server/.env`            |
 | `S3_BACKUP_URI`                     | Optional backup-wrapper upload destination, such as `s3://bucket/backups`  |
 
-For a non-Terraform Compose deployment, keep `GAME_DOMAIN`, `ALLOWED_ORIGINS`
-and other persistent settings in `server/.env` and use that file for every
-Compose command. Terraform stores its host settings at
-`/etc/loeberland/compose.env`; pass it with `--env-file` to avoid selecting a
-different Compose project or Redis database.
+For local Compose, keep `ALLOWED_ORIGINS` and other persistent settings in
+`server/.env`. On EC2, use the active release's
+`/opt/loeberland/current/compose.env` with the production Compose files shown
+in the restore instructions.
 
 `DEBUG_TELEPORT_ALL` accepts `true` or `false`. Non-production Node servers on
 loopback and `./deploy/local.sh` enable it by default. Production and shared
@@ -343,8 +344,8 @@ docker compose -f server/compose.yaml ps
 docker compose -f server/compose.yaml logs --tail 100 game redis
 ```
 
-On EC2, add `--env-file /etc/loeberland/compose.env` and use the Compose file
-at `/opt/loeberland/current/sf/server/compose.yaml`.
+Use `./deploy/aws.sh status` to see the production services. On EC2, use the
+production Compose command shown in the restore instructions to read their logs.
 
 `/healthz` reports player counts/capacity, the active storage backend,
 checkpoint versions and interval, event-loop delay, tick/broadcast timings,
