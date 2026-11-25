@@ -442,7 +442,7 @@
       "format": "esm"
     },
     "src/multiplayer-protocol.ts": {
-      "bytes": 6763,
+      "bytes": 6889,
       "imports": [
         {
           "path": "src/types/json.ts",
@@ -479,7 +479,7 @@
       "format": "esm"
     },
     "src/multiplayer-client.ts": {
-      "bytes": 31098,
+      "bytes": 31343,
       "imports": [
         {
           "path": "src/types/json.ts",
@@ -510,12 +510,17 @@
       "format": "esm"
     },
     "src/server-connection.ts": {
-      "bytes": 5308,
+      "bytes": 5548,
       "imports": [
         {
           "path": "src/multiplayer-client.ts",
           "kind": "import-statement",
           "original": "./multiplayer-client.ts"
+        },
+        {
+          "path": "src/multiplayer-protocol.ts",
+          "kind": "import-statement",
+          "original": "./multiplayer-protocol.ts"
         },
         {
           "path": "src/content-runtime.ts",
@@ -10266,7 +10271,7 @@
       "imports": [],
       "exports": [],
       "inputs": {},
-      "bytes": 9639783
+      "bytes": 9640618
     },
     "explore.js": {
       "imports": [],
@@ -10394,7 +10399,7 @@
           "bytesInOutput": 2475
         },
         "src/multiplayer-protocol.ts": {
-          "bytesInOutput": 2393
+          "bytesInOutput": 2487
         },
         "src/character-verification.ts": {
           "bytesInOutput": 1263
@@ -10403,10 +10408,10 @@
           "bytesInOutput": 1287
         },
         "src/multiplayer-client.ts": {
-          "bytesInOutput": 18982
+          "bytesInOutput": 19117
         },
         "src/server-connection.ts": {
-          "bytesInOutput": 2853
+          "bytesInOutput": 3002
         },
         "src/dialogues/services.json": {
           "bytesInOutput": 24213
@@ -11345,7 +11350,7 @@
           "bytesInOutput": 1701
         }
       },
-      "bytes": 4437705
+      "bytes": 4438083
     }
   }
 }
