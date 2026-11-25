@@ -458,7 +458,7 @@
       "format": "esm"
     },
     "src/character-verification.ts": {
-      "bytes": 1898,
+      "bytes": 1876,
       "imports": [
         {
           "path": "src/multiplayer-protocol.ts",
@@ -479,7 +479,7 @@
       "format": "esm"
     },
     "src/multiplayer-client.ts": {
-      "bytes": 30807,
+      "bytes": 30801,
       "imports": [
         {
           "path": "src/types/json.ts",
@@ -10266,7 +10266,7 @@
       "imports": [],
       "exports": [],
       "inputs": {},
-      "bytes": 9639416
+      "bytes": 9639388
     },
     "explore.js": {
       "imports": [],
@@ -10397,13 +10397,13 @@
           "bytesInOutput": 2393
         },
         "src/character-verification.ts": {
-          "bytesInOutput": 1285
+          "bytesInOutput": 1263
         },
         "src/world-deltas.ts": {
           "bytesInOutput": 1287
         },
         "src/multiplayer-client.ts": {
-          "bytesInOutput": 18870
+          "bytesInOutput": 18864
         },
         "src/server-connection.ts": {
           "bytesInOutput": 2853
@@ -11345,7 +11345,7 @@
           "bytesInOutput": 1701
         }
       },
-      "bytes": 4437615
+      "bytes": 4437587
     }
   }
 }
