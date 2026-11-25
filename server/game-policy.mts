@@ -23,6 +23,22 @@ export interface ChatModeration {
   isBanned(owner: string): Promise<boolean>;
 }
 
+export interface ChatLogEntry {
+  at: number;
+  owner: string;
+  x: number;
+  y: number;
+  z: number;
+  scope: PlayerChatSubmission['scope'];
+  message: string;
+  outcome: 'allowed' | 'censored' | 'throttled' | 'not-allowed' | 'unavailable' | 'interrupted';
+}
+
+export interface ChatLog {
+  append(entry: ChatLogEntry): void;
+  drain(): Promise<void>;
+}
+
 export interface GamePolicy {
   allowNewCharacter(request: IncomingMessage, verified: boolean): boolean | 'verify';
   characterVerification?: {
@@ -36,6 +52,7 @@ export interface GamePolicy {
   ): false | 'verify' | (() => void);
   filterChat(message: PlayerChatSubmission): false | ((recipientOwner: string) => boolean) | undefined;
   openChatModeration?(store: Pick<GameplayStore, 'get' | 'batch'>): ChatModeration;
+  openChatLog?(): Promise<ChatLog>;
 }
 
 export async function loadGamePolicy(path = process.env.GAME_POLICY_MODULE) {
@@ -48,6 +65,8 @@ export async function loadGamePolicy(path = process.env.GAME_POLICY_MODULE) {
     throw new Error('GAME_POLICY_MODULE reserveCharacter must be a function');
   if (policy.openChatModeration !== undefined && typeof policy.openChatModeration !== 'function')
     throw new Error('GAME_POLICY_MODULE openChatModeration must be a function');
+  if (policy.openChatLog !== undefined && typeof policy.openChatLog !== 'function')
+    throw new Error('GAME_POLICY_MODULE openChatLog must be a function');
   const verification = policy.characterVerification;
   if (
     verification !== undefined &&

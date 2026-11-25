@@ -12,6 +12,8 @@ import type { ServerGeometry, PlayerTransport, ServerPlayer } from '../src/types
 import type { GameplayStore, NameReservation, StorageEntry } from '../src/types/storage.ts';
 import {
   CharacterBanned,
+  type ChatLog,
+  type ChatLogEntry,
   type GamePolicy,
   type ChatModeration,
   type PlayerChatSubmission,
@@ -32,6 +34,7 @@ interface GameOptions {
   serverBuild?: BuildInfo;
   gamePolicy?: GamePolicy;
   chatModeration?: ChatModeration;
+  chatLog?: ChatLog;
   closeBannedSession?: (owner: string, warning: string) => void;
   allowUsername?: UsernamePolicy;
   tuning?: Partial<{ [K in keyof typeof SERVER_TUNING]: number }>;
@@ -146,6 +149,7 @@ export async function createGame({
   serverBuild,
   gamePolicy,
   chatModeration,
+  chatLog,
   closeBannedSession,
   allowUsername,
   tuning: tuningOverrides = {},
@@ -1696,24 +1700,48 @@ export async function createGame({
     if (message.type === 'say') {
       const say = () => {
         const time = now();
-        if (players.get(p.id) !== p || time - (p.spokeAt ?? -Infinity) < PLAYER_CHAT_COOLDOWN_MS)
+        if (players.get(p.id) !== p || typeof message.text !== 'string') return;
+        const entered = playerChatLine(message.text);
+        if (!entered || entered === '/') return;
+        const serverWide = entered.startsWith('/');
+        const scope = serverWide ? 'server' : 'nearby';
+        const logEntry = chatLog && {
+          at: time,
+          owner: p.owner,
+          x: p.x,
+          y: p.y,
+          z: p.z,
+          scope,
+          message: message.text,
+        } satisfies Omit<ChatLogEntry, 'outcome'>;
+        const audit = (outcome: ChatLogEntry['outcome']) => {
+          if (logEntry) chatLog?.append({ ...logEntry, outcome });
+        };
+        if (time - (p.spokeAt ?? -Infinity) < PLAYER_CHAT_COOLDOWN_MS) {
+          audit('throttled');
           return;
+        }
         const quick = !canTypeChat(p.profile);
-        const line = quick ? quickChatLine(message.text) : playerChatLine(message.text);
-        const serverWide = line.startsWith('/');
-        if (serverWide && !canUseServerChat(p.profile)) return;
+        const line = quick ? quickChatLine(message.text) : entered;
+        if (!line || (serverWide && !canUseServerChat(p.profile))) {
+          audit('not-allowed');
+          return;
+        }
         const text = serverWide ? line.slice(1).trimStart() : line;
-        if (!text) return;
         p.spokeAt = time;
         const submission: PlayerChatSubmission = {
           owner: p.owner,
           text,
-          scope: serverWide ? 'server' : 'nearby',
+          scope,
           quick,
         };
         const filter = gamePolicy?.filterChat(submission);
-        if (filter === false) return;
+        if (filter === false) {
+          audit('throttled');
+          return;
+        }
         const deliver = () => {
+          audit('allowed');
           const speech = JSON.stringify({
             type: 'say',
             id: p.id,
@@ -1742,6 +1770,8 @@ export async function createGame({
         const review = Promise.resolve(decision)
           .catch(() => 'unavailable' as const)
           .then((verdict) => {
+            if (typeof verdict === 'object') audit('censored');
+            else if (verdict === 'unavailable') audit('unavailable');
             const warning = typeof verdict === 'object' && {
               type: 'notice',
               id: 'chat-moderation-blocked',
@@ -1760,7 +1790,10 @@ export async function createGame({
                 }
                 return disconnect(active);
               }
-              if (closing || players.get(p.id) !== p || !p.transport.open) return;
+              if (closing || players.get(p.id) !== p || !p.transport.open) {
+                if (verdict === 'allow') audit('interrupted');
+                return;
+              }
               if (verdict === 'allow') deliver();
               else if (warning) send(p, warning);
               else

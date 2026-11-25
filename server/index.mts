@@ -33,7 +33,7 @@ import { monitorEventLoopDelay } from 'node:perf_hooks';
 import { WebSocketServer, WebSocket } from 'ws';
 import { createWorldModel } from '../src/world.ts';
 import { createGame } from './game.mts';
-import { CharacterBanned, loadGamePolicy, type ChatModeration } from './game-policy.mts';
+import { CharacterBanned, loadGamePolicy, type ChatLog, type ChatModeration } from './game-policy.mts';
 import { loadUsernamePolicy } from './usernames.mts';
 import { createStore } from './store.mts';
 import { createCheckpointManager } from './checkpoints.mts';
@@ -119,6 +119,7 @@ export async function startServer({
       debugTeleportAll,
       gamePolicy,
       chatModeration,
+      chatLog,
       closeBannedSession(owner, warning) {
         for (const session of sessions) {
           if (session.player?.owner === owner && session.transport.open) {
@@ -133,8 +134,10 @@ export async function startServer({
       ...chatPolicy,
     });
   let chatModeration: ChatModeration | undefined;
+  let chatLog: ChatLog | undefined;
   try {
     chatModeration = gamePolicy?.openChatModeration?.(store);
+    chatLog = await gamePolicy?.openChatLog?.();
     checkpoints = await createCheckpointManager({
       store,
       intervalMs: checkpointIntervalMs,
@@ -683,6 +686,7 @@ export async function startServer({
       try {
         return await saving;
       } finally {
+        await chatLog?.drain();
         clearTimeout(force);
         for (const ws of sockets.clients) ws.terminate();
         await new Promise((resolve) => sockets.close(resolve));
