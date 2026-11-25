@@ -329,6 +329,17 @@ export function createMultiplayerClient({
           !/^[a-f0-9]{32}$/.test(message.challenge)
         )
           return;
+        if (typeof document === 'undefined' || location.origin === 'null') {
+          attempt.close(MP_CHARACTER_VERIFICATION_FAILED);
+          return;
+        }
+        // Apply the usual game reload before the challenge so it keeps the
+        // connection that receives the verified welcome.
+        if (state.reloadOnWelcome) {
+          location.reload();
+          return;
+        }
+        clearTimeout(settleTimer ?? undefined);
         if (verificationTimer === undefined) {
           verificationTimer = setTimeout(() => {
             if (socket !== attempt) return;
@@ -340,13 +351,7 @@ export function createMultiplayerClient({
         const retrying = !!verification;
         verification?.abort();
         verification = new AbortController();
-        status(
-          retrying ? 'Verification failed. Please try again.' : 'Verify to connect',
-        );
-        if (typeof document === 'undefined' || location.origin === 'null') {
-          attempt.close(MP_CHARACTER_VERIFICATION_FAILED);
-          return;
-        }
+        status(retrying ? 'Verification failed. Please try again.' : 'Verify to connect');
         const signal = verification.signal;
         showCharacterVerification(endpoint!, message.challenge, {
           signal,
@@ -590,6 +595,7 @@ export function createMultiplayerClient({
     verificationTimer = undefined;
   }
   function disconnected(code?: number) {
+    if (verification) firstResolve(null);
     clearVerification();
     state.following = null;
     selfSamples.length = 0;
