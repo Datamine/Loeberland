@@ -442,7 +442,7 @@
       "format": "esm"
     },
     "src/multiplayer-protocol.ts": {
-      "bytes": 6534,
+      "bytes": 6763,
       "imports": [
         {
           "path": "src/types/json.ts",
@@ -457,18 +457,39 @@
       ],
       "format": "esm"
     },
+    "src/character-verification.ts": {
+      "bytes": 1898,
+      "imports": [
+        {
+          "path": "src/multiplayer-protocol.ts",
+          "kind": "import-statement",
+          "original": "./multiplayer-protocol.ts"
+        },
+        {
+          "path": "src/types/json.ts",
+          "kind": "import-statement",
+          "original": "./types/json.ts"
+        }
+      ],
+      "format": "esm"
+    },
     "src/world-deltas.ts": {
       "bytes": 3992,
       "imports": [],
       "format": "esm"
     },
     "src/multiplayer-client.ts": {
-      "bytes": 28158,
+      "bytes": 30807,
       "imports": [
         {
           "path": "src/types/json.ts",
           "kind": "import-statement",
           "original": "./types/json.ts"
+        },
+        {
+          "path": "src/character-verification.ts",
+          "kind": "import-statement",
+          "original": "./character-verification.ts"
         },
         {
           "path": "src/content-runtime.ts",
@@ -10245,7 +10266,7 @@
       "imports": [],
       "exports": [],
       "inputs": {},
-      "bytes": 9632511
+      "bytes": 9639416
     },
     "explore.js": {
       "imports": [],
@@ -10373,13 +10394,16 @@
           "bytesInOutput": 2475
         },
         "src/multiplayer-protocol.ts": {
-          "bytesInOutput": 2228
+          "bytesInOutput": 2393
+        },
+        "src/character-verification.ts": {
+          "bytesInOutput": 1285
         },
         "src/world-deltas.ts": {
           "bytesInOutput": 1287
         },
         "src/multiplayer-client.ts": {
-          "bytesInOutput": 17217
+          "bytesInOutput": 18870
         },
         "src/server-connection.ts": {
           "bytesInOutput": 2853
@@ -11321,7 +11345,7 @@
           "bytesInOutput": 1701
         }
       },
-      "bytes": 4434512
+      "bytes": 4437615
     }
   }
 }
