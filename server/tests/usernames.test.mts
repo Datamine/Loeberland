@@ -85,11 +85,15 @@ test('automatic names are unique, persist across restart, and do not consume the
 });
 
 test('moderation failures leave the automatic name and free first choice intact', async () => {
-  const game = await createGame({ geometry: fixtureGeometry(), store: createMemoryStore() }),
+  const game = await createGame({
+      geometry: fixtureGeometry(),
+      store: createMemoryStore(),
+      allowUsername: (canonical) => canonical !== 'deniedname',
+    }),
     a = await player(game, 51003);
   try {
     const automatic = a.p.name;
-    await command(game, a.p, 'rename', { name: 'f_u_c_k' });
+    await command(game, a.p, 'rename', { name: 'DeniedName' });
     assert.equal(requiredResult(a.messages).ok, false);
     assert.equal(a.p.name, automatic);
     assert.equal(a.p.nameChanged, 0);

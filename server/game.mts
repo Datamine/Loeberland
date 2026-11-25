@@ -11,6 +11,7 @@ import type { Appearance } from '../src/types/content.ts';
 import type { ServerGeometry, PlayerTransport, ServerPlayer } from '../src/types/server.ts';
 import type { GameplayStore, NameReservation, StorageEntry } from '../src/types/storage.ts';
 import type { GamePolicy } from './game-policy.mts';
+import type { UsernamePolicy } from './usernames.mts';
 import { nearestMinimapPoint } from '../src/minimap-navigation.ts';
 
 interface GameOptions {
@@ -25,6 +26,7 @@ interface GameOptions {
   debugTeleportAll?: boolean;
   serverBuild?: BuildInfo;
   gamePolicy?: GamePolicy;
+  allowUsername?: UsernamePolicy;
   tuning?: Partial<{ [K in keyof typeof SERVER_TUNING]: number }>;
 }
 import { DEATH_DURATION } from '../src/capture-animation.ts';
@@ -131,6 +133,7 @@ export async function createGame({
   debugTeleportAll = false,
   serverBuild,
   gamePolicy,
+  allowUsername,
   tuning: tuningOverrides = {},
 }: GameOptions) {
   const tuning = { ...SERVER_TUNING, ...tuningOverrides };
@@ -645,7 +648,9 @@ export async function createGame({
       }
       let persisted = nameOwners.get(owner);
       if (!persisted) {
-        const generated = generateUsername((canonical) => names.has(canonical));
+        const generated = generateUsername(
+          (canonical) => names.has(canonical) || allowUsername?.(canonical) === false,
+        );
         // Reserve before yielding so concurrent browser identities
         // cannot receive the same automatic name.
         names.set(generated.canonical, owner);
@@ -928,9 +933,9 @@ export async function createGame({
     };
   }
   async function rename(p: ServerPlayer, name: unknown) {
-    const normalized = normalizeUsername(name),
+    const normalized = normalizeUsername(name, allowUsername),
       decision = renameDecision({
-        name,
+        normalized,
         owner: p.owner,
         now: now(),
         lastChanged: p.nameChanged,
@@ -1175,7 +1180,7 @@ export async function createGame({
       p.characterPlaying = false;
       result = { ok: true };
     } else if (action === 'characterLogin') {
-      const name = normalizeUsername(args.name);
+      const name = normalizeUsername(args.name, allowUsername);
       result = await accounts.logIn(
         p.owner,
         name.ok ? name.canonical : '',

@@ -14,6 +14,19 @@ type RenameResult =
   | { ok: true; name: string; unchanged: true; retryAt: number }
   | InvalidName;
 import { randomInt } from 'node:crypto';
+import { isAbsolute } from 'node:path';
+import { pathToFileURL } from 'node:url';
+
+export type UsernamePolicy = (canonical: string) => boolean;
+
+export async function loadUsernamePolicy(path = process.env.USERNAME_POLICY_MODULE) {
+  if (!path) return undefined;
+  if (!isAbsolute(path)) throw new Error('USERNAME_POLICY_MODULE must be an absolute path');
+  const { default: policy }: { default?: UsernamePolicy } = await import(pathToFileURL(path).href);
+  if (typeof policy !== 'function')
+    throw new Error('USERNAME_POLICY_MODULE must export a username policy as its default export');
+  return policy;
+}
 
 export const RENAME_COOLDOWN_MS = 60_000;
 const nameBeginnings = [
@@ -77,10 +90,10 @@ const nameEndings = [
   string,
   string,
 ];
-/** Generated names follow the same length/moderation/uniqueness policy as
- * chosen names. Their persisted changed=0 leaves the first rename unlocked. */
+/** Generated names follow the same syntax and availability rules as chosen
+ * names. Their persisted changed=0 leaves the first rename unlocked. */
 export function generateUsername(
-  taken: (canonical: string) => boolean = () => false,
+  unavailable: (canonical: string) => boolean = () => false,
   draw = randomInt,
 ) {
   for (let attempt = 0; attempt < 128; attempt++) {
@@ -91,63 +104,14 @@ export function generateUsername(
           .toString(36)
           .padStart(3, '0'),
       result = normalizeUsername(candidate);
-    if (result.ok && !taken(result.canonical)) return result;
+    if (result.ok && !unavailable(result.canonical)) return result;
   }
   throw new Error('Unable to assign an available username. Please reconnect.');
 }
-// Kept server-side. Never use the rendered/escaped name as an identity key.
-const forbidden = [
-  'fuck',
-  'fuk',
-  'fuc',
-  'fck',
-  'fuq',
-  'fook',
-  'fack',
-  'shit',
-  'shyt',
-  'shet',
-  'bitch',
-  'bich',
-  'biatch',
-  'cunt',
-  'kunt',
-  'cock',
-  'dick',
-  'pussy',
-  'pussie',
-  'asshole',
-  'arsehole',
-  'motherfucker',
-  'wanker',
-  'twat',
-  'bollock',
-  'bastard',
-  'douche',
-  'slut',
-  'whore',
-  'piss',
-  'prick',
-  'jizz',
-  'nigger',
-  'nigga',
-  'faggot',
-  'fag',
-  'retard',
-  'rape',
-  'rapist',
-];
-const substitutions: Record<string, string> = {
-  0: 'o',
-  1: 'i',
-  3: 'e',
-  4: 'a',
-  5: 's',
-  7: 't',
-  8: 'b',
-  9: 'g',
-};
-export function normalizeUsername(value: unknown): ValidName | InvalidName {
+export function normalizeUsername(
+  value: unknown,
+  allowUsername?: UsernamePolicy,
+): ValidName | InvalidName {
   if (typeof value !== 'string')
     return {
       ok: false,
@@ -163,33 +127,8 @@ export function normalizeUsername(value: unknown): ValidName | InvalidName {
         'world-message.server.usernames.use-1-12-letters-numbers-or-underscores',
       ),
     };
-  const canonical = name.toLowerCase(),
-    letters = canonical
-      .replace(/[01345789]/g, (c) => substitutions[c])
-      .replace(/_/g, '')
-      .replace(/ph/g, 'f'),
-    fold = (s: string) => s.replace(/(.)\1+/g, '$1');
-  // Check both spellings: digit substitutions must not hide ordinary text.
-  const variants = [
-    canonical.replace(/_/g, ''),
-    letters,
-    letters.replace(/i/g, 'l'),
-    letters.replace(/v/g, 'u'),
-  ] satisfies [string, string, string, string];
-  const bad = variants.some(
-    (v) =>
-      (
-        ['ass', 'arse', 'tit', 'tits', 'cum', 'sex'] satisfies [
-          string,
-          string,
-          string,
-          string,
-          string,
-          string,
-        ]
-      ).includes(v) || forbidden.some((word) => v.includes(word) || fold(v).includes(fold(word))),
-  );
-  if (bad || /^guest\d+$/i.test(name))
+  const canonical = name.toLowerCase();
+  if (/^guest\d+$/.test(canonical) || allowUsername?.(canonical) === false)
     return {
       ok: false,
       message: contentText(
@@ -199,21 +138,20 @@ export function normalizeUsername(value: unknown): ValidName | InvalidName {
   return { ok: true, name, canonical };
 }
 export function renameDecision({
-  name,
+  normalized: result,
   owner,
   now,
   lastChanged = 0,
   current = null,
   takenBy = null,
 }: {
-  name: unknown;
+  normalized: ValidName | InvalidName;
   owner: string;
   now: number;
   lastChanged?: number;
   current?: string | null;
   takenBy?: string | null;
 }): RenameResult {
-  const result = normalizeUsername(name);
   if (!result.ok) return result;
   if (current?.toLowerCase() === result.canonical)
     return {

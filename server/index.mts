@@ -34,6 +34,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { createWorldModel } from '../src/world.ts';
 import { createGame } from './game.mts';
 import { loadGamePolicy } from './game-policy.mts';
+import { loadUsernamePolicy } from './usernames.mts';
 import { createStore } from './store.mts';
 import { createCheckpointManager } from './checkpoints.mts';
 import { readServerBuild } from './build-info.mts';
@@ -77,7 +78,7 @@ export async function startServer({
   shutdownTimeoutMs = Number(process.env.SHUTDOWN_TIMEOUT_MS ?? 10000),
   logger = console,
 }: ServerOptions = {}) {
-  const gamePolicy = await loadGamePolicy();
+  const [gamePolicy, allowUsername] = await Promise.all([loadGamePolicy(), loadUsernamePolicy()]);
   const serverBuild = readServerBuild();
   const googleChat = readGoogleChatConfig();
   const chatPolicy = readChatPolicy();
@@ -114,6 +115,7 @@ export async function startServer({
       googleChatAvailable: !!googleChat,
       debugTeleportAll,
       gamePolicy,
+      allowUsername,
       ...chatPolicy,
     });
   try {

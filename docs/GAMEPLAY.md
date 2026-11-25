@@ -75,9 +75,9 @@ using simulation time.
 
 Character settings contain username, PvP and connection settings. Names are
 unique without regard to case, have 1–12 ASCII letters/digits/underscores, and
-can be changed once every 60 seconds. Validation, profanity/leet substitutions,
-name reservations and the cooldown run on the backend. Names remain reserved
-while their owners are offline; renaming releases the previous name.
+can be changed once every 60 seconds. The backend validates the name and
+applies the deployment's configured username policy. Names remain reserved
+while their owners are offline. Renaming releases the previous name.
 
 Player level is the average of the Strength and Hitpoints levels, rounded down.
 Left-click another player to inspect their level. Right-click for **Follow**.

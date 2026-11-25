@@ -33,7 +33,7 @@ import {
 } from './admin-edit.mts';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { normalizeUsername } from './usernames.mts';
+import { loadUsernamePolicy, normalizeUsername, type UsernamePolicy } from './usernames.mts';
 
 import type { BinaryLike } from 'crypto';
 
@@ -72,6 +72,7 @@ function validate(
   kind: string,
   key: string,
   value: unknown,
+  allowUsername: UsernamePolicy | undefined,
 ): asserts value is Record<string, unknown> {
   if (!['state', 'usernames', 'player'].includes(kind) || typeof key !== 'string' || !key)
     throw fail(400, 'Choose an existing record.');
@@ -79,11 +80,11 @@ function validate(
   if (kind === 'player') {
     if (Object.keys(value).sort().join(',') !== 'state,username')
       throw fail(400, 'Player fields must be state and username.');
-    if (value.state !== null) validate('state', 'player:' + key, value.state);
-    if (value.username !== null) validate('usernames', key, value.username);
+    if (value.state !== null) validate('state', 'player:' + key, value.state, allowUsername);
+    if (value.username !== null) validate('usernames', key, value.username, allowUsername);
   }
   if (kind === 'usernames') {
-    const name = normalizeUsername(value.name);
+    const name = normalizeUsername(value.name, allowUsername);
     if (!name.ok) throw fail(400, name.message);
     if (value.owner !== key || value.canonical !== name.canonical || value.name !== name.name)
       throw fail(400, 'Keep owner unchanged and canonical equal to the lowercase name.');
@@ -110,6 +111,7 @@ export async function openAdminStore({
   redisURL = process.env.REDIS_URL,
   queueEdits = false,
 } = {}) {
+  const allowUsername = await loadUsernamePolicy();
   let adapter: AdminBackend;
   let saveLegacyPlayer: (owner: string, previous: PlayerParts, next: OwnerRecord) => Promise<void>;
   let enqueue:
@@ -417,7 +419,7 @@ export async function openAdminStore({
       return raw;
     },
     async save(kind: string, key: string, original: unknown, value: unknown) {
-      validate(kind, key, value);
+      validate(kind, key, value, allowUsername);
       if (typeof original !== 'string') throw fail(400, 'Reload the record before saving.');
       if (kind === 'player') {
         let base: unknown;

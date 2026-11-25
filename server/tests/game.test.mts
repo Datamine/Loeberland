@@ -15,7 +15,7 @@ import { AIRSHIP_TERMINAL } from '../../src/airship.ts';
 import { normalizeUsername } from '../usernames.mts';
 import { decodePlayerFrame, encodePlayerFrame } from '../../src/multiplayer-protocol.ts';
 
-test('usernames are moderated on the backend, including common substitutions', () => {
+test('the backend validates username syntax and applies the configured policy', () => {
   for (const name of ['John_123', 'Cassidy', 'Classy', 'v', 'TwelveChars1'] satisfies [
     string,
     string,
@@ -24,32 +24,9 @@ test('usernames are moderated on the backend, including common substitutions', (
     string,
   ])
     assert.equal(normalizeUsername(name).ok, true, name);
-  for (const name of [
-    '13charactersxx',
-    'hello there',
-    '<script>',
-    'f_u_c_k',
-    'fuuuck',
-    'sh1t',
-    'b1tch',
-    'F4GG0T',
-    'shiiit',
-    'fuq',
-    'Guest42',
-  ] satisfies [
-    string,
-    string,
-    string,
-    string,
-    string,
-    string,
-    string,
-    string,
-    string,
-    string,
-    string,
-  ])
+  for (const name of ['13charactersxx', 'hello there', '<script>', 'Guest42'])
     assert.equal(normalizeUsername(name).ok, false, name);
+  assert.equal(normalizeUsername('TestName', (canonical) => canonical !== 'testname').ok, false);
 });
 test('simultaneous case-insensitive username claims are exclusive; cooldown survives reconnect', async () => {
   const { game, advance } = await fixture(),

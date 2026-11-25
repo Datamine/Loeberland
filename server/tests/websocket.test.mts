@@ -63,7 +63,7 @@ test('real WebSockets authenticate, exchange nearby avatars, moderate names and 
       false,
     );
     b.ws.send(
-      JSON.stringify({ type: 'command', request: 3, action: 'rename', args: { name: 'sh1t' } }),
+      JSON.stringify({ type: 'command', request: 3, action: 'rename', args: { name: 'Bad Name' } }),
     );
     await until(() => b.messages.some((m) => m.type === 'result' && m.request === 3));
     assert.equal(
