@@ -1,6 +1,22 @@
 import type { IncomingMessage } from 'node:http';
 import { isAbsolute } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import type { GameplayStore } from '../src/types/storage.ts';
+
+export class CharacterBanned extends Error {}
+
+export interface PlayerChatSubmission {
+  owner: string;
+  text: string;
+  scope: 'nearby' | 'server';
+  quick: boolean;
+}
+
+export interface ChatModeration {
+  review(message: PlayerChatSubmission): Promise<'allow' | 'blocked' | 'unavailable' | 'banned'>;
+  delivered(message: PlayerChatSubmission, recipient: string): void;
+  isBanned(owner: string): Promise<boolean>;
+}
 
 export interface GamePolicy {
   allowNewCharacter(request: IncomingMessage, verified: boolean): boolean | 'verify';
@@ -13,12 +29,8 @@ export interface GamePolicy {
     owner: string,
     verified: boolean,
   ): false | 'verify' | (() => void);
-  filterChat(message: {
-    owner: string;
-    text: string;
-    scope: 'nearby' | 'server';
-    quick: boolean;
-  }): false | ((recipientOwner: string) => boolean) | undefined;
+  filterChat(message: PlayerChatSubmission): false | ((recipientOwner: string) => boolean) | undefined;
+  openChatModeration?(store: Pick<GameplayStore, 'get' | 'batch'>): ChatModeration;
 }
 
 export async function loadGamePolicy(path = process.env.GAME_POLICY_MODULE) {
@@ -29,6 +41,8 @@ export async function loadGamePolicy(path = process.env.GAME_POLICY_MODULE) {
     throw new Error('GAME_POLICY_MODULE must export a game policy as its default export');
   if (policy.reserveCharacter !== undefined && typeof policy.reserveCharacter !== 'function')
     throw new Error('GAME_POLICY_MODULE reserveCharacter must be a function');
+  if (policy.openChatModeration !== undefined && typeof policy.openChatModeration !== 'function')
+    throw new Error('GAME_POLICY_MODULE openChatModeration must be a function');
   const verification = policy.characterVerification;
   if (
     verification !== undefined &&

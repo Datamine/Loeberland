@@ -65,6 +65,8 @@ import {
   MP_CHARACTER_CREATION_DELAYED,
   MP_CHARACTER_CONNECTION_LIMIT,
   MP_CHARACTER_VERIFICATION_FAILED,
+  MP_CHARACTER_BANNED,
+  CHARACTER_BANNED_MESSAGE,
   MP_PROTOCOL,
   MP_PRIVATE_KEYS,
   MP_INTERPOLATION_MS,
@@ -617,6 +619,13 @@ export function createMultiplayerClient({
     if (code === 4001) {
       stopped = true;
       status('Character open in another tab');
+      return;
+    }
+    if (code === MP_CHARACTER_BANNED) {
+      stopped = true;
+      clearTimeout(settleTimer ?? undefined);
+      firstResolve(null);
+      status(CHARACTER_BANNED_MESSAGE);
       return;
     }
     if (code === MP_CHARACTER_VERIFICATION_FAILED) {

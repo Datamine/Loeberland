@@ -79,6 +79,11 @@ can be changed once every 60 seconds. The backend validates the name and
 applies the deployment's configured username policy. Names remain reserved
 while their owners are offline. Renaming releases the previous name.
 
+On the hosted server, TypeSafe reviews typed chat before delivery using the
+sender's recent messages and the chat they could see. The sender receives a
+notice when moderation withholds a message. Repeated violations can ban the
+character from the game.
+
 Player level is the average of the Strength and Hitpoints levels, rounded down.
 Left-click another player to inspect their level. Right-click for **Follow**.
 Following uses the native tile graph, replans as the target moves,

@@ -10,7 +10,12 @@ import type { BuildInfo } from '../src/types/network.ts';
 import type { Appearance } from '../src/types/content.ts';
 import type { ServerGeometry, PlayerTransport, ServerPlayer } from '../src/types/server.ts';
 import type { GameplayStore, NameReservation, StorageEntry } from '../src/types/storage.ts';
-import type { GamePolicy } from './game-policy.mts';
+import {
+  CharacterBanned,
+  type GamePolicy,
+  type ChatModeration,
+  type PlayerChatSubmission,
+} from './game-policy.mts';
 import type { UsernamePolicy } from './usernames.mts';
 import { nearestMinimapPoint } from '../src/minimap-navigation.ts';
 
@@ -26,6 +31,8 @@ interface GameOptions {
   debugTeleportAll?: boolean;
   serverBuild?: BuildInfo;
   gamePolicy?: GamePolicy;
+  chatModeration?: ChatModeration;
+  closeBannedSession?: (owner: string) => void;
   allowUsername?: UsernamePolicy;
   tuning?: Partial<{ [K in keyof typeof SERVER_TUNING]: number }>;
 }
@@ -38,7 +45,12 @@ import { GAMEPLAY } from '../src/config/gameplay.ts';
 import { HAIRSTYLES } from '../src/config/hairstyles.ts';
 import { normalizeUsername, renameDecision, generateUsername } from './usernames.mts';
 import { createSharedWorld } from './shared-world.mts';
-import { MP_PROTOCOL, sanitizePrivateState } from '../src/multiplayer-protocol.ts';
+import {
+  CHARACTER_BANNED_MESSAGE,
+  MP_CHARACTER_BANNED,
+  MP_PROTOCOL,
+  sanitizePrivateState,
+} from '../src/multiplayer-protocol.ts';
 import { createDetentionSite } from '../src/encounters.ts';
 import { createInventoryAccount } from './inventory.mts';
 import { createHighScores } from './high-scores.mts';
@@ -133,6 +145,8 @@ export async function createGame({
   debugTeleportAll = false,
   serverBuild,
   gamePolicy,
+  chatModeration,
+  closeBannedSession,
   allowUsername,
   tuning: tuningOverrides = {},
 }: GameOptions) {
@@ -140,6 +154,7 @@ export async function createGame({
   const canDebugTeleport = (profile: PlayerProfile) =>
     debugTeleportAll || profile.debugTeleport === true;
   const accounts = createCharacterAccounts(store, now);
+  const chatReviews = new Set<Promise<unknown>>();
   const players = new Map<number, ServerPlayer>(),
     profiles = new Map<string, PlayerProfile>(),
     identities = new Map<string, ServerPlayer>(),
@@ -588,6 +603,7 @@ export async function createGame({
     let complete!: () => void;
     authenticating.set(owner, new Promise<void>((resolve) => (complete = resolve)));
     try {
+      if (await chatModeration?.isBanned(owner)) throw new CharacterBanned();
       if (!resumed) admit?.(owner, false);
       const stored = profiles.get(owner) || (await store.get('player:' + owner));
       let profile: PlayerProfile | undefined = isRecord(stored)
@@ -1682,30 +1698,72 @@ export async function createGame({
         const time = now();
         if (players.get(p.id) !== p || time - (p.spokeAt ?? -Infinity) < PLAYER_CHAT_COOLDOWN_MS)
           return;
-        const line = canTypeChat(p.profile)
-          ? playerChatLine(message.text)
-          : quickChatLine(message.text);
+        const quick = !canTypeChat(p.profile);
+        const line = quick ? quickChatLine(message.text) : playerChatLine(message.text);
         const serverWide = line.startsWith('/');
         if (serverWide && !canUseServerChat(p.profile)) return;
         const text = serverWide ? line.slice(1).trimStart() : line;
         if (!text) return;
         p.spokeAt = time;
-        const filter = gamePolicy?.filterChat({
+        const submission: PlayerChatSubmission = {
           owner: p.owner,
           text,
           scope: serverWide ? 'server' : 'nearby',
-          quick: !canTypeChat(p.profile),
-        });
+          quick,
+        };
+        const filter = gamePolicy?.filterChat(submission);
         if (filter === false) return;
-        const speech = JSON.stringify({
-          type: 'say',
-          id: p.id,
-          name: p.name,
-          text,
-          ...(serverWide && { scope: 'server' }),
-        });
-        for (const other of serverWide ? players.values() : replication.observersOf(p, 25))
-          if (!filter || filter(other.owner)) send(other, speech);
+        const deliver = () => {
+          const speech = JSON.stringify({
+            type: 'say',
+            id: p.id,
+            name: p.name,
+            text,
+            ...(serverWide && { scope: 'server' }),
+          });
+          for (const other of serverWide ? players.values() : replication.observersOf(p, 25)) {
+            if (other.transport.open && (!filter || filter(other.owner))) {
+              send(other, speech);
+              chatModeration?.delivered(submission, other.owner);
+            }
+          }
+        };
+        if (!chatModeration) {
+          deliver();
+          return;
+        }
+        const started = performance.now();
+        const review = chatModeration
+          .review(submission)
+          .catch(() => 'unavailable' as const)
+          .then((outcome) => {
+            if (outcome === 'banned') closeBannedSession?.(p.owner);
+            const finish = () => {
+              metrics.observe('chatModerationMs', performance.now() - started);
+              if (outcome === 'banned') {
+                const active = identities.get(p.owner);
+                if (!active) return;
+                if (active.transport.open)
+                  active.transport.close(MP_CHARACTER_BANNED, CHARACTER_BANNED_MESSAGE);
+                return disconnect(active);
+              }
+              if (closing || players.get(p.id) !== p || !p.transport.open) return;
+              if (outcome === 'allow') deliver();
+              else
+                send(p, {
+                  type: 'notice',
+                  id: 'chat-moderation-' + outcome,
+                  message:
+                    outcome === 'blocked'
+                      ? 'Message blocked by chat moderation.'
+                      : 'Chat moderation is temporarily unavailable. Try again shortly.',
+                });
+            };
+            return store.inMemory ? enqueueMutation(finish) : finish();
+          })
+          .catch(() => console.error('Chat moderation result could not be applied.'));
+        chatReviews.add(review);
+        void review.finally(() => chatReviews.delete(review));
       };
       if (store.inMemory) p.queue = enqueueMutation(say);
       else say();
@@ -1877,6 +1935,7 @@ export async function createGame({
       closing = true;
       closePromise = (async () => {
         await actionQueue.drain();
+        await Promise.all(chatReviews);
         await Promise.all([...authenticating.values()]);
         await Promise.all([...players.values()].map((p) => p.queue));
         await Promise.all([...cleanupTasks]);

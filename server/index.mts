@@ -33,7 +33,7 @@ import { monitorEventLoopDelay } from 'node:perf_hooks';
 import { WebSocketServer, WebSocket } from 'ws';
 import { createWorldModel } from '../src/world.ts';
 import { createGame } from './game.mts';
-import { loadGamePolicy } from './game-policy.mts';
+import { CharacterBanned, loadGamePolicy, type ChatModeration } from './game-policy.mts';
 import { loadUsernamePolicy } from './usernames.mts';
 import { createStore } from './store.mts';
 import { createCheckpointManager } from './checkpoints.mts';
@@ -49,6 +49,8 @@ import {
   MP_CHARACTER_CONNECTION_LIMIT,
   MP_CHARACTER_VERIFICATION_FAILED,
   MP_CHARACTER_VERIFICATION_PATH,
+  MP_CHARACTER_BANNED,
+  CHARACTER_BANNED_MESSAGE,
 } from '../src/multiplayer-protocol.ts';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -104,6 +106,7 @@ export async function startServer({
   // Build the static map before acquiring Redis's renewable ownership lease;
   // map compilation is synchronous and must not starve its renewal timer.
   const store = providedStore || (await createStore());
+  const sessions = new Set<LiveSession>();
   let checkpoints: Awaited<ReturnType<typeof createCheckpointManager>>,
     game: Awaited<ReturnType<typeof createGame>>;
   const createSimulation = (ram: GameplayStore) =>
@@ -115,10 +118,18 @@ export async function startServer({
       googleChatAvailable: !!googleChat,
       debugTeleportAll,
       gamePolicy,
+      chatModeration,
+      closeBannedSession(owner) {
+        for (const session of sessions)
+          if (session.player?.owner === owner)
+            session.transport.close(MP_CHARACTER_BANNED, CHARACTER_BANNED_MESSAGE);
+      },
       allowUsername,
       ...chatPolicy,
     });
+  let chatModeration: ChatModeration | undefined;
   try {
+    chatModeration = gamePolicy?.openChatModeration?.(store);
     checkpoints = await createCheckpointManager({
       store,
       intervalMs: checkpointIntervalMs,
@@ -327,7 +338,6 @@ export async function startServer({
     sockets.handleUpgrade(req, socket, head, (ws) => sockets.emit('connection', ws, req));
   });
   const aliveClients = new WeakSet<WebSocket>();
-  const sessions = new Set<LiveSession>();
   const verifyingClients = new Set<WebSocket>();
   sockets.on('connection', (ws, req: IncomingMessage) => {
     let authenticating = false;
@@ -448,7 +458,9 @@ export async function startServer({
             deadline = authDeadline(120_000);
             ws.send(JSON.stringify({ type: 'verifyCharacter', challenge: challenge.id }));
             authenticating = false;
-          } else if (
+          } else if (error instanceof CharacterBanned)
+            ws.close(MP_CHARACTER_BANNED, CHARACTER_BANNED_MESSAGE);
+          else if (
             error instanceof CharacterCreationDelayed ||
             error instanceof CharacterVerificationRequired
           )

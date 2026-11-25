@@ -23,6 +23,7 @@ interface ConnectionGateOptions {
   locationObject?: Pick<Location, 'href'>;
 }
 import { multiplayerEndpoint } from './multiplayer-client.ts';
+import { CHARACTER_BANNED_MESSAGE } from './multiplayer-protocol.ts';
 import { contentText } from './content-runtime.ts';
 
 export function serverConnected<T extends { state: { connected: boolean } }>(
@@ -66,16 +67,15 @@ export function createServerConnectionGate({
     const connected = serverConnected(client);
     if (connected) seenConnection = true;
     const otherTab = client?.state.status === 'Character open in another tab';
-    const needsSetup = !otherTab && !seenConnection && !client?.state.configured;
-    const reconnecting = !needsSetup && !otherTab;
-    title.textContent = reconnecting
-      ? client?.state.status === 'Server Updating...'
-        ? 'Server Updating...'
-        : 'Reconnecting...'
-      : otherTab
-        ? 'Character open in another tab'
-        : 'Connect to San Francisco';
-    status.hidden = reconnecting;
+    const banned = client?.state.status === CHARACTER_BANNED_MESSAGE;
+    const needsSetup = !otherTab && !banned && !seenConnection && !client?.state.configured;
+    const reconnecting = !needsSetup && !otherTab && !banned;
+    if (banned) title.textContent = CHARACTER_BANNED_MESSAGE;
+    else if (reconnecting)
+      title.textContent =
+        client?.state.status === 'Server Updating...' ? 'Server Updating...' : 'Reconnecting...';
+    else title.textContent = otherTab ? 'Character open in another tab' : 'Connect to San Francisco';
+    status.hidden = reconnecting || banned;
     status.textContent = otherTab
       ? 'Close the other tab and reload here.'
       : needsSetup
