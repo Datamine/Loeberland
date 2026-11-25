@@ -119,10 +119,15 @@ export async function startServer({
       debugTeleportAll,
       gamePolicy,
       chatModeration,
-      closeBannedSession(owner) {
-        for (const session of sessions)
-          if (session.player?.owner === owner)
+      closeBannedSession(owner, warning) {
+        for (const session of sessions) {
+          if (session.player?.owner === owner && session.transport.open) {
+            session.transport.send(
+              JSON.stringify({ type: 'notice', id: 'chat-moderation-blocked', message: warning }),
+            );
             session.transport.close(MP_CHARACTER_BANNED, CHARACTER_BANNED_MESSAGE);
+          }
+        }
       },
       allowUsername,
       ...chatPolicy,

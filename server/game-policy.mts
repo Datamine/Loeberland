@@ -12,8 +12,13 @@ export interface PlayerChatSubmission {
   quick: boolean;
 }
 
+type ChatModerationVerdict =
+  | 'allow'
+  | 'unavailable'
+  | { outcome: 'blocked' | 'banned'; warning: string };
+
 export interface ChatModeration {
-  review(message: PlayerChatSubmission): Promise<'allow' | 'blocked' | 'unavailable' | 'banned'>;
+  review(message: PlayerChatSubmission): ChatModerationVerdict | Promise<ChatModerationVerdict>;
   delivered(message: PlayerChatSubmission, recipient: string): void;
   isBanned(owner: string): Promise<boolean>;
 }

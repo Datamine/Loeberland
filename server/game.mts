@@ -32,7 +32,7 @@ interface GameOptions {
   serverBuild?: BuildInfo;
   gamePolicy?: GamePolicy;
   chatModeration?: ChatModeration;
-  closeBannedSession?: (owner: string) => void;
+  closeBannedSession?: (owner: string, warning: string) => void;
   allowUsername?: UsernamePolicy;
   tuning?: Partial<{ [K in keyof typeof SERVER_TUNING]: number }>;
 }
@@ -1733,30 +1733,41 @@ export async function createGame({
           return;
         }
         const started = performance.now();
-        const review = chatModeration
-          .review(submission)
+        const decision = chatModeration.review(submission);
+        if (decision === 'allow') {
+          deliver();
+          metrics.observe('chatModerationMs', performance.now() - started);
+          return;
+        }
+        const review = Promise.resolve(decision)
           .catch(() => 'unavailable' as const)
-          .then((outcome) => {
-            if (outcome === 'banned') closeBannedSession?.(p.owner);
+          .then((verdict) => {
+            const warning = typeof verdict === 'object' && {
+              type: 'notice',
+              id: 'chat-moderation-blocked',
+              message: verdict.warning,
+            };
+            const banned = typeof verdict === 'object' && verdict.outcome === 'banned';
+            if (banned) closeBannedSession?.(p.owner, verdict.warning);
             const finish = () => {
               metrics.observe('chatModerationMs', performance.now() - started);
-              if (outcome === 'banned') {
+              if (banned) {
                 const active = identities.get(p.owner);
                 if (!active) return;
-                if (active.transport.open)
+                if (active.transport.open) {
+                  if (warning) send(active, warning);
                   active.transport.close(MP_CHARACTER_BANNED, CHARACTER_BANNED_MESSAGE);
+                }
                 return disconnect(active);
               }
               if (closing || players.get(p.id) !== p || !p.transport.open) return;
-              if (outcome === 'allow') deliver();
+              if (verdict === 'allow') deliver();
+              else if (warning) send(p, warning);
               else
                 send(p, {
                   type: 'notice',
-                  id: 'chat-moderation-' + outcome,
-                  message:
-                    outcome === 'blocked'
-                      ? 'Message blocked by chat moderation.'
-                      : 'Chat moderation is temporarily unavailable. Try again shortly.',
+                  id: 'chat-moderation-unavailable',
+                  message: 'Chat moderation is temporarily unavailable. Try again shortly.',
                 });
             };
             return store.inMemory ? enqueueMutation(finish) : finish();
