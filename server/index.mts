@@ -2,6 +2,7 @@ import type { CheckpointStore, GameplayStore, RamGameStore } from '../src/types/
 import type { ServerGeometry, ServerPlayer, PlayerTransport } from '../src/types/server.ts';
 import type { Socket } from 'node:net';
 import { createServer as createControlSocket } from 'node:net';
+import { randomBytes } from 'node:crypto';
 import { requiredValue } from '../src/types/assert.ts';
 import { errorMessage, isRecord } from '../src/types/json.ts';
 interface ServerOptions {
@@ -21,6 +22,7 @@ interface LiveSession {
 }
 class CharacterCreationDelayed extends Error {}
 class CharacterConnectionLimit extends Error {}
+class CharacterVerificationRequired extends Error {}
 import { watchContent } from '../content/server.mts';
 import { applyWorldEdits } from '../src/world-edits.ts';
 import { createServer, type IncomingMessage } from 'node:http';
@@ -44,6 +46,8 @@ import {
   MP_BROADCAST_HZ,
   MP_CHARACTER_CREATION_DELAYED,
   MP_CHARACTER_CONNECTION_LIMIT,
+  MP_CHARACTER_VERIFICATION_FAILED,
+  MP_CHARACTER_VERIFICATION_PATH,
 } from '../src/multiplayer-protocol.ts';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -157,6 +161,7 @@ export async function startServer({
   resourceTimer.unref();
   let draining = false,
     healthy = true;
+  const acceptsPlayers = () => !draining && healthy && store.leaseHealthy !== false;
   let reloading: Promise<void> | null = null;
   function permitted(origin: string | undefined) {
     if (!origin) return true;
@@ -183,6 +188,35 @@ export async function startServer({
   });
   const http = createServer(async (req, res) => {
     const url = new URL(req.url || '/', 'http://localhost');
+    if (url.pathname === MP_CHARACTER_VERIFICATION_PATH) {
+      const parent = url.searchParams.get('parent');
+      const challenge = url.searchParams.get('challenge');
+      const origin = parent && URL.parse(parent);
+      if (
+        !gamePolicy?.characterVerification ||
+        req.method !== 'GET' ||
+        !origin ||
+        origin.origin !== parent ||
+        (origin.protocol !== 'https:' && origin.protocol !== 'http:') ||
+        !permitted(parent) ||
+        !challenge ||
+        !/^[a-f0-9]{32}$/.test(challenge)
+      ) {
+        res.writeHead(404, { 'Cache-Control': 'no-store' }).end();
+        return;
+      }
+      const page = gamePolicy.characterVerification.page(parent, challenge);
+      res
+        .writeHead(200, {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Content-Security-Policy': page.csp,
+          'Cache-Control': 'no-store',
+          'Referrer-Policy': 'strict-origin',
+          'X-Content-Type-Options': 'nosniff',
+        })
+        .end(page.body);
+      return;
+    }
     if (url.pathname.startsWith('/auth/google/chat/') && (await googleChatRoutes(req, res, url)))
       return;
     if (url.pathname === '/healthz') {
@@ -279,9 +313,7 @@ export async function startServer({
       return;
     }
     if (
-      draining ||
-      !healthy ||
-      store.leaseHealthy === false ||
+      !acceptsPlayers() ||
       path !== '/ws' ||
       !permitted(req.headers.origin) ||
       sockets.clients.size > maxPlayers + 128
@@ -294,23 +326,34 @@ export async function startServer({
   });
   const aliveClients = new WeakSet<WebSocket>();
   const sessions = new Set<LiveSession>();
+  const verifyingClients = new Set<WebSocket>();
   sockets.on('connection', (ws, req: IncomingMessage) => {
     let authenticating = false;
+    let challenge: { id: string; token: string; attempts: number } | undefined;
+    let verified = false;
     let releaseCharacter: (() => void) | undefined;
-    const admit = gamePolicy && ((owner: string, creating: boolean) => {
-      if (!transport.open) throw Error('Connection closed');
-      if (!releaseCharacter) {
-        const release = gamePolicy.reserveCharacter?.(req, owner);
-        if (release === false) throw new CharacterConnectionLimit();
-        releaseCharacter = release;
-      }
-      if (creating && !gamePolicy.allowNewCharacter(req)) throw new CharacterCreationDelayed();
-    });
+    const admit =
+      gamePolicy &&
+      ((owner: string, creating: boolean) => {
+        if (!transport.open) throw Error('Connection closed');
+        if (!releaseCharacter) {
+          const release = gamePolicy.reserveCharacter?.(req, owner);
+          if (release === false) throw new CharacterConnectionLimit();
+          releaseCharacter = release;
+        }
+        if (creating) {
+          const result = gamePolicy.allowNewCharacter(req, verified);
+          if (result === 'verify') throw new CharacterVerificationRequired();
+          if (!result) throw new CharacterCreationDelayed();
+        }
+      });
     aliveClients.add(ws);
-    const deadline = setTimeout(() => {
-      if (!session.player) ws.close(4003, 'Authentication timeout');
-    }, 10_000);
-    deadline.unref();
+    const authDeadline = (ms: number) =>
+      setTimeout(() => {
+        if (!session.player)
+          ws.close(challenge ? MP_CHARACTER_VERIFICATION_FAILED : 4003, 'Authentication timeout');
+      }, ms).unref();
+    let deadline = authDeadline(10_000);
     const socket = (ws as WebSocket & { _socket?: Socket })._socket;
     const transport: PlayerTransport = {
       get open() {
@@ -338,7 +381,7 @@ export async function startServer({
     ws.on('pong', () => aliveClients.add(ws));
     ws.on('message', async (data, binary) => {
       if (reloading) await reloading;
-      if (draining || !transport.open || store.leaseHealthy === false) return;
+      if (!transport.open || !acceptsPlayers()) return;
       if (binary) {
         ws.close(4002, 'Client messages must be JSON');
         return;
@@ -358,16 +401,60 @@ export async function startServer({
         }
         authenticating = true;
         try {
+          if (challenge) {
+            if (message.protocol !== MP_PROTOCOL || message.token !== challenge.token) {
+              ws.close(MP_CHARACTER_VERIFICATION_FAILED, 'Character verification interrupted');
+              return;
+            }
+            const response = message.verification;
+            if (
+              typeof response !== 'string' ||
+              !response ||
+              response.length > 2048 ||
+              !(await gamePolicy?.characterVerification?.verify(req, challenge.id, response))
+            ) {
+              if (transport.open && ++challenge.attempts < 3) {
+                challenge.id = randomBytes(16).toString('hex');
+                ws.send(JSON.stringify({ type: 'verifyCharacter', challenge: challenge.id }));
+                authenticating = false;
+              } else ws.close(MP_CHARACTER_VERIFICATION_FAILED, 'Character verification failed');
+              return;
+            }
+            if (reloading) await reloading;
+            if (!transport.open || !acceptsPlayers()) return;
+            verified = true;
+          }
           session.player = await game.connect(message, transport, admit);
           clearTimeout(deadline);
+          verifyingClients.delete(ws);
           if (!transport.open && !reloading) game.disconnect(session.player);
         } catch (error) {
           releaseCharacter?.();
           releaseCharacter = undefined;
-          if (error instanceof CharacterCreationDelayed)
+          if (
+            error instanceof CharacterVerificationRequired &&
+            gamePolicy?.characterVerification &&
+            !verified &&
+            verifyingClients.size < 32 &&
+            transport.open &&
+            typeof message.token === 'string'
+          ) {
+            challenge = { id: randomBytes(16).toString('hex'), token: message.token, attempts: 0 };
+            verifyingClients.add(ws);
+            clearTimeout(deadline);
+            deadline = authDeadline(120_000);
+            ws.send(JSON.stringify({ type: 'verifyCharacter', challenge: challenge.id }));
+            authenticating = false;
+          } else if (
+            error instanceof CharacterCreationDelayed ||
+            error instanceof CharacterVerificationRequired
+          )
             ws.close(MP_CHARACTER_CREATION_DELAYED, 'Character creation is temporarily limited');
           else if (error instanceof CharacterConnectionLimit)
-            ws.close(MP_CHARACTER_CONNECTION_LIMIT, 'Too many characters connected from this network');
+            ws.close(
+              MP_CHARACTER_CONNECTION_LIMIT,
+              'Too many characters connected from this network',
+            );
           else ws.close(4003, errorMessage(error).slice(0, 120));
         }
         return;
@@ -376,6 +463,7 @@ export async function startServer({
     });
     ws.on('close', async () => {
       clearTimeout(deadline);
+      verifyingClients.delete(ws);
       releaseCharacter?.();
       releaseCharacter = undefined;
       if (reloading) await reloading;

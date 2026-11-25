@@ -1,4 +1,5 @@
 import { isFiniteNumber } from './types/json.ts';
+import { showCharacterVerification } from './character-verification.ts';
 import type {
   PoseCoordinates,
   ServerEvent,
@@ -63,6 +64,7 @@ import {
   CHARACTER_IDENTITY_COOKIE,
   MP_CHARACTER_CREATION_DELAYED,
   MP_CHARACTER_CONNECTION_LIMIT,
+  MP_CHARACTER_VERIFICATION_FAILED,
   MP_PROTOCOL,
   MP_PRIVATE_KEYS,
   MP_INTERPOLATION_MS,
@@ -174,6 +176,8 @@ export function createMultiplayerClient({
     appliedAwards = new Set<string | number>(),
     pendingAcks = new Set<string | number>();
   let socket: ConnectionSocket | null = null,
+    verification: AbortController | undefined,
+    verificationTimer: ReturnType<typeof setTimeout> | undefined,
     reconnect: ReturnType<typeof setTimeout> | undefined = undefined,
     stopped = false,
     serial = 0,
@@ -266,14 +270,16 @@ export function createMultiplayerClient({
     }
     const attempt = socket;
     lastReceivedAt = now();
+    const hello = (response?: string) =>
+      send({
+        type: 'hello',
+        protocol: MP_PROTOCOL,
+        token,
+        privateState: readMultiplayerPreferences(storage),
+        verification: response,
+      });
     attempt.addEventListener('open', () => {
-      if (socket === attempt)
-        send({
-          type: 'hello',
-          protocol: MP_PROTOCOL,
-          token,
-          privateState: readMultiplayerPreferences(storage),
-        });
+      if (socket === attempt) hello();
     });
     attempt.addEventListener('message', (event) => {
       if (socket !== attempt || stopped) return;
@@ -314,6 +320,46 @@ export function createMultiplayerClient({
       try {
         message = JSON.parse(event.data) as ServerEvent;
       } catch {
+        return;
+      }
+      if (message.type === 'verifyCharacter') {
+        if (
+          state.connected ||
+          typeof message.challenge !== 'string' ||
+          !/^[a-f0-9]{32}$/.test(message.challenge)
+        )
+          return;
+        if (verificationTimer === undefined) {
+          verificationTimer = setTimeout(() => {
+            if (socket !== attempt) return;
+            socket = null;
+            attempt.close(MP_CHARACTER_VERIFICATION_FAILED);
+            disconnected(MP_CHARACTER_VERIFICATION_FAILED);
+          }, 125_000);
+        }
+        const retrying = !!verification;
+        verification?.abort();
+        verification = new AbortController();
+        status(
+          retrying ? 'Verification failed. Please try again.' : 'Verify to create a character',
+        );
+        if (typeof document === 'undefined' || location.origin === 'null') {
+          attempt.close(MP_CHARACTER_VERIFICATION_FAILED);
+          return;
+        }
+        const signal = verification.signal;
+        showCharacterVerification(endpoint!, message.challenge, {
+          signal,
+          submit(response) {
+            if (socket === attempt && hello(response)) {
+              verification?.abort();
+              status('Checking verification…');
+            }
+          },
+          cancel() {
+            if (socket === attempt) attempt.close(MP_CHARACTER_VERIFICATION_FAILED);
+          },
+        });
         return;
       }
       // Map server sample times onto one stable local render clock. Packet
@@ -390,6 +436,7 @@ export function createMultiplayerClient({
         if (peer) peer.hp = message.hp;
       }
       if (message.type === 'welcome') {
+        clearVerification();
         updating = false;
         updateExpectedUntil = 0;
         state.following = null;
@@ -536,7 +583,14 @@ export function createMultiplayerClient({
       disconnected(event.code);
     });
   }
+  function clearVerification() {
+    verification?.abort();
+    verification = undefined;
+    clearTimeout(verificationTimer);
+    verificationTimer = undefined;
+  }
   function disconnected(code?: number) {
+    clearVerification();
     state.following = null;
     selfSamples.length = 0;
     state.connected = false;
@@ -557,6 +611,11 @@ export function createMultiplayerClient({
     if (code === 4001) {
       stopped = true;
       status('Character open in another tab');
+      return;
+    }
+    if (code === MP_CHARACTER_VERIFICATION_FAILED) {
+      stopped = true;
+      status('Verification incomplete. Reload to try again.');
       return;
     }
     if (code === MP_CHARACTER_CREATION_DELAYED || code === MP_CHARACTER_CONNECTION_LIMIT) {
@@ -672,7 +731,7 @@ export function createMultiplayerClient({
           lastReceivedAt = now();
           return;
         }
-        if (stopped || !socket || now() - lastReceivedAt < 6000) return;
+        if (stopped || !socket || verification || now() - lastReceivedAt < 6000) return;
         const stale = socket;
         socket = null;
         disconnected();

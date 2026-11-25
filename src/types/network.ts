@@ -286,6 +286,7 @@ export interface WelcomeMessage extends ServerEnvelope {
 export type ServerEvent = ServerEnvelope &
   (
     | WelcomeMessage
+    | { type: 'verifyCharacter'; challenge: string }
     | { type: 'connection'; connected: boolean; status: string }
     | { type: 'hitpoints'; hp: number; max: number }
     | { type: 'inventory'; inventory: InventorySnapshot }
