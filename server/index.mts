@@ -294,7 +294,8 @@ export async function startServer({
         type = contentTypes[extname(file)];
       if (
         local.startsWith('..') ||
-        local.startsWith('server/') ||
+        /^(?:server|deploy)[\\/]/.test(local) ||
+        /\.(?:tfstate|tfvars)(?:\.|$)/.test(local) ||
         local.split(/[\\/]/).some((p) => p.startsWith('.')) ||
         !type
       ) {

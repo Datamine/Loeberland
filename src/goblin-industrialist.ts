@@ -17,7 +17,7 @@ export const GOBLIN_PHONE_BUYER = 'market-farmer-0';
 export const GOBLIN_PHONE_RESALE = 35;
 export const ROBE_SELLER = 'decorative-robe-seller';
 export const ROBE_ITEMS = ['decorative-robe-top', 'decorative-robe-bottom'] as const;
-export const CLOTHIER_ITEMS = [...ROBE_ITEMS, 'cashmere-turtleneck'] as const;
+export const CLOTHIER_ITEMS = [...ROBE_ITEMS, 'cashmere-turtleneck', 'puffy-parka'] as const;
 
 export function drawGoblinPhoneHut(
   m: Mesh,

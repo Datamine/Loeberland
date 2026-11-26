@@ -8,12 +8,14 @@ export type BattleEvent =
   | { type: 'victory' | 'death' };
 
 import { GAMEPLAY } from './config/gameplay.ts';
+import { PROGRESSION } from './config/progression.ts';
 import { skillStatus, hitpointMaximum } from './progression.ts';
 import { ITEM_STATS } from './item-stats.ts';
 export const MAX_HITPOINTS = GAMEPLAY.maxHitpoints;
 export const ALIEN_HITPOINTS = 36;
 
-const combatLevel = (value: number) => Math.max(1, Math.min(50, Math.floor(value) || 1));
+const combatLevel = (value: number) =>
+  Math.max(1, Math.min(PROGRESSION.maxLevel, Math.floor(value) || 1));
 const combatRandom = (random: () => number) =>
   Math.max(0, Math.min(1 - Number.EPSILON, Number(random()) || 0));
 /** At 100% inebriation, hit chance is half its sober value. Damage on a
@@ -21,15 +23,19 @@ const combatRandom = (random: () => number) =>
 export function inebriationAccuracyMultiplier(percent = 0) {
   return 1 - (0.5 * Math.max(0, Math.min(100, Number.isFinite(percent) ? percent : 0))) / 100;
 }
-export function weaponDamageRange(level = 1, weapon = 'unarmed', inebriation = 0) {
+export function weaponDamageRange(level = 1, weapon = 'unarmed', inebriation = 0, distance = 0) {
   const bonus = combatLevel(level) - 1;
   const item = ITEM_STATS[weapon]?.slot === 'weapon' ? ITEM_STATS[weapon] : ITEM_STATS.unarmed;
+  // Ranged weapons keep their full accuracy through half of their reach.
+  const falloffProgress = Math.max(0, Math.min(1, (2 * distance) / item.range! - 1));
+  const rangeMultiplier = 1 - (item.accuracyFalloff ?? 0) * falloffProgress;
   return {
     min: Math.floor(item.min! + bonus * item.minPerLevel!),
     max: Math.floor(item.max! + bonus * item.maxPerLevel!),
     accuracy:
       Math.min(item.accuracyCap!, item.accuracy! + bonus * item.accuracyPerLevel!) *
-      inebriationAccuracyMultiplier(inebriation),
+      inebriationAccuracyMultiplier(inebriation) *
+      rangeMultiplier,
   };
 }
 export function rollWeaponDamage(
@@ -37,11 +43,15 @@ export function rollWeaponDamage(
   weapon: string | undefined,
   random = Math.random,
   inebriation = 0,
+  distance = 0,
+  rerollMiss = false,
 ) {
-  const range = weaponDamageRange(level, weapon, inebriation);
-  return combatRandom(random) >= range.accuracy
-    ? 0
-    : range.min + Math.floor(combatRandom(random) * (range.max - range.min + 1));
+  const range = weaponDamageRange(level, weapon, inebriation, distance);
+  if (
+    combatRandom(random) >= range.accuracy &&
+    (!rerollMiss || combatRandom(random) >= range.accuracy)
+  ) return 0;
+  return range.min + Math.floor(combatRandom(random) * (range.max - range.min + 1));
 }
 export function enemyDamageRange(base: number, level = 1): ReturnType<typeof weaponDamageRange> {
   // Broader individual hits, with roughly the same average as the former
@@ -53,18 +63,31 @@ export function enemyDamageRange(base: number, level = 1): ReturnType<typeof wea
     accuracy: GAMEPLAY.monsterHitChance,
   };
 }
-export function rollEnemyDamage(base: number, level = 1, random = Math.random, defense = 0) {
+export function rollEnemyDamage(
+  base: number,
+  level = 1,
+  random = Math.random,
+  defense = 0,
+  guaranteedHit = false,
+) {
   const { min, max, accuracy } = enemyDamageRange(base, level);
   const hit =
-    combatRandom(random) >= accuracy ? 0 : min + Math.floor(combatRandom(random) * (max - min + 1));
-  return Math.max(0, hit - (Number.isFinite(defense) ? Math.max(0, Math.floor(defense)) : 0));
+    !guaranteedHit && combatRandom(random) >= accuracy
+      ? 0
+      : min + Math.floor(combatRandom(random) * (max - min + 1));
+  return damageAfterDefense(hit, defense);
+}
+
+export function damageAfterDefense(hit: number, defense = 0) {
+  const armor = Number.isFinite(defense) ? Math.floor(defense) : 0;
+  return hit > 0 ? Math.max(0, hit - armor) : 0;
 }
 
 export function averageAttackDamage(
   { min, max, accuracy }: ReturnType<typeof enemyDamageRange>,
   defense = 0,
 ) {
-  const armor = Number.isFinite(defense) ? Math.max(0, Math.floor(defense)) : 0;
+  const armor = Number.isFinite(defense) ? Math.floor(defense) : 0;
   const first = Math.max(min, armor + 1);
   if (first > max) return 0;
   const count = max - first + 1;
@@ -125,6 +148,7 @@ export function createAlienBattle({
   playerInterval = () => 1.05,
   random = Math.random,
   inebriation = () => 0,
+  rerollMiss = () => false,
 }: {
   health: Health;
   level?: () => number;
@@ -136,6 +160,7 @@ export function createAlienBattle({
   playerInterval?: () => number;
   random?: () => number;
   inebriation?: () => number;
+  rerollMiss?: () => boolean;
 }) {
   const state = {
     hp,
@@ -161,7 +186,8 @@ export function createAlienBattle({
           }
           const armed = typeof bayonet === 'function' ? bayonet() : bayonet,
             damage = armed
-              ? Math.min(state.hp, rollWeaponDamage(level(), 'bayonet', random, inebriation()))
+              ? Math.min(state.hp, rollWeaponDamage(level(), 'bayonet', random, inebriation(), 0,
+                  rerollMiss()))
               : 0;
           state.hp -= damage;
           state.nextPlayer += playerInterval();

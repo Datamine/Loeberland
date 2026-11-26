@@ -13,7 +13,7 @@ case "$action" in
     *) echo 'Usage: ./deploy/local.sh [up|down|logs|status|credentials|edit]' >&2; exit 2 ;;
 esac
 if [[ $# -gt 1 ]]; then exit 2; fi
-export ADMIN_ENV_FILE="${ADMIN_ENV_FILE:-$root/.deploy/local-admin.env}"
+export ADMIN_ENV_FILE="${ADMIN_ENV_FILE:-$root/deploy/.env.local-admin}"
 export LOCAL_DEBUG_TELEPORT_ALL=true
 if [[ $ADMIN_ENV_FILE != /* ]]; then export ADMIN_ENV_FILE="$PWD/$ADMIN_ENV_FILE"; fi
 
@@ -24,8 +24,9 @@ if ! docker compose version >/dev/null; then
     echo 'Install Docker with the Compose v2 plugin, then retry.' >&2
     exit 1
 fi
-compose=(docker compose -f "$root/server/compose.yaml" --profile admin)
-if [[ -n ${COMPOSE_ENV_FILE:-} ]]; then compose+=(--env-file "$COMPOSE_ENV_FILE"); fi
+env_file=${COMPOSE_ENV_FILE:-$root/deploy/.env.local}
+if [[ ! -f $env_file && -z ${COMPOSE_ENV_FILE:-} ]]; then env_file=/dev/null; fi
+compose=(docker compose --env-file "$env_file" -f "$root/server/compose.yaml" --profile admin)
 
 case "$action" in
     up)

@@ -10,6 +10,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame } from '../game.mts';
 import { createMemoryStore } from '../store.mts';
+import { ITEM_STATS } from '../../src/item-stats.ts';
 
 import { SKILL_THRESHOLDS, skillStatus, hitpointMaximum } from '../../src/progression.ts';
 import type { ServerPlayer } from '../../src/types/server.ts';
@@ -68,12 +69,13 @@ test('actual shared damage awards 10 strength and 5 hitpoint XP, faces the monst
     await game.close();
   }
 });
-test('Akibo is server-owned, fires at seven tiles with railgun damage and has a persistent collection entry', async () => {
+test('Akimbos require ownership, can fire at their range limit and persist in the collection', async () => {
   const f = await setup();
   try {
     const a = await player(f.game, 55002),
       t = f.game.shared.wilderness.actors[0];
-    Object.assign(a.p, { x: t.x - 7, z: t.z });
+    const { range, min } = ITEM_STATS.akibo;
+    Object.assign(a.p, { x: t.x - range, z: t.z });
     await command(f.game, a.p, 'attack', { id: t.id, weapon: 'akibo' });
     assert.equal(requiredResult(a.messages).ok, false);
     f.game.receive(a.p, {
@@ -88,13 +90,13 @@ test('Akibo is server-owned, fires at seven tiles with railgun damage and has a 
     );
     await command(f.game, a.p, 'attack', { id: t.id, weapon: 'akibo' });
     assert.equal(requiredResult(a.messages).ok, true);
-    assert.equal(t.hp, t.max - 8);
-    assert.equal(a.p.hitpointsXP, 40);
-    a.p.x = t.x - 7.02;
+    assert.equal(t.hp, t.max - min);
+    assert.equal(a.p.hitpointsXP, min * 5);
+    a.p.x = t.x - range - 0.02;
     a.p.shotAt = 0;
     await command(f.game, a.p, 'attack', { id: t.id, weapon: 'akibo' });
     assert.equal(requiredResult(a.messages).ok, true);
-    assert.equal(t.hp, t.max - 8, 'the approach starts without firing outside seven tiles');
+    assert.equal(t.hp, t.max - min, 'the approach starts without firing outside weapon range');
     assert.ok(a.p.inventory.snapshot().collection.includes('akibo'));
     await f.game.flush();
     assert.ok(

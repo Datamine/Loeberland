@@ -53,7 +53,7 @@ test('the zookeeper uses the exact tiger movement budget across turns', () => {
 
 test('capture returns the monkey without losing quest acceptance or duplicating a reward', () => {
   const q = createQuestLog(),
-    e = createEconomy(),
+    e = createEconomy({ coins: 25 }),
     player = { x: 3, y: 0 };
   q.accept();
   q.steal();

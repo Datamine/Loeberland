@@ -1,6 +1,7 @@
 import type { AnimationPose, AnimationFrame } from './types/animation.ts';
 import { ATV_SPEED } from './atv.ts';
 import { MOTORCYCLE_TRICKS } from './motorcycle.ts';
+import { SCOOTER_BACKFLIP } from './config/scooter.ts';
 /** Display-only timelines. These never advance movement, cooldowns or rewards. */
 export const GESTURE_SECONDS = Object.freeze({
   attack: 0.45,
@@ -13,6 +14,7 @@ export const GESTURE_SECONDS = Object.freeze({
   work: 2.2,
   steal: 0.9,
   caught: 2,
+  [SCOOTER_BACKFLIP.id]: SCOOTER_BACKFLIP.duration,
   ...Object.fromEntries(MOTORCYCLE_TRICKS.map(({ id, duration }) => [id, duration])),
 });
 const animationClamp = (v: number) => Math.max(0, Math.min(1, v));

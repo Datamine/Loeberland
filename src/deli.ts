@@ -2,7 +2,7 @@ import { contentText } from './content-runtime.ts';
 import { isSafeInteger, isFiniteNumber, isRecord } from './types/json.ts';
 import type { Economy, Health } from './types/controllers.ts';
 
-import { ITEM_STATS } from './item-stats.ts';
+import { ITEM_STATS, sandwichCapacity } from './item-stats.ts';
 import type { Mesh } from './geometry.ts';
 import { pose } from './geometry.ts';
 import type { Point } from './types/geometry.ts';
@@ -39,7 +39,7 @@ export function createDeli({
   saved: savedInput = {},
   onSave = () => {},
   onMessage = () => {},
-  capacity = () => 5,
+  capacity = () => sandwichCapacity(economy.state),
   now = Date.now,
 }: {
   economy: Economy;

@@ -1,4 +1,3 @@
-import { requiredFixture } from './helpers/required.mts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { SEARCH_HOMES, searchHousePoint, preferHouseStorage } from '../src/search-houses.ts';
@@ -124,16 +123,9 @@ test('back accessories share one slot, preserve legacy capes, and render on the 
     });
   assert.notDeepEqual(clockA.data, clockB.data, 'the clock hands tick');
 });
-test('the collection catalog names finds without revealing their locations', () => {
-  for (const id of ['backpack', 'new-year-rocket', 'clock-amulet'] satisfies [
-    string,
-    string,
-    string,
-  ])
-    assert.equal(
-      Reflect.get(requiredFixture(COLLECTION_ITEMS.find((i) => i.id === id)), 'hint'),
-      undefined,
-    );
+test('the collection catalog points players toward houses for searchable finds', () => {
+  for (const id of ['backpack', 'new-year-rocket', 'clock-amulet', 'barrel', 'goose-costume'])
+    assert.equal(COLLECTION_ITEMS.find((item) => item.id === id)?.hint, 'Houses');
 });
 
 test('storage faces inherit their search target while nearer walls still block selection', () => {

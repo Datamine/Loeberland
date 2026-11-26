@@ -79,13 +79,13 @@ export function drawOvaliaChair(m: Mesh, x: number, y: number, z: number, angle:
         const b = rim + ((Math.PI - rim) * (ring + 1)) / 14;
         const c = (side * Math.PI * 2) / 28;
         const d = ((side + 1) * Math.PI * 2) / 28;
-        m.quad(point(a, c, 1), point(b, c, 1), point(b, d, 1), point(a, d, 1), '#302f34', outer);
+        m.quad(point(a, c, 1), point(b, c, 1), point(b, d, 1), point(a, d, 1), '#622448', outer);
         m.quad(
           point(a, d, 0.916),
           point(b, d, 0.916),
           point(b, c, 0.916),
           point(a, c, 0.916),
-          '#bda17b',
+          '#702f54',
           'canvasWeave',
         );
         if (ring === 0)
@@ -94,11 +94,11 @@ export function drawOvaliaChair(m: Mesh, x: number, y: number, z: number, angle:
             point(a, d, 1),
             point(a, d, 0.916),
             point(a, c, 0.916),
-            '#49464a',
+            '#91425f',
             outer,
           );
       }
-    m.sphere(0, 0.54, 0.025, 0.43, 0.098, 0.41, '#d3b990', 18, 8, 'canvasWeave');
-    m.sphere(0, 1.03, -0.44, 0.39, 0.48, 0.11, '#ccb18a', 18, 10, 'canvasWeave');
+    m.sphere(0, 0.54, 0.025, 0.43, 0.098, 0.41, '#963e64', 18, 8, 'canvasWeave');
+    m.sphere(0, 1.03, -0.44, 0.39, 0.48, 0.11, '#873552', 18, 10, 'canvasWeave');
   });
 }

@@ -27,17 +27,10 @@ export interface FerrariRoad {
   contains: (x: number, z: number) => boolean;
   at: (x: number, z: number) => { height: number } | null;
 }
-export interface FerrariCityDriving {
-  ground: (x: number, z: number) => number;
-  nearest: (x: number, z: number) => (VehiclePosition & { score: number }) | null;
-  route: (from: WorldPoint, to: WorldPoint) => (WorldPoint & { y: number })[] | null;
-  readonly ready?: boolean;
-}
 export interface FerrariSaved {
   owned: boolean;
   distance: number;
   fuel: number;
-  localPosition?: VehiclePosition;
 }
 export interface FerrariState {
   owned: boolean;
@@ -51,7 +44,6 @@ export interface FerrariState {
   travel: number;
   direction: number;
   localPosition: VehiclePosition | null;
-  localPath: (WorldPoint & { y: number })[];
   destination?: (WorldPoint & { y: number }) | null;
 }
 export interface TrafficNode extends WorldPoint {

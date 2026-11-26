@@ -7,11 +7,16 @@ import { chairForGesture, drawOwnedChair } from './goblin-town.ts';
 import { drawWaymo } from './street-traffic.ts';
 import { drawATVRider } from './atv-model.ts';
 import { drawSwingRider } from './swings.ts';
+import { drawExperimentRider } from './shrimp-experiment.ts';
+import { SHRIMP_EXPERIMENT } from './config/shrimp-experiment.ts';
+import { GOBLIN_CATAPULT } from './config/goblin-catapult.ts';
+import { drawCatapultRider } from './goblin-catapult.ts';
 import { drawCharacter } from './characters.ts';
 import { drawBicycle } from './bicycle-model.ts';
 import { drawMotorcycle, pitchMotorcycleMesh } from './motorcycle.ts';
 import { drawFerrari } from './ferrari.ts';
 import { drawPlayerSkateboard } from './skateboard.ts';
+import { drawScooterRider } from './scooter.ts';
 import { drawWindsurfer } from './windsurfing.ts';
 import { drawWaveSurfer } from './surfing.ts';
 import { drawSkiRider, drawGondolaCabin } from './tahoe.ts';
@@ -70,6 +75,14 @@ export function drawRemotePlayer(
       actionT: hop.progress,
       motion: outfit.motion * (1 - Math.sin(Math.PI * hop.progress)),
     });
+  if (p.mode === GOBLIN_CATAPULT.mode) {
+    drawCatapultRider(m, { ...position, angle: p.angle, phase: p.phase }, outfit);
+    return;
+  }
+  if (p.mode === 'scooter' && !dead) {
+    drawScooterRider(m, p, outfit, time, signs, a);
+    return;
+  }
   if (
     !(['walk', 'sit', 'bench', 'dance'] satisfies [string, string, string, string]).includes(
       p.mode,
@@ -82,7 +95,11 @@ export function drawRemotePlayer(
       launcher: false,
       akibo: false,
       battleaxe: false,
+      combatLamp: false,
+      katana: false,
+      lightsaber: false,
       rollingPin: false,
+      bowlingBall: false,
       crowbar: false,
       bayonet: false,
       phone: false,
@@ -104,6 +121,7 @@ export function drawRemotePlayer(
   else if (p.mode === 'waymo') drawWaymo(m, p, outfit);
   else if (p.mode === 'atv') drawATVRider(m, p.x, p.y, p.z, p.angle, p.phase, outfit, a.atvTravel);
   else if (p.mode === 'swing' && !dead) drawSwingRider(m, p, outfit);
+  else if (p.mode === SHRIMP_EXPERIMENT.mode) drawExperimentRider(m, p, outfit);
   else if (p.mode === 'surf') {
     if (p.gesture === 'paddle' || p.gesture === 'surfboard')
       drawWaveSurfer(
@@ -203,7 +221,10 @@ export function drawRemotePlayer(
   if (p.mode === 'teleport')
     drawTabletTeleport(m, { position, base: ground(p.x, p.z), progress: a.actionT * 0.2 }, time);
   if (p.mode === 'parachute') drawParachute(m, position, p.angle, time);
-  if (look.cape && !['bomber', 'roll', 'train', 'ferrari', 'swing', 'waymo'].includes(p.mode))
+  if (
+    look.cape &&
+    !['bomber', 'roll', 'train', 'ferrari', 'swing', 'waymo', SHRIMP_EXPERIMENT.mode].includes(p.mode)
+  )
     drawKrakenCape(m, p.x, p.z, p.y + 0.07, p.angle, time, signs);
   if (a.action === 'drink' && p.mode !== 'bomber')
     drawDrinkingCoffee(

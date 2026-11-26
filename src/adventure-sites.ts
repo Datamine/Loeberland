@@ -26,7 +26,7 @@ export const ADVENTURE_SIGNS = Object.freeze([
   'Sand Hill Road Capital Partners',
   'STRENGTH TRAINING',
 ] satisfies [string, string, string, string, string, string, string]);
-function adventureSite(m: Mesh, start: number, site: Site) {
+export function adventureSite(m: Mesh, start: number, site: Site) {
   const lo = [Infinity, Infinity, Infinity] satisfies [number, number, number],
     hi = [-Infinity, -Infinity, -Infinity] satisfies [number, number, number];
   for (let i = start; i < m.data.length; i += 11)
@@ -265,7 +265,11 @@ export function inNOutBackyard(car: HighwayCar, along: number, behind: number) {
 
 export function drawInNOutCampfire(m: Mesh, car: HighwayCar) {
   const { x, z } = inNOutBackyard(car, 0, 8.3);
-  pose(m, x, regionalGroundHeight(x, z) + 0.025, z, 0, () => {
+  drawCampfire(m, x, regionalGroundHeight(x, z) + 0.025, z);
+}
+
+export function drawCampfire(m: Mesh, x: number, y: number, z: number) {
+  pose(m, x, y, z, 0, () => {
     m.cylinder(0, 0, 0, 0.45, 0.03, '#5b4c41', 12, 0.42, 'sand');
     for (let i = 0; i < 11; i++) {
       const angle = (i * 2 * Math.PI) / 11;

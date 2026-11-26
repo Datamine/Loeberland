@@ -9,7 +9,7 @@ import { guildDialogue } from '../src/guild.ts';
 import { configuredDialogue } from '../src/dialogue-config.ts';
 import { sightPrimaryVerb } from '../src/descriptions.ts';
 import { dialogueFixture } from './helpers/dialogue-fixture.mts';
-import { drawExpeditionLoot } from '../src/jurassic-models.ts';
+import { drawGroundItem } from '../src/ground-item-models.ts';
 
 test('book hit bounds follow rotated furniture and preserve their identity through the streaming codec', () => {
   for (const angle of [0, Math.PI / 2, Math.PI * 0.37] satisfies [number, number, number]) {
@@ -98,7 +98,7 @@ test('the torn invoice contains only its surviving Goose Corp letterhead', () =>
     const invoice = new Mesh(),
       card = new Mesh();
     drawLoreBook(invoice, 0, 0, 0, 'goose-invoice');
-    drawExpeditionLoot(card, { lootKind: 'goose-membership-card', x: 0, z: 0 }, 0, 0);
+    drawGroundItem(card, { lootKind: 'goose-membership-card', x: 0, z: 0 }, 0, 0);
     for (const m of [invoice, card]) {
       assert.ok(m.data.length > 0 && m.data.every(Number.isFinite));
       assert.ok(m.data.length / 33 < 500, 'paper props remain lightweight');

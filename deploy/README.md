@@ -79,7 +79,7 @@ UPGRADE_REQUIRED_FOR_SERVER_CHAT=False
 
 Environment variables passed to `./deploy/aws.sh` override this file for that run. Values in the host’s `/etc/loeberland/overrides.env` take precedence over both.
 
-For local Compose, use the same variables with `./deploy/local.sh` or put them in the file specified by `COMPOSE_ENV_FILE`. A direct server launch also reads these variables from the environment.
+For local Node or Compose, put these variables in `deploy/.env.local` or export them in your shell.
 
 ## Google chat sign-in
 
@@ -93,7 +93,10 @@ GOOGLE_CHAT_CLIENT_SECRET=your-client-secret
 GOOGLE_CHAT_REDIRECT_URI=https://interactive.johnloeber.com/auth/google/chat/callback
 ```
 
-For local Compose, put the same keys in an ignored file such as `.deploy/local-google-chat.env` and run `COMPOSE_ENV_FILE=.deploy/local-google-chat.env ./deploy/local.sh`. Register the local URL `http://127.0.0.1:8787/auth/google/chat/callback` with Google and use it as the redirect URI in that file. Open the game from the matching origin.
+For local Node or Compose, put the same keys in the ignored `deploy/.env.local`
+and run `chmod 600 deploy/.env.local`. Register the local URL
+`http://127.0.0.1:8787/auth/google/chat/callback` with Google and use it as the
+redirect URI in that file. Open the game from the matching origin.
 
 Google sign-in unlocks typed chat for the existing game character when `OAUTH_REQUIRED=True`. Each character can link one Google account, and each Google account can link to one character. The server keeps the verified Google account ID (`sub`) and a masked email label in a private record. Only the authenticated character's client receives the label for the Character menu.
 
@@ -106,7 +109,35 @@ Install Docker with Compose v2 and OpenSSL, then run:
 ./deploy/local.sh credentials
 ```
 
-Open **http://127.0.0.1:8787/** for the game and **http://127.0.0.1:8788/** for admin. Credentials live in `.deploy/local-admin.env`. Set `ADMIN_ENV_FILE` to reuse an existing credentials file. Use `./deploy/local.sh logs`, `status`, `edit`, or `down` to operate the local stack. Stopping the stack keeps its Redis volume.
+Open **http://127.0.0.1:8787/** for the game and **http://127.0.0.1:8788/** for admin. Use `./deploy/local.sh logs`, `status`, `edit`, or `down` to operate the local stack. Stopping the stack keeps its Redis volume.
+
+| File                                     | Purpose                                                                                                                                                                                                                                      |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `deploy/.env.local`                      | Optional runtime settings for local Node and Compose. Start from [the example](.env.local.example).                                                                                                                                          |
+| `deploy/.env.local-admin`                | Admin credentials shared by the local Node and Docker launchers. Compose creates this file on first start. For Node-only setup, copy [the example](.env.local-admin.example), set the password, and run `chmod 600 deploy/.env.local-admin`. |
+| `deploy/multiplayer-config.example.json` | Public WebSocket endpoint example for standalone static hosting. Place the configured `multiplayer-config.json` beside the hosted client. The game server serves this endpoint automatically.                                                |
+
+`npm --prefix server start`, `npm --prefix server run dev`, and the local
+Node admin and backup commands load `deploy/.env.local` when it exists.
+`./deploy/local.sh` and the Compose editor and backup scripts use the same
+default file. Shell exports take precedence. For alternate files, set
+`LOCAL_ENV_FILE` for Node, `COMPOSE_ENV_FILE` for Compose, or
+`ADMIN_ENV_FILE` for admin credentials. The game and source client can run
+without a local credentials file.
+
+When upgrading a checkout that used `server/.env` or
+`.deploy/local-admin.env`, move the credential file you use to
+`deploy/.env.local-admin` and set mode 600. Move any game or Compose
+settings into `deploy/.env.local`. Keep deployment secrets outside Git.
+A running admin container keeps the credentials it loaded at startup. The
+next `./deploy/local.sh up` uses the centralized file.
+
+AWS uses `deploy/chat.env` for checked-in chat policy,
+`server/deploy/terraform.tfvars` for Terraform inputs, and
+`/etc/loeberland/overrides.env` and `/etc/loeberland/admin.env` for host
+settings and credentials. Provider locks stay with their Terraform modules.
+Use your shell or credential manager to supply AWS and Cloudflare credentials.
+The private deployment supplies the production tunnel and abuse policy.
 
 ## Generated files
 

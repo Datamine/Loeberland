@@ -127,9 +127,10 @@ export function createPlayerComponents({
     });
     const publish = tracker.publish;
     publish('training', [!!p.training], () => !!p.training);
-    publish('fishing', [fishing.active, fishing.elapsed], () => ({
+    publish('fishing', [fishing.active, fishing.elapsed, fishing.site?.id], () => ({
       active: fishing.active,
       elapsed: fishing.elapsed,
+      siteId: fishing.site?.id,
     }));
     publish(
       'delivery',
@@ -209,6 +210,7 @@ export function createPlayerComponents({
     if (p.instance?.kind === 'kraken') {
       const ship = r.expeditions.ship,
         kraken = r.expeditions.kraken,
+        animation = kraken.animation,
         loot = r.expeditions.state.loot;
       publish(
         'ship',
@@ -217,8 +219,20 @@ export function createPlayerComponents({
       );
       publish(
         'kraken',
-        [kraken.hp, kraken.visible, kraken.enraged, kraken.x, kraken.z],
-        () => kraken,
+        [
+          kraken.hp,
+          kraken.visible,
+          kraken.enraged,
+          kraken.x,
+          kraken.z,
+          animation.emergedAt,
+          animation.enragedAt,
+          animation.strikeAt,
+          animation.lastStrike,
+          animation.hitAt,
+          animation.defeatedAt,
+        ],
+        () => ({ ...kraken, clock: r.expeditions.state.clock }),
       );
       publish(
         'loot',

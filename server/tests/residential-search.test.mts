@@ -15,9 +15,11 @@ import { createMemoryStore } from '../store.mts';
 
 import { SEARCH_HOMES } from '../../src/search-houses.ts';
 import { BERKELEY_HOUSE_SEARCHES } from '../../src/config/search-houses.ts';
+import { ownedEquipmentDefense } from '../../src/item-stats.ts';
+import { equipmentOptions } from '../../src/equipment-options.ts';
 import type { Site } from '../../src/types/world.ts';
 
-async function setup() {
+async function setup(random = () => 0.5) {
   let time = 1000000;
   const geometry = fixtureGeometry();
   geometry.searchSites = SEARCH_HOMES.map((h) => ({
@@ -48,7 +50,7 @@ async function setup() {
     return s ? { id: requiredFixture(s.houseId) } : null;
   };
   const store = createMemoryStore(),
-    game = await createGame({ geometry, store, now: () => time });
+    game = await createGame({ geometry, store, now: () => time, random });
   return { game, store, geometry, now: () => time, advance: (ms: number) => (time += ms) };
 }
 function stand(a: TestPlayer, site: Site) {
@@ -109,6 +111,42 @@ test('each character can keep each authored reward once; other players have thei
     await f.game.close();
   }
 });
+test('the wardrobe rolls once for a wearable barrel worth two defense', async () => {
+  let roll = 0.2;
+  const f = await setup(() => roll);
+  const index = SEARCH_HOMES.findIndex((home) => home.search.id === 'house-search-6');
+  try {
+    const miss = await player(f.game, 57013);
+    const hit = await player(f.game, 57014);
+    const missed = miss.p.inventory.economy.state;
+    const found = hit.p.inventory.economy.state;
+    await command(f.game, hit.p, 'equipAppearance', { look: { torso: 'barrel' } });
+    assert.equal(ownedEquipmentDefense(found, hit.p.appearance), 0);
+    assert.equal(requiredFixture(await search(f, miss, index)).ok, true);
+    assert.ok(missed.ownedEquipment.includes('new-year-rocket'));
+    assert.ok(!missed.ownedEquipment.includes('barrel'));
+
+    roll = 0;
+    assert.equal(requiredFixture(await search(f, miss, index)).ok, false);
+    const result = requiredFixture(await search(f, hit, index));
+    assert.equal(result.ok, true);
+    assert.match(result.message ?? '', /also find a barrel/i);
+    assert.ok(found.ownedEquipment.includes('new-year-rocket'));
+    assert.ok(found.ownedEquipment.includes('barrel'));
+    assert.ok(equipmentOptions(found).torso.some((option) => option.value === 'barrel'));
+    await command(f.game, hit.p, 'equipAppearance', { look: { torso: 'barrel' } });
+    assert.equal(hit.p.appearance.torso, 'barrel');
+    assert.equal(ownedEquipmentDefense(found, hit.p.appearance), 2);
+    assert.equal(requiredFixture(await search(f, hit, index)).ok, false);
+    await f.game.flush();
+    const saved = await storedPlayerFixture(f.store, 'player:' + hit.p.owner);
+    assert.equal(saved.playerState.appearance.torso, 'barrel');
+    assert.ok(saved.playerState.inventory.collection.includes('barrel'));
+  } finally {
+    await f.game.close();
+  }
+});
+
 test('distant, outside, invented and full-bag searches cannot claim rewards', async () => {
   const f = await setup();
   try {

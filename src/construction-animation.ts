@@ -19,7 +19,10 @@ export function drawConstructionWorker(
     railgun: false,
     akibo: false,
     battleaxe: false,
+    combatLamp: false,
+    katana: false,
     rollingPin: false,
+    bowlingBall: false,
     bayonet: false,
     phone: false,
   });

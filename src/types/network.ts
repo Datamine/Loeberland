@@ -35,6 +35,7 @@ export interface NetworkNPC {
   level: number;
   showStartedAt?: number;
   bicycleTaken?: boolean;
+  helpUntil?: number;
 }
 export type PackedNPC = [
   id: string,
@@ -56,8 +57,10 @@ export interface InventorySnapshot extends InventoryLedger {
   decorativeRocket: { readyAt: number; burningUntil: number; hopStartedAt: number };
   hp?: number;
   max?: number;
+  hitpointsXP?: number;
 }
 export interface CommandResult extends ActionReceipt {
+  fireworkCitation?: string;
   highScores?: import('../high-scores.ts').HighScores;
   unchanged?: boolean;
   retryApproach?: boolean;
@@ -89,7 +92,12 @@ export interface NetworkTraffic extends WorldPoint {
 }
 export interface NetworkCreature extends WorldPoint {
   attackAnimation?: number;
+  rangedAnimation?: boolean;
   combatKind?: string;
+  dispatchedFor?: string | number;
+  citationPending?: boolean;
+  speechEndsAt?: number;
+  speechLine?: string;
   id: string;
   hp: number;
   max: number;
@@ -130,6 +138,7 @@ export interface NetworkPoliceOfficer extends WorldPoint {
   id: string;
   angle: number;
   phase: number;
+  calling?: boolean;
 }
 export interface SharedSnapshot {
   police?: NetworkPoliceOfficer[];
@@ -168,12 +177,14 @@ export interface Peer {
 }
 export interface PersonalSnapshot extends PersonalPursuits {
   training?: boolean;
-  fishing?: { active: boolean; elapsed: number };
+  fishing?: { active: boolean; elapsed: number; siteId?: string };
   delivery?: { position: import('./geometry.ts').Point; angle: number; travel: number } | null;
   deliveryArrivals?: import('../deli.ts').DeliveryArrival[];
   pitch?: { id: string; remaining: number; chance: number; percent?: number } | null;
   ship?: ReturnType<typeof import('../jurassic.ts').createExpeditions>['ship'];
-  kraken?: Partial<ReturnType<typeof import('../jurassic.ts').createExpeditions>['kraken']>;
+  kraken?: Partial<ReturnType<typeof import('../jurassic.ts').createExpeditions>['kraken']> & {
+    clock?: number;
+  };
   loot?: import('./expeditions.ts').ExpeditionLoot[];
   vehicle?: { mode: string; fuel?: number; bicycle?: import('./geometry.ts').Point };
   travel?: {
@@ -347,7 +358,15 @@ export type ServerEvent = ServerEnvelope &
         to: Position;
       }
     | { type: 'scientistExplosive'; from: Position; to: Position }
-    | { type: 'robotShot'; weapon: 'akimbo' | 'robocop-laser'; from: Position; to: Position }
+    | { type: 'goblinRock'; from: Position; to: Position }
+    | { type: 'fireworks'; position: Position; seed: number }
+    | {
+        type: 'robotShot';
+        weapon: 'akimbo' | 'robocop-laser' | 'onoda-rifle' | 'emf-lightning';
+        from: Position;
+        to: Position;
+        shooter?: Position;
+      }
     | { type: 'caught'; source: string }
     | {
         type: 'damage';
@@ -357,7 +376,15 @@ export type ServerEvent = ServerEnvelope &
         source?: string;
         attacker?: string | number;
       }
-    | { type: 'pvpBound'; target: number; duration: number }
+    | {
+        type: 'playerHit';
+        target: number;
+        damage: number;
+        hp: number;
+        max: number;
+        attacker?: string | number;
+      }
+    | { type: 'pvpBound'; target: number | string; duration: number }
     | { type: 'pvpKill'; target: number; name: string; drops: string[] }
     | { type: 'say'; id: number; name?: string; text: string; scope?: 'server' }
     | { type: 'chatUnlocked'; googleAccountLabel?: string; serverChatAllowed?: boolean }

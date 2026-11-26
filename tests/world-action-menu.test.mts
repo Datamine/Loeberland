@@ -14,6 +14,13 @@ import { applyWorldEdits } from '../src/world-edits.ts';
 import type { WorldContext } from '../src/world/scene.ts';
 import type { Actor, RuntimeDialogue } from '../src/types/world.ts';
 
+test('the civilian menu offers Steal from ordinary men and women', () => {
+  for (const label of ['Man', 'Woman']) {
+    assert.ok(npcContextActions({ label }).includes('steal'));
+    assert.ok(!npcContextActions({ label }, { primary: 'attack' }).includes('steal'));
+  }
+  assert.ok(!npcContextActions({ label: 'Child', child: true }).includes('steal'));
+});
 test('both ways of selecting Bani use her editor identity and the single bicycle tip', () => {
   const interior = { id: 'links' };
   const bani: Pick<Actor, 'id' | 'label' | 'editorKey' | 'x' | 'z'> & {

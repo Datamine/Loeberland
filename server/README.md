@@ -33,16 +33,14 @@ Open **http://127.0.0.1:8787/**. The server serves the static site,
 `/multiplayer-config.json`, `/healthz`, and WebSockets at `/ws`. Without
 `REDIS_URL`, saves go to `server/data/world.sqlite`.
 
-For Docker Compose with Redis:
+For Docker Compose with Redis, use the local launcher:
 
 ```sh
-npm ci
-npm run build
-DEBUG_TELEPORT_ALL=true docker compose -f server/compose.yaml up --build -d game
-docker compose -f server/compose.yaml logs -f game
+./deploy/local.sh
+./deploy/local.sh logs
 ```
 
-Stop with Ctrl+C for Node, or `docker compose -f server/compose.yaml down`.
+Stop with Ctrl+C for Node, or `./deploy/local.sh down` for Compose.
 Both allow a graceful final checkpoint. Keep Docker volumes; `down -v` removes
 persisted state. Run **one simulation process per world**; do not scale game
 replicas or put independent world processes behind a load balancer.
@@ -57,8 +55,9 @@ SSH, the password-protected admin panel and release updates. EC2 runs the game,
 admin, Redis, Caddy and the tunnel connector. It sends its five-minute checkpoint
 exports to private S3.
 
-If GitHub Pages or another static host serves `index.html`, create
-`multiplayer-config.json` beside it with the production tunnel hostname:
+If GitHub Pages or another static host serves `index.html`, use
+[the endpoint example](../deploy/multiplayer-config.example.json) to create
+`multiplayer-config.json` beside it with the production tunnel hostname.
 
 ```json
 { "endpoint": "wss://game.example.com/ws" }
@@ -149,8 +148,8 @@ bash server/backup.sh
 The wrapper takes a nonblocking lock, writes UTC timestamped files under
 `server/backups/` (override with Compose's `BACKUP_DIR`), and removes files
 at least 24 hours old each time it runs, including when the next export fails.
-It requires Bash, Docker Compose, Python 3 and `flock`. Set `COMPOSE_ENV_FILE`
-if your Compose settings live outside `server/.env`. Set
+It requires Bash, Docker Compose, Python 3 and `flock`. The wrapper reads
+`deploy/.env.local` if present. Set `COMPOSE_ENV_FILE` to select another file. Set
 `S3_BACKUP_URI=s3://your-bucket/backups` to upload each completed file and expire
 older snapshot versions in that prefix using the AWS CLI.
 
@@ -204,20 +203,20 @@ from the latest saved Redis checkpoint (or the selected SQLite file). Search by
 username or player ID, select a record and inspect its JSON. Refresh the list
 or reload a record to read a newer checkpoint.
 
-The page and every API endpoint require **HTTP Basic Auth**. The Node entry
-point automatically loads `server/.env`; the Docker launcher reads that file
-on the host and passes it to the temporary admin container. The file is
+The page and every API endpoint require **HTTP Basic Auth**. The local Node
+and Docker launchers use `deploy/.env.local-admin` by default. The file is
 Git-ignored and excluded from Docker images and deployment archives.
 
-For initial setup, copy `server/.env.example` to `server/.env` if a file
-is not already present, and set:
+The Compose launcher generates credentials on first start. For a Node-only
+setup, copy `deploy/.env.local-admin.example` to `deploy/.env.local-admin` and set
+the username and password.
 
 ```dotenv
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD="your-long-random-password"
 ```
 
-Run `chmod 600 server/.env`. Both values are required; the username cannot
+Run `chmod 600 deploy/.env.local-admin`. Both values are required; the username cannot
 contain a colon. Quote passwords containing `#` or spaces. Generate a password
 with a password manager or `openssl rand -hex 32`. The panel refuses to start
 with missing credentials and never prints the password.
@@ -230,7 +229,7 @@ docker compose -f server/compose.yaml build game
 bash server/edit-state.sh --view
 ```
 
-Open **http://127.0.0.1:8788** and enter the `.env` credentials in the browser's
+Open **http://127.0.0.1:8788** and enter the local admin credentials in the browser's
 login prompt. `--view` disables writes in both the UI and API and does not
 stop or restart the game. For an editing session, exit inspection and run:
 
@@ -287,13 +286,12 @@ The wrapper uses `COMPOSE_ENV_FILE` for the same project and Redis settings
 as the game; credentials are passed as a file, without appearing in command
 arguments. Rebuild the game image after changing admin code.
 
-On Terraform-managed EC2, keep the password outside the unpacked release
-so deployments preserve it. Create `/etc/loeberland/.env` with the two credential
-lines above and mode 0600, then launch:
+Terraform-managed EC2 deployments use `/etc/loeberland/admin.env` for the
+admin credentials and the active release's `compose.env` for Compose settings.
 
 ```sh
-sudo env ADMIN_ENV_FILE=/etc/loeberland/.env \
-  COMPOSE_ENV_FILE=/etc/loeberland/compose.env \
+sudo env ADMIN_ENV_FILE=/etc/loeberland/admin.env \
+  COMPOSE_ENV_FILE=/opt/loeberland/current/compose.env \
   bash /opt/loeberland/current/sf/server/edit-state.sh --view
 ```
 
@@ -319,15 +317,16 @@ allowed origins. It publishes game port 8787 on host loopback only.
 | `DEBUG_TELEPORT_ALL`                | Allow every character to use `:tp`. Default follows the launch mode.      |
 | `ADMIN_HOST` / `ADMIN_PORT`         | Editor bind address/port: `127.0.0.1` / `8788`                             |
 | `ADMIN_USERNAME` / `ADMIN_PASSWORD` | Required HTTP Basic Auth credentials; no default                           |
-| `ADMIN_ENV_FILE`                    | Admin credentials/settings file; defaults to `server/.env`                 |
+| `ADMIN_ENV_FILE`                    | Admin credentials file; local default is `deploy/.env.local-admin`          |
 | `ADMIN_READ_ONLY`                   | `0`; set `1` for inspection with writes disabled (`--view` sets it)        |
 | `GAME_DOMAIN`                       | Public Cloudflare Tunnel hostname in the production Compose environment      |
 | `BACKUP_DIR`                        | Compose backup bind directory; default `server/backups/`                   |
-| `COMPOSE_ENV_FILE`                  | Backup/admin launchers' Compose env file; default `server/.env`            |
+| `LOCAL_ENV_FILE`                    | Local Node launchers' settings file; default `deploy/.env.local`             |
+| `COMPOSE_ENV_FILE`                  | Local Compose launchers' settings file; default `deploy/.env.local`          |
 | `S3_BACKUP_URI`                     | Optional backup-wrapper upload destination, such as `s3://bucket/backups`  |
 
-For local Compose, keep `ALLOWED_ORIGINS` and other persistent settings in
-`server/.env`. On EC2, use the active release's
+For local Node or Compose, keep `ALLOWED_ORIGINS` and other persistent settings in
+`deploy/.env.local`. Shell exports take precedence. On EC2, use the active release's
 `/opt/loeberland/current/compose.env` with the production Compose files shown
 in the restore instructions.
 

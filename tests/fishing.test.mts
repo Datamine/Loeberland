@@ -18,7 +18,7 @@ const site = { entry: { x: 2, y: 3 }, water: { x: 2.5, z: 1.5 }, base: 1 };
 test('timed catches stack with a one-minute cooldown and sell for five coins each', () => {
   let saved;
   let now = 0;
-  const purse = createEconomy({}, (s) => (saved = s)),
+  const purse = createEconomy({ coins: 25 }, (s) => (saved = s)),
     fishing = createFishing(purse, { now: () => now });
   assert.equal(purse.state.fish, 0);
   assert.ok(fishing.start(site).ok);

@@ -38,17 +38,14 @@ Open **http://127.0.0.1:8787/**. The backend provides its own
 Local state is saved to `server/data/world.sqlite` unless `STATE_FILE` or
 `REDIS_URL` selects another store.
 
-For a local Redis-backed stack instead:
+For a local Redis-backed stack instead, run the Compose launcher:
 
 ```sh
-npm ci
-npm run build
-docker compose -f server/compose.yaml up --build -d game
+./deploy/local.sh
 ```
 
-Use `docker compose -f server/compose.yaml logs -f game` for logs and
-`docker compose -f server/compose.yaml down` to stop. Keep the named volumes;
-`down -v` deletes the saved world.
+Use `./deploy/local.sh logs` for logs and `./deploy/local.sh down` to stop.
+The stop command preserves the named volumes.
 
 Use another browser profile or an incognito window to test a second player.
 Two tabs sharing one anonymous credential control one character; the newest
@@ -145,16 +142,16 @@ server owns its state in RAM, and Redis rejects admin saves while its ownership
 lease is active. Restart the game after saving to load the edited state.
 
 The page and all API routes require HTTP Basic Auth. Credentials live in the
-gitignored **`server/.env`**:
+gitignored **`deploy/.env.local-admin`**.
 
 ```dotenv
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD="your-long-random-password"
 ```
 
-Use the existing file if present. For a new checkout, copy
-`server/.env.example` to `server/.env`, set a password, and run
-`chmod 600 server/.env`. An empty password prevents the panel from starting.
+The Compose launcher generates the file on first start. For a Node-only
+checkout, copy `deploy/.env.local-admin.example` to `deploy/.env.local-admin`,
+set a password, and run `chmod 600 deploy/.env.local-admin`.
 Keep this file out of deployment archives and container images.
 
 For the Docker Compose Redis stack, rebuild the image after updating admin
@@ -181,7 +178,7 @@ REDIS_URL=redis://127.0.0.1:6379 ADMIN_READ_ONLY=1 npm --prefix server run admin
 ```
 
 Stop the game and omit `ADMIN_READ_ONLY=1` to enable edits. The Node launcher
-loads `server/.env` automatically. Use `STATE_FILE` instead of `REDIS_URL`
+loads `deploy/.env.local-admin` automatically. Use `STATE_FILE` instead of `REDIS_URL`
 to inspect a local SQLite save. Keep the panel on loopback and use an SSH/SSM
 tunnel for remote access; see the [admin operations guide](../server/README.md#simple-database-editor)
 for EC2 credentials and custom env-file paths.

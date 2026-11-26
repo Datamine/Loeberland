@@ -15,7 +15,7 @@
   },
   "inventory": {
     "economy": {
-      "coins": 25,
+      "coins": 100,
       "equity": 0,
       "incubatorEquityBought": false,
       "grain": 0,
@@ -24,6 +24,8 @@
       "fish": 0,
       "mud": 0,
       "sand": 0,
+      "sandDelivered": 0,
+      "spoonDigs": 0,
       "saltLetters": 0,
       "saltLettersDelivered": 0,
       "ownedHats": [],
@@ -32,6 +34,7 @@
       "robotaxiOwned": false,
       "softwareCopies": 0,
       "incomeQuarters": 0,
+      "incomeExtraTwentieths": 0,
       "ownedEquipment": []
     },
     "ledger": null,
@@ -47,6 +50,10 @@
     },
     "stochasticParrot": {
       "stage": "not-started"
+    },
+    "lightsaber": {
+      "stage": "not-started",
+      "color": "blue"
     },
     "burningMan": {
       "stage": "not-started",
@@ -113,12 +120,15 @@
     "growth": null
   },
   "social": {
-    "pvp": null
+    "pvp": null,
+    "tradeDuelEnabled": true
   },
   "progress": {
+    "gameCompletion": null,
     "houseSearches": [],
     "goblinSpaceMud": 0,
-    "industrialistArmorPurchases": []
+    "industrialistArmorPurchases": [],
+    "armorTrimmerPayments": 0
   },
   "rewards": {
     "pending": [],

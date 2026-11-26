@@ -12,7 +12,7 @@ import { SECOND_STREET_X } from '../src/airship.ts';
 test('Monkey Business persists each objective, requires acceptance, and rewards completion exactly once', () => {
   const saved: unknown[] = [],
     q = createQuestLog({}, (state) => saved.push(state)),
-    e = createEconomy();
+    e = createEconomy({ coins: 25 });
   assert.equal(q.steal().ok, false);
   assert.equal(q.complete(e).ok, false);
   assert.equal(q.accept().ok, true);

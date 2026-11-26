@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ITEM_STATS, itemById, selectedWeapon } from '../src/item-stats.ts';
+import { ITEM_STATS, itemById, itemLoot, selectedWeapon } from '../src/item-stats.ts';
 import { MONSTER_DROPS, MONSTER_STATS, rollMonsterDrops } from '../src/monster-drops.ts';
 import {
   createWilderness,
@@ -15,10 +15,95 @@ import { weaponDamageRange, createHitpoints } from '../src/combat.ts';
 import { createDeli } from '../src/deli.ts';
 import { createEconomy } from '../src/economy.ts';
 import { normalizeCharacter, characterAppearance } from '../src/character-config.ts';
-import { drawCharacter } from '../src/characters.ts';
+import { CHARACTER_BONES, characterIndices, drawCharacter, getCharacterMesh } from '../src/characters.ts';
 import { theyLiveDialogue, createTheyLiveQuest } from '../src/they-live.ts';
+import { ONODA, ONODA_DOCK, onodaIslandNavigation } from '../src/onoda-island.ts';
 
 const sequence = (values: number[]) => () => values.shift() ?? 0.5;
+
+test('Light crystal odds use the monster’s actual level, independently of its usual loot', () => {
+  for (const [kind, level] of [['kraken', 60], ['outlaw', 9], ['goblin', 3]] as const) {
+    const chance = level / 3000;
+    assert.ok(rollMonsterDrops(kind, () => chance - Number.EPSILON, level)
+      .some((item) => item.lootKind === 'light-crystal'));
+    assert.ok(!rollMonsterDrops(kind, () => chance, level)
+      .some((item) => item.lootKind === 'light-crystal'));
+  }
+  assert.deepEqual(
+    rollMonsterDrops('kraken', () => 0.0199),
+    [itemLoot('kraken'), itemLoot('light-crystal')],
+  );
+  assert.deepEqual(rollMonsterDrops('kraken', () => 0.02), [itemLoot('kraken')]);
+});
+
+test('Onoda attacks unprovoked at long range and drops the cloak on a one-in-twenty roll', () => {
+  const stats = MONSTER_STATS[ONODA.id];
+  const spawn = wildernessSpawns({ marin: { x: 0, y: 0 }, tahoe: { x: 0, z: 0 } })
+    .find(({ id }) => id === ONODA.id);
+  assert.ok(spawn);
+  const target = { id: 1, x: spawn.x, z: spawn.z + 13 };
+  const hits: number[] = [];
+  let clear = false;
+  const world = createWilderness({
+    spawns: [spawn],
+    canTravel: () => false,
+    canShoot: () => clear,
+    onDamage: (_target, hit) => hits.push(hit),
+  });
+  assert.equal(stats.level, 55);
+  for (let i = 0; i < 20; i++) world.update(0.05, [target]);
+  assert.equal(world.actors[0].enemy, target.id);
+  assert.deepEqual(hits, []);
+  clear = true;
+  for (let i = 0; i < 20; i++) world.update(0.05, [target]);
+  assert.deepEqual(hits, [stats.damage, stats.damage]);
+  assert.deepEqual(rollMonsterDrops(ONODA.id, () => 0.049), [itemLoot('invisibility-cloak')]);
+  assert.deepEqual(rollMonsterDrops(ONODA.id, () => 0.05), []);
+});
+
+test('Onoda patrols through the island forest without straying off walkable ground', () => {
+  const point = ({ x, z }: { x: number; z: number }) => ({ x: x - 0.5, y: z - 0.5 });
+  const nav = onodaIslandNavigation;
+  assert.ok(nav.path(ONODA_DOCK.entry, point(ONODA)), 'the dock reaches his patrol');
+  const world = createWilderness({
+    spawns: [{ ...ONODA, combatKind: ONODA.id }],
+    canTravel: (a, b) => nav.segment(point(a), point(b)),
+    route: (a, b) => nav.path(point(a), point(b))?.map(({ x, y }) => ({ x: x + 0.5, z: y + 0.5 })),
+  });
+  const [actor] = world.actors;
+  let furthest = 0;
+  for (let i = 0; i < 480; i++) {
+    world.update(0.05);
+    assert.ok(nav.contains(actor.x, actor.z));
+    furthest = Math.max(furthest, Math.hypot(actor.x - ONODA.x, actor.z - ONODA.z));
+  }
+  assert.ok(furthest >= 4, 'the sentry patrols several tiles from his spawn');
+  assert.equal(MONSTER_STATS[ONODA.id].appearance?.sunglasses, true);
+});
+
+test('the invisibility cloak only shows head, hands, feet, and held items', () => {
+  const draw = (look: Parameters<typeof drawCharacter>[9]) => {
+    const mesh = new Mesh();
+    drawCharacter(mesh, 0, 0, 0, 0, 0, false, '#c8ac93', '#5682a6', look);
+    return mesh.data;
+  };
+  const look = characterAppearance(normalizeCharacter({
+    back: 'invisibility-cloak', torso: 'goose-costume', legs: 'bush-legs', neck: 'recoil-amulet',
+  }));
+  assert.equal(look.back, 'invisibility-cloak');
+  assert.deepEqual(draw(look), draw({ back: 'invisibility-cloak' }));
+  assert.ok(draw(look).length > 0);
+  assert.ok(draw({ ...look, back: 'none' }).length > draw(look).length);
+  for (const outfit of [{}, { boots: true, hat: 'goblin-helmet' }] as const) {
+    const mesh = getCharacterMesh(outfit);
+    const usedBones = new Set(characterIndices(mesh, false, true).map((i) => mesh.bonesA[i]));
+    const { head, leftHand, rightHand, leftFoot, rightFoot } = CHARACTER_BONES;
+    assert.deepEqual(usedBones, new Set([head, leftHand, rightHand, leftFoot, rightFoot]));
+  }
+  const weapon = draw({ ...look, katana: true });
+  assert.ok(weapon.length > draw(look).length);
+  assert.deepEqual(weapon, draw({ back: 'invisibility-cloak', katana: true }));
+});
 
 test('ordinary monsters keep retaliating under repeated hits, then return after a disengaged player flees', () => {
   let hits = 0;
@@ -70,7 +155,7 @@ test('the coyote pursues an unprovoked target around an obstacle, then attacks i
 });
 
 test('wildlife closes the gap, telegraphs each lunge and can miss a retreating player', () => {
-  for (const combatKind of ['tahoe-bear', 'tahoe-fox', 'coyote', 'seagull']) {
+  for (const combatKind of ['tahoe-bear', 'tahoe-fox', 'coyote', 'seagull', 'sea-urchin']) {
     const player = { id: 1, x: 2.6, z: 0 };
     const hits: number[] = [];
     const world = createWilderness({
@@ -78,7 +163,7 @@ test('wildlife closes the gap, telegraphs each lunge and can miss a retreating p
       onDamage: (_person, damage) => hits.push(damage),
     });
     const actor = world.actors[0];
-    if (combatKind === 'seagull') world.provoke(actor, player);
+    if (!MONSTER_STATS[combatKind].aggression) world.provoke(actor, player);
     world.update(0.05, [player]);
     assert.equal(actor.enemy, player.id);
     assert.ok(actor.motion > 0 && actor.x > 0);
@@ -90,7 +175,7 @@ test('wildlife closes the gap, telegraphs each lunge and can miss a retreating p
     assert.ok(player.x - actor.x <= reach);
     world.update((duration * impact) / 1000 - 0.05, [player]);
     assert.deepEqual(hits, []);
-    player.x += combatKind === 'seagull' ? 0.35 : 2;
+    player.x = actor.x + reach + 0.25;
     world.update(0.06, [player]);
     assert.deepEqual(hits, []);
     for (let i = 0; i < 100 && !hits.length; i++) world.update(0.05, [player]);
@@ -163,6 +248,11 @@ test('creature attack poses animate their meshes and settle back to idle', () =>
     const idle = render(0);
     const mid = render(0.61);
     assert.notDeepEqual(mid, idle, combatKind);
+    if (combatKind === 'sea-urchin') {
+      const contact = render(1 - creatureLunge(combatKind)!.impact);
+      assert.ok(contact[0] - idle[0] > 0.8, 'the urchin jumps toward its target');
+      assert.ok(contact[1] - idle[1] > 0.5, 'the urchin leaves the ground');
+    }
     assert.deepEqual(render(1), idle, combatKind + ' starts in its resting pose');
     assert.deepEqual(render(0.61, true), idle, combatKind + ' respects reduced motion');
   }
@@ -194,7 +284,7 @@ test('drop catalogs have exact 1/20 and 1/50 boundaries; giant success chooses o
   assert.equal(rollMonsterDrops('bear', () => 0.05 - Number.EPSILON)[0].lootKind, 'peptides');
   assert.deepEqual(rollMonsterDrops('emf-warrior', () => 1 / 20), []);
   assert.equal(
-    rollMonsterDrops('emf-warrior', () => 1 / 20 - Number.EPSILON)[0].itemId,
+    rollMonsterDrops('emf-warrior', () => 1 / 20 - Number.EPSILON)[0].lootKind,
     'railgun-upgrade',
   );
   for (const kind of ['snow-giant', 'ice-giant'] satisfies [string, string]) {
@@ -219,6 +309,31 @@ test('drop catalogs have exact 1/20 and 1/50 boundaries; giant success chooses o
   assert.equal(rollMonsterDrops('cow')[0].lootKind, 'sandwich');
 });
 
+test('goblin coins, boots and armor land separately on reachable ground', () => {
+  const drops: import('../src/types/monsters.ts').WildernessDrop[] = [];
+  const ground = (x: number, z: number) => x - z;
+  const world = createWilderness({
+    spawns: [{ id: 'goblin', combatKind: 'goblin', x: 4, z: 4 }],
+    ground,
+    canTravel: (_, to) => to.x >= 4,
+    random: () => 0,
+    onDrop: (drop) => drops.push(drop),
+  });
+  const goblin = world.actors[0];
+  world.damage(goblin.id, goblin.hp, { id: 'player', x: 5, z: 4 });
+  assert.deepEqual(
+    drops.map((drop) => drop.itemId ?? drop.lootKind),
+    ['coins', 'combat-boots', 'iron-armor', 'light-crystal'],
+  );
+  for (const [i, drop] of drops.entries()) {
+    assert.ok(drop.x >= 4);
+    assert.equal(drop.base, ground(drop.x, drop.z) + 0.025);
+    assert.ok(
+      drops.slice(0, i).every((other) => Math.hypot(drop.x - other.x, drop.z - other.z) >= 0.72),
+    );
+  }
+});
+
 test('stronger humanoid enemies pay progressively larger guaranteed coin drops', () => {
   const amounts = ['armed-zombie', 'terminator', 'mad-scientist', 'madder-scientist'].map(
     (kind) => rollMonsterDrops(kind, () => 0.999).find((drop) => drop.lootKind === 'coins')?.amount,
@@ -238,7 +353,10 @@ test('goblins, zombies, and Robocop roll once for iron gear or a crowbar', () =>
   ];
   const gear = ['iron-armor', 'iron-armor-legs', 'crowbar'];
   for (const kind of kinds) {
-    const otherRolls = MONSTER_DROPS[kind].slice(0, -1).filter((rule) => rule.oneIn > 1);
+    const rules = MONSTER_DROPS[kind];
+    const ironRoll = rules.findIndex((rule) => rule.choose?.includes('iron-armor'));
+    assert.ok(ironRoll >= 0, kind);
+    const otherRolls = rules.slice(0, ironRoll).filter((rule) => rule.oneIn > 1);
     const roll = (chance: number, choice: number) =>
       rollMonsterDrops(kind, sequence([...otherRolls.map(() => 0.999), chance, choice])).filter(
         (drop) => drop.lootKind === 'equipment',
@@ -255,13 +373,10 @@ test('goblins, zombies, and Robocop roll once for iron gear or a crowbar', () =>
   }
 });
 
-test('weapon/food stats live in the item catalog and the axe fills the damage gap', () => {
-  const average = (id?: string | undefined) => {
-    const r = weaponDamageRange(1, id);
-    return (r.min + r.max) / 2;
-  };
-  assert.ok(average('bayonet') < average('battleaxe'));
-  assert.ok(average('battleaxe') < average('railgun'));
+test('the item catalog defines different damage spreads for the bayonet and battleaxe', () => {
+  const bayonet = weaponDamageRange(1, 'bayonet');
+  const axe = weaponDamageRange(1, 'battleaxe');
+  assert.ok(bayonet.min > axe.min && bayonet.max < axe.max);
   assert.equal(MONSTER_STATS.kraken.hp, 1400);
   assert.equal(MONSTER_STATS.bear.level, 10);
   assert.equal(MONSTER_STATS.bear.hp, 50);
@@ -310,8 +425,7 @@ test('a friendly bear never attacks unprovoked; petting makes peace and death ro
   game.update(3, [p]);
   assert.equal(hits.length, count);
   while (game.actors[0].hp) game.strike('bear', p);
-  assert.equal(drops.length, 1);
-  assert.equal(drops[0].lootKind, 'peptides');
+  assert.deepEqual(drops.map((drop) => drop.lootKind), ['peptides', 'light-crystal']);
   assert.equal(game.strike('bear', p).ok, false);
   game.update(MONSTER_STATS.bear.respawn, [p]);
   assert.equal(game.actors[0].hp, MONSTER_STATS.bear.hp);

@@ -139,7 +139,7 @@ test('successful listings roll for an investigator who can bind, and failed list
     );
     assert.deepEqual(
       rollMonsterDrops(inspector.combatKind, () => 0).map((item) => item.lootKind),
-      ['coins', 'sandwich'],
+      ['coins', 'sandwich', 'light-crystal'],
     );
   } finally {
     await game.close();
@@ -148,6 +148,70 @@ test('successful listings roll for an investigator who can bind, and failed list
 
 const atArena = (p: ServerPlayer) =>
   Object.assign(p, { x: DUEL_ARENA.x, z: DUEL_ARENA.z, y: DUEL_ARENA.base + 0.24, mode: 'walk' });
+
+test('trade and duel preferences default on and auto-decline incoming requests after saving', async () => {
+  const { game, store } = await fixture();
+  const a = await player(game, 1105);
+  let b = await player(game, 1106);
+  const setting = () => ({
+    name: b.p.name,
+    look: b.p.appearance,
+    pvp: false,
+    phone: false,
+  });
+  try {
+    const welcome = requiredFixture(b.messages.find((m) => m.type === 'welcome'));
+    assert.equal(welcome.playerState?.social.tradeDuelEnabled, true);
+    atArena(a.p);
+    atArena(b.p);
+    const offer = { id: b.p.id, stake: 1 };
+    await command(game, a.p, 'duelOffer', offer);
+    assert.ok(requiredResult(a.messages).ok);
+    await command(game, a.p, 'tradeRequest', { id: b.p.id });
+    assert.ok(requiredResult(a.messages).ok);
+
+    await command(game, b.p, 'saveCharacter', { ...setting(), tradeDuelEnabled: false });
+    assert.ok(requiredResult(b.messages).ok);
+    const updated = b.messages.findLast((m) => 'playerState' in m && m.playerState);
+    assert.ok(updated && 'playerState' in updated);
+    assert.equal(updated.playerState?.social.tradeDuelEnabled, false);
+    const disabled = /has trade and duel requests disabled/;
+    assert.match(requiredFixture(a.messages.find((m) => m.type === 'duelClosed')).message, disabled);
+    assert.match(requiredFixture(a.messages.find((m) => m.type === 'tradeClosed')).message, disabled);
+    const stored = await storedPlayerFixture(store, 'player:' + b.p.owner);
+    assert.equal(stored.playerState.social.tradeDuelEnabled, false);
+
+    await game.disconnect(b.p);
+    b = await player(game, 1106);
+    atArena(b.p);
+    const reconnected = requiredFixture(b.messages.find((m) => m.type === 'welcome'));
+    assert.equal(reconnected.playerState?.social.tradeDuelEnabled, false);
+    await command(game, b.p, 'saveCharacter', setting());
+    assert.ok(requiredResult(b.messages).ok);
+    assert.equal(b.p.profile.tradeDuelEnabled, false);
+
+    await command(game, a.p, 'duelOffer', { ...offer, id: b.p.id });
+    assert.equal(requiredResult(a.messages).ok, false);
+    assert.match(requiredResult(a.messages).message ?? '', disabled);
+    await command(game, a.p, 'tradeRequest', { id: b.p.id });
+    assert.equal(requiredResult(a.messages).ok, false);
+    assert.match(requiredResult(a.messages).message ?? '', disabled);
+    assert.ok(!b.messages.some((m) => m.type === 'duelOffer' || m.type === 'tradeView'));
+
+    await command(game, b.p, 'tradeRequest', { id: a.p.id });
+    assert.ok(requiredResult(b.messages).ok);
+    const outbound = requiredFixture(b.messages.findLast((m) => m.type === 'tradeView'));
+    await command(game, b.p, 'tradeCancel', { trade: outbound.trade.id });
+    await command(game, b.p, 'saveCharacter', { ...setting(), tradeDuelEnabled: true });
+    assert.ok(requiredResult(b.messages).ok);
+    await command(game, a.p, 'duelOffer', { ...offer, id: b.p.id });
+    assert.ok(requiredResult(a.messages).ok);
+    assert.ok(b.messages.some((m) => m.type === 'duelOffer'));
+  } finally {
+    await game.close();
+  }
+});
+
 test('two explicit matching consents settle one wager, persist both balances and reject duplicate claims', async () => {
   const { game, store } = await fixture(),
     a = await player(game, 1101, { 'sf-purse-v1': '{"coins":1000}' }),

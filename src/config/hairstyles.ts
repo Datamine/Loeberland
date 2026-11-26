@@ -8,11 +8,13 @@ export const HAIRSTYLES = Object.freeze({
     { id: 'side-part', label: contentText('config.hairstyles.module.label-3', {}) },
     { id: 'short-curls', label: contentText('config.hairstyles.module.label-4', {}) },
     { id: 'broccoli', label: contentText('config.hairstyles.module.broccoli', {}) },
+    { id: 'einstein', label: contentText('config.hairstyles.module.einstein', {}) },
   ],
   woman: [
     { id: 'long', label: contentText('config.hairstyles.module.label-5', {}) },
     { id: 'bob', label: contentText('config.hairstyles.module.label-6', {}) },
     { id: 'ponytail', label: contentText('config.hairstyles.module.label-7', {}) },
     { id: 'braid', label: contentText('config.hairstyles.module.label-8', {}) },
+    { id: 'marge', label: contentText('config.hairstyles.module.marge', {}) },
   ],
 });

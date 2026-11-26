@@ -1,5 +1,9 @@
 import { TRAMPOLINE } from '../src/backyard-details.ts';
 import { DYNAMITE_DEPOT } from '../src/config/dynamite-depot.ts';
+import { lightsaberColor } from '../src/config/lightsaber.ts';
+import { HIKING_BACKPACK, UPGRADED_HIKING_BACKPACK } from '../src/config/hiking-backpack.ts';
+import { CATAPULT_DURATION, catapultPose, GOBLIN_CATAPULT } from '../src/config/goblin-catapult.ts';
+import { CHURCH_STAIRS_DOWN, CHURCH_STAIRS_UP } from '../src/church-basement-layout.ts';
 import { contentText } from '../src/content-runtime.ts';
 import { isFiniteNumber, isRecord } from '../src/types/json.ts';
 import { readClientMessage } from './client-messages.mts';
@@ -44,7 +48,7 @@ import { clothingSelection, ownedClothing } from '../src/clothing.ts';
 import { createResidentialSearch } from './residential-search.mts';
 import { createCharacterAccounts } from './character-accounts.mts';
 import { googleLinkKey, googleOwnerKey } from './google-account-links.mts';
-import { GAMEPLAY } from '../src/config/gameplay.ts';
+import { BIND_DURATION_MS, GAMEPLAY } from '../src/config/gameplay.ts';
 import { HAIRSTYLES } from '../src/config/hairstyles.ts';
 import { normalizeUsername, renameDecision, generateUsername } from './usernames.mts';
 import { createSharedWorld } from './shared-world.mts';
@@ -57,6 +61,7 @@ import {
 import { createDetentionSite } from '../src/encounters.ts';
 import { createInventoryAccount } from './inventory.mts';
 import { createHighScores } from './high-scores.mts';
+import { backfillGameCompletions, recordGameCompletion } from './game-completion.mts';
 import { hydratePlayerProfile, serializePlayerProfile } from '../src/player-document.ts';
 import { createPvpCombat } from './pvp.mts';
 import { skillStatus, hitpointMaximum, playerLevel } from '../src/progression.ts';
@@ -67,8 +72,10 @@ import { bankSnapshotFor, bankAction } from './banking.mts';
 import {
   equipmentOwned,
   normalizeBoots,
+  normalizeNeck,
   ownedBoots,
   selectedWeapon,
+  weaponOwned,
   PLAYER_WEAPONS,
 } from '../src/item-stats.ts';
 import { createServerTablets } from './teleport-tablets.mts';
@@ -78,6 +85,7 @@ import { createPlayerState } from './player-state.mts';
 import { createServerFinance } from './finance.mts';
 import { createDuels } from './duels.mts';
 import { createPlayerTrades, TRADE_ACTIONS } from './trades.mts';
+import { playersWithinReach } from './player-proximity.mts';
 import type { TradeHoldings } from './trade-inventory.mts';
 import { createReplication } from './replication.mts';
 import { createActionQueue } from './action-queue.mts';
@@ -107,21 +115,23 @@ function appearance(input: unknown = {}) {
     neck: string;
     hat: string;
     weapon: string;
+    secondaryWeapon: string;
   } = {
     back: (
-      ['none', 'backpack', 'new-year-rocket', 'cape'] satisfies [string, string, string, string]
+      ['none', HIKING_BACKPACK, UPGRADED_HIKING_BACKPACK, 'new-year-rocket', 'cape', 'invisibility-cloak'] satisfies string[]
     ).includes(String(value.back))
       ? String(value.back)
       : value.cape === true
         ? 'cape'
         : 'none',
-    neck: value.neck === 'clock-amulet' || value.neck === 'recoil-amulet' ? value.neck : 'none',
+    neck: normalizeNeck(value.neck),
     gender,
     cape: value.cape === true,
     boots: normalizeBoots(value.boots),
     iceTop: value.iceTop === true,
     icePants: value.icePants === true,
     weapon: PLAYER_WEAPONS.find((weapon) => weapon === value.weapon) || 'unarmed',
+    secondaryWeapon: PLAYER_WEAPONS.find((weapon) => weapon === value.secondaryWeapon) || 'none',
     sunglasses: value.sunglasses === true,
     hat: typeof value.hat === 'string' ? value.hat.slice(0, 48) : 'none',
   };
@@ -173,6 +183,7 @@ export async function createGame({
     names.set(row.canonical, row.owner);
     nameOwners.set(row.owner, row);
   }
+  await backfillGameCompletions(store, [...nameOwners.keys()], now);
   const highScores = createHighScores(store, nameOwners, profiles, now);
   const saved = ((await store.get('world')) || {}) as {
     serial?: number;
@@ -237,6 +248,8 @@ export async function createGame({
   };
   const dirty = (p: { owner: string }) => {
     if (p) {
+      const profile = profiles.get(p.owner);
+      if (profile && recordGameCompletion(profile, now)) highScores.invalidate();
       dirtyProfiles.add(p.owner);
       revisions.set(p.owner, (revisions.get(p.owner) || 0) + 1);
       store.markChanged?.();
@@ -256,6 +269,7 @@ export async function createGame({
     routes,
     players,
     send,
+    publishPlayerHit,
     dirty,
     random,
     now,
@@ -294,13 +308,14 @@ export async function createGame({
     following,
     clock: () => shared.clock,
   });
-  const residentialSearch = createResidentialSearch({ geometry, now, dirty });
+  const residentialSearch = createResidentialSearch({ geometry, now, dirty, random });
   const personal = createPlayerState({
     geometry,
     routes,
     shared,
     players,
     send,
+    publishPlayerHit,
     dirty,
     now,
     random,
@@ -309,9 +324,9 @@ export async function createGame({
   });
   const finance = createServerFinance({ geometry, players, send, dirty, now, random }),
     duels = createDuels({ players, send, dirty, now }),
-    trades = createPlayerTrades({ players, send, now, commit: commitTrade });
+    trades = createPlayerTrades({ geometry, players, send, now, commit: commitTrade });
   function bindPlayer(target: ServerPlayer) {
-    const duration = 10_000;
+    const duration = BIND_DURATION_MS;
     target.boundUntil = now() + duration;
     target.profile.playerState.activities.bindUntil = target.boundUntil;
     dirty(target);
@@ -333,6 +348,19 @@ export async function createGame({
     now,
     metrics,
   });
+  function publishPlayerHit(p: ServerPlayer, damage: number, attacker?: string | number) {
+    const hit = {
+      type: 'playerHit',
+      time: now(),
+      target: p.id,
+      damage,
+      hp: p.hp,
+      max: p.max,
+      attacker,
+    };
+    for (const observer of replication.observersOf(p, GAMEPLAY.viewRadius))
+      if (observer !== p) send(observer, hit);
+  }
   function mergePrivate(p: ServerPlayer, input: unknown) {
     // Checkpoints carry cosmetic preferences only. Progress is never merged.
     const incoming = sanitizePrivateState(input);
@@ -358,8 +386,10 @@ export async function createGame({
     purse: ServerPlayer['inventory']['economy']['state'],
   ) {
     const look = appearance(parse(profile.privateState['sf-character-v1'] || '{}'));
+    if (look.back === HIKING_BACKPACK && equipmentOwned(purse, UPGRADED_HIKING_BACKPACK))
+      look.back = UPGRADED_HIKING_BACKPACK;
     if (
-      (['backpack', 'new-year-rocket'] satisfies [string, string]).includes(look.back) &&
+      ([HIKING_BACKPACK, UPGRADED_HIKING_BACKPACK, 'new-year-rocket', 'invisibility-cloak'] satisfies string[]).includes(look.back) &&
       !equipmentOwned(purse, look.back)
     )
       look.back = 'none';
@@ -374,6 +404,10 @@ export async function createGame({
         : 0;
     if (!purse.ownedHats.includes(look.hat)) look.hat = 'none';
     look.weapon = selectedWeapon(look.weapon, purse);
+    if (look.secondaryWeapon === look.weapon || !weaponOwned(purse, look.secondaryWeapon))
+      look.secondaryWeapon = 'none';
+    if (equipmentOwned(purse, 'lightsaber'))
+      look.lightsaberColor = lightsaberColor(profile.playerState.quests.lightsaber.color);
     Object.assign(
       look,
       ownedClothing(look, (id) => equipmentOwned(purse, id)),
@@ -456,14 +490,17 @@ export async function createGame({
     };
     const task = (async () => {
       await flushing;
+      const completedAt = now();
       const entries = participants.map((p, i) => {
         const staged = hydratePlayerProfile(structuredClone(profileForSave(p)));
         apply(staged, createInventoryAccount(staged), drafts[i]);
+        recordGameCompletion(staged, () => completedAt);
         return ['player:' + p.owner, serializePlayerProfile(staged)] as const;
       });
       await store.batch(entries);
       for (const [i, p] of participants.entries()) {
         apply(p.profile, p.inventory, drafts[i]);
+        if (recordGameCompletion(p.profile, () => completedAt)) highScores.invalidate();
         mergePrivate(p, {});
         persistedRevisions.set(p.owner, revisions.get(p.owner) || 0);
         dirtyProfiles.delete(p.owner);
@@ -628,7 +665,9 @@ export async function createGame({
           awards: [],
           awardSerial: 0,
         });
-        hydratePlayerProfile(profile);
+        const starter = createInventoryAccount(profile);
+        starter.meta.tablets.downtown = GAMEPLAY.startingDowntownTeleports;
+        starter.save(false);
         await store.batch([['player:' + owner, serializePlayerProfile(profile)]]);
       }
       hydratePlayerProfile(profile);
@@ -873,6 +912,7 @@ export async function createGame({
       damagePending: false,
       tabletTeleport: null,
       depotLaunch: undefined,
+      scientificExperiment: undefined,
       mode: 'walk',
       phase: 0,
       gesture: '',
@@ -917,7 +957,12 @@ export async function createGame({
     dirty(p);
   }
   async function saveCharacter(p: ServerPlayer, args: Record<string, unknown>) {
-    if (!isRecord(args.look) || typeof args.pvp !== 'boolean' || typeof args.phone !== 'boolean')
+    if (
+      !isRecord(args.look) ||
+      typeof args.pvp !== 'boolean' ||
+      typeof args.phone !== 'boolean' ||
+      (args.tradeDuelEnabled !== undefined && typeof args.tradeDuelEnabled !== 'boolean')
+    )
       return { ok: false, message: 'Invalid character settings.' };
     const pvpStatus = pvp.status(p);
     if (!args.pvp && pvpStatus.enabled && now() < pvpStatus.disableAt)
@@ -939,6 +984,17 @@ export async function createGame({
     if (p.inventory.economy.state.iphoneEquipped !== args.phone)
       personal.inventory(p, 'equipPhone', { on: args.phone });
     const setting = pvp.setMode(p, args.pvp);
+    if (
+      typeof args.tradeDuelEnabled === 'boolean' &&
+      args.tradeDuelEnabled !== p.profile.tradeDuelEnabled
+    ) {
+      p.profile.tradeDuelEnabled = args.tradeDuelEnabled;
+      dirty(p);
+      if (!args.tradeDuelEnabled) {
+        trades.declineIncoming(p);
+        duels.declineIncoming(p);
+      }
+    }
     await durable(p);
     return {
       ...name,
@@ -981,6 +1037,7 @@ export async function createGame({
         name: p.name,
         changed,
       });
+      highScores.invalidate();
       return { ok: true, name: p.name, autoName: false, retryAt: changed + 60_000 };
     } catch (error) {
       if (normalized.canonical !== old) names.delete(normalized.canonical);
@@ -1032,7 +1089,14 @@ export async function createGame({
         'teleport',
       ].includes(action) ||
         (action === 'playerAction' &&
-          ['train', 'trampoline', 'constructionStart', 'seizeBicycle'].includes(String(args.verb))))
+          [
+            'train',
+            'trampoline',
+            'constructionStart',
+            'seizeBicycle',
+            'scientificExperiment',
+            GOBLIN_CATAPULT.verb,
+          ].includes(String(args.verb))))
     ) {
       send(p, {
         type: 'result',
@@ -1045,6 +1109,7 @@ export async function createGame({
     }
     if (
       (p.depotLaunch ||
+        p.scientificExperiment ||
         (p.mode === 'streetcar' &&
           p.hp > 0 &&
           !p.respawnAllowed &&
@@ -1212,6 +1277,23 @@ export async function createGame({
     } else if (action === 'equipAppearance') {
       mergePrivate(p, { 'sf-character-v1': JSON.stringify(args.look || {}) });
       result = { ok: true, appearance: p.appearance };
+    } else if (action === 'switchWeapon') {
+      const { weapon = 'unarmed', secondaryWeapon = 'none' } = p.appearance;
+      if (p.hp <= 0 || p.respawnAllowed || p.detainAt) {
+        result = { ok: false };
+      } else if (secondaryWeapon === weapon || !weaponOwned(p.inventory.economy.state, secondaryWeapon)) {
+        result = { ok: false, message: 'Choose a secondary weapon in Character first.' };
+      } else {
+        mergePrivate(p, {
+          'sf-character-v1': JSON.stringify({
+            ...p.appearance,
+            weapon: secondaryWeapon,
+            secondaryWeapon: selectedWeapon(weapon, p.inventory.economy.state),
+          }),
+        });
+        await durable(p);
+        result = { ok: true, appearance: p.appearance };
+      }
     } else if (action === 'searchHouse') {
       result = residentialSearch.search(p, args.id);
       if (result.ok) {
@@ -1229,6 +1311,7 @@ export async function createGame({
       result = residentialSearch.hop(p);
       if (result.ok) await durable(p);
     } else if (action === 'stopMoving') {
+      following.cancelApproach(p);
       movement.stop(p);
       result = { ok: true };
     } else if (
@@ -1246,6 +1329,28 @@ export async function createGame({
           });
         }
         await durable(p);
+      }
+    } else if (action === 'tradeRequest') {
+      trades.tick();
+      const target = typeof args.id === 'number' ? players.get(args.id) : undefined;
+      const error = trades.requestError(p, target);
+      if (error || !target) result = { ok: false, message: error };
+      else {
+        const nearby = playersWithinReach(geometry, p, target);
+        if (!nearby && (p.boundUntil || 0) > now())
+          result = { ok: false, message: contentText('world-message.bind-tablet.immobile') };
+        else {
+          if (!nearby) movement.wake(p);
+          result = following.approach(p, target, {
+            error: (next) => trades.requestError(p, next),
+            arrive: (next) => {
+              following.stop(p);
+              movement.stop(p);
+              return trades.request(p, next);
+            },
+          });
+          if (result.ok) movement.stop(p);
+        }
       }
     } else if (TRADE_ACTIONS.has(action)) {
       result = await trades.command(p, action, args);
@@ -1268,7 +1373,7 @@ export async function createGame({
       }
     } else if (action === 'activity') {
       result = movement.activity(p, args);
-      if (result.ok && args.mode === 'sit') {
+      if (result.ok && (args.mode === 'sit' || args.mode === 'scooter')) {
         pvp.stop(p);
         p.attack = null;
         p.personalBattle = null;
@@ -1278,7 +1383,10 @@ export async function createGame({
       }
     } else if (action === 'travel') {
       result = movement.travel(p, args);
-      if (result.ok && args.kind === 'streetcarBoard') {
+      if (
+        result.ok &&
+        [CHURCH_STAIRS_DOWN, CHURCH_STAIRS_UP, 'streetcarBoard'].some((kind) => kind === args.kind)
+      ) {
         pvp.stop(p);
         const activity = personal.runtime(p);
         activity.battle = null;
@@ -1292,10 +1400,15 @@ export async function createGame({
       result = movement.barrelRoll(p);
     } else if (action === 'playerAction') {
       result = personal.action(p, args);
-      if (result.ok && args.verb === 'seizeBicycle') {
+      if (
+        result.ok &&
+        (args.verb === 'seizeBicycle' ||
+          args.verb === 'scientificExperiment' ||
+          args.verb === GOBLIN_CATAPULT.verb)
+      ) {
         following.stop(p);
         pvp.stop(p);
-        await durable(p);
+        if (args.verb !== 'scientificExperiment') await durable(p);
       } else if (result.ok && 'inventory' in result && result.inventory) await durable(p);
     } else if (
       (
@@ -1416,7 +1529,50 @@ export async function createGame({
       else {
         result = personal.inventory(p, args.op, args);
         if (result.ok) {
-          if (args.op === 'trimArmor') result = { ...result, appearance: p.appearance };
+          const fireworks =
+            args.op === 'detonateFireworks'
+              ? { position: { x: p.x, y: p.y, z: p.z }, instance: p.instance.id }
+              : null;
+          if (args.op === 'trimArmor' || args.op === 'upgradeGoblinHelmet' || args.op === 'upgradeBackpack')
+            result = { ...result, appearance: p.appearance };
+          dirty(p);
+          await durable(p);
+          if (fireworks) {
+            const { position, instance } = fireworks;
+            const event = {
+              type: 'fireworks',
+              position,
+              time: now(),
+              seed: p.id * 31 + p.inventory.meta.revision,
+            };
+            for (const observer of players.values()) {
+              if (
+                observer.instance.id === instance &&
+                Math.hypot(observer.x - position.x, observer.z - position.z) < GAMEPLAY.viewRadius
+              )
+                send(observer, event);
+            }
+            const citation = shared.dispatchFireworkOfficer(p);
+            if (citation) {
+              if (p.mode === 'walk') {
+                following.stop(p);
+                movement.stop(p);
+              }
+              result = { ...result, fireworkCitation: citation };
+            }
+          }
+        }
+      }
+    } else if (action === 'fireworkCitation') {
+      if (args.decision === 'pay' && message.inventoryEpoch !== p.inventory.meta.epoch)
+        result = {
+          ok: false,
+          message: contentText('world-message.server.game.your-inventory-changed-please-try-again'),
+          inventory: p.inventory.snapshot(),
+        };
+      else {
+        result = shared.command(p, action, args);
+        if (result.ok && args.decision === 'pay') {
           dirty(p);
           await durable(p);
         }
@@ -1435,19 +1591,35 @@ export async function createGame({
           await durable(p);
         }
       }
+    } else if (action === 'takeGoblinBush') {
+      if (message.inventoryEpoch !== p.inventory.meta.epoch)
+        result = {
+          ok: false,
+          message: contentText('world-message.server.game.your-inventory-changed-please-try-again'),
+          inventory: p.inventory.snapshot(),
+        };
+      else {
+        result = shared.command(p, action, args);
+        if (result.ok && 'inventory' in result && result.inventory) await durable(p);
+      }
     } else if (action === 'breakBind') {
       const targets = pvp.bindingTargets(p),
-        count = p.inventory.meta.bindTablets || 0;
-      if (message.inventoryEpoch !== p.inventory.meta.epoch || !count || !targets)
+        count = p.inventory.meta.bindTablets || 0,
+        monsters = count && message.inventoryEpoch === p.inventory.meta.epoch
+          ? shared.bindNearbyMonsters(p) : null;
+      if (monsters === null)
         result = { ok: false, message: contentText('world-message.bind-tablet.requirements') };
+      else if (!monsters && !targets)
+        result = { ok: false, message: 'There are no nearby monsters to bind.' };
       else {
         const damage = Math.min(p.hp, 10);
         p.inventory.meta.bindTablets = count - 1;
         p.inventory.save();
-        for (const target of targets) bindPlayer(target);
+        for (const target of targets ?? []) bindPlayer(target);
         p.hp -= damage;
         p.damagePending = true;
         send(p, { type: 'damage', damage, hp: p.hp, max: p.max, source: 'Bind Tablet' });
+        publishPlayerHit(p, damage);
         if (p.hp === 0) {
           p.respawnAllowed = true;
           p.attack = null;
@@ -1465,7 +1637,9 @@ export async function createGame({
         result = {
           ok: true,
           inventory: p.inventory.snapshot(),
-          message: contentText('world-message.bind-tablet.broken', { count: targets.length }),
+          message: contentText('world-message.bind-tablet.broken', {
+            count: monsters + (targets?.length ?? 0),
+          }),
         };
       }
     } else if (action === 'pvp') {
@@ -1861,23 +2035,47 @@ export async function createGame({
       });
     });
   }
+  function finishLaunch(p: ServerPlayer, source?: string) {
+    p.depotLaunch = undefined;
+    p.mode = 'walk';
+    if (source) {
+      const damage = Math.max(0, p.hp - 1);
+      p.hp -= damage;
+      p.damagePending = true;
+      send(p, { type: 'damage', damage, hp: p.hp, max: p.max, source });
+      dirty(p);
+    }
+  }
   function tickDepot(p: ServerPlayer, dt: number) {
     const flight = p.depotLaunch;
     if (flight) {
+      if (flight.catapult) {
+        flight.elapsed = Math.min(CATAPULT_DURATION, flight.elapsed + dt);
+        const { rig, from } = flight.catapult;
+        const heading =
+          flight.elapsed < GOBLIN_CATAPULT.mountSeconds * 0.7
+            ? Math.atan2(
+                rig.z - Math.sin(rig.angle) * GOBLIN_CATAPULT.arm - from.z,
+                rig.x - Math.cos(rig.angle) * GOBLIN_CATAPULT.arm - from.x,
+              )
+            : rig.angle;
+        Object.assign(p, catapultPose(flight.catapult, flight.elapsed), {
+          angle: heading,
+          phase: flight.elapsed,
+        });
+        if (flight.elapsed < CATAPULT_DURATION) return;
+        p.phase = 0;
+        p.lastPoseAt = now();
+        finishLaunch(p, GOBLIN_CATAPULT.name);
+        return;
+      }
       const duration = flight.trampoline ? TRAMPOLINE.duration : DYNAMITE_DEPOT.seconds,
         height = flight.trampoline ? TRAMPOLINE.height : DYNAMITE_DEPOT.height;
       flight.elapsed = Math.min(duration, flight.elapsed + dt);
       const progress = flight.elapsed / duration;
       p.y = flight.base + 4 * height * progress * (1 - progress);
       if (progress < 1) return;
-      p.depotLaunch = undefined;
-      p.mode = 'walk';
-      if (flight.trampoline) return;
-      const damage = Math.max(0, p.hp - 1);
-      p.hp -= damage;
-      p.damagePending = true;
-      send(p, { type: 'damage', damage, hp: p.hp, max: p.max, source: DYNAMITE_DEPOT.name });
-      dirty(p);
+      finishLaunch(p, flight.trampoline ? undefined : DYNAMITE_DEPOT.name);
       return;
     }
     const inside =
@@ -1921,8 +2119,8 @@ export async function createGame({
     store.markChanged?.();
     tickNumber++;
     routes.beginTick();
-    following.tick(dt);
     movement.tick(dt);
+    following.tick(dt);
     for (const p of players.values()) tickDepot(p, dt);
     measured('movementMs');
     for (const p of players.values())

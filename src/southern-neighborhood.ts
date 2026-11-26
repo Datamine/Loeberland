@@ -20,6 +20,8 @@ interface NeighborhoodOptions {
   registerEstate?: (object: WorldObject) => unknown;
 }
 import { isWizardHousePlot } from './wizard-house.ts';
+import { isRickHousePlot } from './config/rick.ts';
+import { isDefenseWorkshopPlot } from './config/defense-workshop.ts';
 import { makeSuburbanHome } from './suburban-homes.ts';
 import { inSouthernVillage } from './southern-village-layout.ts';
 import { atDuelArena } from './duel-layout.ts';
@@ -107,7 +109,13 @@ export function populateSouthernNeighborhood({
         : pottery
           ? { id: PALMETTO_POTTERY_SITE_ID, shop: PALMETTO_POTTERY }
           : null;
-    if (isWizardHousePlot(p) || isSearchHousePlot(p)) continue;
+    if (
+      isWizardHousePlot(p) ||
+      isSearchHousePlot(p) ||
+      isRickHousePlot(p) ||
+      isDefenseWorkshopPlot(p)
+    )
+      continue;
     if (!storefront && !p.settlement && inEstateDistrict(p.x, p.z)) {
       const house = makeEstateHouse(mesh, p, terrain);
       registerEstate(house);

@@ -4,6 +4,7 @@ import type { ServerPlayer } from '../src/types/server.ts';
 import { equipmentOwned } from '../src/item-stats.ts';
 import { COMBAT_SUPPLY_OFFERS, isCombatSupplyPurchase } from '../src/combat-supply-shop.ts';
 import { mayFireRailgun } from '../src/jurassic.ts';
+import { LIGHTSABER_HITS } from '../src/config/lightsaber.ts';
 export const BATTERY_SHOTS = 25;
 export function railgunRestriction(p: ServerPlayer, weapon: unknown, atRaptor = false) {
   if (weapon === 'railgun' && !mayFireRailgun(p.profile.playerState.quests.expeditions, atRaptor))
@@ -13,6 +14,10 @@ export function railgunRestriction(p: ServerPlayer, weapon: unknown, atRaptor = 
 export function consumeWeaponShot(p: ServerPlayer, weapon: string, atRaptor = false) {
   const restriction = railgunRestriction(p, weapon, atRaptor);
   if (restriction) return { ok: false, spent: false, message: restriction };
+  if (weapon === 'lightsaber')
+    return (p.inventory.meta.lightsaberCharge ?? 0) > 0
+      ? { ok: true, spent: false }
+      : { ok: false, spent: false, message: 'The lightsaber needs a fresh railgun battery.' };
   const magazine =
     weapon === 'akibo'
       ? ({
@@ -34,6 +39,16 @@ export function consumeWeaponShot(p: ServerPlayer, weapon: string, atRaptor = fa
   p.inventory.save();
   return { ok: true, spent: true };
 }
+
+/** Blade charge is spent after damage is resolved, once per landed hit. */
+export function spendLightsaberHit(p: ServerPlayer, weapon: string, damage: number) {
+  if (weapon !== 'lightsaber' || damage <= 0) return false;
+  const charge = p.inventory.meta.lightsaberCharge ?? 0;
+  if (charge <= 0) return false;
+  p.inventory.meta.lightsaberCharge = charge - 1;
+  p.inventory.save();
+  return true;
+}
 export function combatSupplyAction(
   p: ServerPlayer,
   op: string,
@@ -46,21 +61,26 @@ export function combatSupplyAction(
 ) {
   const meta = p.inventory.meta,
     purse = p.inventory.economy.state;
-  if (op === 'chargeRailgun') {
+  const chargeSaber = op === 'chargeLightsaber';
+  if (op === 'chargeRailgun' || chargeSaber) {
+    if (chargeSaber && !equipmentOwned(purse, 'lightsaber'))
+      return { ok: false, message: 'You don’t own a lightsaber.' };
+    const key = chargeSaber ? 'lightsaberCharge' : 'railgunCharge';
+    const capacity = chargeSaber ? LIGHTSABER_HITS : BATTERY_SHOTS;
     if (!meta.railgunBatteries)
       return {
         ok: false,
         message: contentText('world-message.server.combat-supplies.you-have-no-spare-battery'),
       };
-    if (meta.railgunCharge >= BATTERY_SHOTS)
+    if ((meta[key] ?? 0) >= capacity)
       return {
         ok: false,
-        message: contentText(
-          'world-message.server.combat-supplies.the-railgun-is-already-fully-charged',
-        ),
+        message: chargeSaber
+          ? 'The lightsaber is already fully charged.'
+          : contentText('world-message.server.combat-supplies.the-railgun-is-already-fully-charged'),
       };
     meta.railgunBatteries--;
-    meta.railgunCharge = BATTERY_SHOTS;
+    meta[key] = capacity;
   } else if (isCombatSupplyPurchase(op)) {
     const battery = op === 'buyBattery';
     if (!(battery ? nearBatterySeller : nearArmorer))
@@ -126,7 +146,7 @@ export function combatSupplyAction(
     ok: true,
     inventory: p.inventory.snapshot(),
     message:
-      op === 'chargeRailgun'
+      op === 'chargeRailgun' || chargeSaber
         ? contentText('world-message.server.combat-supplies.you-fit-a-fresh-battery')
         : contentText(
             'world-message.server.combat-supplies.the-chef-folds-an-extravagant-roll-of-foil-into-a-full-suit-eq',

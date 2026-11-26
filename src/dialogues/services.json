@@ -40,7 +40,7 @@
       ]
     },
     "tax": {
-      "intro": "Welcome to the Tax Authority. You may contribute your entire coin purse, or ask how we spend it.",
+      "intro": "Welcome to our magnificent public institution. How may we assist you?",
       "repeat": true,
       "choices": [
         {
@@ -183,7 +183,7 @@
         },
         {
           "label": "Any advice for the descent?",
-          "receipt": "Click to steer, stay on the snow, and press Esc then Space to flip while airborne. If you’d rather keep your feet off the ground, the gondola will take you back down."
+          "receipt": "Click to steer and stay on the snow. Open shortcuts and press Space to flip while airborne. If you’d rather keep your feet off the ground, the gondola will take you back down."
         }
       ]
     },
@@ -279,7 +279,7 @@
       "choices": [
         {
           "label": "Where is my motorcycle?",
-          "receipt": "Press Esc then M to find your parked motorcycle or get on it. Your rental remains valid."
+          "receipt": "Open shortcuts and press M to find your parked motorcycle or get on it. Your rental remains valid."
         }
       ]
     },
@@ -598,6 +598,13 @@
           "action": "service",
           "args": ["sandwich"],
           "receipt": "A warm sandwich, wrapped for the road."
+        },
+        {
+          "id": "loaf-of-bread",
+          "label": "Buy Loaf of Bread · 5 coins",
+          "action": "service",
+          "args": ["loaf-of-bread"],
+          "receipt": "A fresh loaf for the road. You can wear it from the Character menu."
         }
       ]
     },

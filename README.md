@@ -23,7 +23,7 @@ npm run build
 REDIS_URL=redis://127.0.0.1:6379 npm --prefix server start
 ```
 
-Open **http://127.0.0.1:8787/** to play. The server saves world and player checkpoints to Redis when `REDIS_URL` is set. With `REDIS_URL` unset, `npm --prefix server start` uses SQLite at `server/data/world.sqlite` by default. Existing saves stay in their original backend when you switch. Docker Compose configures Redis by default. [Docker Compose setup](server/README.md#run-locally)
+Open **http://127.0.0.1:8787/** to play. Local Node and Compose launchers read optional settings from `deploy/.env.local`. The server saves world and player checkpoints to Redis when `REDIS_URL` is set. With `REDIS_URL` unset, `npm --prefix server start` uses SQLite at `server/data/world.sqlite` by default. Existing saves stay in their original backend when you switch. Docker Compose configures Redis by default. [Local configuration](deploy/README.md#local)
 
 Local loopback servers and `./deploy/local.sh` enable `:tp` for every character by default. Set `DEBUG_TELEPORT_ALL=false` to use individual character permissions. [Server settings](server/README.md#configuration)
 
@@ -41,7 +41,7 @@ With the game server running, open **http://127.0.0.1:8080/?server=ws://127.0.0.
 
 ### Game state editor (saved world and players)
 
-Copy `server/.env.example` to `server/.env` if it does not exist, then set `ADMIN_USERNAME` and `ADMIN_PASSWORD`. To inspect saved world records, player progress, and username reservations while the game is running, use the same Redis URL as the game server:
+Copy `deploy/.env.local-admin.example` to `deploy/.env.local-admin` if it does not exist, set `ADMIN_USERNAME` and `ADMIN_PASSWORD`, and run `chmod 600 deploy/.env.local-admin`. To inspect saved world records, player progress, and username reservations while the game is running, use the same Redis URL as the game server.
 
 ```sh
 REDIS_URL=redis://127.0.0.1:6379 ADMIN_READ_ONLY=1 npm --prefix server run admin
@@ -55,6 +55,7 @@ Open **http://127.0.0.1:8788/** and sign in with the admin credentials. To edit 
 | -------------------------- | --------------------------------------------------------------------------- |
 | `src/`                     | Game modules, shared rules, configuration, types, rendering, and world code |
 | `server/`                  | Multiplayer backend, persistence, admin tools, and deployment               |
+| `deploy/`                  | Launchers, deployment settings, and local configuration templates           |
 | `editor/`                  | Content editor interface and filesystem writer                              |
 | `content/`                 | Authored JSON, dialogue, player-state defaults, and schemas                 |
 | `tools/`                   | Build scripts, development server, audits, and benchmarks                   |

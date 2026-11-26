@@ -5,6 +5,8 @@ import type { Vec2 } from './types/geometry.ts';
 import { contentText } from './content-runtime.ts';
 import { TERMINATOR_FACTORY, overlapsTerminatorParcel } from './encounter-layout.ts';
 import { pickSearchHouseParcels, searchPlotKey } from './config/search-houses.ts';
+import { isRickHousePlot } from './config/rick.ts';
+import { isDefenseWorkshopPlot } from './config/defense-workshop.ts';
 import { createSegmentDistanceIndex } from './segment-index.ts';
 import { isWizardHousePlot } from './wizard-house.ts';
 import { SETTLEMENT_PARCELS } from './southern-settlement-layout.ts';
@@ -487,7 +489,11 @@ export function southernTrailDistance(x: number, z: number) {
 }
 
 export const SEARCH_HOUSE_PARCELS = Object.freeze(
-  pickSearchHouseParcels(SOUTHERN_HOUSING.filter((p) => !isWizardHousePlot(p))),
+  pickSearchHouseParcels(
+    SOUTHERN_HOUSING.filter(
+      (p) => !isWizardHousePlot(p) && !isRickHousePlot(p) && !isDefenseWorkshopPlot(p),
+    ),
+  ),
 );
 const searchHouseBounds = SEARCH_HOUSE_PARCELS.map((p) => ({
   ...p,
@@ -509,7 +515,11 @@ const searchHouseKeys = new Set(SEARCH_HOUSE_PARCELS.map(searchPlotKey));
 export const isSearchHousePlot = (p: Pick<Parcel, 'x' | 'z'>) =>
   searchHouseKeys.has(searchPlotKey(p));
 const southernHouseBounds = SOUTHERN_HOUSING.filter(
-  (p) => !isWizardHousePlot(p) && !isSearchHousePlot(p),
+  (p) =>
+    !isWizardHousePlot(p) &&
+    !isSearchHousePlot(p) &&
+    !isRickHousePlot(p) &&
+    !isDefenseWorkshopPlot(p),
 ).map((p) => ({
   ...p,
   c: Math.cos(p.rotation || 0),

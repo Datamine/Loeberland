@@ -13,10 +13,19 @@ export interface InventoryGrant {
 import { createEconomy } from '../src/economy.ts';
 import { hatById } from '../src/hat-catalog.ts';
 import { discoverCollection } from './collection.mts';
-import { EQUIPMENT_IDS, sandwichCapacity } from '../src/item-stats.ts';
+import {
+  EQUIPMENT_IDS,
+  baseEquipmentId,
+  equipmentOwned,
+  sandwichCapacity,
+  upgradeKitRequirement,
+} from '../src/item-stats.ts';
+import { WEAPON_UPGRADE_KIT } from '../src/config/weapon-upgrades.ts';
+import { HIKING_BACKPACK_UPGRADE_KIT } from '../src/config/hiking-backpack.ts';
 import { tabletCounts } from '../src/teleport-tablets.ts';
 import { isTahoePelt, TAHOE_PELTS } from '../src/config/tahoe-pelts.ts';
 import { sandwichStackLabel } from '../src/ground-items.ts';
+import { LIGHT_CRYSTAL, LIGHTSABER_HITS } from '../src/config/lightsaber.ts';
 
 const inventoryParse = (value: string | undefined): Record<string, unknown> => {
   try {
@@ -32,7 +41,12 @@ export const INVENTORY_KEYS = new Set(['sf-purse-v1', 'sf-deli-v1'] satisfies [s
  * checkpoints never overwrite this ledger or resurrect a pre-death balance. */
 export function createInventoryAccount(profile: PlayerProfile) {
   profile.privateState ??= {};
-  const economy = createEconomy(inventoryParse(profile.privateState['sf-purse-v1'])),
+  const savedPurse = inventoryParse(profile.privateState['sf-purse-v1']);
+  const economy = createEconomy(
+      savedPurse,
+      undefined,
+      () => profile.playerState.appearance.torso,
+    ),
     savedFood = inventoryParse(profile.privateState['sf-deli-v1']);
   // Older saves recorded weapon awards on the quests instead of in the purse.
   const { theyLive, expeditions } = profile.playerState.quests;
@@ -41,7 +55,7 @@ export function createInventoryAccount(profile: PlayerProfile) {
   if (
     expeditions.railgun === true &&
     ['escaped', 'carrying', 'completed'].includes(expeditions.raptor) &&
-    !owned.includes('railgun')
+    !equipmentOwned(economy.state, 'railgun')
   )
     owned.push('railgun');
   const meta = (profile.inventory ??= {
@@ -67,6 +81,10 @@ export function createInventoryAccount(profile: PlayerProfile) {
         ? Math.min(count, key === 'railgunCharge' ? 25 : 1000000)
         : 0;
   }
+  const saberCharge = meta.lightsaberCharge;
+  meta.lightsaberCharge = isSafeInteger(saberCharge)
+    ? Math.max(0, Math.min(LIGHTSABER_HITS, saberCharge))
+    : 0;
   meta.coffee = meta.coffee === 1 ? 1 : 0;
   meta.tablets = tabletCounts(meta.tablets);
   const pelts: NonNullable<InventorySnapshot['pelts']> = {};
@@ -78,12 +96,22 @@ export function createInventoryAccount(profile: PlayerProfile) {
   meta.uni = isSafeInteger(meta.uni) && meta.uni > 0 ? meta.uni : 0;
   const consumables = {
     'armor-trimming-kit': 'armorTrimmingKits',
+    'goblin-helmet-upgrade-kit': 'goblinHelmetUpgradeKits',
+    [WEAPON_UPGRADE_KIT]: 'weaponUpgradeKits',
+    [HIKING_BACKPACK_UPGRADE_KIT]: 'hikingBackpackUpgradeKits',
+    [LIGHT_CRYSTAL]: 'lightCrystals',
     'bind-tablet': 'bindTablets',
+    fireworks: 'fireworks',
   } as const;
   for (const key of Object.values(consumables)) {
     const count = meta[key];
     meta[key] = isSafeInteger(count) && count > 0 ? count : 0;
   }
+  // Legacy saves stored their one kit as a permanent equipment bonus.
+  const legacyKit = Array.isArray(savedPurse.ownedEquipment) &&
+    savedPurse.ownedEquipment.includes(WEAPON_UPGRADE_KIT);
+  if (legacyKit)
+    meta.weaponUpgradeKits = Math.min(Number.MAX_SAFE_INTEGER, (meta.weaponUpgradeKits ?? 0) + 1);
   function save(change = true) {
     discoverCollection(profile, economy.state, meta);
     if (change) meta.revision++;
@@ -112,11 +140,17 @@ export function createInventoryAccount(profile: PlayerProfile) {
       pelts: { ...pelts },
       uni: meta.uni,
       armorTrimmingKits: meta.armorTrimmingKits,
+      goblinHelmetUpgradeKits: meta.goblinHelmetUpgradeKits,
+      weaponUpgradeKits: meta.weaponUpgradeKits,
+      hikingBackpackUpgradeKits: meta.hikingBackpackUpgradeKits,
+      lightCrystals: meta.lightCrystals,
       bindTablets: meta.bindTablets,
+      fireworks: meta.fireworks,
       coffee: meta.coffee,
       akimboAmmo: meta.akimboAmmo,
       missiles: meta.missiles,
       railgunCharge: meta.railgunCharge,
+      lightsaberCharge: meta.lightsaberCharge,
       railgunBatteries: meta.railgunBatteries,
       tablets: { ...meta.tablets },
     };
@@ -124,6 +158,8 @@ export function createInventoryAccount(profile: PlayerProfile) {
   const sandwichSpace = () =>
     Math.max(0, sandwichCapacity(economy.state) - meta.sandwiches - (meta.deliveryPending ? 1 : 0));
   function canReceive(item: InventoryGrant) {
+    const kitRequirement = upgradeKitRequirement(item.lootKind, economy.state);
+    if (kitRequirement) return { ok: false, message: kitRequirement };
     if (item.lootKind === 'sandwich' && item.amount > sandwichSpace())
       return {
         ok: false,
@@ -134,7 +170,7 @@ export function createInventoryAccount(profile: PlayerProfile) {
     if (
       item.lootKind === 'equipment' &&
       (!EQUIPMENT_IDS.includes(item.itemId || '') ||
-        economy.state.ownedEquipment.includes(item.itemId || ''))
+        equipmentOwned(economy.state, baseEquipmentId(item.itemId || '')))
     )
       return {
         ok: false,
@@ -179,7 +215,12 @@ export function createInventoryAccount(profile: PlayerProfile) {
       return { ok: false, message: contentText('world-message.uni.inventory-full') };
     if (item.lootKind === 'sand-bucket' && !Number.isSafeInteger(economy.state.sand + item.amount))
       return { ok: false, message: contentText('world-message.berkeley-lab.sand-full') };
-    if (item.lootKind === 'coins' && !Number.isSafeInteger(economy.state.coins + item.amount))
+    if (
+      item.lootKind === 'coins' &&
+      !(item.transfer
+        ? Number.isSafeInteger(economy.state.coins + item.amount)
+        : economy.canCredit(item.amount))
+    )
       return {
         ok: false,
         message: contentText('world-message.server.inventory.your-coin-purse-is-full'),
@@ -228,6 +269,7 @@ export function createInventoryAccount(profile: PlayerProfile) {
     purse.iphoneOwned = false;
     purse.iphoneEquipped = false;
     purse.incomeQuarters = 0;
+    purse.incomeExtraTwentieths = 0;
     meta.sandwiches = 0;
     meta.epoch++;
     save();
@@ -241,6 +283,10 @@ export function createInventoryAccount(profile: PlayerProfile) {
       'bisonHides',
       'uni',
       'armorTrimmingKits',
+      'goblinHelmetUpgradeKits',
+      'weaponUpgradeKits',
+      'hikingBackpackUpgradeKits',
+      'lightCrystals',
       'bindTablets',
       'coffee',
       'akimboAmmo',
@@ -256,7 +302,7 @@ export function createInventoryAccount(profile: PlayerProfile) {
     meta.tablets = { ...draft.tablets };
     save();
   }
-  save(false);
+  save(legacyKit);
   return {
     economy,
     meta,

@@ -1,11 +1,13 @@
 import { requiredValue } from './types/assert.ts';
-interface LampLight {
+export interface LampHalo {
   x: number;
   y: number;
   z: number;
   color: readonly number[];
   radius: number;
   strength: number;
+}
+interface LampLight extends LampHalo {
   poolStrength: number;
 }
 import type { Mesh } from './geometry.ts';
@@ -245,8 +247,12 @@ export function drawStreetLamp(
   }));
 }
 
-/** One additive, depth-tested draw for all soft halos and terrain-following
- * light pools. No full-screen blur, render targets, textures or per-light draws. */
+const haloCorners = [[-1, -1], [1, -1], [1, 1], [-1, -1], [1, 1], [-1, 1]] as const;
+function writeHaloVertices(data: number[], { x, y, z, color, radius, strength }: LampHalo) {
+  for (const [u, v] of haloCorners) data.push(x, y, z, u, v, ...color, radius, strength);
+}
+
+/** Additive, depth-tested batches for static lights and moving halos. */
 export function createLampGlow(gl: WebGLRenderingContext) {
   const shader = (type: number, source: string) => {
     const s = requiredValue(gl.createShader(type), 'Lamp shader allocation');
@@ -291,7 +297,8 @@ export function createLampGlow(gl: WebGLRenderingContext) {
         gl.getUniformLocation(program, name),
       ]),
     ),
-    buffer = gl.createBuffer();
+    buffer = gl.createBuffer(),
+    movingBuffer = gl.createBuffer();
   const stats = { lights: 0, triangles: 0 };
   let count = 0;
   function setLights(
@@ -333,48 +340,58 @@ export function createLampGlow(gl: WebGLRenderingContext) {
           for (const v of [a, c, b, a, d, c]) vertex(v.p, v.uv, light, 0, light.poolStrength);
         }
     }
-    for (const light of lights)
-      for (const uv of [
-        [-1, -1] satisfies [number, number],
-        [1, -1] satisfies [number, number],
-        [1, 1] satisfies [number, number],
-        [-1, -1] satisfies [number, number],
-        [1, 1] satisfies [number, number],
-        [-1, 1] satisfies [number, number],
-      ])
-        vertex([light.x, light.y, light.z], uv, light, light.radius, light.strength);
+    for (const light of lights) writeHaloVertices(data, light);
     count = data.length / 10;
     stats.lights = lights.length;
     stats.triangles = count / 3;
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW);
   }
-  function draw(camera: {
-    matrix: Iterable<number>;
-    right: Iterable<number>;
-    up: Iterable<number>;
-    eye: Iterable<number>;
-  }) {
-    if (!count) return false;
+  function draw(
+    camera: {
+      matrix: Iterable<number>;
+      right: Iterable<number>;
+      up: Iterable<number>;
+      eye: Iterable<number>;
+    },
+    halos: readonly LampHalo[],
+    showStreetLights: boolean,
+  ) {
+    const drawStreetLights = showStreetLights && count > 0;
+    if (!drawStreetLights && !halos.length) return 0;
     gl.useProgram(program);
     gl.uniformMatrix4fv(uniforms.uVP, false, camera.matrix);
     gl.uniform3fv(uniforms.uRight, camera.right);
     gl.uniform3fv(uniforms.uUp, camera.up);
     gl.uniform3fv(uniforms.uEye, camera.eye);
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-    for (const a of attributes) {
-      gl.enableVertexAttribArray(a.location);
-      gl.vertexAttribPointer(a.location, a.size, gl.FLOAT, false, 40, a.offset);
-    }
+    for (const a of attributes) gl.enableVertexAttribArray(a.location);
     gl.enable(gl.DEPTH_TEST);
     gl.depthMask(false);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-    gl.drawArrays(gl.TRIANGLES, 0, count);
+    const drawBatch = (vertexCount: number) => {
+      for (const a of attributes)
+        gl.vertexAttribPointer(a.location, a.size, gl.FLOAT, false, 40, a.offset);
+      gl.drawArrays(gl.TRIANGLES, 0, vertexCount);
+    };
+    let draws = 0;
+    if (drawStreetLights) {
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+      drawBatch(count);
+      draws++;
+    }
+    if (halos.length) {
+      const data: number[] = [];
+      for (const halo of halos) writeHaloVertices(data, halo);
+      gl.bindBuffer(gl.ARRAY_BUFFER, movingBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STREAM_DRAW);
+      drawBatch(data.length / 10);
+      draws++;
+    }
     gl.depthMask(true);
     gl.disable(gl.BLEND);
     for (const a of attributes) gl.disableVertexAttribArray(a.location);
-    return true;
+    return draws;
   }
   return { setLights, draw, stats };
 }

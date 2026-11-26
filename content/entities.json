@@ -560,7 +560,7 @@
       "name": "Battery Seller",
       "category": "npc",
       "kind": "battery-seller",
-      "description": "A local adventurer. Currently undertaking the difficult quest called \"one more errand.\"",
+      "description": "A seller sorting loose batteries by voltage under a scratched work lamp.",
       "menus": [
         {
           "id": "actor:ssf-battery-seller.menu-1",
@@ -834,7 +834,7 @@
       "name": "Bicycle",
       "category": "npc",
       "kind": "bike",
-      "description": "A red city bicycle. Ride it along Market Street and through the park. Press Esc then B to ride or park it; dismount automatically at shop doors.",
+      "description": "A red city bicycle. Ride it along Market Street and through the park. Open shortcuts and press B to ride or park it; dismount automatically at shop doors.",
       "menus": [
         {
           "id": "sight:bicycle.menu-1",
@@ -3466,6 +3466,26 @@
       ],
       "dialogues": [],
       "capabilities": ["walk", "examine"]
+    },
+    "sight:berkeley-shore-fishing": {
+      "id": "sight:berkeley-shore-fishing",
+      "name": "Berkeley Shore Fishing",
+      "category": "object",
+      "kind": "fishing",
+      "description": "A bait bucket sits on the bank. Fish are feeding just offshore.",
+      "menus": [],
+      "dialogues": [],
+      "capabilities": []
+    },
+    "actor:berkeley-shore-mariner": {
+      "id": "actor:berkeley-shore-mariner",
+      "name": "Shoreline Mariner",
+      "category": "npc",
+      "kind": "berkeley-shore-mariner",
+      "description": "The mariner wears a weathered peacoat and a whole albatross.",
+      "menus": [],
+      "dialogues": [],
+      "capabilities": []
     },
     "sight:wharf-fishing": {
       "id": "sight:wharf-fishing",
@@ -7086,7 +7106,7 @@
             "In custody",
             "Equipment and rentals available"
           ],
-          "placements": ["actor:south-grove-outlaw"],
+          "placements": ["actor:south-grove-outlaw", "actor:south-grove-outlaw-companion"],
           "actions": [
             {
               "id": "npc.walk",
@@ -9194,7 +9214,8 @@
         "npc.walk",
         "npc.talk",
         "npc.examine",
-        "service.neighborhood-bakery.service:[\"sandwich\"]"
+        "service.neighborhood-bakery.service:[\"sandwich\"]",
+        "service.neighborhood-bakery.service:[\"loaf-of-bread\"]"
       ]
     },
     "actor:waterfront-seagull-0": {
@@ -12187,7 +12208,7 @@
       "name": "ATV Ramp",
       "category": "object",
       "kind": "atv-ramp",
-      "description": "Click the roof or its flags while riding an ATV to line up and jump. Press Esc then R to roll, or Esc then S to spin in the air.",
+      "description": "Click the roof or its flags while riding an ATV to line up and jump. Open shortcuts and press R to roll, or S to spin in the air.",
       "menus": [],
       "dialogues": [],
       "capabilities": []
@@ -12197,7 +12218,7 @@
       "name": "ATV Ramp",
       "category": "object",
       "kind": "atv-ramp",
-      "description": "Click the roof or its flags while riding an ATV to line up and jump. Press Esc then R to roll, or Esc then S to spin in the air.",
+      "description": "Click the roof or its flags while riding an ATV to line up and jump. Open shortcuts and press R to roll, or S to spin in the air.",
       "menus": [],
       "dialogues": [],
       "capabilities": []
@@ -12207,7 +12228,7 @@
       "name": "ATV Ramp",
       "category": "object",
       "kind": "atv-ramp",
-      "description": "Click the roof or its flags while riding an ATV to line up and jump. Press Esc then R to roll, or Esc then S to spin in the air.",
+      "description": "Click the roof or its flags while riding an ATV to line up and jump. Open shortcuts and press R to roll, or S to spin in the air.",
       "menus": [],
       "dialogues": [],
       "capabilities": []
@@ -12228,6 +12249,46 @@
       "category": "object",
       "kind": "berkeley-house",
       "description": "A modest Berkeley house with a front walk and a planted porch.",
+      "menus": [],
+      "dialogues": [],
+      "capabilities": []
+    },
+    "actor:berkeley-scientist": {
+      "id": "actor:berkeley-scientist",
+      "name": "Berkeley Scientist",
+      "category": "npc",
+      "kind": "berkeley-scientist",
+      "description": "The scientist checks the shrimp tank before looking up at you.",
+      "menus": [],
+      "dialogues": [],
+      "capabilities": []
+    },
+    "sight:berkeley-experiment-wheel": {
+      "id": "sight:berkeley-experiment-wheel",
+      "name": "Scientific Experiment",
+      "category": "object",
+      "kind": "berkeley-experiment-wheel",
+      "description": "A motorized wheel with a standing harness, status lights, and a hose to the shrimp tank.",
+      "menus": [],
+      "dialogues": [],
+      "capabilities": []
+    },
+    "sight:shrimp-welfare-tank": {
+      "id": "sight:shrimp-welfare-tank",
+      "name": "Shrimp Welfare Tank",
+      "category": "object",
+      "kind": "shrimp-welfare-tank",
+      "description": "Their utility is being maximized.",
+      "menus": [],
+      "dialogues": [],
+      "capabilities": []
+    },
+    "sight:shrimp-feed": {
+      "id": "sight:shrimp-feed",
+      "name": "Shrimp Feed",
+      "category": "object",
+      "kind": "shrimp-feed",
+      "description": "Tiny algae pellets. The lid has markings for each shrimp’s daily ration.",
       "menus": [],
       "dialogues": [],
       "capabilities": []
@@ -12317,7 +12378,7 @@
       "name": "Cedar Sauna",
       "category": "object",
       "kind": "berkeley-house",
-      "description": "Cedar siding and a tall stove pipe face the shore park. A stack of split wood waits by the door.",
+      "description": "The cedar door is propped open. Warm air drifts out past a stack of firewood.",
       "menus": [],
       "dialogues": [],
       "capabilities": []
@@ -12377,7 +12438,7 @@
       "name": "Coffee vendor",
       "category": "npc",
       "kind": "coffee-stall-vendor",
-      "description": "A local adventurer. Currently undertaking the difficult quest called “one more errand.”",
+      "description": "Fluent in espresso and the rattle of a nearly empty tip jar.",
       "menus": [],
       "dialogues": [],
       "capabilities": []
@@ -12438,6 +12499,26 @@
       "category": "object",
       "kind": "berkeley-house",
       "description": "A narrow painted Victorian with a bay window, gingerbread trim and a steep roof.",
+      "menus": [],
+      "dialogues": [],
+      "capabilities": []
+    },
+    "sight:onoda-island-dock": {
+      "id": "sight:onoda-island-dock",
+      "name": "Onoda Island landing",
+      "category": "object",
+      "kind": "onoda-island-dock",
+      "description": "A small windsurf landing beside a wooded island west of the humpbacks.",
+      "menus": [],
+      "dialogues": [],
+      "capabilities": []
+    },
+    "actor:hiroo-onoda": {
+      "id": "actor:hiroo-onoda",
+      "name": "Hiroo Onoda",
+      "category": "npc",
+      "kind": "hiroo-onoda",
+      "description": "An island sentry in woodland camouflage with a long rifle.",
       "menus": [],
       "dialogues": [],
       "capabilities": []
@@ -12902,6 +12983,26 @@
       "dialogues": [],
       "capabilities": []
     },
+    "actor:goblin-catapult-scientist": {
+      "id": "actor:goblin-catapult-scientist",
+      "name": "Goblin Scientist",
+      "category": "npc",
+      "kind": "goblin-catapult-scientist",
+      "description": "A goblin in a laboratory coat, making notes on a stained clipboard.",
+      "menus": [],
+      "dialogues": [],
+      "capabilities": []
+    },
+    "sight:strange-contraption": {
+      "id": "sight:strange-contraption",
+      "name": "Strange Contraption",
+      "category": "object",
+      "kind": "strange-contraption",
+      "description": "A copper dial is marked A, B, and Probably. Its needle is stuck on Probably.",
+      "menus": [],
+      "dialogues": [],
+      "capabilities": []
+    },
     "actor:goblin-frog-farmer": {
       "id": "actor:goblin-frog-farmer",
       "name": "Goblin Farmer",
@@ -12918,6 +13019,16 @@
       "category": "npc",
       "kind": "founder",
       "description": "A goblin who can explain the valuation or the business model. Pick one.",
+      "menus": [],
+      "dialogues": [],
+      "capabilities": []
+    },
+    "actor:goblin-city-hall-clerk": {
+      "id": "actor:goblin-city-hall-clerk",
+      "name": "Goblin City Hall Clerk",
+      "category": "npc",
+      "kind": "goblin-city-hall-clerk",
+      "description": "A clerk with an official stamp and an unofficial appetite for live fish.",
       "menus": [],
       "dialogues": [],
       "capabilities": []
@@ -13047,7 +13158,17 @@
       "name": "Goblin Startup Incubator",
       "category": "object",
       "kind": "goblin-startup-incubator",
-      "description": "A muddy hole in the ground. The Goblin Founder does business at the rim.",
+      "description": "A muddy excavation where the Goblin Founder pitches the next big thing.",
+      "menus": [],
+      "dialogues": [],
+      "capabilities": []
+    },
+    "sight:goblin-city-hall": {
+      "id": "sight:goblin-city-hall",
+      "name": "Goblin City Hall",
+      "category": "object",
+      "kind": "goblin-city-hall",
+      "description": "A stone entrance set into the hillside. A clerk stands beside the door.",
       "menus": [],
       "dialogues": [],
       "capabilities": []
@@ -13214,6 +13335,66 @@
     },
     "actor:berkeley-mad-cultist-12": {
       "id": "actor:berkeley-mad-cultist-12",
+      "name": "Mad Cultist",
+      "category": "npc",
+      "kind": "mad-cultist",
+      "description": "A Goose Corp devotee carrying a bucket of sand.",
+      "menus": [],
+      "dialogues": [],
+      "capabilities": []
+    },
+    "actor:berkeley-mad-cultist-13": {
+      "id": "actor:berkeley-mad-cultist-13",
+      "name": "Mad Cultist",
+      "category": "npc",
+      "kind": "mad-cultist",
+      "description": "A Goose Corp devotee carrying a bucket of sand.",
+      "menus": [],
+      "dialogues": [],
+      "capabilities": []
+    },
+    "actor:berkeley-mad-cultist-14": {
+      "id": "actor:berkeley-mad-cultist-14",
+      "name": "Mad Cultist",
+      "category": "npc",
+      "kind": "mad-cultist",
+      "description": "A Goose Corp devotee carrying a bucket of sand.",
+      "menus": [],
+      "dialogues": [],
+      "capabilities": []
+    },
+    "actor:berkeley-mad-cultist-15": {
+      "id": "actor:berkeley-mad-cultist-15",
+      "name": "Mad Cultist",
+      "category": "npc",
+      "kind": "mad-cultist",
+      "description": "A Goose Corp devotee carrying a bucket of sand.",
+      "menus": [],
+      "dialogues": [],
+      "capabilities": []
+    },
+    "actor:berkeley-mad-cultist-16": {
+      "id": "actor:berkeley-mad-cultist-16",
+      "name": "Mad Cultist",
+      "category": "npc",
+      "kind": "mad-cultist",
+      "description": "A Goose Corp devotee carrying a bucket of sand.",
+      "menus": [],
+      "dialogues": [],
+      "capabilities": []
+    },
+    "actor:berkeley-mad-cultist-17": {
+      "id": "actor:berkeley-mad-cultist-17",
+      "name": "Mad Cultist",
+      "category": "npc",
+      "kind": "mad-cultist",
+      "description": "A Goose Corp devotee carrying a bucket of sand.",
+      "menus": [],
+      "dialogues": [],
+      "capabilities": []
+    },
+    "actor:berkeley-mad-cultist-18": {
+      "id": "actor:berkeley-mad-cultist-18",
       "name": "Mad Cultist",
       "category": "npc",
       "kind": "mad-cultist",
@@ -13432,6 +13613,26 @@
       "dialogues": [],
       "capabilities": []
     },
+    "actor:marin-ridge-fox-3": {
+      "id": "actor:marin-ridge-fox-3",
+      "name": "Red fox",
+      "category": "npc",
+      "kind": "tahoe-fox",
+      "description": "A red fox with black stockings and a white-tipped brush.",
+      "menus": [],
+      "dialogues": [],
+      "capabilities": []
+    },
+    "actor:marin-ridge-fox-4": {
+      "id": "actor:marin-ridge-fox-4",
+      "name": "Red fox",
+      "category": "npc",
+      "kind": "tahoe-fox",
+      "description": "A red fox with black stockings and a white-tipped brush.",
+      "menus": [],
+      "dialogues": [],
+      "capabilities": []
+    },
     "actor:tahoe-wildlife-3": {
       "id": "actor:tahoe-wildlife-3",
       "name": "Red fox",
@@ -13484,7 +13685,7 @@
     },
     "actor:rich-table-chef": {
       "id": "actor:rich-table-chef",
-      "name": "Rich Table chef",
+      "name": "Rich Table Chef",
       "category": "npc",
       "kind": "rich-table-chef",
       "description": "The Rich Table chef buys fresh sea urchin roe for the kitchen.",
@@ -13497,7 +13698,97 @@
       "name": "Robe Seller",
       "category": "npc",
       "kind": "decorative-robe-seller",
-      "description": "A tailor selling pink robes with rainbow trim.",
+      "description": "A tailor selling rainbow-trimmed robes, jester hats, and quilted parkas.",
+      "menus": [],
+      "dialogues": [],
+      "capabilities": []
+    },
+    "actor:fancy-dress-merchant": {
+      "id": "actor:fancy-dress-merchant",
+      "name": "Fancy Dress Merchant",
+      "category": "npc",
+      "kind": "fancy-dress-merchant",
+      "description": "The merchant models the outfit while holding a polished bowling ball.",
+      "menus": [],
+      "dialogues": [],
+      "capabilities": []
+    },
+    "actor:formalwear-expert": {
+      "id": "actor:formalwear-expert",
+      "name": "Formalwear Expert",
+      "category": "npc",
+      "kind": "formalwear-expert",
+      "description": "The cuffs sit exactly at his wrists. He notices when yours do not.",
+      "menus": [],
+      "dialogues": [],
+      "capabilities": []
+    },
+    "actor:rick": {
+      "id": "actor:rick",
+      "name": "Rick",
+      "category": "npc",
+      "kind": "rick",
+      "description": "truly futuristic",
+      "menus": [],
+      "dialogues": [],
+      "capabilities": []
+    },
+    "place:ricks-house": {
+      "id": "place:ricks-house",
+      "name": "Rick’s House",
+      "category": "object",
+      "kind": "residence",
+      "description": "Honed granite slabs, recessed glass, and a narrow light over the entrance.",
+      "menus": [],
+      "dialogues": [],
+      "capabilities": []
+    },
+    "place:defense-workshop": {
+      "id": "place:defense-workshop",
+      "name": "Defense Workshop",
+      "category": "object",
+      "kind": "workshop",
+      "description": "A brick workshop with a metal lathe, a welding station, and a rack of steel stock.",
+      "menus": [],
+      "dialogues": [],
+      "capabilities": []
+    },
+    "actor:defense-manufacturer": {
+      "id": "actor:defense-manufacturer",
+      "name": "Defense Manufacturer",
+      "category": "npc",
+      "kind": "defense-manufacturer",
+      "description": "Metal filings cling to the cuffs of a well-worn protective vest.",
+      "menus": [],
+      "dialogues": [],
+      "capabilities": []
+    },
+    "actor:defense-workshop-assistant": {
+      "id": "actor:defense-workshop-assistant",
+      "name": "Workshop Assistant",
+      "category": "npc",
+      "kind": "defense-workshop-assistant",
+      "description": "A machinist’s assistant with ink marks on both thumbs.",
+      "menus": [],
+      "dialogues": [],
+      "capabilities": []
+    },
+    "actor:wedding-planner": {
+      "id": "actor:wedding-planner",
+      "name": "Wedding Planner",
+      "category": "npc",
+      "kind": "wedding-planner",
+      "description": "A wedding planner who carries tailoring pins and a sword case.",
+      "menus": [],
+      "dialogues": [],
+      "capabilities": []
+    },
+    "sight:goblin-bush": {
+      "id": "sight:goblin-bush",
+      "name": "Bush",
+      "category": "object",
+      "kind": "goblin-bush",
+      "description": "A round green bush among the scrub at the eastern edge of Goblin Village.",
       "menus": [],
       "dialogues": [],
       "capabilities": []
@@ -15036,6 +15327,20 @@
         "z": 31.875
       }
     },
+    "sight:berkeley-shore-fishing": {
+      "id": "sight:berkeley-shore-fishing",
+      "definition": "sight:berkeley-shore-fishing",
+      "actor": false,
+      "source": "sights",
+      "position": { "x": 114.83524196575803, "z": 9.5 }
+    },
+    "actor:berkeley-shore-mariner": {
+      "id": "actor:berkeley-shore-mariner",
+      "definition": "actor:berkeley-shore-mariner",
+      "actor": true,
+      "source": "merchants",
+      "position": { "x": 115.69611107117639, "z": 11.2 }
+    },
     "sight:wharf-fishing": {
       "id": "sight:wharf-fishing",
       "definition": "sight:wharf-fishing",
@@ -15693,7 +15998,7 @@
         "x": 1759.8945070242737,
         "z": -1191.2711412269075
       },
-      "level": 20
+      "level": 32
     },
     "actor:tahoe-giant-3": {
       "id": "actor:tahoe-giant-3",
@@ -15704,7 +16009,7 @@
         "x": 1765.8945070242737,
         "z": -1190.2711412269075
       },
-      "level": 20
+      "level": 18
     },
     "sight:illuminati-stairway": {
       "id": "sight:illuminati-stairway",
@@ -16279,6 +16584,14 @@
         "z": 219.5
       },
       "level": 7
+    },
+    "actor:south-grove-outlaw-companion": {
+      "id": "actor:south-grove-outlaw-companion",
+      "definition": "actor:south-grove-outlaw",
+      "actor": true,
+      "source": "wilderness",
+      "position": { "x": 16.2, "z": 220.8 },
+      "level": 9
     },
     "sight:pacifica-park": {
       "id": "sight:pacifica-park",
@@ -16995,7 +17308,7 @@
         "x": 1761.8945070242737,
         "z": -1189.2711412269075
       },
-      "level": 18
+      "level": 23
     },
     "actor:tahoe-giant-2": {
       "id": "actor:tahoe-giant-2",
@@ -17006,7 +17319,7 @@
         "x": 1764.8945070242737,
         "z": -1192.2711412269075
       },
-      "level": 18
+      "level": 27
     },
     "sight:sales-conference": {
       "id": "sight:sales-conference",
@@ -17940,6 +18253,34 @@
         "z": -13.427470771988606
       }
     },
+    "actor:berkeley-scientist": {
+      "id": "actor:berkeley-scientist",
+      "definition": "actor:berkeley-scientist",
+      "actor": true,
+      "source": "merchants",
+      "position": { "x": 158.7834375810397, "z": 2.7267809427719234 }
+    },
+    "sight:berkeley-experiment-wheel": {
+      "id": "sight:berkeley-experiment-wheel",
+      "definition": "sight:berkeley-experiment-wheel",
+      "actor": false,
+      "source": "sights",
+      "position": { "x": 161.3593335707769, "z": 4.265371157889594 }
+    },
+    "sight:shrimp-welfare-tank": {
+      "id": "sight:shrimp-welfare-tank",
+      "definition": "sight:shrimp-welfare-tank",
+      "actor": false,
+      "source": "sights",
+      "position": { "x": 160.43922951041466, "z": 1.6039037960560938 }
+    },
+    "sight:shrimp-feed": {
+      "id": "sight:shrimp-feed",
+      "definition": "sight:shrimp-feed",
+      "actor": false,
+      "source": "sights",
+      "position": { "x": 159.088839831155, "z": 2.2255529850276448 }
+    },
     "actor:berkeley-mathematician": {
       "id": "actor:berkeley-mathematician",
       "definition": "actor:berkeley-mathematician",
@@ -18067,8 +18408,8 @@
       "source": "merchants",
       "labelAuditImport": true,
       "position": {
-        "x": 138.36859344003184,
-        "z": 0.05486427147449913
+        "x": 135.41821679220982,
+        "z": -5.273153900039804
       },
       "appearance": {
         "skin": "#a9745a",
@@ -18201,6 +18542,22 @@
         "x": 129.15497076083545,
         "z": -15.033727326229316
       }
+    },
+    "sight:onoda-island-dock": {
+      "id": "sight:onoda-island-dock",
+      "definition": "sight:onoda-island-dock",
+      "actor": false,
+      "source": "sights",
+      "position": { "x": -30.077460325558377, "z": 63.06066017177982 }
+    },
+    "actor:hiroo-onoda": {
+      "id": "actor:hiroo-onoda",
+      "definition": "actor:hiroo-onoda",
+      "actor": true,
+      "source": "wilderness",
+      "labelAuditImport": true,
+      "position": { "x": -37.50208152801713, "z": 61.363603896932105 },
+      "level": 55
     },
     "actor:bolinas-cultist": {
       "id": "actor:bolinas-cultist",
@@ -18771,6 +19128,20 @@
         "z": -22
       }
     },
+    "actor:goblin-catapult-scientist": {
+      "id": "actor:goblin-catapult-scientist",
+      "definition": "actor:goblin-catapult-scientist",
+      "actor": true,
+      "source": "merchants",
+      "position": { "x": 50.58, "z": -16.97 }
+    },
+    "sight:strange-contraption": {
+      "id": "sight:strange-contraption",
+      "definition": "sight:strange-contraption",
+      "actor": false,
+      "source": "sights",
+      "position": { "x": 52.2, "z": -17.36 }
+    },
     "actor:goblin-frog-farmer": {
       "id": "actor:goblin-frog-farmer",
       "definition": "actor:goblin-frog-farmer",
@@ -18792,6 +19163,13 @@
         "x": 45.5,
         "z": -38.2
       }
+    },
+    "actor:goblin-city-hall-clerk": {
+      "id": "actor:goblin-city-hall-clerk",
+      "definition": "actor:goblin-city-hall-clerk",
+      "actor": true,
+      "source": "merchants",
+      "position": { "x": 55.25, "z": -45.5 }
     },
     "sight:goblin-frog-farm": {
       "id": "sight:goblin-frog-farm",
@@ -18945,6 +19323,13 @@
         "x": 45,
         "z": -37.8
       }
+    },
+    "sight:goblin-city-hall": {
+      "id": "sight:goblin-city-hall",
+      "definition": "sight:goblin-city-hall",
+      "actor": false,
+      "source": "sights",
+      "position": { "x": 53.5, "z": -46 }
     },
     "actor:tam-ridge-veteran-1": {
       "id": "actor:tam-ridge-veteran-1",
@@ -19160,6 +19545,78 @@
       },
       "level": 40
     },
+    "actor:berkeley-mad-cultist-13": {
+      "id": "actor:berkeley-mad-cultist-13",
+      "definition": "actor:berkeley-mad-cultist-13",
+      "actor": true,
+      "source": "wilderness",
+      "labelAuditImport": true,
+      "position": {
+        "x": -2995.5,
+        "z": -2997.5
+      },
+      "level": 40
+    },
+    "actor:berkeley-mad-cultist-14": {
+      "id": "actor:berkeley-mad-cultist-14",
+      "definition": "actor:berkeley-mad-cultist-14",
+      "actor": true,
+      "source": "wilderness",
+      "labelAuditImport": true,
+      "position": {
+        "x": -2986.5,
+        "z": -2995.5
+      },
+      "level": 40
+    },
+    "actor:berkeley-mad-cultist-15": {
+      "id": "actor:berkeley-mad-cultist-15",
+      "definition": "actor:berkeley-mad-cultist-15",
+      "actor": true,
+      "source": "wilderness",
+      "labelAuditImport": true,
+      "position": {
+        "x": -2976.5,
+        "z": -2996.5
+      },
+      "level": 40
+    },
+    "actor:berkeley-mad-cultist-16": {
+      "id": "actor:berkeley-mad-cultist-16",
+      "definition": "actor:berkeley-mad-cultist-16",
+      "actor": true,
+      "source": "wilderness",
+      "labelAuditImport": true,
+      "position": {
+        "x": -2976.5,
+        "z": -2992.5
+      },
+      "level": 40
+    },
+    "actor:berkeley-mad-cultist-17": {
+      "id": "actor:berkeley-mad-cultist-17",
+      "definition": "actor:berkeley-mad-cultist-17",
+      "actor": true,
+      "source": "wilderness",
+      "labelAuditImport": true,
+      "position": {
+        "x": -2980.5,
+        "z": -2989.5
+      },
+      "level": 40
+    },
+    "actor:berkeley-mad-cultist-18": {
+      "id": "actor:berkeley-mad-cultist-18",
+      "definition": "actor:berkeley-mad-cultist-18",
+      "actor": true,
+      "source": "wilderness",
+      "labelAuditImport": true,
+      "position": {
+        "x": -2982.5,
+        "z": -2983.5
+      },
+      "level": 40
+    },
     "actor:berkeley-mad-cultist-2": {
       "id": "actor:berkeley-mad-cultist-2",
       "definition": "actor:berkeley-mad-cultist-2",
@@ -19191,8 +19648,8 @@
       "source": "wilderness",
       "labelAuditImport": true,
       "position": {
-        "x": -2992.5,
-        "z": -2994.5
+        "x": -2977.5,
+        "z": -2982.5
       },
       "level": 55
     },
@@ -19434,6 +19891,28 @@
       },
       "level": 7
     },
+    "actor:marin-ridge-fox-3": {
+      "id": "actor:marin-ridge-fox-3",
+      "definition": "actor:marin-ridge-fox-3",
+      "actor": true,
+      "source": "wilderness",
+      "position": {
+        "x": 0,
+        "z": -35.75
+      },
+      "level": 7
+    },
+    "actor:marin-ridge-fox-4": {
+      "id": "actor:marin-ridge-fox-4",
+      "definition": "actor:marin-ridge-fox-4",
+      "actor": true,
+      "source": "wilderness",
+      "position": {
+        "x": 19,
+        "z": -13.5
+      },
+      "level": 7
+    },
     "actor:tahoe-wildlife-3": {
       "id": "actor:tahoe-wildlife-3",
       "definition": "actor:tahoe-wildlife-3",
@@ -19529,8 +20008,72 @@
         "skin": "#947051",
         "shirt": "#dc6f9c",
         "hair": "#392948",
+        "hairstyle": "broccoli",
         "pants": "#7c4f6e"
       }
+    },
+    "actor:fancy-dress-merchant": {
+      "id": "actor:fancy-dress-merchant",
+      "definition": "actor:fancy-dress-merchant",
+      "actor": true,
+      "source": "merchants",
+      "position": { "x": 34, "z": 80 }
+    },
+    "actor:formalwear-expert": {
+      "id": "actor:formalwear-expert",
+      "definition": "actor:formalwear-expert",
+      "actor": true,
+      "source": "merchants",
+      "position": { "x": 52.875, "z": 85.875 }
+    },
+    "actor:rick": {
+      "id": "actor:rick",
+      "definition": "actor:rick",
+      "actor": true,
+      "source": "merchants",
+      "position": { "x": 47, "z": 234.5 }
+    },
+    "place:ricks-house": {
+      "id": "place:ricks-house",
+      "definition": "place:ricks-house",
+      "actor": false,
+      "source": "places",
+      "position": { "x": 47, "z": 234.4 }
+    },
+    "place:defense-workshop": {
+      "id": "place:defense-workshop",
+      "definition": "place:defense-workshop",
+      "actor": false,
+      "source": "places",
+      "position": { "x": 52.6, "z": 210.3 }
+    },
+    "actor:defense-manufacturer": {
+      "id": "actor:defense-manufacturer",
+      "definition": "actor:defense-manufacturer",
+      "actor": true,
+      "source": "merchants",
+      "position": { "x": 53, "z": 211 }
+    },
+    "actor:defense-workshop-assistant": {
+      "id": "actor:defense-workshop-assistant",
+      "definition": "actor:defense-workshop-assistant",
+      "actor": true,
+      "source": "merchants",
+      "position": { "x": 51.45, "z": 210.08 }
+    },
+    "actor:wedding-planner": {
+      "id": "actor:wedding-planner",
+      "definition": "actor:wedding-planner",
+      "actor": true,
+      "source": "merchants",
+      "position": { "x": 28.875, "z": 84.625 }
+    },
+    "sight:goblin-bush": {
+      "id": "sight:goblin-bush",
+      "definition": "sight:goblin-bush",
+      "actor": false,
+      "source": "sights",
+      "position": { "x": 50, "z": -31 }
     },
     "sight:bay-victorian-rose": {
       "id": "sight:bay-victorian-rose",

@@ -1,5 +1,6 @@
 import { requiredValue } from './types/assert.ts';
 import type { NumericVector } from './types/geometry.ts';
+import { REFERENCE_SIZE, WORLD_SIZE } from './geography.ts';
 /** One shared outline for terrain, navigation, water partitions, and the map. */
 const COAST_REFERENCE = [
   [8, 70] satisfies [number, number],
@@ -182,6 +183,18 @@ export function createSFCoast(scale = 1.5, south = 70 * scale) {
   });
   return [...west, ...north, [56 * scale, south] satisfies [number, number]];
 }
+export function insidePolygon(x: number, z: number, points: readonly (readonly number[])[]) {
+  let inside = false;
+  for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+    const [ax, az] = points[i],
+      [bx, bz] = points[j];
+    if (az > z !== bz > z && x < ((bx - ax) * (z - az)) / (bz - az) + ax) inside = !inside;
+  }
+  return inside;
+}
+const cityOutline = createSFCoast(WORLD_SIZE / REFERENCE_SIZE, WORLD_SIZE);
+export const inSanFrancisco = (x: number, z: number) => insidePolygon(x, z, cityOutline);
+
 /** Split at terrain grid edges AND triangle diagonals. Every curtain top is
  * then exactly on one linear terrain face; no exposed holes over the sea. */
 export function shorelineSegments(outline: readonly NumericVector[], step = 0.25) {

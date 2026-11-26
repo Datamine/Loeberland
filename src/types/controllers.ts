@@ -7,7 +7,8 @@ export interface EconomyReceipt extends ActionReceipt {
 export interface Economy {
   state: EconomyState;
   trade(kind: string, quantity?: number): EconomyReceipt;
-  credit(amount: unknown): EconomyReceipt;
+  canCredit(amount: number): boolean;
+  credit(amount: unknown, principal?: number): EconomyReceipt;
   buyHat(id: string): EconomyReceipt;
   buyEquipment(id: string): EconomyReceipt;
   buyPhone(): EconomyReceipt;

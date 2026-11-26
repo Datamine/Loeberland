@@ -21,14 +21,14 @@ export function createWindsurfing({
   isSea?: (x: number, z: number) => boolean;
   obstacles?: number[][][];
 }) {
-  const launch = {
+  const homeLaunch = {
     x: WINDSURF_LAUNCH.water[0] * scale - 0.5,
     y: WINDSURF_LAUNCH.water[1] * scale - 0.5,
   };
   const state = {
     riding: false,
     mode: 'windsurf',
-    launch,
+    launch: { ...homeLaunch },
     shore: null as Point | null,
     jump: null as {
       from: { x: number; y: number };
@@ -261,6 +261,13 @@ export function createWindsurfing({
   function cancelJump() {
     state.jump = null;
   }
+  function reset(shore: Point | null = null) {
+    state.riding = false;
+    state.mode = 'windsurf';
+    state.shore = shore ? { ...shore } : null;
+    Object.assign(state.launch, homeLaunch);
+    cancelJump();
+  }
   function pursuitRoute(
     from: { x: number; y: number },
     to: { x: number; y: number },
@@ -270,6 +277,7 @@ export function createWindsurfing({
     }: { landPath: (to: Point, from: Point) => Point[] | null; clear: (point: Point) => boolean },
   ) {
     const shore = state.shore!,
+      launch = state.launch,
       dx = launch.x - shore.x,
       dy = launch.y - shore.y,
       length2 = dx * dx + dy * dy,
@@ -310,6 +318,7 @@ export function createWindsurfing({
     jumpOver,
     updateJump,
     cancelJump,
+    reset,
   };
 }
 

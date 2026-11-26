@@ -45,6 +45,9 @@ export const MP_MODES = Object.freeze([
   'construction',
   'streetcar',
   'swing',
+  'scientificExperiment',
+  'catapult',
+  'scooter',
 ]);
 export const MP_GESTURES = Object.freeze([
   '',
@@ -76,6 +79,7 @@ export const MP_GESTURES = Object.freeze([
   'motorcycle-hop',
   'marshmallow-sofa',
   'ovalia-chair',
+  'scooter-backflip',
 ]);
 export const MP_FRAME_HEADER = 12,
   MP_PLAYER_BYTES = 32;

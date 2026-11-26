@@ -2,6 +2,9 @@ import { isRecord } from '../src/types/json.ts';
 import type { PlayerProfile } from '../src/types/profile.ts';
 import type { InventoryLedger, EconomyState } from '../src/types/content.ts';
 import { COLLECTION_ITEMS } from '../src/config/collection.ts';
+import { WEAPON_UPGRADE_KIT } from '../src/config/weapon-upgrades.ts';
+import { HIKING_BACKPACK_UPGRADE_KIT } from '../src/config/hiking-backpack.ts';
+import { baseEquipmentId } from '../src/item-stats.ts';
 
 const collectionIDs = new Set(COLLECTION_ITEMS.map((item) => item.id));
 const parse = (value: string | undefined): Record<string, unknown> => {
@@ -24,13 +27,22 @@ export function discoverCollection(
     };
   add('unarmed', true);
   for (const id of purse.ownedHats) add('hat:' + id, true);
-  for (const id of purse.ownedEquipment) add(id, true);
+  for (const id of purse.ownedEquipment) {
+    add(id, true);
+    const base = baseEquipmentId(id);
+    if (base !== id) add(base, true);
+  }
   for (const [id, owned] of Object.entries({
     coins: purse.coins,
     sandwich: meta.sandwiches,
     uni: meta.uni,
     'armor-trimming-kit': meta.armorTrimmingKits,
+    'goblin-helmet-upgrade-kit': meta.goblinHelmetUpgradeKits,
+    [WEAPON_UPGRADE_KIT]: meta.weaponUpgradeKits,
+    [HIKING_BACKPACK_UPGRADE_KIT]: meta.hikingBackpackUpgradeKits,
+    'light-crystal': meta.lightCrystals,
     'bind-tablet': meta.bindTablets,
+    fireworks: meta.fireworks,
     peptides: meta.peptides,
     'bison-hide': meta.bisonHides,
     coffee: meta.coffee,

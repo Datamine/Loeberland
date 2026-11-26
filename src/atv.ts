@@ -12,6 +12,13 @@ export const ATV_RENTAL = Object.freeze({
 export const ATV_SPEED = GAMEPLAY.walkSpeed * 1.5;
 export const ATV_ROOF = Object.freeze({ halfWidth: 1.22, run: 2.18, rise: 1.32 });
 export const ATV_RAMP_KIND = 'atv-ramp';
+export const ATV_JUMP = Object.freeze({
+  seconds: 2.75,
+  distance: 16,
+  height: 3.6,
+  rollout: 1.4,
+  trickSeconds: 0.34,
+});
 
 export function hasATVRental(expiresAt: number | undefined) {
   return (expiresAt ?? 0) > Date.now();
@@ -22,8 +29,16 @@ export function rampRise(z: number, center: number) {
 }
 
 export interface ATVState {
-  air: { velocity: number; elapsed: number; trick?: 'roll' | 'spin'; trickAt?: number } | null;
+  air: {
+    takeoff: WorldPoint & { y: number };
+    landing: WorldPoint & { y: number };
+    angle: number;
+    elapsed: number;
+    remaining: number;
+    progress: number;
+    trick?: 'roll' | 'spin';
+    trickAt?: number;
+  } | null;
   donut: { center: WorldPoint; start: number; elapsed: number } | null;
   ramp?: string;
-  takeoffAngle: number;
 }

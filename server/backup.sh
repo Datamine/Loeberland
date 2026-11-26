@@ -4,14 +4,14 @@ umask 077
 command -v flock >/dev/null
 
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-compose=(docker compose -f "$script_dir/compose.yaml")
-env_file=${COMPOSE_ENV_FILE:-$script_dir/.env}
+env_file=${COMPOSE_ENV_FILE:-$script_dir/../deploy/.env.local}
 if [[ -n ${COMPOSE_ENV_FILE:-} && ! -f $env_file ]]; then
     echo "Compose environment file not found: $env_file" >&2
     exit 2
 fi
-if [[ -f $env_file ]]; then compose+=(--env-file "$env_file"); fi
-# Resolve the actual bind path through Compose, including its .env settings.
+if [[ ! -f $env_file ]]; then env_file=/dev/null; fi
+compose=(docker compose --env-file "$env_file" -f "$script_dir/compose.yaml")
+# Resolve the actual bind path through Compose, including its environment settings.
 backup_dir=$("${compose[@]}" config --format json | python3 -c 'import json,sys; print(next(v["source"] for v in json.load(sys.stdin)["services"]["game"]["volumes"] if v["target"] == "/backups"))')
 mkdir -p -- "$backup_dir"
 exec 9>"$backup_dir/.backup.lock"

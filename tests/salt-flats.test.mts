@@ -27,7 +27,7 @@ import { buildingNPCService } from '../src/building-interactions.ts';
 
 test('conservation letters pay exactly fifty on delivery, one at a time, with atomic persistent inventory', () => {
   const writes: unknown[] = [],
-    e = createEconomy({}, (s) => writes.push(s)),
+    e = createEconomy({ coins: 25 }, (s) => writes.push(s)),
     mail = createSaltMail(e);
   assert.equal(mail.deliver().ok, false);
   assert.equal(e.state.coins, 25);

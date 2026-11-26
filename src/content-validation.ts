@@ -57,7 +57,7 @@ export function validateContent(value: unknown): ContentBundle {
           typeof stat !== typeof original ||
           (typeof stat === 'number' &&
             (!Number.isFinite(stat) ||
-              stat < 0 ||
+              (stat < 0 && field !== 'defense') ||
               ((field === 'range' || field === 'interval') && stat === 0) ||
               (field.startsWith('accuracy') && stat > 1) ||
               ((/price$/i.test(field) || field === 'coins') && !Number.isSafeInteger(stat)))) ||

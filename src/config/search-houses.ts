@@ -72,6 +72,7 @@ export const HOUSE_SEARCHES = Object.freeze(
       container: 'wardrobe',
       label: contentText('config.search-houses.module.label-6', {}),
       reward: { item: 'new-year-rocket', amount: 1 },
+      bonus: { item: 'barrel', chance: 0.2 },
     },
     {
       id: 'house-search-7',

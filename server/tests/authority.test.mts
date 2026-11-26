@@ -10,6 +10,9 @@ import { POLICE_PURSUIT_SECONDS } from '../../src/encounters.ts';
 import { SF_FITNESS } from '../../src/southern-layout.ts';
 import { CAPTURE_DURATION } from '../../src/capture-animation.ts';
 import { readDebugTeleportSetting } from '../tuning.mts';
+import { applyWorldPatches, type WorldMaps } from '../../src/world-deltas.ts';
+import { NPC_HELP_DURATION_MS } from '../../src/config/gameplay.ts';
+import { createStreetTraffic } from '../../src/street-traffic.ts';
 
 async function fixture() {
   let time = 1000000;
@@ -138,6 +141,99 @@ test('the server setting grants teleport to characters without changing their sa
   }
 });
 
+test('civilian crimes and police pursuits share overhead cues with nearby observers', async () => {
+  const geometry = fixtureGeometry();
+  const at = { x: geometry.spawn.x + 0.5, z: geometry.spawn.y + 0.5, base: 1.15 };
+  geometry.merchants.push(
+    { ...at, id: 'pedestrian-a', label: 'Man' },
+    { ...at, id: 'pedestrian-b', label: 'Woman' },
+    { ...at, id: 'cyclist', label: 'Woman', rider: true },
+  );
+  let time = 1_000_000;
+  const game = await createGame({
+    geometry,
+    store: createMemoryStore(),
+    now: () => time,
+    random: () => 0.5,
+  });
+  try {
+    const a = await player(game, 897);
+    const observer = await player(game, 898);
+    const attack = (id: string, steal = false) =>
+      act(game, a, 'playerAction', { verb: 'attackPersonal', id, steal });
+    a.p.x = at.x + 7;
+    assert.equal((await attack('pedestrian-a'))?.ok, false);
+    assert.ok(game.shared.snapshot().npcs.every((npc) => npc.helpUntil === undefined));
+    a.p.x = at.x;
+
+    assert.equal((await attack('pedestrian-a'))?.ok, true);
+    assert.equal((await attack('pedestrian-b', true))?.ok, true);
+    assert.equal(
+      (await act(game, a, 'playerAction', { verb: 'seizeBicycle', id: 'cyclist' }))?.ok,
+      true,
+    );
+    const observed: WorldMaps = {};
+    function updateObserver() {
+      game.tick(0.25);
+      game.broadcast();
+      for (const event of observer.messages.splice(0))
+        if ('type' in event && event.type === 'world')
+          applyWorldPatches(observed, event.patches, event.removed);
+      return [...(observed.npcs?.values() || [])];
+    }
+    const active = updateObserver();
+    assert.equal(active.length, 3);
+    assert.ok(active.every((npc) => npc.helpUntil === time + NPC_HELP_DURATION_MS));
+    const officers = [...(observed.police?.values() || [])];
+    assert.equal(officers.filter((officer) => officer.calling).length, 1);
+    assert.ok(officers.every((officer) => officer.id.startsWith(`police-${a.p.id}-`)));
+    time += NPC_HELP_DURATION_MS;
+    assert.ok(updateObserver().every((npc) => npc.helpUntil === undefined));
+  } finally {
+    await game.close();
+  }
+});
+
+test('nearby observers receive either of RoboCop’s dispatch lines', async () => {
+  for (const [roll, line] of [
+    [0.25, 'Unlawful action detected'],
+    [0.75, 'Jurisprudence mode activated'],
+  ] as const) {
+    const geometry = fixtureGeometry();
+    const { x, y } = geometry.spawn;
+    geometry.streetTraffic = createStreetTraffic({
+      routes: [{ name: 'Test Street', kind: 'road', points: [[x, y], [x + 8, y]] }],
+      isRoad: () => true,
+      ground: () => 1.15,
+      count: 1,
+    });
+    const car = requiredFixture(geometry.streetTraffic.cars?.[0]);
+    const game = await createGame({
+      geometry,
+      store: createMemoryStore(),
+      now: () => 1_000_000,
+      random: () => roll,
+    });
+    try {
+      const driver = await player(game, 899);
+      const observer = await player(game, 900);
+      Object.assign(driver.p, { x: car.x, z: car.z });
+      Object.assign(observer.p, { x: car.x, z: car.z + 1 });
+      assert.equal((await act(game, driver, 'kickTaxi', { id: car.id }))?.ok, true);
+      game.tick(0.25);
+      game.broadcast();
+      const observed: WorldMaps = {};
+      for (const event of observer.messages)
+        if (event.type === 'world') applyWorldPatches(observed, event.patches, event.removed);
+      const officer = [...(observed.wilderness?.values() || [])].find((n) => n.combatKind === 'robocop');
+      assert.equal(officer?.speechLine, line);
+      assert.equal(officer?.speechEndsAt, 1_005_000);
+    } finally {
+      await game.close();
+    }
+  }
+});
+
 test('seizing a nearby NPC bicycle mounts it, saves it, and rolls the standard police pursuit', async () => {
   const geometry = fixtureGeometry();
   const at = { x: geometry.spawn.x + 0.5, z: geometry.spawn.y + 0.5 };
@@ -208,7 +304,11 @@ test('new identities cannot import money, XP, food, weapons or quest completion 
       { open: true, bufferedAmount: 0, send: (m) => messages.push(m), close() {} },
     );
   try {
-    assert.equal(p.inventory.economy.state.coins, 25);
+    assert.equal(p.inventory.economy.state.coins, 100);
+    assert.equal(p.inventory.meta.tablets.downtown, 5);
+    const persisted = (await game.store.get('player:' + p.owner)) as typeof p.profile;
+    assert.equal(persisted.playerState.inventory.economy.coins, 100);
+    assert.equal(persisted.playerState.inventory.ledger?.tablets.downtown, 5);
     assert.equal(p.inventory.meta.sandwiches, 0);
     assert.equal(p.level, 1);
     assert.equal(p.profile.debugTeleport, false);

@@ -220,6 +220,13 @@ export const MATERIAL_CATALOG = Object.freeze(
       label: 'Marine-weathered timber',
       usage: 'Salt-bleached plank siding, porch floors and ramp decks.',
     },
+    {
+      name: 'granite',
+      slot: 30,
+      source: 'granite.svg',
+      label: 'Honed granite',
+      usage: 'Fine mineral grain for Rick’s honed stone slabs.',
+    },
   ].map((material) => Object.freeze(material)),
 );
 

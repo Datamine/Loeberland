@@ -1,10 +1,34 @@
+import { FORMALWEAR_EXPERT } from '../config/formalwear.ts';
+import { ARMOR_TRIMMER } from '../config/armor-trimmer.ts';
+import { LEATHER_JACKET } from '../config/leather-jacket.ts';
+import { TOMMY } from '../config/tommy.ts';
+import { FANCY_DRESS } from '../config/fancy-dress.ts';
+import { RICK } from '../config/rick.ts';
+import { SHRIMP_EXPERIMENT } from '../config/shrimp-experiment.ts';
+import { policeCalling, POLICE_PURSUIT_LINE } from '../encounters.ts';
+import { GOBLIN_CATAPULT } from '../config/goblin-catapult.ts';
+import { drawCatapultArm, drawCatapultRider } from '../goblin-catapult.ts';
+import { BERKELEY_FISHING } from '../config/berkeley-fishing.ts';
+import { drawExperimentRider, drawExperimentRotor } from '../shrimp-experiment.ts';
+import { GOBLIN_BUSH_AMBUSH, isGoblinBushAmbusher } from '../goblin-bush.ts';
+import { combatDungeon, combatDungeonAt } from '../combat-dungeons.ts';
+import {
+  GOBLIN_KING,
+  INCUBATOR_CAVE,
+  INCUBATOR_EXIT,
+  INCUBATOR_POSTER_BOXES,
+} from '../goblin-incubator-cave.ts';
+import {
+  drawIncubatorCave,
+  drawIncubatorExit,
+  drawIncubatorLife,
+  drawIncubatorPosterBox,
+} from '../goblin-incubator-art.ts';
 import {
   drawBerkeleyLab,
   drawLabExit,
   drawLabPoster,
-  inBerkeleyLab,
   LAB_EXIT,
-  LAB_FLOOR,
   LAB_POSTER,
 } from '../berkeley-lab.ts';
 import { DYNAMITE_DEPOT } from '../config/dynamite-depot.ts';
@@ -13,7 +37,7 @@ import { isPickTarget } from '../picking.ts';
 import { requiredValue } from '../types/assert.ts';
 import type { TargetMetadata } from '../types/scene-state.ts';
 import type { GeometryGPU, UploadMesh, ShaderProgram } from '../types/rendering.ts';
-import type { Actor, Site, InteractionSight } from '../types/world.ts';
+import type { Actor, Site, InteractionSight, FishingSite } from '../types/world.ts';
 import { drawSwingRider, drawSwingSeat } from '../swings.ts';
 import { BURNING_MAN } from '../burning-man.ts';
 import { drawTheMan } from '../burning-man-models.ts';
@@ -38,6 +62,7 @@ import { drawOwnedChair } from '../goblin-town.ts';
 import { ROBE_SELLER, ROBE_ITEMS } from '../goblin-industrialist.ts';
 import { drawWaymo } from '../street-traffic.ts';
 import { drawATVRider } from '../atv-model.ts';
+import { drawScooterRider } from '../scooter.ts';
 import { drawWildMonster, goblinModelVariant } from '../wilderness-models.ts';
 import { packStaticMesh, batchInFrustum } from '../static-batches.ts';
 import { GLASS_UV, meshGlassTriangles } from '../glazing.ts';
@@ -77,11 +102,11 @@ import {
   drawCow,
   drawSpectre,
   drawPequod,
-  drawKraken,
   drawBeam,
-  drawExpeditionLoot,
   drawKrakenCape,
 } from '../jurassic-models.ts';
+import { drawGroundItem } from '../ground-item-models.ts';
+import { drawKraken } from '../kraken-model.ts';
 import { applyForwardRollMesh } from '../forward-roll.ts';
 import { drawDeliveryCooler } from '../deli.ts';
 import { applyEntityEdits } from '../world-edits.ts';
@@ -100,7 +125,7 @@ import { drawNavyShip, NAVY_SHIP } from '../shipyard.ts';
 import { drawParrot } from '../parrots.ts';
 import { swayCharacter } from '../inebriation.ts';
 import { drawRehabilitationLaser } from '../rehabilitation.ts';
-import { drawFishingSpot, drawFishingRod, drawFishBucket } from '../fishing.ts';
+import { drawFishingSpot, drawFishingRod, drawFishBucket, isFishingSite } from '../fishing.ts';
 import { drawMotorcycle, pitchMotorcycleMesh } from '../motorcycle.ts';
 import { inPacificaPark } from '../southern-expansion.ts';
 import { drawReusableRocket, tiltRocketMesh, rocketFlightPoint } from '../rocket.ts';
@@ -125,6 +150,7 @@ import {
   drawBomberCrash,
 } from '../illuminati-models.ts';
 import { PROMETHEUS, drawPrometheusFlame } from '../prometheus.ts';
+import { CHURCH_BASEMENT_ID } from '../church-basement-layout.ts';
 import { RESTAURANTS, drawRestaurantDiners } from '../restaurants.ts';
 import { drawEstateResidents } from '../estate-life.ts';
 import { drawStreetcar } from '../life.ts';
@@ -132,7 +158,7 @@ import { MARKET_STREETCAR } from '../market-streetcar.ts';
 import { setActionText } from '../context-menu.ts';
 import { drawTrafficSignalLights, drawSlowBus } from '../transit-models.ts';
 import { drawBeachSand } from '../gpu-factory.ts';
-import { CHARACTER_CLIPS } from '../characters.ts';
+import { CHARACTER_CLIPS, hasMargeCrown } from '../characters.ts';
 import { characterAppearance } from '../character-config.ts';
 import { NIGHTLIFE, inNightlife, drawNightlife } from '../nightlife.ts';
 import { collapseCharacterMesh } from '../capture-animation.ts';
@@ -146,7 +172,12 @@ import { drawWaveSurfer, drawPacificaWaves } from '../surfing.ts';
  * Dependencies are explicit live scene bindings, preserving initialization
  * order without globals. This module only reads bindings when a method runs. */
 export function createRendering(context: WorldContext) {
+  let labGPU: GeometryGPU | undefined;
+  let incubatorGPU: { floor: GeometryGPU; walls: { dx: number; dz: number; gpu: GeometryGPU }[] } | undefined;
+
   function initGPU() {
+    labGPU = undefined;
+    incubatorGPU = undefined;
     const compile = (type: number, source: string) => {
       const shader = context.gl.createShader(type);
       if (!shader) throw new Error('Unable to allocate a WebGL shader.');
@@ -604,9 +635,10 @@ export function createRendering(context: WorldContext) {
     });
   }
 
-  function drawBuildings() {
+  function drawBuildings(onlyActive = false) {
     const room = context.activeInstituteRoom();
     for (const o of context.buildingModels) {
+      if (onlyActive ? o.researchRoom !== room : o.researchRoom?.id === CHURCH_BASEMENT_ID) continue;
       if (context.program !== context.shadowProgram && !batchInFrustum(o, context.camera.matrix))
         continue;
       if (o.researchRoom) {
@@ -675,10 +707,26 @@ export function createRendering(context: WorldContext) {
     context.program = main;
   }
 
+  function drawKrakenActor(
+    m: Mesh,
+    t: number,
+    addTarget: (start: number, metadata: TargetMetadata, end: number) => void,
+  ) {
+    const game = context.expeditions,
+      kraken = game.kraken,
+      sample = kraken.animationSample;
+    if (!kraken.visible) return;
+    const time = sample ? sample.clock + Math.max(0, t - sample.time) / 1000 : game.state.clock;
+    kraken.base = 0;
+    const start = m.data.length,
+      bodyEnd = drawKraken(m, kraken, time, context.reduced);
+    if (bodyEnd !== null && kraken.hp > 0) addTarget(start, { npc: kraken }, bodyEnd);
+  }
+
   function drawExpeditionActors(
     m: Mesh,
     t: number,
-    addTarget: (start: number, metadata: TargetMetadata) => void,
+    addTarget: (start: number, metadata: TargetMetadata, end?: number) => void,
   ) {
     const game = context.expeditions,
       near = (n: Readonly<{ x: number; z: number }>) =>
@@ -695,6 +743,7 @@ export function createRendering(context: WorldContext) {
       const start = m.data.length;
       drawVelociraptor(m, r, t);
       addTarget(start, { npc: r });
+      context.multiplayerWorld?.drawBinding(m, r.id, r.x, r.base, r.z, t, 1.4);
       if (r.phase === 'loose' && (game.state.raptor === 'escaped' || r.prey?.isPlayer))
         context.actorTags.push({ ...r, height: 1.6, chasing: true });
     }
@@ -704,6 +753,7 @@ export function createRendering(context: WorldContext) {
         const start = m.data.length;
         drawCow(m, cow, t);
         addTarget(start, { npc: cow });
+        context.multiplayerWorld?.drawBinding(m, cow.id, cow.x, cow.base, cow.z, t, 1.2);
       }
     const ship = game.ship;
     if (ship.home && near(ship)) {
@@ -711,19 +761,14 @@ export function createRendering(context: WorldContext) {
       drawPequod(m, ship, game.state.clock * 1000, context.signs);
       addTarget(start, { sight: context.pequodSite });
     }
-    if (game.kraken.visible && game.kraken.hp > 0 && near(game.kraken)) {
-      game.kraken.base = 0;
-      const start = m.data.length;
-      drawKraken(m, game.kraken, game.state.clock * 1000);
-      addTarget(start, { npc: game.kraken });
-    }
+    if (near(game.kraken)) drawKrakenActor(m, t, addTarget);
     for (const loot of game.state.loot)
       if (near(loot)) {
         const base =
             loot.base ??
             (loot.lootKind === 'kraken' ? PEQUOD.deck : context.characterGround(loot.x, loot.z)),
           start = m.data.length;
-        drawExpeditionLoot(m, loot, base, t);
+        drawGroundItem(m, loot, base, t);
         addTarget(start, { sight: loot });
       }
     for (const beam of game.state.beams) drawBeam(m, beam);
@@ -757,6 +802,7 @@ export function createRendering(context: WorldContext) {
 
   function actorMesh() {
     const mesh = new Mesh();
+    mesh.halos = [];
     if (context.characterGPU) mesh.characters = context.characterGPU.begin();
     return mesh;
   }
@@ -780,9 +826,30 @@ export function createRendering(context: WorldContext) {
     return { mesh, start: start / 11, count: (end - start) / 11, lo, hi, characters, ...metadata };
   }
 
+  function addWildernessSpeech(monster: Actor & { enemy?: string | number | null }, time: number) {
+    const speech = isGoblinBushAmbusher(monster.combatKind)
+      ? GOBLIN_BUSH_AMBUSH[monster.combatKind].line
+      : monster.speechLine;
+    const localID = context.multiplayer?.state.id;
+    const chasing = localID != null && ((!monster.citationPending && monster.dispatchedFor === localID) ||
+      (monster.combatKind === GOBLIN_KING && monster.enemy === localID));
+    const remaining = (monster.speechEndsAt || 0) -
+      (Date.now() + (context.multiplayer?.state.serverOffset || 0));
+    if ((!speech || remaining <= 0) && !chasing) return;
+    context.actorTags.push({
+      x: monster.x,
+      z: monster.z,
+      base: monster.base,
+      height: (monster.height || 1.35) + 0.2,
+      chasing,
+      speechCue: speech && remaining > 0 ? { text: speech, until: time + remaining } : undefined,
+    });
+  }
+
   function makePrivateActors(t: number) {
     const m = actorMesh(),
       cave = context.secretWorld.kind === 'illuminati',
+      dungeon = combatDungeon(context.secretWorld.kind),
       base = context.playerGround(),
       collapsing = context.capture.state.active,
       px = context.player.x + 0.5,
@@ -790,8 +857,8 @@ export function createRendering(context: WorldContext) {
       riderStart = m.data.length;
     context.dynamicTargets = [];
     context.actorTags = [];
-    const target = (start: number, metadata: TargetMetadata) =>
-      context.dynamicTargets.push(actorTarget(m, start, m.data.length, metadata));
+    const target = (start: number, metadata: TargetMetadata, end = m.data.length) =>
+      context.dynamicTargets.push(actorTarget(m, start, end, metadata));
     const gesture =
       context.player.gesture && t - context.player.gesture.started < context.player.gesture.duration
         ? context.player.gesture
@@ -873,31 +940,50 @@ export function createRendering(context: WorldContext) {
       start = m.data.length;
       drawHangarGoose(m);
       target(start, { sight: HANGAR_GOOSE });
-    } else if (context.secretWorld.kind === 'berkeley-lab') {
-      drawBerkeleyLab(m);
+    } else if (dungeon) {
       context.multiplayerWorld?.draw(
         m,
         t,
         (start, metadata) => target(start, metadata),
         context.actorTags,
-        { ground: () => LAB_FLOOR + 0.025 },
+        { ground: () => dungeon.floor },
       );
       let start = m.data.length;
-      drawLabExit(m);
-      target(start, { sight: LAB_EXIT });
-      start = m.data.length;
-      drawLabPoster(m, context.signs);
-      target(start, { sight: LAB_POSTER });
+      if (dungeon.instance.id === INCUBATOR_CAVE.id) {
+        drawIncubatorExit(m);
+        target(start, { sight: INCUBATOR_EXIT });
+        for (const box of INCUBATOR_POSTER_BOXES) {
+          if (Math.hypot(box.x - px, box.z - pz) > 25) continue;
+          start = m.data.length;
+          drawIncubatorPosterBox(m, box.x, box.z);
+          target(start, { sight: box });
+        }
+        drawIncubatorLife(m, t, context.reduced, px, pz);
+      } else {
+        drawLabExit(m);
+        target(start, { sight: LAB_EXIT });
+        start = m.data.length;
+        drawLabPoster(m, context.signs);
+        target(start, { sight: LAB_POSTER });
+      }
       for (const monster of context.wilderness?.actors || []) {
-        if (!monster.hp || !inBerkeleyLab(monster.x, monster.z)) continue;
+        if (
+          !monster.hp ||
+          (context.multiplayer?.state.connected && monster.networkVisible === false) ||
+          combatDungeonAt(monster.x, monster.z) !== dungeon ||
+          Math.hypot(monster.x - px, monster.z - pz) > 25
+        ) continue;
         start = m.data.length;
         drawWildMonster(m, monster, t, context.reduced);
         target(start, { npc: monster });
+        context.multiplayerWorld?.drawBinding(m, monster.id, monster.x, monster.base, monster.z, t,
+          Math.max(0.7, monster.height / 1.45));
+        addWildernessSpeech(monster, t);
       }
       for (const loot of context.expeditions.state.loot) {
-        if (!inBerkeleyLab(loot.x, loot.z)) continue;
+        if (combatDungeonAt(loot.x, loot.z) !== dungeon) continue;
         start = m.data.length;
-        drawExpeditionLoot(m, loot, loot.base ?? LAB_FLOOR + 0.025, t);
+        drawGroundItem(m, loot, loot.base ?? dungeon.floor, t);
         target(start, { sight: loot });
       }
       for (const beam of context.expeditions.state.beams) drawBeam(m, beam);
@@ -918,12 +1004,7 @@ export function createRendering(context: WorldContext) {
         context.signs,
       );
       target(start, { sight: context.pequodSite });
-      if (context.expeditions.kraken.visible && context.expeditions.kraken.hp > 0) {
-        start = m.data.length;
-        context.expeditions.kraken.base = 0;
-        drawKraken(m, context.expeditions.kraken, context.expeditions.state.clock * 1000);
-        target(start, { npc: context.expeditions.kraken });
-      }
+      drawKrakenActor(m, t, target);
       if (context.ahabNPC) {
         start = m.data.length;
         drawHumanNPC(m, context.ahabNPC, t, {
@@ -945,7 +1026,7 @@ export function createRendering(context: WorldContext) {
         (l) => !l.network && l.lootKind === 'kraken',
       )) {
         start = m.data.length;
-        drawExpeditionLoot(m, loot, PEQUOD.deck, t);
+        drawGroundItem(m, loot, PEQUOD.deck, t);
         target(start, { sight: loot });
       }
       for (const beam of context.expeditions.state.beams) drawBeam(m, beam);
@@ -954,6 +1035,7 @@ export function createRendering(context: WorldContext) {
   }
 
   let swingSites: Site[] | undefined;
+  let fishingSites: FishingSite[] | undefined;
   function makeActors(t: number) {
     if (context.secretWorld && context.secretWorld.kind !== 'world') return makePrivateActors(t);
     const party = context.multiplayer?.state.playerState?.quests.burningMan;
@@ -1028,6 +1110,21 @@ export function createRendering(context: WorldContext) {
         characterAppearance(context.playerLook),
         context.player.atvTravel,
       );
+    else if (context.multiplayerWorld?.selfMode === 'scooter' && !context.capture.state.active)
+      drawScooterRider(
+        m,
+        {
+          x: context.player.x + 0.5,
+          y: context.playerGround(),
+          z: context.player.y + 0.5,
+          angle: context.player.angle,
+          phase,
+        },
+        characterAppearance(context.playerLook),
+        t,
+        context.signs,
+        context.player.scooterTrick,
+      );
     else if (context.multiplayerWorld?.selfMode === 'swing' && context.health.state.hp > 0)
       drawSwingRider(
         m,
@@ -1037,6 +1134,30 @@ export function createRendering(context: WorldContext) {
           z: context.player.y + 0.5,
           angle: context.player.angle,
           phase,
+        },
+        characterAppearance(context.playerLook),
+      );
+    else if (context.multiplayerWorld?.selfMode === SHRIMP_EXPERIMENT.mode)
+      drawExperimentRider(
+        m,
+        {
+          x: context.player.x + 0.5,
+          y: context.playerGround(),
+          z: context.player.y + 0.5,
+          angle: context.player.angle,
+          phase: context.player.phase,
+        },
+        characterAppearance(context.playerLook),
+      );
+    else if (context.multiplayerWorld?.selfMode === GOBLIN_CATAPULT.mode)
+      drawCatapultRider(
+        m,
+        {
+          x: context.player.x + 0.5,
+          y: context.playerGround(),
+          z: context.player.y + 0.5,
+          angle: context.player.angle,
+          phase: context.player.phase,
         },
         characterAppearance(context.playerLook),
       );
@@ -1081,6 +1202,8 @@ export function createRendering(context: WorldContext) {
           ...characterAppearance(context.playerLook),
           phone: false,
           battleaxe: false,
+          katana: false,
+          lightsaber: false,
           mode: 'idle',
           action: 'teleport',
           actionT: p.arms,
@@ -1163,6 +1286,16 @@ export function createRendering(context: WorldContext) {
           : rocketPose ||
             (context.rope.climbing ? { mode: 'climb' } : context.sutroClimb.state.pose);
       const chair = context.player.sitting ? context.player.chair : undefined;
+      const canHoldLongWeapon =
+        !rolling &&
+        !context.player.dancing &&
+        !context.bike.riding &&
+        !context.motorcycle?.state.riding &&
+        !context.ferrari?.state.riding &&
+        !context.fishing.state.active &&
+        !context.flying() &&
+        !climbing &&
+        !rocketPose;
       if (chair)
         drawOwnedChair(
           m,
@@ -1203,7 +1336,6 @@ export function createRendering(context: WorldContext) {
             !context.ferrari?.state.riding &&
             !climbing &&
             !rocketPose,
-          backpack: context.playerLook.back === 'backpack',
           rocketBurnUntil:
             context.multiplayer?.state.inventory?.decorativeRocket?.burningUntil || 0,
           serverTime: Date.now() + (context.multiplayer?.state.serverOffset || 0),
@@ -1221,6 +1353,28 @@ export function createRendering(context: WorldContext) {
             !context.bike.riding &&
             !context.motorcycle?.state.riding &&
             !context.ferrari?.state.riding &&
+            !climbing &&
+            !rocketPose,
+          katana:
+            context.playerWeapon() === 'katana' &&
+            !rolling &&
+            !context.player.dancing &&
+            !context.bike.riding &&
+            !context.motorcycle?.state.riding &&
+            !context.ferrari?.state.riding &&
+            !climbing &&
+            !rocketPose,
+          lightsaber: context.playerWeapon() === 'lightsaber' && canHoldLongWeapon,
+          combatLamp: context.playerWeapon() === 'combat-lamp' && canHoldLongWeapon,
+          bowlingBall:
+            context.playerWeapon() === 'bowling-ball' &&
+            !rolling &&
+            !context.player.dancing &&
+            !context.bike.riding &&
+            !context.motorcycle?.state.riding &&
+            !context.ferrari?.state.riding &&
+            !context.fishing.state.active &&
+            !context.flying() &&
             !climbing &&
             !rocketPose,
           phone:
@@ -1492,13 +1646,9 @@ export function createRendering(context: WorldContext) {
           context.capture.pose.fall,
         );
     }
-    if (context.tahoe.state.mode === 'gondola')
-      drawGondolaCabin(
-        m,
-        requiredValue(context.tahoe.state.position, 'Active gondola position'),
-        context.tahoe.state.angle,
-      );
-    drawRegionalBackdrop(m, context.player.x + 0.5, context.player.y + 0.5, context.playerGround());
+    const basement = context.activeInstituteRoom()?.id === CHURCH_BASEMENT_ID;
+    if (!basement)
+      drawRegionalBackdrop(m, context.player.x + 0.5, context.player.y + 0.5, context.playerGround());
     const shipPosition = requiredValue(
       context.multiplayerWorld?.airshipPosition ||
         (context.airship.state.active
@@ -1529,8 +1679,10 @@ export function createRendering(context: WorldContext) {
     const seaX = context.player.x + 0.5,
       seaZ = context.player.y + 0.5,
       seaRadius = 350;
-    drawOffshoreSea(m, context.seaBounds, seaX, seaZ, seaRadius);
-    drawCoastalSeagulls(m, t, [seaX, seaZ] satisfies [number, number], context.reduced);
+    if (!basement) {
+      drawOffshoreSea(m, context.seaBounds, seaX, seaZ, seaRadius);
+      drawCoastalSeagulls(m, t, [seaX, seaZ] satisfies [number, number], context.reduced);
+    }
     drawRehabilitationLaser(m, context.player, base, context.rehabilitation, t);
     if (
       context.player.gesture?.name === 'drink' &&
@@ -1550,6 +1702,17 @@ export function createRendering(context: WorldContext) {
       context.dynamicTargets.push(actorTarget(m, start, end, metadata));
     const addEditableSight = (start: number, sight: InteractionSight) =>
       addTarget(start, { sight: applyEntityEdits(sight, 'sight:' + sight.id) });
+    const cabin = context.tahoe.gondolaCabin();
+    const ridingGondola = context.tahoe.state.mode === 'gondola';
+    if (
+      ridingGondola ||
+      dynamicInView(cabin.position.x, cabin.position.z, cabin.position.y, 1.5, 2.5)
+    ) {
+      const start = m.data.length;
+      drawGondolaCabin(m, cabin.position, cabin.angle);
+      const station = context.sightById('gondola-base');
+      if (!ridingGondola && station) addTarget(start, { sight: station });
+    }
     const man = context.sightById(BURNING_MAN.statue);
     if (
       man &&
@@ -1580,6 +1743,42 @@ export function createRendering(context: WorldContext) {
       const start = m.data.length;
       drawSwingSeat(m, seat, self ? phase : (guest?.phase ?? 0));
       addTarget(start, { sight });
+    }
+    const experiment = context.sightById(SHRIMP_EXPERIMENT.id);
+    const rig = experiment?.seat;
+    if (
+      rig &&
+      Math.hypot(rig.x - context.player.x - 0.5, rig.z - context.player.y - 0.5) < 36 &&
+      dynamicInView(rig.x, rig.z, rig.base, 2.1, 4)
+    ) {
+      const onboard = context.multiplayerWorld?.selfMode === SHRIMP_EXPERIMENT.mode;
+      riders ??= context.multiplayer.remotePlayers(t);
+      const guest = riders.find((rider) => rider.mode === SHRIMP_EXPERIMENT.mode);
+      const start = m.data.length;
+      drawExperimentRotor(
+        m,
+        rig,
+        onboard ? context.player.phase : (guest?.phase ?? 0),
+        context.reduced ? 0 : t,
+      );
+      addTarget(start, { sight: experiment });
+    }
+    const contraption = context.sightById(GOBLIN_CATAPULT.id);
+    const catapult = contraption?.seat;
+    if (
+      catapult &&
+      Math.hypot(catapult.x - context.player.x - 0.5, catapult.z - context.player.y - 0.5) < 38 &&
+      dynamicInView(catapult.x, catapult.z, catapult.base, 2.1, 3)
+    ) {
+      riders ??= context.multiplayer.remotePlayers(t);
+      const guest = riders.find((rider) => rider.mode === GOBLIN_CATAPULT.mode);
+      const elapsed =
+        context.multiplayerWorld?.selfMode === GOBLIN_CATAPULT.mode
+          ? context.player.phase
+          : (guest?.phase ?? 0);
+      const start = m.data.length;
+      drawCatapultArm(m, catapult, elapsed);
+      addTarget(start, { sight: contraption });
     }
     const cab = context.player.waymoCab;
     if (
@@ -1637,6 +1836,9 @@ export function createRendering(context: WorldContext) {
         const start = m.data.length;
         drawWildMonster(m, monster, t, context.reduced);
         addTarget(start, { npc: monster });
+        context.multiplayerWorld?.drawBinding(m, monster.id, monster.x, monster.base, monster.z, t,
+          Math.max(0.7, monster.height / 1.45));
+        addWildernessSpeech(monster, t);
       }
     context.multiplayerWorld?.draw(m, t, addTarget, context.actorTags);
     for (const bomb of context.secretWorld?.bombs || [])
@@ -1659,23 +1861,17 @@ export function createRendering(context: WorldContext) {
       );
       addTarget(start, { sight: context.sandSite });
     }
-    if (
-      context.fishingSite &&
-      Math.hypot(
-        context.fishingSite.entry.x - context.player.x,
-        context.fishingSite.entry.y - context.player.y,
-      ) < 45 &&
-      dynamicInView(
-        context.fishingSite.entry.x + 0.5,
-        context.fishingSite.entry.y + 0.5,
-        requiredValue(context.fishingSite.base, 'Fishing spot elevation'),
-        3,
-        3,
+    fishingSites ??= context.sights.filter(isFishingSite);
+    for (const site of fishingSites) {
+      const { x, y } = site.entry;
+      if (
+        Math.hypot(x - context.player.x, y - context.player.y) >= 45 ||
+        !dynamicInView(x + 0.5, y + 0.5, site.base, 3, 3)
       )
-    ) {
+        continue;
       const start = m.data.length;
-      drawFishingSpot(m, context.fishingSite, t, context.reduced);
-      addTarget(start, { sight: context.fishingSite });
+      drawFishingSpot(m, site, t, context.reduced);
+      addTarget(start, { sight: site });
     }
     if (
       !context.sunglasses.state.owned &&
@@ -2354,6 +2550,12 @@ export function createRendering(context: WorldContext) {
             phone: npc.phone,
             alien: context.npcRevealed(npc),
             ...(npc.id === ROBE_SELLER && { torso: ROBE_ITEMS[0], legs: ROBE_ITEMS[1] }),
+            ...(npc.id === FORMALWEAR_EXPERT.id && { torso: 'charcoal-suit', neck: 'black-tie' }),
+            ...((npc.id === LEATHER_JACKET.seller || npc.id === TOMMY.id) && { torso: npc.torso }),
+            ...(npc.id === ARMOR_TRIMMER.id && { torso: npc.torso, legs: npc.legs }),
+            ...(npc.id === FANCY_DRESS.id && { ...FANCY_DRESS.outfit, bowlingBall: true }),
+            ...(npc.id === RICK.id && { torso: 'techwear-top', legs: 'techwear-bottoms' }),
+            ...(npc.id === BERKELEY_FISHING.vendor && { neck: 'albatross' }),
             action: npc.defeatAt
               ? 'caught'
               : npc.thinking
@@ -2394,7 +2596,7 @@ export function createRendering(context: WorldContext) {
           Math.min(1, (t - npc.defeatAt) / 700),
         );
       else addTarget(start, { npc });
-      if (npc.regional) context.actorTags.push(npc);
+      if (npc.regional || npc.helpUntil || npc.speechCue) context.actorTags.push(npc);
     }
     if (context.currentInterior === context.niaCitizen.interior)
       context.actorTags.push(context.niaCitizen);
@@ -2520,17 +2722,15 @@ export function createRendering(context: WorldContext) {
       });
     }
     const chase = context.chase.state;
-    const phrases = ['Stop!', 'You are under arrest!', 'Stop right there!'];
-    const phraseIndex = Math.floor(chase.elapsed / 2.8) % phrases.length;
     for (const o of chase.officers)
       drawPoliceOfficer(
         { x: o.x + 0.5, z: o.y + 0.5, angle: o.angle, phase: o.phase },
         'personal-police-' + o.index,
         chase.wanted && !context.capture.state.active,
-        phraseIndex === o.index && chase.elapsed % 2.8 < 2.25 ? phrases[phraseIndex] : '',
+        o === chase.officers[0] && policeCalling(chase.elapsed) ? POLICE_PURSUIT_LINE : '',
       );
     for (const officer of context.multiplayerWorld?.policeOfficers ?? [])
-      drawPoliceOfficer(officer, officer.id, false);
+      drawPoliceOfficer(officer, officer.id, false, officer.calling ? POLICE_PURSUIT_LINE : '');
     for (const id of context.policeActors.keys())
       if (!drawnPolice.has(id)) context.policeActors.delete(id);
     const car = context.streetcarPose();
@@ -2618,13 +2818,19 @@ export function createRendering(context: WorldContext) {
 
   function drawActorLabels(t: number) {
     let used = 0;
+    const serverTime = Date.now() + (context.multiplayer?.state.serverOffset || 0);
     for (const actor of context.actorTags) {
       const marked = !!actor.chasing,
-        speechText = actorSpeechText(actor, t);
+        callingForHelp = serverTime < (actor.helpUntil || 0),
+        eventSpeech = callingForHelp ||
+          (!!actor.speechCue && t < actor.speechCue.until) ||
+          (!!actor.police && !!actor.speech),
+        speechText = actorSpeechText(actor, t, serverTime);
       if (!marked && !actor.player && !actor.police && !speechText) continue;
       if (
         !marked &&
-        Math.hypot(actor.x - context.player.x - 0.5, actor.z - context.player.y - 0.5) > 13
+        Math.hypot(actor.x - context.player.x - 0.5, actor.z - context.player.y - 0.5) >
+          (eventSpeech ? 27 : 13)
       )
         continue;
       const head = [
@@ -2691,10 +2897,7 @@ export function createRendering(context: WorldContext) {
       tag.el.toggleAttribute('data-pvp', !!actor.player && !!actor.pvp);
       tag.arrow.hidden = !marked;
       tag.speech.textContent = speechText;
-      tag.speech.classList.toggle(
-        'sf-event-speech',
-        !!actor.speechCue && t < actor.speechCue.until,
-      );
+      tag.speech.classList.toggle('sf-event-speech', eventSpeech);
     }
     for (let i = used; i < context.labelPool.length; i++) context.labelPool[i].el.hidden = true;
     const speech = context.$('sf-player-speech');
@@ -2704,7 +2907,10 @@ export function createRendering(context: WorldContext) {
     if (!speech.hidden || !skull.hidden) {
       let head = {
         x: context.player.x + 0.5,
-        y: context.playerGround() + context.playerRocketHop().height + 2.15,
+        y:
+          context.playerGround() +
+          context.playerRocketHop().height +
+          (hasMargeCrown(context.playerLook) ? 2.6 : 2.15),
         z: context.player.y + 0.5,
       };
       if (context.rocket.state.active)
@@ -2802,8 +3008,11 @@ export function createRendering(context: WorldContext) {
     context.frameID++;
     context.gpuStats.drawCalls = 0;
     const underground = context.secretWorld?.kind === 'illuminati',
-      publicMap = context.secretWorld?.kind === 'world',
-      dim = underground || context.secretWorld?.kind === 'berkeley-lab',
+      basement = context.activeInstituteRoom()?.id === CHURCH_BASEMENT_ID,
+      lab = context.secretWorld?.kind === 'berkeley-lab',
+      incubator = context.secretWorld?.kind === INCUBATOR_CAVE.kind,
+      publicMap = context.secretWorld?.kind === 'world' && !basement,
+      dim = underground || basement || lab || incubator,
       nearCity =
         publicMap &&
         Math.hypot(context.player.x - context.N / 2, context.player.y - context.N / 2) < 220;
@@ -2815,15 +3024,18 @@ export function createRendering(context: WorldContext) {
     context.gl.uniformMatrix4fv(context.program.vp, false, context.camera.matrix);
     context.gl.uniform3fv(context.program.eye, context.camera.eye);
     context.gl.uniform3fv(context.program.focus, context.camera.target);
+    const catapult = context.multiplayerWorld?.selfMode === GOBLIN_CATAPULT.mode;
     const aerial =
-      context.multiplayerWorld?.selfMode === 'depotLaunch'
+      catapult || context.multiplayerWorld?.selfMode === 'depotLaunch'
         ? Math.min(
             1,
             Math.max(
               0,
               (context.playerGround() -
-                context.characterGround(DYNAMITE_DEPOT.x, DYNAMITE_DEPOT.z)) /
-                DYNAMITE_DEPOT.height,
+                (catapult
+                  ? context.characterGround(context.player.x + 0.5, context.player.y + 0.5)
+                  : context.characterGround(DYNAMITE_DEPOT.x, DYNAMITE_DEPOT.z))) /
+                (catapult ? GOBLIN_CATAPULT.flightRise : DYNAMITE_DEPOT.height),
             ),
           )
         : 0;
@@ -2852,10 +3064,29 @@ export function createRendering(context: WorldContext) {
     if (publicMap && nearTahoe(context.player.x + 0.5, context.player.y + 0.5, 500))
       drawGPU(context.tahoeGPU);
     if (publicMap) drawGPU(context.highwayGPU);
+    if (basement) drawBuildings(true);
     if (underground) {
       drawGPU(context.caveGPU);
       for (const w of requiredValue(context.caveGPU.walls, 'Cave wall buffers'))
         if (w.dx * context.camera.back[0] + w.dz * context.camera.back[2] < 0) drawGPU(w.gpu);
+    }
+    if (lab) {
+      if (!labGPU) {
+        const mesh = new Mesh();
+        drawBerkeleyLab(mesh);
+        labGPU = upload(mesh);
+      }
+      drawGPU(labGPU);
+    }
+    if (incubator) {
+      if (!incubatorGPU) {
+        const mesh = new Mesh();
+        const walls = drawIncubatorCave(mesh).map(({ dx, dz, mesh }) => ({ dx, dz, gpu: upload(mesh) }));
+        incubatorGPU = { floor: upload(mesh), walls };
+      }
+      drawGPU(incubatorGPU.floor);
+      for (const wall of incubatorGPU.walls)
+        if (wall.dx * context.camera.back[0] + wall.dz * context.camera.back[2] < 0) drawGPU(wall.gpu);
     }
     const actorStart = performance.now(),
       dynamic = makeActors(t);
@@ -2868,7 +3099,7 @@ export function createRendering(context: WorldContext) {
       context.gpuStats.drawCalls += context.characterGPU.stats.draws;
     }
     drawGlazing();
-    if (publicMap && context.lampGlow.draw(context.camera)) context.gpuStats.drawCalls++;
+    context.gpuStats.drawCalls += context.lampGlow.draw(context.camera, dynamic.halos ?? [], publicMap);
     drawActorLabels(t);
     drawGroundItemLabels();
     drawCombatFeedback();

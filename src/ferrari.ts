@@ -1,12 +1,10 @@
 import { isFiniteNumber, isRecord } from './types/json.ts';
 import type {
   FerrariRoad,
-  FerrariCityDriving,
   FerrariState,
   FerrariSaved,
   VehiclePosition,
 } from './types/roads.ts';
-import type { WorldPoint } from './types/geometry.ts';
 
 // CONTENT-BINDINGS-MIGRATED
 import { contentText } from './content-runtime.ts';
@@ -14,51 +12,34 @@ import { drawCachedMesh } from './rendering/cached-mesh.ts';
 import { Mesh, pose } from './geometry.ts';
 
 export const FERRARI_SPEED = 4.6 * 20;
+const SF_BRIDGE_PARKING_DISTANCE = 3;
 export function createFerrari(
   road: FerrariRoad,
   savedInput: unknown = {},
   onSave: (state: FerrariSaved) => void = () => {},
-  { cityDriving = null }: { cityDriving?: FerrariCityDriving | null } = {},
+  { cityStreetDistanceSquared }: { cityStreetDistanceSquared?: (x: number, z: number) => number } = {},
 ) {
-  const saved = isRecord(savedInput) ? savedInput : {};
-
   const distances = [0];
   for (const s of road.segments) distances.push(distances.at(-1)! + s.length);
   const length = distances.at(-1)!,
     dealer = distances[road.dealerIndex ?? 0],
+    cityParking = Math.min(SF_BRIDGE_PARKING_DISTANCE, length),
     trip = length - dealer,
     range = trip * 0.56;
-  const parked = isRecord(saved.localPosition) ? saved.localPosition : null,
-    validParked =
-      cityDriving &&
-      parked &&
-      (['x', 'y', 'z', 'angle'] satisfies [string, string, string, string]).every((k) =>
-        isFiniteNumber(parked[k]),
-      );
-  let needsRoadSnap = !!validParked;
   const state: FerrariState = {
-    owned: !!saved.owned,
+    owned: false,
     riding: false,
-    distance: isFiniteNumber(saved.distance)
-      ? Math.max(0, Math.min(length, saved.distance))
-      : dealer,
-    fuel: isFiniteNumber(saved.fuel) ? Math.max(0, Math.min(1, saved.fuel)) : 1,
+    distance: dealer,
+    fuel: 1,
     speed: 0,
     target: null as (number | null) | null,
     resume: null,
     empty: false,
     travel: 0,
     direction: 1,
-    localPosition: validParked
-      ? {
-          x: parked!.x as number,
-          z: parked!.z as number,
-          angle: parked!.angle as number,
-          y: cityDriving!.ground(parked!.x as number, parked!.z as number),
-        }
-      : null,
-    localPath: [],
+    localPosition: null,
   };
+  applySaved(savedInput);
   let saveTime = 0;
   function sample(distance: number) {
     distance = Math.max(0, Math.min(length, distance));
@@ -120,27 +101,23 @@ export function createFerrari(
     if (!isFiniteNumber(x) || !isFiniteNumber(z)) return null;
     const distance = project(x, z),
       highway = sample(distance),
-      city = cityDriving?.nearest?.(x, z);
-    return city && city.score < (highway.x - x) ** 2 + (highway.z - z) ** 2 - 1e-10
-      ? {
-          x: city.x,
-          y: city.y,
-          z: city.z,
-          angle: city.angle,
-          distance: project(city.x, city.z),
-          city: true,
-        }
-      : { ...highway, city: false };
+      cityDistance = cityStreetDistanceSquared?.(x, z) ?? Infinity;
+    if (distance <= cityParking || cityDistance < (highway.x - x) ** 2 + (highway.z - z) ** 2 - 1e-10)
+      return sample(cityParking);
+    return highway;
   }
-  function normalizeParked(force = false) {
-    if (!needsRoadSnap || (!force && cityDriving?.ready === false)) return;
-    const at = destinationFor(state.localPosition!.x, state.localPosition!.z)!;
-    needsRoadSnap = false;
-    state.distance = at.distance;
-    state.localPosition = at.city ? { x: at.x, y: at.y, z: at.z, angle: at.angle } : null;
+  function applySaved(input: unknown) {
+    const saved = isRecord(input) ? input : {};
+    let distance = isFiniteNumber(saved.distance) ? saved.distance : dealer;
+    const parked = saved.localPosition;
+    if (isRecord(parked) && isFiniteNumber(parked.x) && isFiniteNumber(parked.z))
+      distance = road.contains(parked.x, parked.z) ? project(parked.x, parked.z) : cityParking;
+    state.owned = !!saved.owned;
+    state.distance = Math.max(cityParking, Math.min(length, distance));
+    state.fuel = isFiniteNumber(saved.fuel) ? Math.max(0, Math.min(1, saved.fuel)) : 1;
+    if (!state.riding) state.localPosition = null;
   }
   const position = () => {
-    normalizeParked();
     const p = state.localPosition || sample(state.distance);
     return {
       ...p,
@@ -154,7 +131,6 @@ export function createFerrari(
       owned: state.owned,
       distance: state.distance,
       fuel: state.fuel,
-      ...(state.localPosition ? { localPosition: { ...state.localPosition } } : {}),
     });
   };
   function park() {
@@ -163,28 +139,14 @@ export function createFerrari(
     state.destination = null;
     state.resume = null;
     state.speed = 0;
-    state.localPath = [];
+    state.localPosition = null;
     save();
   }
   function driveTo(x: unknown, z: unknown) {
     if (!state.riding || !isFiniteNumber(x) || !isFiniteNumber(z)) return false;
-    normalizeParked(true);
-    const to = destinationFor(x, z)!,
-      target = to.distance,
-      from = position(),
-      onHighway =
-        Math.hypot(sample(state.distance).x - from.x, sample(state.distance).z - from.z) < 1e-6;
-    if (cityDriving && (!onHighway || to.city)) {
-      const path = cityDriving.route(from, to);
-      if (!path) return false;
-      state.localPosition = from;
-      state.localPath = path.map((p) => ({ ...p }));
-    } else {
-      state.localPosition = null;
-      state.localPath = [];
-    }
+    const to = destinationFor(x, z)!;
     state.destination = { x: to.x, y: to.y, z: to.z };
-    state.target = target;
+    state.target = to.distance;
     state.direction = Math.sign(state.target - state.distance) || state.direction;
     state.empty = false;
     return true;
@@ -198,17 +160,23 @@ export function createFerrari(
     }
     save();
   }
+  function arrive(target: number) {
+    state.distance = target;
+    if (target === cityParking) {
+      park();
+      return 'city-limit';
+    }
+    state.target = null;
+    state.speed = 0;
+    save();
+    return 'arrived';
+  }
   function update(dt: number) {
     if (!state.riding || state.target === null || dt <= 0) return null;
-    if (state.localPosition) return updateLocal(dt);
-    const delta = state.target - state.distance,
+    const target = state.target,
+      delta = target - state.distance,
       d = Math.abs(delta);
-    if (d < 1e-6) {
-      state.target = null;
-      state.speed = 0;
-      save();
-      return 'arrived';
-    }
+    if (d < 1e-6) return arrive(target);
     const desired = Math.min(FERRARI_SPEED, Math.sqrt(2 * 180 * d));
     state.speed = Math.min(desired, state.speed + 180 * dt);
     const step = Math.min(d, state.speed * dt, state.fuel * range);
@@ -217,12 +185,7 @@ export function createFerrari(
     state.travel += step;
     saveTime += dt;
     if (saveTime >= 2) save();
-    if (d - step < 1e-6) {
-      state.target = null;
-      state.speed = 0;
-      save();
-      return 'arrived';
-    }
+    if (d - step < 1e-6) return arrive(target);
     if (state.fuel < 1e-9) {
       state.fuel = 0;
       state.resume = state.target;
@@ -232,76 +195,13 @@ export function createFerrari(
       save();
       return 'empty';
     }
-    return null;
-  }
-  function updateLocal(dt: number) {
-    const p = state.localPosition!;
-    let remaining = 0,
-      previous: WorldPoint = p;
-    for (const next of state.localPath) {
-      remaining += Math.hypot(next.x - previous.x, next.z - previous.z);
-      previous = next;
-    }
-    state.speed = Math.min(
-      Math.min(FERRARI_SPEED, Math.sqrt(2 * 180 * remaining)),
-      state.speed + 180 * dt,
-    );
-    let budget = Math.min(remaining, state.speed * dt, state.fuel * range),
-      traveled = 0;
-    // Consume every corner in order, even when one fast frame spans several
-    // tiles. The highway and the city share the same gate and ground height.
-    while (state.localPath.length) {
-      const next = state.localPath[0],
-        dx = next.x - p.x,
-        dz = next.z - p.z,
-        d = Math.hypot(dx, dz);
-      if (d < 1e-8) {
-        Object.assign(p, next);
-        state.localPath.shift();
-        continue;
-      }
-      if (budget <= 1e-8) break;
-      const step = Math.min(d, budget),
-        f = step / d;
-      p.x += dx * f;
-      p.z += dz * f;
-      p.y = road.at(p.x, p.z)?.height ?? cityDriving!.ground(p.x, p.z);
-      p.angle = Math.atan2(dz, dx);
-      budget -= step;
-      traveled += step;
-      if (d - step < 1e-8) state.localPath.shift();
-    }
-    state.distance = project(p.x, p.z);
-    state.fuel = Math.max(0, state.fuel - traveled / range);
-    state.travel += traveled;
-    saveTime += dt;
-    if (!state.localPath.length) {
-      if (
-        road.contains(p.x, p.z) &&
-        Math.hypot(sample(state.distance).x - p.x, sample(state.distance).z - p.z) < 1e-6
-      )
-        state.localPosition = null;
-      state.target = null;
-      state.speed = 0;
-      save();
-      return 'arrived';
-    }
-    if (state.fuel < 1e-9) {
-      state.fuel = 0;
-      state.resume = state.target;
-      state.target = null;
-      state.speed = 0;
-      state.empty = true;
-      save();
-      return 'empty';
-    }
-    if (saveTime >= 2) save();
     return null;
   }
   return {
     state,
     stations,
     dealer,
+    cityParking,
     length,
     trip,
     range,
@@ -309,13 +209,13 @@ export function createFerrari(
     sample,
     project,
     destinationFor,
+    applySaved,
     save,
     park,
     driveTo,
     refuel,
     update,
     mount() {
-      normalizeParked(true);
       state.owned = true;
       state.riding = true;
       state.speed = 0;

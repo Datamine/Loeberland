@@ -9,6 +9,7 @@ import {
 } from '../src/teleport-tablets.ts';
 import { ITEM_STATS } from '../src/item-stats.ts';
 import { nearbyServiceNPC } from '../src/interaction-access.ts';
+import { SHRIMP_EXPERIMENT } from '../src/config/shrimp-experiment.ts';
 
 export function createServerTablets({
   geometry,
@@ -47,9 +48,14 @@ export function createServerTablets({
         ),
       };
     const meta = p.inventory.meta;
+    const goblin = id === 'goblin-village';
+    const berkeley = id === 'berkeley';
+    const vendor = goblin
+      ? GOBLIN_SCIENTIST_ID
+      : berkeley
+        ? SHRIMP_EXPERIMENT.scientist
+        : 'tablet-wizard';
     if (action === 'buyTablet') {
-      const goblin = id === 'goblin-village';
-      const vendor = goblin ? GOBLIN_SCIENTIST_ID : 'tablet-wizard';
       if (!nearbyServiceNPC(geometry, p, (n) => n.id === vendor))
         return {
           ok: false,
@@ -57,9 +63,11 @@ export function createServerTablets({
             ? contentText(
                 'world-message.server.teleport-tablets.visit-the-goblin-scientist-in-the-village',
               )
-            : contentText(
-                'world-message.server.teleport-tablets.visit-orin-the-wizard-inside-his-house-west-of-sand-hill-road',
-              ),
+            : berkeley
+              ? 'Visit the scientist east of the Berkeley institute.'
+              : contentText(
+                  'world-message.server.teleport-tablets.visit-orin-the-wizard-inside-his-house-west-of-sand-hill-road',
+                ),
         };
       const purse = p.inventory.economy.state,
         price = requiredValue(ITEM_STATS[id + '-tablet'].price, 'Missing tablet price.');
@@ -106,7 +114,11 @@ export function createServerTablets({
         message: contentText(
           'world-message.server.teleport-tablets.you-do-not-have-that-teleport-visit',
           {
-            value1: String(id === 'goblin-village' ? 'the Goblin Scientist.' : 'Orin the Wizard.'),
+            value1: goblin
+              ? 'the Goblin Scientist.'
+              : berkeley
+                ? 'the Berkeley Scientist.'
+                : 'Orin the Wizard.',
           },
         ),
       };

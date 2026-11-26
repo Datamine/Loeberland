@@ -1179,6 +1179,13 @@
           "receipt": {
             "text": "sandwich.receipt"
           }
+        },
+        {
+          "id": "loaf-of-bread",
+          "label": { "text": "service.neighborhood-bakery.loaf.label" },
+          "action": "service",
+          "args": ["loaf-of-bread"],
+          "receipt": { "text": "service.neighborhood-bakery.loaf.receipt" }
         }
       ],
       "id": "service.neighborhood-bakery.root"
@@ -12009,6 +12016,12 @@
                 "text": "sandwich.receipt"
               },
               "action": "service.neighborhood-bakery.service:[\"sandwich\"]"
+            },
+            {
+              "id": "loaf-of-bread",
+              "label": { "text": "service.neighborhood-bakery.loaf.label" },
+              "receipt": { "text": "service.neighborhood-bakery.loaf.receipt" },
+              "action": "service.neighborhood-bakery.service:[\"loaf-of-bread\"]"
             }
           ],
           "repeat": true,

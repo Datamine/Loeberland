@@ -1,9 +1,8 @@
+import { isGoblinBushAmbusher } from './goblin-bush.ts';
 import { MONSTER_STATS } from './monster-drops.ts';
-import {
-  ENERGY_BOLT_SECONDS,
-  MISSILE_EFFECT_SECONDS,
-  SCIENTIST_EXPLOSIVE,
-} from './config/gameplay.ts';
+import { isProjectileWeapon } from './item-stats.ts';
+import { projectileEffect } from './projectile-models.ts';
+import { hasMargeCrown } from './characters.ts';
 import type { RemoteActor, Actor, LocalPlayer, SignAtlas } from './types/world.ts';
 import type {
   SharedSnapshot,
@@ -45,7 +44,7 @@ interface WorldMultiplayerOptions {
     ReturnType<
       typeof import('./combat-feedback.ts').createCombatFeedback<Actor | RemoteActor | LocalPlayer>
     >,
-    'hit' | 'show'
+    'hit' | 'show' | 'remove'
   >;
   characterGround: (x: number, z: number) => number;
   playerGround: () => number;
@@ -70,6 +69,7 @@ interface WorldMultiplayerOptions {
   applyServerPose: (pose: PoseCoordinates & Partial<NetworkPose>) => void;
   moveResult?: (result: CommandResult) => void;
   actorInView: (x: number, z: number, base: number) => boolean;
+  reducedMotion?: boolean;
   signs: SignAtlas;
 }
 import { isFiniteNumber } from './types/json.ts';
@@ -87,12 +87,19 @@ import './capture-animation.ts';
 import './illuminati-models.ts';
 import './bank-models.ts';
 import { createMultiplayerActions } from './multiplayer-actions.ts';
-import { MP_ENTITY_INTERPOLATION_MS, MP_SELF_INTERPOLATION_MS } from './multiplayer-protocol.ts';
+import {
+  MP_ENTITY_INTERPOLATION_MS,
+  MP_INTERPOLATION_MS,
+  MP_SELF_INTERPOLATION_MS,
+} from './multiplayer-protocol.ts';
+import { COMBAT_SPLAT_SECONDS } from './combat-feedback.ts';
 import { createActorAnimation, GESTURE_SECONDS } from './animation-presentation.ts';
 import { drawRemotePlayer } from './remote-player-models.ts';
 import { rocketHopForPose } from './rocket-hop.ts';
 import { createPursuitPresentation } from './pursuit-presentation.ts';
 import { creatureLunge } from './creature-attack-pose.ts';
+import { FIREWORKS_SECONDS, FIREWORK_ENFORCEMENT } from './config/fireworks.ts';
+import { drawFireworks } from './fireworks.ts';
 
 export function estimatedWorldSeconds(
   clock: unknown,
@@ -103,22 +110,13 @@ export function estimatedWorldSeconds(
 }
 
 export function setupMultiplayerSettings(client: {
-  state: Pick<MultiplayerState, 'connected' | 'grapplingHook' | 'pvp' | 'serverOffset'>;
+  state: Pick<MultiplayerState, 'connected' | 'grapplingHook'>;
 }) {
   const grapple = document.getElementById('sf-grapple-button') as HTMLButtonElement;
-  const pvpHint = document.getElementById('sf-pvp-status')!;
   function update() {
     const state = client.state;
     grapple.hidden = !state.grapplingHook;
     grapple.disabled = !state.connected || !state.grapplingHook;
-    const pvp = state.pvp || { enabled: false, disableAt: 0 };
-    const seconds = Math.max(
-      0,
-      Math.ceil(((pvp.disableAt || 0) - (Date.now() + (state.serverOffset || 0))) / 1000),
-    );
-    pvpHint.textContent = seconds
-      ? 'Can disable PvP in ' + seconds + 's.'
-      : 'Both players must opt in. Changes apply when you save.';
   }
   update();
   return { update };
@@ -157,7 +155,8 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
 
   const npcPresentation = createNPCPresentation({ npcs: merchants, lives: api.lives }),
     remoteActors = new Map<number, RemoteActor>(),
-    bindings = new Map<number, { start: number; duration: number }>(),
+    shotFacing = new Map<number, { angle: number; until: number }>(),
+    bindings = new Map<number | string, { start: number; duration: number }>(),
     inventoryBridge = createMultiplayerInventory({
       client,
       apply: api.applyInventory,
@@ -167,7 +166,11 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
   const pursuits = createPursuitPresentation({ zoo, raptor: expeditions.raptor });
   const followState = { target: null as number | null, attack: false };
   type PvpHit = Extract<ServerEvent, { type: 'pvpHit' }>;
+  type SharedHit = Extract<ServerEvent, { type: 'sharedHit' }>;
+  type PlayerHit = Extract<ServerEvent, { type: 'playerHit' | 'pvpHit' }>;
+  const pendingPlayerHits = new Map<number, { hit: PlayerHit; expiresAt: number }[]>();
   const combatEffects: { at: number; show: () => void }[] = [];
+  let fireworks: { position: Position; seed: number; started: number }[] = [];
   const pvpGestureMs = GESTURE_SECONDS.attack * 1000;
   let followGround: number | null = null,
     selfMode = 'walk',
@@ -197,13 +200,10 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
       return false;
     }
     api.preparePlayerAction();
-    followState.target = target.id;
-    followState.attack = attack;
     const request = ++followRequest;
     client.command('followPlayer', { id: target.id, attack }).then((result) => {
       if (request !== followRequest) return;
       if (!result.ok) {
-        stopFollowing(true, true);
         announce(
           result.message || contentText('world-message.src.multiplayer-world.following-stopped'),
           'Follow',
@@ -211,6 +211,11 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
       }
     });
     return true;
+  }
+
+  function tradePlayer(target: { id: number }) {
+    api.preparePlayerAction();
+    return command('tradeRequest', { id: target.id });
   }
 
   async function command(action: string, args = {}) {
@@ -262,7 +267,9 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
     if (state.traffic) api.onTraffic?.(state.traffic, sampleTime);
     if (state.wilderness && api.wilderness) {
       const dispatched = (n: { combatKind?: string }) =>
-        n.combatKind === 'robocop' || n.combatKind === 'securities-investigator';
+        n.combatKind === 'robocop' || n.combatKind === 'securities-investigator' ||
+        n.combatKind === FIREWORK_ENFORCEMENT.kind ||
+        isGoblinBushAmbusher(n.combatKind);
       const responders = new Set(state.wilderness.filter(dispatched).map((n) => n.id));
       const actors = api.wilderness.actors;
       for (let i = actors.length - 1; i >= 0; i--) {
@@ -346,42 +353,65 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
     const next = combatEffects.findIndex((effect) => effect.at > at);
     combatEffects.splice(next === -1 ? combatEffects.length : next, 0, { at, show });
   }
-  function showPvpHit(message: PvpHit) {
-    const actor = message.target === client.state.id ? player : remoteActors.get(message.target);
-    if (actor) {
-      const other = message.attacker !== client.state.id && message.target !== client.state.id;
-      combatFeedback.hit(actor, message.damage, message.hp, message.max || health.state.max, other);
-    }
-    if (['railgun', 'akibo', 'missile-launcher'].includes(message.weapon))
-      expeditions.state.beams.push({
-        from: message.from,
-        to: message.to,
-        ttl: message.weapon === 'missile-launcher' ? MISSILE_EFFECT_SECONDS : ENERGY_BOLT_SECONDS,
-        weapon: message.weapon,
-      });
-    if (message.weapon !== 'recoil-amulet' && message.attacker === client.state.id) {
-      player.angle = Math.atan2(message.to.z - message.from.z, message.to.x - message.from.x);
-      player.gesture = {
-        name: contentText('multiplayer-world.createWorldMultiplayer.name-1', {}),
-        started: performance.now(),
-        duration: pvpGestureMs,
-      };
+  function showAttack(message: SharedHit | PvpHit) {
+    if (message.weapon === 'recoil-amulet') return;
+    const shot = !message.weapon || isProjectileWeapon(message.weapon);
+    if (shot)
+      expeditions.state.beams.push(projectileEffect(message.weapon, message.from, message.to));
+    const started = performance.now();
+    const angle = Math.atan2(message.to.z - message.from.z, message.to.x - message.from.x);
+    if (message.attacker === client.state.id) {
+      player.angle = angle;
+      player.gesture = { name: 'attack', started, duration: pvpGestureMs };
       combatFeedback.show(player, health.state.hp, health.state.max);
-    } else if (message.weapon !== 'recoil-amulet') {
-      remoteActors.get(message.attacker)?.animation?.trigger('attack', performance.now());
+    } else {
+      if (shot) shotFacing.set(message.attacker, { angle, until: started + pvpGestureMs });
+      remoteActors.get(message.attacker)?.animation?.trigger('attack', started);
     }
+  }
+  function showPvpHit(message: PvpHit) {
+    showPlayerHit(message);
+    showAttack(message);
     if (message.hp === 0) {
       const peer = client.peers.get(message.target);
       if (peer) peer.deathAt = performance.now();
     }
   }
+  function showPlayerHit(message: PlayerHit) {
+    const own = message.target === client.state.id;
+    const actor = own ? player : remoteActors.get(message.target);
+    if (actor) {
+      combatFeedback.hit(actor, message.damage, message.hp, message.max, !own);
+      return;
+    }
+    // Combat packets can arrive before the first visible pose. Attach the hit
+    // to the same actor that the renderer creates when that pose arrives.
+    const hits = pendingPlayerHits.get(message.target) ?? [];
+    hits.push({ hit: message, expiresAt: performance.now() + COMBAT_SPLAT_SECONDS * 1000 });
+    if (hits.length > 4) hits.shift();
+    pendingPlayerHits.set(message.target, hits);
+  }
+  function clearPeerFeedback() {
+    for (const actor of remoteActors.values()) combatFeedback.remove(actor);
+    remoteActors.clear();
+    pendingPlayerHits.clear();
+  }
+  function npcLungeDelay(attackerId: string | number | undefined) {
+    const attacker = api.wilderness?.actors.find((actor) => actor.id === attackerId);
+    return attacker?.combatKind && creatureLunge(attacker.combatKind)
+      ? MP_ENTITY_INTERPOLATION_MS + 50
+      : 0;
+  }
   client.subscribe((message) => {
     if (message.type === 'world') worldUpdate(message.state, message.self, message.sampleTime);
     else if (message.type === 'instance') {
       combatEffects.length = 0;
+      expeditions.state.beams.length = 0;
+      shotFacing.clear();
+      fireworks.length = 0;
       stopFollowing(true, true);
       client.state.pvpTarget = null;
-      remoteActors.clear();
+      clearPeerFeedback();
       pursuits.clear();
       npcPresentation.clear();
       creaturePresentation.clear();
@@ -392,6 +422,10 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
       worldUpdate(client.state.world, null);
     } else if (message.type === 'welcome') {
       combatEffects.length = 0;
+      expeditions.state.beams.length = 0;
+      shotFacing.clear();
+      fireworks.length = 0;
+      clearPeerFeedback();
       pursuits.clear();
       npcPresentation.clear();
       creaturePresentation.clear();
@@ -416,12 +450,15 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
     else if (message.type === 'position') {
       if (message.reason === 'respawn') {
         combatEffects.length = 0;
+        expeditions.state.beams.length = 0;
+        shotFacing.clear();
         stopFollowing(true, true);
         previousSelf = currentSelf = null;
         grapplingGround = null;
         selfMode = 'walk';
         selfGesture = '';
       }
+      if (message.reason === 'ferrariDismount') selfMode = 'walk';
       onPosition(message);
     } else if (message.type === 'airshipReset') {
       previousShip = currentShip = null;
@@ -436,28 +473,38 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
       health.state.hp = message.hp;
       const max = message.max || health.state.max;
       health.state.max = max;
-      const attacker = api.wilderness?.actors.find((actor) => actor.id === message.attacker);
       const show = () => combatFeedback.hit(player, message.damage, message.hp, max);
-      if (attacker?.combatKind && creatureLunge(attacker.combatKind))
-        queueCombatEffect(message.sampleTime, MP_ENTITY_INTERPOLATION_MS + 50, show);
+      const delay = npcLungeDelay(message.attacker);
+      if (delay) queueCombatEffect(message.sampleTime, delay, show);
       else show();
       api.refreshUI();
+    } else if (message.type === 'playerHit') {
+      queueCombatEffect(
+        message.sampleTime,
+        npcLungeDelay(message.attacker) || MP_INTERPOLATION_MS,
+        () => showPlayerHit(message),
+      );
     } else if (message.type === 'caught') {
       stopFollowing(true, true);
       client.state.pvpTarget = null;
       onCaught(message.source);
     } else if (message.type === 'pvpBound') {
       bindings.set(message.target, { start: performance.now(), duration: message.duration });
-    } else if (message.type === 'scientistExplosive' || message.type === 'robotShot') {
-      const explosive = message.type === 'scientistExplosive';
-      expeditions.state.beams.push({
-        from: message.from,
-        to: message.to,
-        ttl: explosive
-          ? SCIENTIST_EXPLOSIVE.flight + SCIENTIST_EXPLOSIVE.burst
-          : ENERGY_BOLT_SECONDS,
-        weapon: explosive ? 'scientist-explosive' : message.weapon,
-      });
+    } else if (message.type === 'fireworks') {
+      const { position, seed } = message;
+      fireworks.push({ position, seed, started: message.sampleTime ?? performance.now() });
+      if (fireworks.length > 24) fireworks.shift();
+    } else if (message.type === 'scientistExplosive' || message.type === 'robotShot' ||
+      message.type === 'goblinRock') {
+      expeditions.state.beams.push(
+        projectileEffect(
+          message.type === 'robotShot' ? message.weapon :
+            message.type === 'goblinRock' ? 'goblin-rock' : 'scientist-explosive',
+          message.from,
+          message.to,
+          message.type === 'robotShot' ? message.shooter : undefined,
+        ),
+      );
     } else if (message.type === 'pvpHit') {
       if (message.target === client.state.id) {
         health.state.hp = message.hp;
@@ -484,27 +531,11 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
         ...(api.wilderness?.actors || []),
         ...merchants,
       ].find((n) => n.id === message.target);
-      if (!target) return;
-      target.hp = message.hp;
-      combatFeedback.hit(target, message.damage, message.hp, message.max);
-      const t = performance.now();
-      remoteActors.get(message.attacker)?.animation?.trigger('attack', t);
-      if (!message.weapon || ['railgun', 'akibo', 'missile-launcher'].includes(message.weapon))
-        expeditions.state.beams.push({
-          from: message.from,
-          to: message.to,
-          ttl: message.weapon === 'missile-launcher' ? MISSILE_EFFECT_SECONDS : ENERGY_BOLT_SECONDS,
-          weapon: message.weapon,
-        });
-      if (message.attacker === client.state.id) {
-        player.angle = Math.atan2(message.to.z - player.y - 0.5, message.to.x - player.x - 0.5);
-        player.gesture = {
-          name: contentText('multiplayer-world.createWorldMultiplayer.name-2', {}),
-          started: t,
-          duration: 450,
-        };
-        combatFeedback.show(player, health.state.hp, health.state.max);
+      if (target) {
+        target.hp = message.hp;
+        combatFeedback.hit(target, message.damage, message.hp, message.max);
       }
+      showAttack(message);
       api.refreshUI();
     } else if (message.type === 'say') {
       const peer = client.peers.get(message.id);
@@ -598,11 +629,12 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
   }
   function drawBinding(
     m: import('./geometry.ts').Mesh,
-    id: number,
+    id: number | string,
     x: number,
     y: number,
     z: number,
     time: number,
+    scale = 1,
   ) {
     const binding = bindings.get(id);
     if (!binding) return;
@@ -615,7 +647,7 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
       const f = i / 24,
         a = phase + f * Math.PI * 5.2 + offset,
         r = 0.34 + Math.sin(f * Math.PI) * 0.06;
-      return [x + Math.cos(a) * r, y + 0.045 + f * 0.85 * lift, z + Math.sin(a) * r];
+      return [x + Math.cos(a) * r * scale, y + 0.045 + f * 0.85 * lift * scale, z + Math.sin(a) * r * scale];
     };
     for (const angle of [0, Math.PI])
       for (let i = 1; i <= Math.ceil(reach * 24); i++)
@@ -653,16 +685,13 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
     for (const remote of client.remotePlayers(t)) {
       const serverTime = Date.now() + (client.state.serverOffset || 0),
         hop = rocketHopForPose(remote, serverTime);
-      if (
-        remote.mode === 'hidden' ||
-        remote.mode === 'rocket' ||
-        !api.actorInView(remote.x, remote.z, remote.y + hop.height)
-      )
-        continue;
-      const look = characterAppearance(normalizeCharacter(remote.appearance)),
-        peer = client.peers.get(remote.id);
+      const visible =
+        remote.mode !== 'hidden' &&
+        remote.mode !== 'rocket' &&
+        api.actorInView(remote.x, remote.z, remote.y + hop.height);
       let actor = remoteActors.get(remote.id);
       if (!actor) {
+        if (!visible) continue;
         actor = {
           ...remote,
           label: remote.name,
@@ -674,10 +703,20 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
         remoteActors.set(remote.id, actor);
       }
       Object.assign(actor, remote, { label: remote.name, base: remote.y + hop.height });
+      if (!visible) continue;
+      const hits = pendingPlayerHits.get(remote.id);
+      if (hits) {
+        for (const { hit, expiresAt } of hits) if (expiresAt > t) showPlayerHit(hit);
+        pendingPlayerHits.delete(remote.id);
+      }
+      const look = characterAppearance(normalizeCharacter(remote.appearance)),
+        peer = client.peers.get(remote.id);
       actor.animation ??= createActorAnimation();
       const animation = actor.animation.sample(remote, t),
         start = m.data.length;
-      drawRemotePlayer(m, remote, t, {
+      const shot = shotFacing.get(remote.id);
+      const facing = shot && t < shot.until && animation.action === 'attack' ? shot.angle : remote.angle;
+      drawRemotePlayer(m, facing === remote.angle ? remote : { ...remote, angle: facing }, t, {
         look,
         animation,
         ground,
@@ -692,7 +731,7 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
         x: remote.x,
         z: remote.z,
         base: remote.y + hop.height,
-        height: 2.2,
+        height: hasMargeCrown(look) ? 2.6 : 2.2,
         player: true,
         pvp: remote.pvp,
         label: remote.name,
@@ -708,7 +747,19 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
     }
     for (const [id, binding] of bindings)
       if (t - binding.start >= binding.duration) bindings.delete(id);
-    for (const id of remoteActors.keys()) if (!client.peers.has(id)) remoteActors.delete(id);
+    fireworks = fireworks.filter(({ started }) => t - started < FIREWORKS_SECONDS * 1000);
+    for (const { position, seed, started } of fireworks) {
+      if (api.actorInView(position.x, position.z, position.y + 1.5))
+        drawFireworks(m, position, seed, (t - started) / 1000, api.reducedMotion);
+    }
+    for (const [id, actor] of remoteActors)
+      if (!client.peers.has(id)) {
+        combatFeedback.remove(actor);
+        remoteActors.delete(id);
+      }
+    for (const [id, hits] of pendingPlayerHits)
+      if (hits.at(-1)!.expiresAt <= t) pendingPlayerHits.delete(id);
+    for (const [id, shot] of shotFacing) if (t >= shot.until) shotFacing.delete(id);
   }
   return {
     actions,
@@ -725,7 +776,9 @@ export function createWorldMultiplayer(api: WorldMultiplayerOptions) {
     command,
     beforeUpdate,
     draw,
+    drawBinding,
     followPlayer,
+    tradePlayer,
     attackPlayer,
     stopFollowing,
     get following() {

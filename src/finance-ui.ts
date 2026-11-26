@@ -138,7 +138,10 @@ export function createDuelMenu({
     busy = true;
     try {
       const r = await client!.command(action, args);
-      if (!r.ok) status.textContent = r.message ?? '';
+      if (!r.ok) {
+        resultUntil = Date.now() + 5000;
+        status.textContent = r.message ?? '';
+      }
       return r;
     } finally {
       busy = false;

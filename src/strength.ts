@@ -7,7 +7,7 @@ import { GAMEPLAY } from './config/gameplay.ts';
 import { skillStatus, SKILL_THRESHOLDS } from './progression.ts';
 export const STRENGTH_XP_RATE = GAMEPLAY.strengthXPPerSecond;
 export const STRENGTH_THRESHOLDS = SKILL_THRESHOLDS;
-export const strengthStatus = skillStatus;
+export const strengthStatus = (value: unknown) => skillStatus(value, Number.MAX_SAFE_INTEGER);
 export function createStrength(
   savedInput: unknown = {},
   onSave: (snapshot: PlayerDocument['skills']['strength']) => void = () => {},
@@ -31,10 +31,9 @@ export function createStrength(
       return strengthStatus(state.xp);
     },
     train(seconds: unknown) {
-      if (!isFiniteNumber(seconds) || seconds <= 0 || state.xp >= STRENGTH_THRESHOLDS.at(-1)!)
-        return null;
+      if (!isFiniteNumber(seconds) || seconds <= 0) return null;
       const before = strengthStatus(state.xp).level;
-      state.xp = Math.min(STRENGTH_THRESHOLDS.at(-1)!, state.xp + seconds * STRENGTH_XP_RATE);
+      state.xp = Math.min(Number.MAX_SAFE_INTEGER, state.xp + seconds * STRENGTH_XP_RATE);
       dirtyTime += seconds;
       const after = strengthStatus(state.xp).level;
       if (dirtyTime >= 2 || after !== before) save();

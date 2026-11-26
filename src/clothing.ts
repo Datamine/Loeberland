@@ -1,4 +1,5 @@
 import { isRecord, isOneOf } from './types/json.ts';
+import { DEFENSE_TORSOS, DEFENSE_LEGS } from './config/defense-workshop.ts';
 /** Canonical clothing slots, including migration of the original ice toggles. */
 export function clothingSelection(input: unknown = {}) {
   const value = isRecord(input) ? input : {};
@@ -9,11 +10,20 @@ export function clothingSelection(input: unknown = {}) {
       'black-cloak-top',
       'tinfoil-suit',
       'decorative-robe-top',
+      'charcoal-suit',
+      'silk-kimono',
+      'techwear-top',
+      'yellow-top',
+      'bush-top',
       'cashmere-turtleneck',
+      'puffy-parka',
+      'leather-jacket',
+      'barrel',
       'goose-corp-shirt',
       'goose-costume',
       'iron-armor',
       'gold-trimmed-iron-armor',
+      ...DEFENSE_TORSOS,
     ] as const,
     value.torso,
   )
@@ -29,7 +39,13 @@ export function clothingSelection(input: unknown = {}) {
       'ice-pants',
       'black-cloak-bottom',
       'decorative-robe-bottom',
+      'yellow-pants',
+      'blue-jeans',
+      'techwear-bottoms',
+      'bush-legs',
       'iron-armor-legs',
+      'gold-trimmed-iron-armor-legs',
+      ...DEFENSE_LEGS,
     ] as const,
     value.legs,
   )

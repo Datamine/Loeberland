@@ -461,6 +461,7 @@ export function createTahoe() {
       b = cablePath[i];
     cableDistances.push(cableDistances.at(-1)! + Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z));
   }
+  const dockedGondola = { position: gondolaAt(0), angle: cabinAngle };
   function contains(x: number, z: number) {
     return (
       x >= TAHOE_BOUNDS.west &&
@@ -564,6 +565,7 @@ export function createTahoe() {
     state.travel = 0;
     state.up = up;
     state.position = gondolaAt(up ? 0 : 1);
+    state.angle = cabinAngle;
     return true;
   }
   function gondolaAt(f: number) {
@@ -573,6 +575,11 @@ export function createTahoe() {
       b = cablePath[i + 1],
       t = scaled - i;
     return { x: tahoeMix(a.x, b.x, t), y: tahoeMix(a.y, b.y, t), z: tahoeMix(a.z, b.z, t) };
+  }
+  function gondolaCabin() {
+    return state.mode === 'gondola' && state.position
+      ? { position: state.position, angle: state.angle }
+      : dockedGondola;
   }
   function gondolaProgress(f: number) {
     const distance = tahoeClamp(f, 0, 1) * cableDistances.at(-1)!;
@@ -702,6 +709,7 @@ export function createTahoe() {
     path,
     gondola,
     gondolaAt,
+    gondolaCabin,
     cablePath,
     startSki,
     flip,

@@ -1,4 +1,7 @@
 import { LAB_ENTRANCE, LAB_FLOOR, LAB_INSTANCE } from '../src/berkeley-lab.ts';
+import {
+  GOBLIN_CITY_HALL, INCUBATOR_CAVE, INCUBATOR_ENTRANCE, INCUBATOR_FLOOR,
+} from '../src/goblin-incubator-cave.ts';
 import { HOT_TRAPDOOR } from '../src/berkeley-campus.ts';
 import { contentText } from '../src/content-runtime.ts';
 import type { SimulationServices, ServerPlayer } from '../src/types/server.ts';
@@ -147,6 +150,24 @@ export function createServerInstances({
     if (action === 'instanceEnter') {
       if (kind(p) !== 'world' && kind(p) === args.kind) return { ok: true };
       if (!alive(p) || kind(p) !== 'world' || p.bomberActive) return { ok: false };
+      if (args.kind === INCUBATOR_CAVE.kind) {
+        const clerk = geometry.merchants?.find((npc) => npc.id === GOBLIN_CITY_HALL.clerk.id);
+        if (!clerk || Math.hypot(p.x - clerk.x, p.z - clerk.z) >= GOBLIN_CITY_HALL.clerkRange ||
+            geometry.canTravel?.(p.x - 0.5, p.z - 0.5, clerk.x - 0.5, clerk.z - 0.5, true) === false)
+          return { ok: false, message: 'Walk up to the Goblin City Hall Clerk.' };
+        const purse = p.inventory.economy.state;
+        const fee = GOBLIN_CITY_HALL.fishFee;
+        if (purse.fish < fee) return { ok: false, message: `The clerk wants ${fee} live fish.` };
+        purse.fish -= fee;
+        p.inventory.save();
+        p.instanceReturn = position(p);
+        transition(p, INCUBATOR_CAVE, { ...INCUBATOR_ENTRANCE, y: INCUBATOR_FLOOR + 0.025 });
+        return {
+          ok: true,
+          message: `You hand the clerk ${fee} live fish and enter Goblin City Hall.`,
+          inventory: p.inventory.snapshot(),
+        };
+      }
       if (args.kind === LAB_INSTANCE.kind) {
         const trapdoor = geometry.sights?.find((sight) => sight.id === HOT_TRAPDOOR)?.entry;
         if (!trapdoor || Math.hypot(p.x - trapdoor.x - 0.5, p.z - trapdoor.y - 0.5) > 0.85)
@@ -250,6 +271,12 @@ export function createServerInstances({
         Math.hypot(p.x - LAB_ENTRANCE.x, p.z - LAB_ENTRANCE.z) > 1.5
       )
         return { ok: false, message: contentText('world-message.berkeley-lab.use-stairs') };
+      if (kind(p) === INCUBATOR_CAVE.kind) {
+        if (Math.hypot(p.x - INCUBATOR_ENTRANCE.x, p.z - INCUBATOR_ENTRANCE.z) > 1.5)
+          return { ok: false, message: 'Return to the City Hall stairs to leave.' };
+        reset(p);
+        return { ok: true, message: 'You climb back out of Goblin City Hall.' };
+      }
       reset(p);
       return {
         ok: true,

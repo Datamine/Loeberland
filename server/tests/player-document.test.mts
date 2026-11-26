@@ -105,10 +105,12 @@ test('client-provided JSON player state cannot grant quest progress or inventory
     );
     assert.equal(p.profile.playerState.quests.monkey.stage, 'not-started');
     assert.equal(p.profile.playerState.quests.illuminatus.initiated, false);
-    assert.equal(p.inventory.economy.state.coins, 25);
+    assert.equal(p.inventory.economy.state.coins, 100);
+    assert.equal(p.inventory.meta.tablets.downtown, 5);
     game.receive(p, { type: 'checkpoint', ...{ playerState: forged } });
     await p.queue;
-    assert.equal(p.inventory.economy.state.coins, 25);
+    assert.equal(p.inventory.economy.state.coins, 100);
+    assert.equal(p.inventory.meta.tablets.downtown, 5);
     assert.equal(p.profile.playerState.quests.monkey.stage, 'not-started');
     validatePlayerDocument(requiredFixture(messages.find((m) => m.type === 'welcome')).playerState);
   } finally {

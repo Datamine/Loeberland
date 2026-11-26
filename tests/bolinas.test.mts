@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Mesh, rayTriangleAt } from '../src/geometry.ts';
 import { GOBLIN_INCUBATOR } from '../src/goblin-town.ts';
+import { GOBLIN_CITY_HALL } from '../src/goblin-incubator-cave.ts';
+import { drawGoblinCityHall } from '../src/goblin-incubator-art.ts';
 import { goblinModelVariant } from '../src/wilderness-models.ts';
 import {
   BOLINAS,
@@ -13,6 +15,7 @@ import {
   BOLINAS_CULTIST,
   EMF_DISCIPLES,
   EMF_WARRIOR,
+  SENIOR_EMF_DISCIPLES,
   bolinasBlocks,
   bolinasBeachBlend,
   bolinasWetSand,
@@ -50,8 +53,13 @@ test('Bolinas and its warrior are connected to Marin, with cottages blocking the
     assert.equal(bolinasBlocks(h.x, h.z), true);
     assert.equal(land.contains(h.x, h.z), false);
   }
-  for (const npc of [BOLINAS_CULTIST, ...EMF_DISCIPLES])
+  for (const npc of [BOLINAS_CULTIST, ...EMF_DISCIPLES, ...SENIOR_EMF_DISCIPLES])
     assert.ok(land.contains(npc.x, npc.z), npc.id);
+  for (const senior of SENIOR_EMF_DISCIPLES)
+    assert.ok(
+      land.path(BOLINAS.entry, { x: senior.x - 0.5, y: senior.z - 0.5 }, () => null),
+      senior.id + ' is reachable from Bolinas',
+    );
   assert.ok(land.path(CULTIST_HOME.entry, CULTIST_HOME.approach, () => null));
   for (const [x, z] of BOLINAS_PATH) assert.ok(land.onLand(x, z));
   const mesh = new Mesh();
@@ -69,6 +77,31 @@ test('Bolinas and its warrior are connected to Marin, with cottages blocking the
   const beach = new Mesh();
   drawBolinasBeach(beach, land.height);
   assert.ok(beach.data.length > 0 && beach.data.every(Number.isFinite));
+});
+
+test('the cove and village share a walkable beach with a sandy junction at the trail bend', () => {
+  const land = createMarinLand({
+    polygon: MARIN_OUTLINE.map((p) => p.map((v) => v * 1.5)),
+    detention: createDetentionSite(1.5),
+    gate: { x: 28, y: -2 },
+  });
+  const start = { x: -8, y: -31.5 };
+  const villageBeach = { x: -14.9, y: -48.2 };
+  const route = land.path(start, villageBeach, () => null);
+  assert.ok(route?.length, 'walk from the cove to the village shore');
+  let previous = start;
+  for (const next of route) {
+    const steps = Math.ceil(Math.hypot(next.x - previous.x, next.y - previous.y) / 0.2);
+    for (let i = 0; i <= steps; i++) {
+      const x = previous.x + 0.5 + ((next.x - previous.x) * i) / steps;
+      const z = previous.y + 0.5 + ((next.y - previous.y) * i) / steps;
+      assert.ok(bolinasBeachBlend(x, z) > 0.3, `sand continues at ${x}, ${z}`);
+    }
+    previous = next;
+  }
+  assert.ok(land.segment({ x: -11.5, y: -39.5 }, { x: -5.5, y: -39.5 }));
+  assert.ok(bolinasBeachBlend(-6, -39) > 0.8, 'the beach reaches the approach to the bend');
+  assert.ok(bolinasBeachBlend(-5, -39) > 0.3, 'the sand reaches the dirt trail');
 });
 
 test('minimap layers mark sellers and task givers independently', () => {
@@ -198,6 +231,21 @@ test('the Goblin Startup Incubator is a pickable depression with a reachable fou
   assert.equal(land.raycast(ray)?.distance, nearest);
   assert.equal(goblinModelVariant({ ...founder, kind: 'founder' }), 'founder');
   assert.equal(goblinModelVariant({ id: 'founder-merchant', kind: 'founder' }), undefined);
+
+  const hall = GOBLIN_CITY_HALL;
+  assert.ok(hall.x > x && hall.z < z, 'City Hall sits northeast of the incubator');
+  assert.ok(land.path(entry, hall.entry, () => null));
+  assert.ok(land.contains(hall.clerk.x, hall.clerk.z));
+  assert.equal(land.contains(hall.x, hall.z), false);
+  assert.equal(goblinModelVariant(hall.clerk), 'founder');
+  const facade = drawGoblinCityHall(mesh, new Map(), land.height);
+  const front = hall.z + 1.23;
+  const fromPath = { origin: [hall.x, land.height(hall.x, front) + 1, front + 2], dir: [0, 0, -1] };
+  assert.ok(facade.count > 0);
+  assert.equal(facade.label, 'Goblin City Hall');
+  assert.ok(Array.from({ length: facade.count / 33 }, (_, i) =>
+    rayTriangleAt(fromPath, mesh.data, facade.start + i * 33),
+  ).some((hit) => hit !== null), 'the cave mouth can be picked from the approach');
 });
 
 test('the equipped tinfoil suit survives normalization and has a finite full-body silver model', () => {

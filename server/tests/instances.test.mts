@@ -23,7 +23,7 @@ import {
 } from '../../src/stealth-bomber.ts';
 import type { ServerPlayer } from '../../src/types/server.ts';
 
-async function fixture() {
+async function fixture(random = () => 0.5) {
   let time = 1000000;
   const geometry = fixtureGeometry(),
     store = createMemoryStore();
@@ -33,7 +33,7 @@ async function fixture() {
     { id: 'captain-ahab', label: 'Captain Ahab', x: 92.2, z: 120, base: 1.15 },
     { id: 'test-spectre', label: 'Man', alienId: 'test', x: 35.5, z: 175.5, base: 1.15, hp: 36 },
   ];
-  const game = await createGame({ geometry, store, now: () => time, random: () => 0.5 });
+  const game = await createGame({ geometry, store, now: () => time, random });
   return { game, geometry, store, advance: (ms: number) => (time += ms), now: () => time };
 }
 async function act(
@@ -364,7 +364,7 @@ test('boarding Ahab creates a personal instance and returning leaves the private
     b = await member(game, 511);
   const refused = await act(game, a, 'instanceEnter', { kind: 'kraken' });
   assert.equal(refused?.ok, false);
-  assert.match(refused?.message || '', /Character.*Gear.*Weapon/);
+  assert.equal(refused?.message, 'You’ll need a railgun to board the Pequod.');
   assert.equal(a.p.instance.kind, 'world');
   assert.equal(
     (
@@ -444,6 +444,32 @@ test('Ahab sails to the kraken and returns to the saved beach with only authorit
   );
 });
 
+test('a successful Kraken crystal roll can be picked up on deck exactly once', async (t) => {
+  const { game } = await fixture(() => 0);
+  t.after(() => game.close());
+  const a = await member(game, 521);
+  await act(game, a, 'equipAppearance', { look: { weapon: 'railgun' } });
+  assert.equal((await act(game, a, 'instanceEnter', { kind: 'kraken' }))?.ok, true);
+  for (let i = 0; i < 121; i++) game.tick(0.05);
+  const { expeditions } = game.personal.runtime(a.p);
+  expeditions.kraken.hp = 1;
+  assert.equal((await act(game, a, 'playerAction', { verb: 'attackKraken' }))?.ok, true);
+  assert.equal(expeditions.kraken.hp, 0);
+  const pickup = (id: string) => act(game, a, 'playerAction', { verb: 'collectPersonal', id });
+  const crystal = requiredFixture(expeditions.state.loot.find((item) => item.lootKind === 'light-crystal'));
+  assert.equal(crystal.base, a.p.y);
+  const collected = await pickup(crystal.id);
+  assert.equal(collected?.ok, true);
+  assert.equal(collected?.inventory?.lightCrystals, 1);
+  assert.equal((await pickup(crystal.id))?.ok, false);
+  assert.equal(expeditions.state.krakenCrystalPending, false);
+  const spoils = requiredFixture(expeditions.state.loot.find((item) => item.lootKind === 'kraken'));
+  assert.equal((await pickup(spoils.id))?.ok, true);
+  assert.equal(a.p.inventory.meta.lightCrystals, 1);
+  await game.disconnect(a.p);
+  assert.equal((await player(game, 521)).p.inventory.meta.lightCrystals, 1);
+});
+
 test('Ahab rejects completed hunts before entering an instance instead of silently returning next tick', async (t) => {
   const { game } = await fixture();
   t.after(() => game.close());
@@ -497,8 +523,8 @@ test('a Kraken death leaves time for the collapse aboard and does not announce a
   assert.equal(transfer.position.z, a.p.z);
 });
 
-test('Berkeley lab requires both icy pieces and supports movement, combat and loot', async () => {
-  const { LAB_ENTRANCE, LAB_SPAWNS, LAB_INSTANCE, LAB_FLOOR } =
+test('Berkeley lab requires both icy pieces and supports movement, combat and loot', async (t) => {
+  const { LAB_ENTRANCE, LAB_SPAWNS, LAB_INSTANCE, LAB_FLOOR, LAB_NAV, labSegment } =
     await import('../../src/berkeley-lab.ts');
   const { HOT_TRAPDOOR } = await import('../../src/berkeley-campus.ts');
   const { createWilderness } = await import('../../src/wilderness.ts');
@@ -515,6 +541,7 @@ test('Berkeley lab requires both icy pieces and supports movement, combat and lo
     now: () => time,
     random: () => 0,
   });
+  t.after(() => game.close());
   const person = await player(game, 599, {
     'sf-purse-v1': JSON.stringify({
       ownedEquipment: ['ice-top', 'ice-pants', 'missile-launcher', 'recoil-amulet'],
@@ -534,28 +561,47 @@ test('Berkeley lab requires both icy pieces and supports movement, combat and lo
   assert.equal(p.instance.id, LAB_INSTANCE.id);
   assert.equal(p.x, LAB_ENTRANCE.x);
   assert.equal(p.y, LAB_FLOOR + 0.025);
-  p.hp = p.max = 200;
-  const scientist = LAB_SPAWNS.find((n) => n.combatKind === 'madder-scientist')!;
-  const attack = await command('attack', { id: scientist.id, weapon: 'unarmed' });
+  p.hp = p.max = 1000;
+  const target = requiredFixture(
+    game.shared.wilderness.actors.find((actor) => actor.combatKind === 'madder-scientist'),
+  );
+  const cultists = game.shared.wilderness.actors.filter((actor) => actor.combatKind === 'mad-cultist');
+  const entrance = { x: p.x - 0.5, y: p.z - 0.5 };
+  assert.equal(cultists.length, 8);
+  for (const actor of cultists) {
+    assert.equal(actor.level, 40);
+    assert.ok(LAB_NAV.path(entrance, { x: actor.x - 0.5, y: actor.z - 0.5 }), actor.id);
+  }
+  assert.equal(labSegment(p, target), false, 'the chamber is out of sight from the stairs');
+  assert.ok(Math.hypot(p.x - target.x, p.z - target.z) > 15);
+  time += 100;
+  game.tick(0.1);
+  assert.ok(
+    game.shared.wilderness.actors.every((actor) => actor.enemy === null),
+    'entering at the stairs does not trigger the encounters',
+  );
+  const attack = await command('attack', { id: target.id, weapon: 'unarmed' });
   assert.equal(attack?.ok, true, attack?.message);
-  for (let step = 0; step < 45; step++) {
+  let encounteredCultist = false;
+  for (let step = 0; step < 160 && Math.hypot(p.x - target.x, p.z - target.z) >= 2; step++) {
     time += 100;
     game.tick(0.1);
+    encounteredCultist ||= cultists.some((actor) => actor.enemy === p.id);
   }
+  assert.ok(encounteredCultist, 'cultists attack passing players');
   assert.ok(
-    Math.hypot(p.x - scientist.x, p.z - scientist.z) < 2,
-    'attacking walks up to the scientist',
+    Math.hypot(p.x - target.x, p.z - target.z) < 2,
+    'attacking walks through the chambers to the scientist',
   );
   assert.equal((await command('instanceLeave'))?.ok, false);
 
-  const target = game.shared.wilderness.actors.find((actor) => actor.id === scientist.id)!;
   for (let step = 0; step < 20; step++) {
     time += 100;
     game.tick(0.1);
   }
   const launch = person.messages.findIndex((message) => message.type === 'scientistExplosive');
   const impact = person.messages.findIndex(
-    (message) => message.type === 'damage' && message.attacker === scientist.id,
+    (message) => message.type === 'damage' && message.attacker === target.id,
   );
   assert.ok(launch >= 0 && impact > launch, 'the scientist throws before the hit lands');
   game.shared.wilderness.damage(target.id, target.hp, p);
@@ -574,11 +620,12 @@ test('Berkeley lab requires both icy pieces and supports movement, combat and lo
   assert.equal((await command('instanceLeave'))?.ok, true);
   assert.equal(p.instance.kind, 'world');
   assert.equal(p.x, trapdoor.x + 0.5);
-  assert.equal((await command('attack', { id: scientist.id, weapon: 'unarmed' }))?.ok, false);
+  assert.equal((await command('attack', { id: target.id, weapon: 'unarmed' }))?.ok, false);
 });
 
-test('the restored Madder Scientist pursues and bombs the player after a long-range hit', async (t) => {
-  const { LAB_ENTRANCE, LAB_SPAWNS, LAB_INSTANCE } = await import('../../src/berkeley-lab.ts');
+test('the restored Madder Scientist moves to the new chamber and bombs players on sight', async (t) => {
+  const { LAB_ENTRANCE, LAB_SPAWNS, LAB_INSTANCE, labPoint } =
+    await import('../../src/berkeley-lab.ts');
   const { HOT_TRAPDOOR } = await import('../../src/berkeley-campus.ts');
   const scientist = requiredFixture(LAB_SPAWNS.find((n) => n.combatKind === 'madder-scientist'));
   const geometry = fixtureGeometry();
@@ -587,37 +634,54 @@ test('the restored Madder Scientist pursues and bombs the player after a long-ra
   ];
   geometry.wilderness = { actors: [scientist] };
   const store = createMemoryStore();
+  const oldHome = labPoint(7, 5);
   await store.batch([
     [
       'world',
       {
-        shared: { clock: 3601, wilderness: [{ ...scientist, hp: 600, max: 700, attackAt: 3602 }] },
+        shared: {
+          clock: 3601,
+          wilderness: [{ ...scientist, ...oldHome, home: oldHome, hp: 600, max: 700, attackAt: 3602 }],
+        },
       },
     ],
   ]);
-  const game = await createGame({ geometry, store, random: () => 0.5 });
+  let random = 0.5;
+  const game = await createGame({ geometry, store, random: () => random });
   t.after(() => game.close());
   const person = await player(game, 619, {
-    'sf-purse-v1': JSON.stringify({ ownedEquipment: ['ice-top', 'ice-pants', 'missile-launcher'] }),
+    'sf-purse-v1': JSON.stringify({ ownedEquipment: ['ice-top', 'ice-pants'] }),
   });
   const { p } = person;
   Object.assign(p.appearance, { iceTop: true, icePants: true });
   assert.equal((await act(game, person, 'instanceEnter', { kind: LAB_INSTANCE.kind }))?.ok, true);
+  const bystander = await player(game, 620, {
+    'sf-purse-v1': JSON.stringify({ ownedEquipment: ['ice-top', 'ice-pants'] }),
+  });
+  Object.assign(bystander.p.appearance, { iceTop: true, icePants: true });
+  assert.equal((await act(game, bystander, 'instanceEnter', { kind: LAB_INSTANCE.kind }))?.ok, true);
+  bystander.p.hp = bystander.p.max = 200;
   assert.equal(p.z, LAB_ENTRANCE.z);
   p.hp = p.max = 200;
-  p.inventory.meta.missiles = 1;
   const target = game.shared.wilderness.actors[0];
   assert.equal(target.hp, 600);
-  const result = requiredFixture(
-    await act(game, person, 'attack', { id: scientist.id, weapon: 'missile-launcher' }),
-  );
-  assert.ok(result.ok && (result.damage ?? 0) > 0);
-  for (let i = 0; i < 65; i++) game.tick(0.05);
-  assert.notEqual(target.z, scientist.z, 'retaliation closes the gap from the entrance');
+  assert.deepEqual({ x: target.x, z: target.z }, labPoint(22, 17));
+  Object.assign(p, labPoint(17, 17));
+  game.tick(0.05);
+  assert.equal(target.enemy, p.id, 'the scientist engages without a player attack');
+  const launched = () => person.messages.find((m) => m.type === 'scientistExplosive');
+  for (let i = 0; i < 65 && !launched(); i++) game.tick(0.05);
+  const { to } = requiredFixture(launched());
+  Object.assign(bystander.p, { x: to.x + 1.1, z: to.z - 1.1 });
+  assert.equal(p.hp, p.max);
+  random = 0.95;
+  for (let i = 0; i < 11; i++) game.tick(0.05);
+  assert.ok(target.x < scientist.x, 'the scientist closes to explosive range');
   const launch = person.messages.findIndex((m) => m.type === 'scientistExplosive');
   const impact = person.messages.findIndex((m) => m.type === 'damage' && m.attacker === target.id);
   assert.ok(launch >= 0 && impact > launch);
   assert.ok(p.hp < p.max);
+  assert.ok(bystander.p.hp < bystander.p.max, 'the blast hits the bystander even on a high roll');
   await game.flush();
   const saved = requiredFixture((await storedWorldFixture(store, 'world')).shared.wilderness[0]);
   assert.equal(saved.hp, target.hp);

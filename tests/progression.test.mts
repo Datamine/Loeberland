@@ -9,7 +9,6 @@ import { SOUTHERN_STREETS } from '../src/southern-layout.ts';
 import { actorLevel } from '../src/levels.ts';
 import { MERCHANTS } from '../src/config/npcs.ts';
 import { configuredDialogue } from '../src/dialogue-config.ts';
-import { ITEM_STATS } from '../src/item-stats.ts';
 import { rollMonsterDrops } from '../src/monster-drops.ts';
 import { COLLECTION_GROUPS, COLLECTION_ITEMS } from '../src/config/collection.ts';
 import { Mesh } from '../src/geometry.ts';
@@ -35,6 +34,11 @@ test('both skills share a monotonic fifty-level curve, retaining level ten at tw
   assert.ok(gym.state.xp > 12000);
   gym.gain(1e9);
   assert.equal(gym.status.level, 50);
+  const xp = gym.state.xp;
+  assert.ok(xp > 1e9);
+  assert.equal(createStrength({ xp }).state.xp, xp);
+  assert.equal(gym.train(2), null);
+  assert.equal(gym.state.xp, xp + 20);
 });
 test('player level gives Strength and Hitpoints equal weight and rounds down', () => {
   assert.equal(playerLevel(1, 1), 1);
@@ -44,13 +48,9 @@ test('player level gives Strength and Hitpoints equal weight and rounds down', (
   assert.equal(playerLevel(50, 49), 49);
   assert.equal(playerLevel(50, 50), 50);
 });
-test('Akibo has railgun damage and attack speed at every level, with seven-tile range and a one-in-twenty drop', () => {
-  for (let level = 1; level <= 50; level++)
-    assert.deepEqual(weaponDamageRange(level, 'akibo'), weaponDamageRange(level, 'railgun'));
-  assert.equal(ITEM_STATS.akibo.range, 7);
-  assert.equal(ITEM_STATS.akibo.interval, ITEM_STATS.railgun.interval);
+test('the Railgun scales with Strength and the Terminator drops Akimbos one time in twenty', () => {
   assert.ok(weaponDamageRange(50, 'railgun').max > weaponDamageRange(10, 'railgun').max);
-  const rolls = [0, 0, 0.05 - Number.EPSILON] satisfies [number, number, number];
+  const rolls = [0, 0, 0.05 - Number.EPSILON, 0.5];
   let loot = rollMonsterDrops('terminator', () => requiredFixture(rolls.shift()));
   assert.ok(loot.some((l) => l.itemId === 'akibo'));
   assert.ok(loot.some((l) => l.lootKind === 'peptides'));

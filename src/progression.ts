@@ -12,10 +12,9 @@ export const SKILL_THRESHOLDS = Object.freeze([
     ),
   ),
 ]);
-export function skillStatus(value: unknown) {
-  const xp = Number.isFinite(Number(value))
-    ? Math.max(0, Math.min(SKILL_THRESHOLDS.at(-1)!, Number(value)))
-    : 0;
+export function skillStatus(value: unknown, xpLimit = SKILL_THRESHOLDS.at(-1)!) {
+  const input = Number(value);
+  const xp = Number.isFinite(input) ? Math.max(0, Math.min(xpLimit, input)) : 0;
   let level = 1;
   while (level < PROGRESSION.maxLevel && xp >= SKILL_THRESHOLDS[level]) level++;
   const low = SKILL_THRESHOLDS[level - 1],

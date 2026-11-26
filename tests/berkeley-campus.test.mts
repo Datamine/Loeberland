@@ -9,6 +9,7 @@ import { LAB_SIGN } from '../src/berkeley-lab.ts';
 import { createCityLife } from '../src/life.ts';
 import { drawCharacter } from '../src/characters.ts';
 import { drawBicycle } from '../src/bicycle-model.ts';
+import { CEDAR_SAUNA } from '../src/cedar-sauna.ts';
 
 import {
   BERKELEY_CHURCH_ROOM,
@@ -157,6 +158,7 @@ test('the campus adjacency graph connects every lawn and path around solid build
         'institute',
         MAD_HOUSE.id,
         BERKELEY_CHURCH_ROOM.id,
+        CEDAR_SAUNA.id,
         ...campus.searchHomes.map(({ id }) => id),
       ].includes(building.id),
       building.id + ' walkable interior',

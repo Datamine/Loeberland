@@ -6,13 +6,16 @@ import { BURNING_MAN } from '../burning-man.ts';
 import { burningManDJ, drawBurningManGrove } from '../burning-man-models.ts';
 import { drawLegacySoftware } from '../legacy-software.ts';
 import { LEGACY_SOFTWARE } from '../legacy-software-layout.ts';
-import { inBerkeleyLab, LAB_FLOOR, LAB_SPAWNS, LAB_NAV, LAB_SIGN } from '../berkeley-lab.ts';
+import { LAB_SPAWNS, LAB_SIGN } from '../berkeley-lab.ts';
+import { combatDungeon, combatDungeonAt } from '../combat-dungeons.ts';
+import { GOBLIN_CITY_HALL, INCUBATOR_SPAWNS } from '../goblin-incubator-cave.ts';
+import { drawGoblinCityHall } from '../goblin-incubator-art.ts';
 import { DYNAMITE_DEPOT } from '../config/dynamite-depot.ts';
 import { drawDynamiteDepot } from '../dynamite-depot.ts';
 import { requirePlacedBuilding } from '../building-placement.ts';
 import type { ParcelRectangle } from '../types/parcels.ts';
 import type { HeightField } from '../southern-terrain.ts';
-import type { RenderedSite, Site, Place, WorldObject } from '../types/world.ts';
+import type { Actor, RenderedSite, Site, Place, WorldObject } from '../types/world.ts';
 import { hasPhysicalBounds, isPickTarget, requiredPhysicalObject } from '../picking.ts';
 import type { InstituteRoom, DetachedInterior } from '../types/interiors.ts';
 import { isFiniteNumber, isRecord } from '../types/json.ts';
@@ -27,7 +30,7 @@ import type { DestinationBuilding } from '../types/buildings.ts';
 import type { WorldContext } from './scene.ts';
 // CONTENT-BINDINGS-MIGRATED
 import { contentText, refreshContent, subscribeContent } from '../content-runtime.ts';
-import { BOLINAS, BOLINAS_BEACH } from '../bolinas.ts';
+import { BOLINAS, BOLINAS_BEACH, BOLINAS_LIFE_ROUTES, drawBolinasHomes } from '../bolinas.ts';
 import { POINT_REYES } from '../point-reyes.ts';
 import {
   DOG_PONY_SIGN,
@@ -54,11 +57,12 @@ import { nextLoadingPaint } from '../loading-screen.ts';
 import { createTeleportTablets } from '../teleport-tablets.ts';
 import { createMarinLand } from '../marin-land.ts';
 import { createCountryside } from '../countryside.ts';
-import { equipmentDefense } from '../item-stats.ts';
+import { equipmentDefense, invisibilityCloakEquipped } from '../item-stats.ts';
 import { createWilderness, wildernessSpawns } from '../wilderness.ts';
+import { drawOnodaIsland, onodaIslandHeight, ONODA_SHORE } from '../onoda-island.ts';
 import type { WildernessActor } from '../types/monsters.ts';
 import { drawPirateWreck } from '../wilderness-sites.ts';
-import { createFerrariCityRoads } from '../ferrari-roads.ts';
+import { createCityStreetDistance } from '../ferrari-roads.ts';
 import { drawFighterYard } from '../fighter-yard.ts';
 import { drawGirardHouse } from '../girard-house.ts';
 import { GIRARD_HOME } from '../girard-layout.ts';
@@ -112,7 +116,7 @@ import {
   runTileRuleTests,
 } from '../tiles.ts';
 import { createWaterTiles, applyWaterTile } from '../water-tiles.ts';
-import { shorelineSegments, westernCoastX, westernBeachWidth } from '../coastline.ts';
+import { insidePolygon, shorelineSegments, westernCoastX, westernBeachWidth } from '../coastline.ts';
 import { createCoastalRocks, drawCoastalRocks } from '../western-coast-details.ts';
 import { drawStreetLamp } from '../lighting.ts';
 import { DOWNTOWN, marketSide } from '../downtown.ts';
@@ -148,6 +152,7 @@ import {
   timesSquareWalkable,
   TIMES_SQUARE,
   inTimesSquare,
+  SOUTHERN_HOUSING,
 } from '../southern-layout.ts';
 import { createSouthernTerrain } from '../southern-terrain.ts';
 import { JURASSIC, COW_PEN, PEQUOD } from '../jurassic-layout.ts';
@@ -192,6 +197,20 @@ import {
 } from '../search-houses.ts';
 import { createLoreBookTarget } from '../world-lore.ts';
 import { TERMINATOR_FACTORY } from '../encounter-layout.ts';
+import { WEDDING_PLANNER } from '../config/wedding-planner.ts';
+import { FORMALWEAR_EXPERT } from '../config/formalwear.ts';
+import { FANCY_DRESS } from '../config/fancy-dress.ts';
+import { isRickHousePlot, RICK, RICK_HOUSE } from '../config/rick.ts';
+import { DEFENSE_WORKSHOP, isDefenseWorkshopPlot } from '../config/defense-workshop.ts';
+import { drawShrimpExperiment, shrimpScientist } from '../shrimp-experiment.ts';
+import { SHRIMP_EXPERIMENT } from '../config/shrimp-experiment.ts';
+import { GOBLIN_CATAPULT } from '../config/goblin-catapult.ts';
+import { drawCatapultFrame } from '../goblin-catapult.ts';
+import { BERKELEY_FISHING } from '../config/berkeley-fishing.ts';
+import { SCOOTER_MANUFACTURER } from '../config/scooter.ts';
+import { ARMOR_TRIMMER } from '../config/armor-trimmer.ts';
+import { drawScooterYard, SCOOTER_BILLBOARD } from '../scooter.ts';
+import { PYROMANIAC_PETER } from '../config/fireworks.ts';
 import { drawGoblinPhoneHut, GOBLIN_INDUSTRIALIST, ROBE_SELLER } from '../goblin-industrialist.ts';
 import { drawWaymoDispatch, WAYMO_DISPATCH_NAME } from '../waymo-dispatch.ts';
 import { drawAbandonedFactory } from '../encounter-buildings.ts';
@@ -217,6 +236,11 @@ import { RAIL_WORKER, drawRailWorks } from '../rail-works.ts';
 import { populateSouthernNeighborhood } from '../southern-neighborhood.ts';
 import { PACIFICA_PARK_RESIDENTS } from '../southern-expansion.ts';
 import { drawNeighborhoodGreens, PENINSULA_SIGNS } from '../peninsula-details.ts';
+import { drawBerkeleyPlanting } from '../berkeley-landscaping.ts';
+import { WAYWARD_CAMP_PARCELS } from '../config/wayward-camp.ts';
+import { drawWaywardCamp } from '../wayward-camp.ts';
+import { drawChurchBasement } from '../church-basement.ts';
+import { CHURCH_BASEMENT, inChurchBasement } from '../church-basement-layout.ts';
 import { rocketCruiseSpeed } from '../rocket.ts';
 import { createRegionalRoad, createGoldenGateCrossing } from '../regional-road.ts';
 import {
@@ -266,6 +290,8 @@ import { createTrafficSignals } from '../traffic-signals.ts';
 import { createSlowBus, planNightlifeBus } from '../slow-bus.ts';
 import { BUS_SIGNS, drawTrafficSignalPosts } from '../transit-models.ts';
 import { GPU_FACTORY_SIGNS, oceanBeachSandSite, drawGPUFactory } from '../gpu-factory.ts';
+import { LEATHER_JACKET } from '../config/leather-jacket.ts';
+import { TOMMY } from '../config/tommy.ts';
 import {
   buildNightlife,
   nightlifeObstacles,
@@ -288,6 +314,7 @@ import { createPoliceChase, drawDetentionFacility } from '../encounters.ts';
 import {
   EAST_BAY_SHORE,
   EAST_BAY_SHORELINE,
+  eastBayShoreX,
   REFERENCE_SIZE,
   PARK_BOUNDS,
   PANHANDLE,
@@ -315,16 +342,6 @@ export function createGeneration(context: WorldContext) {
   function placedBuilding(id: string): Place {
     return requirePlacedBuilding(context.places.find((place) => place.id === id));
   }
-  function insidePolygon(x: number, y: number, points: readonly (readonly number[])[]) {
-    let inside = false;
-    for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
-      const [ax, ay] = points[i],
-        [bx, by] = points[j];
-      if (ay > y !== by > y && x < ((bx - ax) * (y - ay)) / (by - ay) + ax) inside = !inside;
-    }
-    return inside;
-  }
-
   function distanceToSegment(x: number, y: number, a: number[], b: number[]) {
     const dx = b[0] - a[0],
       dy = b[1] - a[1],
@@ -853,6 +870,20 @@ export function createGeneration(context: WorldContext) {
       });
     }
     const founder = GOBLIN_INCUBATOR.founder;
+    const clerk = GOBLIN_CITY_HALL.clerk;
+    if (!context.merchants.some((npc) => npc.id === clerk.id))
+      context.merchants.push({
+        ...clerk,
+        kind: clerk.id,
+        label: clerk.name,
+        base: characterGround(clerk.x, clerk.z),
+        angle: Math.PI / 2,
+        approach: { ...GOBLIN_CITY_HALL.entry },
+        stationary: true,
+        regional: true,
+        height: 1.35,
+        description: 'A clerk with an official stamp and an unofficial appetite for live fish.',
+      });
     const industrialist = GOBLIN_INDUSTRIALIST;
     if (!context.merchants.some((npc) => npc.id === industrialist.id))
       context.merchants.push({
@@ -887,7 +918,8 @@ export function createGeneration(context: WorldContext) {
         shirt: '#dc6f9c',
         pants: '#7c4f6e',
         hair: '#392948',
-        description: 'A tailor selling pink robes with rainbow trim.',
+        hairstyle: 'broccoli',
+        description: 'A tailor selling rainbow-trimmed robes, jester hats, and quilted parkas.',
       });
     if (!context.merchants.some((npc) => npc.id === founder.id))
       context.merchants.push({
@@ -943,6 +975,7 @@ export function createGeneration(context: WorldContext) {
         ...inNOutBackyard(context.ferrari, 0.15, 9.85),
       },
       ...LAB_SPAWNS,
+      ...INCUBATOR_SPAWNS,
     );
     const bison = requiredValue(
         spawns.find((n) => n.combatKind === 'bison'),
@@ -972,16 +1005,15 @@ export function createGeneration(context: WorldContext) {
       );
       if (clear) Object.assign(p, { x: clear.x + 0.5, z: clear.y + 0.5 });
     }
-    for (const p of spawns)
-      if (
-        !(inBerkeleyLab(p.x, p.z)
-          ? LAB_NAV.free(p.x - 0.5, p.z - 0.5)
-          : context.landClearAt(p.x - 0.5, p.z - 0.5))
-      )
+    for (const p of spawns) {
+      const dungeon = combatDungeonAt(p.x, p.z);
+      if (!(dungeon?.nav.free(p.x - 0.5, p.z - 0.5) ??
+        context.landClearAt(p.x - 0.5, p.z - 0.5)))
         throw Error(p.id + ' needs a native walkable spawn');
+    }
     context.wilderness = createWilderness({
       spawns,
-      ground: (x, z) => (inBerkeleyLab(x, z) ? LAB_FLOOR + 0.025 : characterGround(x, z)),
+      ground: (x, z) => combatDungeonAt(x, z)?.floor ?? characterGround(x, z),
       canTravel: (a: { x: number; z: number }, b: { x: number; z: number }) =>
         context.canTravel(a.x - 0.5, a.z - 0.5, b.x - 0.5, b.z - 0.5, true),
       route: (a, b) =>
@@ -1045,6 +1077,7 @@ export function createGeneration(context: WorldContext) {
       routeTo: (x: number, y: number, from: Point | undefined) => context.pathTo(x, y, from, true),
       speed: ZOO_PURSUIT_SPEED,
       canPursue: () =>
+        !invisibilityCloakEquipped(context.playerLook) &&
         !context.ferrari?.state.riding &&
         !context.chase.state.jailed &&
         !context.rocket.state.active &&
@@ -1443,7 +1476,7 @@ export function createGeneration(context: WorldContext) {
           n.kind === 'biomed-entrepreneur' ||
           n.kind === 'enterprising-industrialist' ||
           n.kind === 'bolinas-local' ||
-          n.kind === 'churchgoer' ||
+          (n.kind === 'churchgoer' && !context.instituteRoomAt(n.x, n.z)) ||
           n.kind === 'battery-seller' ||
           n.kind === 'goblin-plumber' ||
           n.kind === GOBLIN_INDUSTRIALIST.id ||
@@ -1735,6 +1768,84 @@ export function createGeneration(context: WorldContext) {
         throw new Error('Missing quest alien ' + target.id);
   }
 
+  function setupRickHouse() {
+    const parcel = requiredValue(
+      SOUTHERN_HOUSING.find(isRickHousePlot),
+      'Rick’s lot opposite Yohji',
+    );
+    const { x, z, w, d, rotation } = parcel;
+    const bounds = { x: x - w / 2, y: z - d / 2, w, d, rotation };
+    const inside = buildingPoint(bounds, x, z + d / 2 - 0.7);
+    const entry = buildingPoint(bounds, x, z + d / 2 + 0.45);
+    const house: Place = {
+      ...bounds,
+      id: RICK_HOUSE.id,
+      name: RICK_HOUSE.name,
+      label: RICK_HOUSE.name,
+      kind: 'residence',
+      arch: 'granite-residence',
+      activityBuilding: true,
+      localDoor: x - 0.5,
+      inside: { x: inside[0] - 0.5, y: inside[1] - 0.5 },
+      entry: { x: entry[0] - 0.5, y: entry[1] - 0.5 },
+      color: '#777e85',
+      trim: '#31383f',
+      roof: 'flat',
+      worldHeight: 2.38,
+      description: 'Honed granite slabs, recessed glass, and a narrow light over the entrance.',
+    };
+    context.southernTerrain.cutPlot({
+      cx: x,
+      cz: z,
+      w,
+      d,
+      angle: rotation || 0,
+      height: terrainHeight(x, z),
+    });
+    planningPlaces().push(house);
+    context.makeBuilding(house, true);
+  }
+
+  function setupDefenseWorkshop() {
+    const { x, z, w, d, rotation } = requiredValue(
+      SOUTHERN_HOUSING.find(isDefenseWorkshopPlot),
+      'Defense Workshop lot',
+    );
+    const workshop: Place = {
+      id: DEFENSE_WORKSHOP.id,
+      name: DEFENSE_WORKSHOP.name,
+      label: DEFENSE_WORKSHOP.name,
+      description: DEFENSE_WORKSHOP.description,
+      kind: 'workshop',
+      arch: 'warehouse',
+      activityBuilding: true,
+      x: x - w / 2,
+      y: z - d / 2,
+      w,
+      d,
+      rotation,
+      localDoor: x - 0.5,
+      inside: { x: x - 0.5, y: z + d / 2 - 1.09 },
+      entry: { x: x - 0.5, y: z + d / 2 - 0.05 },
+      color: '#866e5f',
+      trim: '#414e4c',
+      signText: DEFENSE_WORKSHOP.sign,
+      roof: 'flat',
+      roofColor: '#545d5d',
+      worldHeight: 2.48,
+    };
+    context.southernTerrain.cutPlot({
+      cx: x,
+      cz: z,
+      w,
+      d,
+      angle: rotation || 0,
+      height: terrainHeight(x, z),
+    });
+    planningPlaces().push(workshop);
+    context.makeBuilding(workshop, true);
+  }
+
   function setupSearchHomes(campus?: NonNullable<typeof context.esotericCampus>) {
     const residences = campus
       ? campus.searchableResidences
@@ -1874,6 +1985,17 @@ export function createGeneration(context: WorldContext) {
     return site;
   }
 
+  function createWorldCountryside() {
+    return createCountryside({
+      road: context.regionalRoad,
+      campus: context.esotericCampus,
+      parcels: [
+        ...context.highwaySites.flatMap((site) => site.solidParcels || []),
+        ...WAYWARD_CAMP_PARCELS,
+      ],
+    });
+  }
+
   function setupRegionalWorld() {
     const register = (site: RenderedSite, mesh: Mesh) => {
       const regionalDescription =
@@ -1922,6 +2044,9 @@ export function createGeneration(context: WorldContext) {
       context.sights.push(sight);
       if (site.interior) registerInstituteInterior(sight, site.interior);
     };
+    const island = drawOnodaIsland(context.sceneMesh);
+    register(island.dock, context.sceneMesh);
+    context.objects.push(...island.cover);
     register(
       drawDynamiteDepot(context.sceneMesh, context.signs, characterGround),
       context.sceneMesh,
@@ -1997,7 +2122,24 @@ export function createGeneration(context: WorldContext) {
       0,
       0.25,
     );
+    // The Cultist's cottage samples the Marin terrain when its foundation is placed.
+    context.goldenGate = createGoldenGateCrossing({
+      scale: context.MAP_SCALE,
+      cityGate: context.sightById('golden')!.entry,
+      groundHeight: terrainHeight,
+      marinHeight: context.detention.terrain,
+    });
+    context.marinLand = createMarinLand({
+      polygon: context.MARIN,
+      scale: context.MAP_SCALE,
+      detention: context.detention,
+      gate: context.goldenGate.gate('marin'),
+    });
+    for (const site of drawBolinasHomes(context.sceneMesh, context.marinLand.height))
+      register(site, context.sceneMesh);
     setupSearchHomes();
+    setupRickHouse();
+    setupDefenseWorkshop();
     register(drawLegacySoftware(context.sceneMesh, context.signs), context.sceneMesh);
     const developer = LEGACY_SOFTWARE.developer;
     context.merchants.push({
@@ -2328,10 +2470,9 @@ export function createGeneration(context: WorldContext) {
             } catch {}
         },
         {
-          cityDriving: createFerrariCityRoads({
-            road: context.regionalRoad,
+          cityStreetDistanceSquared: createCityStreetDistance({
+            gate: context.regionalRoad.points[0],
             traffic: () => context.streetTraffic,
-            ground: characterGround,
           }),
         },
       ),
@@ -2354,6 +2495,9 @@ export function createGeneration(context: WorldContext) {
       context.highwayMesh,
     );
     context.merchants.push(context.esotericCampus.npc);
+    context.merchants.push(shrimpScientist(context.esotericCampus));
+    for (const site of drawShrimpExperiment(context.highwayMesh, context.esotericCampus))
+      register(site, context.highwayMesh);
     context.streetLights.push(...context.esotericCampus.drawStreetlights(context.highwayMesh));
     for (const home of context.esotericCampus.drawHomes(context.highwayMesh))
       register(home, context.highwayMesh);
@@ -2363,7 +2507,9 @@ export function createGeneration(context: WorldContext) {
       context.esotericCampus.drawChurch(context.highwayMesh, context.signs),
       context.highwayMesh,
     );
+    register(drawChurchBasement(context.highwayMesh), context.highwayMesh);
     context.merchants.push(
+      context.esotericCampus.saunaGuest,
       ...context.esotericCampus.churchgoers,
       ...context.esotericCampus.residents,
     );
@@ -2418,12 +2564,14 @@ export function createGeneration(context: WorldContext) {
     }
     if (neighborhood[4]) neighborhood[4].dogWalker = true;
     context.esotericCampus.life.update(0);
-    context.countryside = createCountryside({
-      road: context.regionalRoad,
-      campus: context.esotericCampus,
-      parcels: context.highwaySites.flatMap((s) => s.solidParcels || []),
-    });
+    context.countryside = createWorldCountryside();
     drawEastBayShoreDetails(context.highwayMesh, context.countryside.height);
+    const { esotericCampus, countryside } = context;
+    const eastBayGround = (x: number, z: number) =>
+      esotericCampus.coversGround(x, z) ? esotericCampus.base : countryside.height(x, z);
+    drawBerkeleyPlanting(context.highwayMesh, eastBayGround);
+    for (const site of drawWaywardCamp(context.highwayMesh, eastBayGround))
+      register(site, context.highwayMesh);
     context.sights.push({
       id: 'ferrari-car',
       kind: 'ferrari',
@@ -2434,18 +2582,6 @@ export function createGeneration(context: WorldContext) {
       },
       description: contentText('world.generation.setupRegionalWorld.description-56', {}),
     });
-    context.goldenGate = createGoldenGateCrossing({
-      scale: context.MAP_SCALE,
-      cityGate: context.sightById('golden')!.entry,
-      groundHeight: terrainHeight,
-      marinHeight: context.detention.terrain,
-    });
-    context.marinLand = createMarinLand({
-      polygon: context.MARIN,
-      scale: context.MAP_SCALE,
-      detention: context.detention,
-      gate: context.goldenGate.gate('marin'),
-    });
     register(
       drawGoblinAILab(context.sceneMesh, context.signs, context.marinLand.height),
       context.sceneMesh,
@@ -2454,6 +2590,23 @@ export function createGeneration(context: WorldContext) {
       drawFrogFarm(context.sceneMesh, context.signs, context.marinLand.height),
       context.sceneMesh,
     );
+    const { scientist: catapultScientist, landing: catapultLanding } = GOBLIN_CATAPULT;
+    const contraption = drawCatapultFrame(
+      context.sceneMesh,
+      context.marinLand.height,
+      context.esotericCampus.point(catapultLanding.u, catapultLanding.v),
+    );
+    register(contraption, context.sceneMesh);
+    context.merchants.push({
+      ...catapultScientist,
+      kind: catapultScientist.id,
+      label: catapultScientist.name,
+      base: characterGround(catapultScientist.x, catapultScientist.z),
+      angle: -1.78,
+      regional: true,
+      stationary: true,
+      height: 1.35,
+    });
     const farmer = FROG_FARM.farmer;
     context.merchants.push({
       ...farmer,
@@ -2495,6 +2648,12 @@ export function createGeneration(context: WorldContext) {
     for (const hut of GOBLIN_HUTS)
       register(drawGoblinRamp(context.sceneMesh, hut, context.marinLand.height), context.sceneMesh);
     register(context.marinLand.drawIncubator(context.sceneMesh), context.sceneMesh);
+    register(
+      drawGoblinCityHall(context.sceneMesh, context.signs, context.marinLand.height),
+      context.sceneMesh,
+    );
+    register(context.marinLand.drawCollectibleBush(context.sceneMesh), context.sceneMesh);
+    register(drawScooterYard(context.sceneMesh, context.signs, characterGround), context.sceneMesh);
     register(
       drawGoblinPhoneHut(context.sceneMesh, context.signs, context.marinLand.height),
       context.sceneMesh,
@@ -2729,6 +2888,64 @@ export function createGeneration(context: WorldContext) {
 
   function setupServiceNPCs() {
     setupSocialNPCs();
+    const armorTrimmer: Actor = {
+      ...ARMOR_TRIMMER,
+      kind: ARMOR_TRIMMER.id,
+      label: ARMOR_TRIMMER.name,
+      base: characterGround(ARMOR_TRIMMER.x, ARMOR_TRIMMER.z),
+      angle: Math.PI / 2,
+      skin: '#bd926d',
+      shirt: '#5d372d',
+      hair: '#3d2c20',
+      regional: true,
+      stationary: true,
+    };
+    context.merchants.push({
+      ...armorTrimmer,
+      approach: requiredValue(
+        context.regionalCitizenApproach(armorTrimmer),
+        'Armor Trimmer approach',
+      ),
+    });
+    const scooterMaker = {
+      ...SCOOTER_MANUFACTURER,
+      kind: SCOOTER_MANUFACTURER.id,
+      label: SCOOTER_MANUFACTURER.name,
+      base: characterGround(SCOOTER_MANUFACTURER.x, SCOOTER_MANUFACTURER.z),
+      angle: -Math.PI / 2,
+      skin: '#b88968',
+      shirt: '#42666b',
+      pants: '#344951',
+      hair: '#433329',
+      cap: true,
+      regional: true,
+      stationary: true,
+    };
+    context.merchants.push({
+      ...scooterMaker,
+      approach: requiredValue(
+        context.regionalCitizenApproach(scooterMaker),
+        'Scooter manufacturer approach',
+      ),
+    });
+    const peter = {
+      ...PYROMANIAC_PETER,
+      kind: PYROMANIAC_PETER.id,
+      label: PYROMANIAC_PETER.name,
+      base: characterGround(PYROMANIAC_PETER.x, PYROMANIAC_PETER.z),
+      angle: 2.55,
+      skin: '#b88969',
+      shirt: '#cc6c36',
+      pants: '#423e40',
+      hair: '#874a36',
+      hairstyle: 'short-curls',
+      cap: true,
+      stationary: true,
+    };
+    context.merchants.push({
+      ...peter,
+      approach: requiredValue(context.merchantApproach(peter), 'Pyromaniac Peter approach'),
+    });
     const agent = { x: 93.2, z: 122.2 };
     context.merchants.push({
       ...merchant('airship-agent', agent.x, agent.z, characterGround(agent.x, agent.z)),
@@ -2865,6 +3082,25 @@ export function createGeneration(context: WorldContext) {
       coat: true,
       angle: Math.PI / 2,
     });
+    const jacketSeller = LEATHER_JACKET.position;
+    context.merchants.push({
+      id: LEATHER_JACKET.seller,
+      kind: LEATHER_JACKET.seller,
+      name: LEATHER_JACKET.sellerName,
+      label: LEATHER_JACKET.sellerName,
+      ...jacketSeller,
+      base: characterGround(jacketSeller.x, jacketSeller.z),
+      angle: 1.87,
+      height: 1.8,
+      skin: '#bb9376',
+      hair: '#3e3933',
+      hairstyle: 'side-part',
+      pants: '#3b434f',
+      torso: LEATHER_JACKET.item,
+      regional: true,
+      stationary: true,
+      description: 'A salesman in fitted leather, watching the factory’s loading door.',
+    });
     const burger = requiredValue(
         context.sightById('in-n-out'),
         'Missing authored entity: in-n-out',
@@ -2977,6 +3213,10 @@ export function createGeneration(context: WorldContext) {
         label: 'in the goblin village',
       },
       cupertino: { x: cupertino.x + 0.5, z: cupertino.y + 0.5, label: 'at the Cupertino gardens' },
+      berkeley: {
+        ...requiredValue(context.esotericCampus, 'Berkeley campus').point(0.8, 2.65),
+        label: 'at the Berkeley Institute for Esoteric Studies',
+      },
       downtown: {
         x: downtown.x + 0.5,
         z: downtown.y + 0.5,
@@ -2998,6 +3238,9 @@ export function createGeneration(context: WorldContext) {
       onMessage: context.announce,
       onStart: () => {
         if (context.headless) return;
+        context.waveSurf.stop();
+        context.surf.reset(context.sightById('windsurf')?.entry);
+        context.updateSurfButton();
         context.multiplayerWorld?.stopFollowing(true);
         if (context.training) context.stopTraining();
         context.expeditions.stop();
@@ -3012,6 +3255,8 @@ export function createGeneration(context: WorldContext) {
         context.questMenu?.close();
         context.dialogue.close();
         context.keys.clear();
+        context.action = null;
+        context.destination = null;
         context.player.path = [];
         context.player.speed = 0;
         context.player.motion = 0;
@@ -3036,9 +3281,8 @@ export function createGeneration(context: WorldContext) {
     });
   }
 
-  function setupYohji() {
-    const house = placedBuilding(requiredValue(SEARCH_HOMES.at(-1), 'Yohji home').id),
-      center = buildingPoint(house, house.x + house.w * 0.52, house.y + house.d * 0.52);
+  function interiorMerchantPosition(house: Place, name: string) {
+    const center = buildingPoint(house, house.x + house.w * 0.52, house.y + house.d * 0.52);
     const spot = context.airship.nearest(
         center[0] - 0.5,
         center[1] - 0.5,
@@ -3056,7 +3300,14 @@ export function createGeneration(context: WorldContext) {
             Math.hypot(x - spot.x, y - spot.y) > 0.8 &&
             context.canTravel(x, y, spot.x, spot.y, true),
         );
-    if (!spot || !approach) throw Error('Yohji needs a reachable room and conversation approach');
+    if (!spot || !approach)
+      throw new Error(name + ' needs a reachable room and conversation approach');
+    return { spot, approach };
+  }
+
+  function setupYohji() {
+    const house = placedBuilding(requiredValue(SEARCH_HOMES.at(-1), 'Yohji home').id);
+    const { spot, approach } = interiorMerchantPosition(house, 'Yohji');
     context.merchants.push({
       id: 'yohji',
       kind: 'yohji',
@@ -3077,6 +3328,69 @@ export function createGeneration(context: WorldContext) {
       height: 1.95,
       description: contentText('world.generation.setupYohji.description-78', {}),
     });
+  }
+
+  function setupRick() {
+    const house = placedBuilding(RICK_HOUSE.id);
+    const { spot, approach } = interiorMerchantPosition(house, RICK.name);
+    context.merchants.push({
+      ...RICK,
+      kind: RICK.id,
+      label: RICK.name,
+      interior: house,
+      approach,
+      x: spot.x + 0.5,
+      z: spot.y + 0.5,
+      base: characterGround(spot.x + 0.5, spot.y + 0.5),
+      angle: Math.PI / 2 + (house.rotation || 0),
+      stationary: true,
+      skin: '#b3937e',
+      hair: '#27272b',
+      hairstyle: 'side-part',
+      shirt: '#252d34',
+      pants: '#353c41',
+      height: 1.88,
+    });
+  }
+
+  function setupDefenseWorkshopStaff() {
+    const workshop = placedBuilding(DEFENSE_WORKSHOP.id);
+    const { manufacturer, assistant } = DEFENSE_WORKSHOP;
+    const base = requiredValue(workshop.object?.base, 'Workshop floor') + 0.045;
+    context.merchants.push(
+      {
+        ...manufacturer,
+        kind: manufacturer.id,
+        label: manufacturer.name,
+        interior: workshop,
+        base,
+        angle: Math.PI / 2,
+        stationary: true,
+        skin: '#a77c61',
+        hair: '#4e4a45',
+        hairstyle: 'side-part',
+        shirt: '#5b6567',
+        pants: '#494845',
+        torso: 'kevlar-vest',
+        height: 1.96,
+      },
+      {
+        ...assistant,
+        kind: assistant.id,
+        label: assistant.name,
+        interior: workshop,
+        base,
+        angle: Math.PI / 3,
+        stationary: true,
+        female: true,
+        skin: '#855c49',
+        hair: '#322c28',
+        hairstyle: 'bob',
+        shirt: '#a76d3e',
+        pants: '#3c484a',
+        height: 1.79,
+      },
+    );
   }
 
   function setupGreenBank() {
@@ -3178,6 +3492,96 @@ export function createGeneration(context: WorldContext) {
       topHat: 'shirt',
       height: 1.95,
       angle: lodge.rotation || 0,
+    });
+    const weddingSpot = context.nearestNavigation(
+      19.3 * context.MAP_SCALE - 0.5,
+      56.5 * context.MAP_SCALE - 0.5,
+      2.5,
+      (x: number, y: number) =>
+        !context.placeAt(x, y) && context.cityNavigation.connected(context.player, { x, y }),
+    );
+    if (!weddingSpot) throw Error('The Wedding Planner needs a reachable spot in the Sunset');
+    const x = weddingSpot.x + 0.5,
+      z = weddingSpot.y + 0.5;
+    context.merchants.push({
+      id: WEDDING_PLANNER,
+      kind: WEDDING_PLANNER,
+      name: 'Wedding Planner',
+      label: 'Wedding Planner',
+      description: 'A wedding planner who carries tailoring pins and a sword case.',
+      x,
+      z,
+      base: characterGround(x, z),
+      angle: Math.PI / 2,
+      stationary: true,
+      female: true,
+      skin: '#ba8c69',
+      hair: '#3c292d',
+      hairstyle: 'long',
+      shirt: '#e4c2c4',
+      pants: '#573855',
+    });
+    const expert = FORMALWEAR_EXPERT;
+    const formalSpot = context.nearestNavigation(
+      expert.x - 0.5,
+      expert.z - 0.5,
+      1.5,
+      (x: number, y: number) =>
+        !context.placeAt(x, y) && context.cityNavigation.connected(context.player, { x, y }),
+    );
+    if (!formalSpot)
+      throw Error('The Formalwear Expert needs a walkable spot beside the townhouses');
+    context.merchants.push({
+      id: expert.id,
+      kind: expert.id,
+      name: expert.name,
+      label: expert.name,
+      description: 'The cuffs sit exactly at his wrists. He notices when yours do not.',
+      x: formalSpot.x + 0.5,
+      z: formalSpot.y + 0.5,
+      base: characterGround(formalSpot.x + 0.5, formalSpot.y + 0.5),
+      angle: Math.PI / 2,
+      stationary: true,
+      skin: '#9d7155',
+      hair: '#464849',
+      hairstyle: 'swept-back',
+      shirt: '#383b42',
+    });
+    context.merchants.push({
+      id: FANCY_DRESS.id,
+      kind: FANCY_DRESS.id,
+      name: FANCY_DRESS.name,
+      label: FANCY_DRESS.name,
+      x: FANCY_DRESS.x,
+      z: FANCY_DRESS.z,
+      approach: { x: FANCY_DRESS.x - 0.5, y: FANCY_DRESS.z + 0.5 },
+      base: characterGround(FANCY_DRESS.x, FANCY_DRESS.z),
+      angle: Math.PI / 2,
+      stationary: true,
+      skin: '#b38666',
+      hair: '#45352a',
+      shirt: '#584067',
+      hat: FANCY_DRESS.outfit.hat,
+      description: 'The merchant models the outfit while holding a polished bowling ball.',
+    });
+    context.merchants.push({
+      id: TOMMY.id,
+      kind: TOMMY.id,
+      name: TOMMY.name,
+      label: TOMMY.name,
+      x: TOMMY.x,
+      z: TOMMY.z,
+      base: characterGround(TOMMY.x, TOMMY.z),
+      angle: Math.PI / 2,
+      height: 1.8,
+      stationary: true,
+      skin: '#d3b19b',
+      hair: '#252023',
+      hairstyle: 'long',
+      longHair: true,
+      pants: '#282830',
+      torso: LEATHER_JACKET.item,
+      description: 'A man in a leather jacket with long dark hair and a familiar laugh.',
     });
     context.peptideSpawns = peptideSpawnPoints(
       store,
@@ -3572,6 +3976,49 @@ export function createGeneration(context: WorldContext) {
       description: contentText('world.generation.setupFishing.description-95', {}),
     };
     context.sights.push(context.fishingSite);
+  }
+
+  function setupBerkeleyFishing() {
+    const shoreZ = BERKELEY_FISHING.z;
+    const shoreX = eastBayShoreX(shoreZ) + 0.8;
+    const entry = { x: shoreX - 0.5, y: shoreZ - 0.5 };
+    const water = { x: eastBayShoreX(shoreZ + 0.12) - 1.5, z: shoreZ + 0.12 };
+    if (!context.landClearAt(entry.x, entry.y) || !context.surf.water(water.x, water.z))
+      throw new Error('Berkeley fishing needs a clear shoreline and open water');
+    context.sights.push({
+      id: BERKELEY_FISHING.id,
+      kind: 'fishing',
+      label: 'Berkeley Shore Fishing',
+      entry,
+      x: shoreX,
+      z: shoreZ,
+      base: characterGround(shoreX, shoreZ),
+      water,
+      description: 'A bait bucket sits on the bank. Fish are feeding just offshore.',
+    });
+    const z = shoreZ + 1.7;
+    const x = eastBayShoreX(z) + 1.85;
+    context.merchants.push({
+      id: BERKELEY_FISHING.vendor,
+      kind: BERKELEY_FISHING.vendor,
+      name: 'Shoreline Mariner',
+      label: 'Shoreline Mariner',
+      x,
+      z,
+      base: characterGround(x, z),
+      approach: { x: x + 0.27 - 0.5, y: z + 0.7 - 0.5 },
+      angle: Math.PI * 0.47,
+      stationary: true,
+      regional: true,
+      skin: '#b28361',
+      hair: '#a7aba4',
+      shirt: '#263e50',
+      pants: '#55534c',
+      cap: true,
+      coat: true,
+      height: 1.88,
+      description: 'The mariner wears a weathered peacoat and a whole albatross.',
+    });
   }
 
   function setupBunny() {
@@ -4412,6 +4859,7 @@ export function createGeneration(context: WorldContext) {
       ...TECH_SIGNS,
       WAYMO_DISPATCH_NAME,
       ...HABERDASHER_SIGNS,
+      DEFENSE_WORKSHOP.sign,
       ...SALT_FLATS_SIGNS,
       ...GPU_FACTORY_SIGNS,
       ...BUS_SIGNS,
@@ -4423,6 +4871,8 @@ export function createGeneration(context: WorldContext) {
       'Presidio',
       FURNITURE_FACTORY.name,
       FROG_FARM.name,
+      GOBLIN_CITY_HALL.name,
+      SCOOTER_BILLBOARD,
       GOBLIN_INDUSTRIALIST.name,
       GOBLIN_AI_LAB.name,
       GOBLIN_SPACE_PROGRAM.name,
@@ -4535,8 +4985,15 @@ export function createGeneration(context: WorldContext) {
   }
 
   function terrainHeight(x: number, z: number): number {
+    if (inChurchBasement(x, z)) return CHURCH_BASEMENT.floor;
+    const island = onodaIslandHeight(x, z);
+    if (island !== null) return island;
     if (context.esotericCampus?.coversGround(x, z)) return context.esotericCampus.ground();
-    if (context.countryside?.contains(x, z)) return context.countryside.height(x, z);
+    if (
+      context.countryside &&
+      (context.countryside.contains(x, z) || context.esotericCampus?.contains(x, z))
+    )
+      return context.countryside.height(x, z);
     if (context.marinLand?.onLand(x, z)) return context.marinLand.height(x, z);
     return sampleTerrain(context.heights, x, z);
   }
@@ -4572,7 +5029,11 @@ export function createGeneration(context: WorldContext) {
 
   function characterGround(x: number, z: number): number {
     if (context.secretWorld?.kind === 'illuminati') return ILLUMINATI_CAVE.floor + 0.025;
-    if (context.secretWorld?.kind === 'berkeley-lab') return LAB_FLOOR + 0.025;
+    const dungeon = combatDungeonAt(x, z);
+    if (dungeon) return dungeon.floor;
+    if (inChurchBasement(x, z)) return CHURCH_BASEMENT.floor + INSTITUTE_FLOOR_HEIGHT;
+    const island = onodaIslandHeight(x, z);
+    if (island !== null) return island + 0.008;
     if (onSouthBeachPier(x, z)) {
       // Planks meet the sloping bank where the top of the deck clears the ground.
       const bank = terrainHeight(x, z) + (TILE_TYPES[surfaceTypeAt(x, z)]?.height || 0);
@@ -4583,6 +5044,14 @@ export function createGeneration(context: WorldContext) {
         (context.esotericCampus && searchHomeContaining(x, z, context.esotericCampus.searchHomes)),
       residence = home && planningPlaces().find((p) => p.id === home.id);
     if (residence?.object) return requiredValue(residence.object.base, 'house floor') + 0.045;
+    if (
+      Math.abs(x - DEFENSE_WORKSHOP.plot.x) < 2.1 &&
+      Math.abs(z - DEFENSE_WORKSHOP.plot.z) < 1.5
+    ) {
+      const workshop = context.placeAt(x - 0.5, z - 0.5);
+      if (workshop?.id === DEFENSE_WORKSHOP.id && workshop.object?.base !== undefined)
+        return workshop.object.base + 0.045;
+    }
     const institute = context.instituteRoomAt(x, z);
     if (institute) return institute.base + INSTITUTE_FLOOR_HEIGHT;
     if (gymAccess(x, z)) return SF_FITNESS.base + 0.065;
@@ -4597,7 +5066,7 @@ export function createGeneration(context: WorldContext) {
       );
     const road = context.goldenGate?.at(x, z) || context.regionalRoad?.at(x, z);
     if (road) return road.height + 0.015;
-    if (context.esotericCampus?.contains(x, z)) return context.esotericCampus.ground();
+    if (context.esotericCampus?.coversGround(x, z)) return context.esotericCampus.ground();
     if (context.tahoe.contains(x, z)) return tahoeHeight(x, z) + 0.04;
     if (z >= context.N && context.airship.contains(x, z)) return airportWalkingHeight(x, z);
     const type = surfaceTypeAt(x, z);
@@ -4622,6 +5091,8 @@ export function createGeneration(context: WorldContext) {
   function playerGround(ignoreCustody = false): number {
     if (
       (context.multiplayerWorld?.selfMode === 'depotLaunch' ||
+        context.multiplayerWorld?.selfMode === GOBLIN_CATAPULT.mode ||
+        context.multiplayerWorld?.selfMode === SHRIMP_EXPERIMENT.mode ||
         context.multiplayerWorld?.selfMode === 'streetcar') &&
       context.multiplayerWorld.followingGround !== null
     )
@@ -4635,7 +5106,8 @@ export function createGeneration(context: WorldContext) {
     if (context.secretWorld?.bomber.state.active)
       return context.secretWorld.bomber.state.position.y;
     if (context.secretWorld?.kind === 'illuminati') return ILLUMINATI_CAVE.floor + 0.025;
-    if (context.secretWorld?.kind === 'berkeley-lab') return LAB_FLOOR + 0.025;
+    const dungeon = combatDungeon(context.secretWorld?.kind);
+    if (dungeon) return dungeon.floor;
     if (context.multiplayerWorld?.traversing)
       return requiredValue(context.multiplayerWorld.ground, 'multiplayer traversal elevation');
     if (
@@ -4940,6 +5412,7 @@ export function createGeneration(context: WorldContext) {
     context.seaBounds = createSeaSurface(m, [
       { polygon: context.sailingCoast, width: 2.8 },
       { polygon: context.MARIN, width: 2.2 },
+      { polygon: ONODA_SHORE, width: 1 },
       {
         polygon: [
           ...EAST_BAY_SHORELINE,
@@ -5749,7 +6222,8 @@ export function createGeneration(context: WorldContext) {
   }
 
   function surfaceTypeAt(x: number, z: number) {
-    if (context.countryside?.contains(x, z)) return 'grass';
+    if (context.esotericCampus?.coversGround(x, z)) return context.esotericCampus.surfaceType(x, z);
+    if (context.countryside?.contains(x, z) || context.esotericCampus?.contains(x, z)) return 'grass';
     if (context.marinLand?.onLand(x, z))
       return context.marinLand.contains(x, z) ? 'grass' : 'building';
     const m = context.worldTiles,
@@ -5955,6 +6429,33 @@ export function createGeneration(context: WorldContext) {
       for (let xx = x; xx < x + w; xx++)
         if (!context.isWalkable(xx, yy) || context.reserved[yy * context.N + xx]) return false;
     return true;
+  }
+
+  function setupPoliceChase() {
+    context.chase = context.clientController(
+      'police',
+      createPoliceChase({
+        player: context.player,
+        routeTo: (x, y, from = context.player) => context.officerRoute(x, y, from),
+        nearest: (x, y, r, predicate) => {
+          const px = context.player.x + 0.5;
+          const pz = context.player.y + 0.5;
+          if (context.marinLand?.contains(px, pz))
+            return context.marinLand.nearest(x, y, r, predicate);
+          if (context.esotericCampus?.contains(px, pz))
+            return context.esotericCampus.nearest(x, y, r, predicate);
+          if (context.airship.contains(px, pz))
+            return context.airship.nearest(x, y, r, predicate);
+          return context.nearestNavigation(x, y, r, predicate);
+        },
+        canCapture: (o: { x: number; y: number }, p: { x: number; y: number }) =>
+          !context.rocket.state.active &&
+          !context.flying() &&
+          ((context.surf.water(o.x + 0.5, o.y + 0.5) && context.surf.water(p.x + 0.5, p.y + 0.5)) ||
+            context.canTravel(o.x, o.y, p.x, p.y)),
+        onArrest: () => context.beginCapture('police', context.arrestPlayer),
+      }),
+    );
   }
 
   function snapshotStaticWorld(): StaticWorldSnapshot {
@@ -6176,10 +6677,9 @@ export function createGeneration(context: WorldContext) {
           } catch {}
         },
         {
-          cityDriving: createFerrariCityRoads({
-            road: context.regionalRoad,
+          cityStreetDistanceSquared: createCityStreetDistance({
+            gate: context.regionalRoad.points[0],
             traffic: () => context.streetTraffic,
-            ground: characterGround,
           }),
         },
       ),
@@ -6190,11 +6690,7 @@ export function createGeneration(context: WorldContext) {
     context.esotericCampus.npc =
       context.merchants.find((n) => n.id === context.esotericCampus.npc.id) ||
       context.esotericCampus.npc;
-    context.countryside = createCountryside({
-      road: context.regionalRoad,
-      campus: context.esotericCampus,
-      parcels: context.highwaySites.flatMap((s) => s.solidParcels || []),
-    });
+    context.countryside = createWorldCountryside();
     context.goldenGate = createGoldenGateCrossing({
       scale: context.MAP_SCALE,
       cityGate: context.sightById('golden')!.entry,
@@ -6211,25 +6707,7 @@ export function createGeneration(context: WorldContext) {
     mark('Regional routes');
     context.expeditions.setHarbor(data.harbor);
     context.surf.state.shore = { ...context.sightById('windsurf')!.entry };
-    context.chase = context.clientController(
-      'police',
-      createPoliceChase({
-        player: context.player,
-        routeTo: (x, y, from = context.player) => context.officerRoute(x, y, from),
-        nearest: (x, y, r, p) =>
-          context.marinLand?.contains(context.player.x + 0.5, context.player.y + 0.5)
-            ? context.marinLand.nearest(x, y, r, p)
-            : context.airship.contains(context.player.x + 0.5, context.player.y + 0.5)
-              ? context.airship.nearest(x, y, r, p)
-              : context.nearestNavigation(x, y, r, p),
-        canCapture: (o: { x: number; y: number }, p: { x: number; y: number }) =>
-          !context.rocket.state.active &&
-          !context.flying() &&
-          ((context.surf.water(o.x + 0.5, o.y + 0.5) && context.surf.water(p.x + 0.5, p.y + 0.5)) ||
-            context.canTravel(o.x, o.y, p.x, p.y)),
-        onArrest: () => context.beginCapture('police', context.arrestPlayer),
-      }),
-    );
+    setupPoliceChase();
     // These initialize presentation/services, not placed world geometry.
     const removeSights = new Set([
       'painted-bunny',
@@ -6249,6 +6727,8 @@ export function createGeneration(context: WorldContext) {
     setupMonkeyEscape();
     setupTabletWizard();
     setupYohji();
+    setupRick();
+    setupDefenseWorkshopStaff();
     mark('Services');
     const uniqueMerchants = new Map(context.merchants.map((n) => [n.id, n]));
     replace(context.merchants, [...uniqueMerchants.values()]);
@@ -6590,29 +7070,12 @@ export function createGeneration(context: WorldContext) {
       },
     });
     context.surf.state.shore = { ...context.sightById('windsurf')!.entry };
-    context.chase = context.clientController(
-      'police',
-      createPoliceChase({
-        player: context.player,
-        routeTo: (x, y, from = context.player) => context.officerRoute(x, y, from),
-        nearest: (x, y, r, p) =>
-          context.marinLand?.contains(context.player.x + 0.5, context.player.y + 0.5)
-            ? context.marinLand.nearest(x, y, r, p)
-            : context.airship.contains(context.player.x + 0.5, context.player.y + 0.5)
-              ? context.airship.nearest(x, y, r, p)
-              : context.nearestNavigation(x, y, r, p),
-        canCapture: (o: { x: number; y: number }, p: { x: number; y: number }) =>
-          !context.rocket.state.active &&
-          !context.flying() &&
-          ((context.surf.water(o.x + 0.5, o.y + 0.5) && context.surf.water(p.x + 0.5, p.y + 0.5)) ||
-            context.canTravel(o.x, o.y, p.x, p.y)),
-        onArrest: () => context.beginCapture('police', context.arrestPlayer),
-      }),
-    );
+    setupPoliceChase();
     yield [61, 'Placing landmarks and adventures…'] satisfies [number, string];
     setupAirshipTerminal();
     setupMerchants();
     setupRegionalWorld();
+    setupBerkeleyFishing();
     drawWildernessSigns();
     setupWilderness();
     setupGuildSites();
@@ -6647,6 +7110,8 @@ export function createGeneration(context: WorldContext) {
     setupServiceNPCs();
     setupTabletWizard();
     setupYohji();
+    setupRick();
+    setupDefenseWorkshopStaff();
     drawDetentionFacility(context.sceneMesh, context.detention);
     context.jailStaff = detentionStaff(context.detention);
     yield [72, 'Texturing the terrain…'] satisfies [number, string];
@@ -6808,6 +7273,7 @@ export function createGeneration(context: WorldContext) {
       ...context.pedestrianNavigation,
       visible: context.actorInView,
       routes: clipLifeRoutes(context.worldTiles.routes, -Infinity, 78),
+      authoredRoutes: BOLINAS_LIFE_ROUTES,
       surfaceType: surfaceTypeAt,
       lamps: context.objects.filter((o) => o.lamp).map((o) => o.lamp!),
       terrainHeight,

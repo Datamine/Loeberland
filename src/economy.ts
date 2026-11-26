@@ -6,14 +6,17 @@ import type { EconomyState } from './types/content.ts';
 import { MERCHANTS } from './config/npcs.ts';
 import { GAMEPLAY } from './config/gameplay.ts';
 import { hatById } from './hat-catalog.ts';
-import { ITEM_STATS, EQUIPMENT_IDS } from './item-stats.ts';
+import { ITEM_STATS, EQUIPMENT_IDS, baseEquipmentId, equipmentOwned } from './item-stats.ts';
 import { COIN_REWARD_TRADES, TRADE_PRICES } from './config/economy.ts';
 import { FISH_PER_MUD } from './goblin-space-layout.ts';
+import { LEATHER_JACKET } from './config/leather-jacket.ts';
+import { TOMMY } from './config/tommy.ts';
 export { MERCHANTS };
 export { TRADE_PRICES };
 export function createEconomy(
   savedInput: unknown = {},
   onChange: (value: EconomyState) => void = () => {},
+  equippedTorso: () => string | undefined = () => undefined,
 ): Economy {
   const saved = isRecord(savedInput) ? savedInput : {};
 
@@ -28,6 +31,8 @@ export function createEconomy(
     fish: integer(saved.fish, 0),
     mud: integer(saved.mud, 0),
     sand: integer(saved.sand, 0),
+    sandDelivered: integer(saved.sandDelivered, 0),
+    spoonDigs: integer(saved.spoonDigs, 0) % TOMMY.digsPerBonus,
     saltLetters: Math.min(1, integer(saved.saltLetters, 0)),
     saltLettersDelivered: integer(saved.saltLettersDelivered, 0),
     ownedHats: Array.isArray(saved.ownedHats)
@@ -49,6 +54,7 @@ export function createEconomy(
       saved.incomeQuarters < 4
         ? saved.incomeQuarters
         : 0,
+    incomeExtraTwentieths: integer(saved.incomeExtraTwentieths, 0) % 5,
     ownedEquipment: [],
   };
   state.ownedEquipment = Array.isArray(saved.ownedEquipment)
@@ -67,7 +73,7 @@ export function createEconomy(
         ok: false,
         message: contentText('world-message.src.economy.that-item-is-not-for-sale'),
       };
-    if (state.ownedEquipment.includes(id))
+    if (equipmentOwned(state, baseEquipmentId(id)))
       return {
         ok: false,
         message: contentText('world-message.src.economy.you-already-own-this-item'),
@@ -90,10 +96,22 @@ export function createEconomy(
     };
   }
   function income(amount: number) {
-    if (!state.iphoneEquipped) return { earned: amount, bonus: 0, remainder: state.incomeQuarters };
-    const quarters = (amount % 4) + state.incomeQuarters,
-      bonus = Math.floor(amount / 4) + Math.floor(quarters / 4);
-    return { earned: amount + bonus, bonus, remainder: quarters % 4 };
+    const phone = state.iphoneEquipped ? 25 : 0;
+    const jacket =
+      equippedTorso() === LEATHER_JACKET.item && state.ownedEquipment.includes(LEATHER_JACKET.item)
+        ? LEATHER_JACKET.bonusPercent
+        : 0;
+    // Both rates, including their product, are exact in twentieths of a coin.
+    const rate = ((100 + phone) * (100 + jacket) - 10_000) / 500;
+    const pending = state.incomeQuarters * 5 + state.incomeExtraTwentieths;
+    const twentieths = (amount % 20) * rate + pending;
+    const bonus = Math.floor(amount / 20) * rate + Math.floor(twentieths / 20);
+    return { earned: amount + bonus, bonus, remainder: twentieths % 20 };
+  }
+  function carryIncome(remainder: number) {
+    // Keep the legacy quarter-coin carry and store the extra twentieths alongside it.
+    state.incomeQuarters = Math.floor(remainder / 5);
+    state.incomeExtraTwentieths = remainder % 5;
   }
   function trade(kind: string, quantity = 1) {
     if (kind === 'sales-software-sale' && !state.softwareCopies)
@@ -134,11 +152,16 @@ export function createEconomy(
     type Counter = {
       [K in keyof EconomyState]: EconomyState[K] extends number ? K : never;
     }[keyof EconomyState];
+    const usesSpoon = kind === 'collect-sand' && state.ownedEquipment.includes(TOMMY.spoon);
+    const bonusSand = usesSpoon && state.spoonDigs === TOMMY.digsPerBonus - 1;
     const stock: Record<string, Partial<Record<Counter, number>>> = {
       ...COIN_REWARD_TRADES,
       'sales-software-buy': { coins: -TRADE_PRICES.salesSoftware, softwareCopies: 1 },
       'salt-letter-collect': { saltLetters: 1 },
-      'collect-sand': { sand: 1 },
+      'collect-sand': {
+        sand: bonusSand ? 2 : 1,
+        spoonDigs: usesSpoon ? (bonusSand ? -state.spoonDigs : 1) : 0,
+      },
       'catch-fish': { fish: 1 },
       'collect-mud': { mud: 1 },
       'mud-for-fish': { mud: -quantity, fish: quantity * FISH_PER_MUD },
@@ -191,8 +214,9 @@ export function createEconomy(
       };
     for (const [key, delta] of Object.entries(changes) as [Counter, number][]) state[key] += delta;
     if (kind === 'incubator-equity') state.incubatorEquityBought = true;
-    if (award) state.incomeQuarters = award.remainder;
+    if (award) carryIncome(award.remainder);
     onChange({ ...state });
+    if (bonusSand) return { ok: true, message: 'Bonus sand! Your spoon helps you dig faster.' };
     return award ? { ok: true, earned: award.earned, bonus: award.bonus } : { ok: true };
   }
   function buyHat(id: string) {
@@ -229,15 +253,24 @@ export function createEconomy(
     onChange({ ...state, ownedHats: [...state.ownedHats] });
     return { ok: true };
   }
-  function credit(amount: unknown) {
-    if (!isSafeInteger(amount) || amount < 0) return { ok: false };
-    const award = income(amount);
-    if (!Number.isSafeInteger(award.earned) || !Number.isSafeInteger(state.coins + award.earned))
+  function canCredit(amount: number) {
+    return (
+      isSafeInteger(amount) &&
+      amount >= 0 &&
+      Number.isSafeInteger(state.coins + income(amount).earned)
+    );
+  }
+  function credit(amount: unknown, principal = 0) {
+    if (!isSafeInteger(amount) || amount < 0 || !isSafeInteger(principal) || principal < 0)
       return { ok: false };
-    state.coins += award.earned;
-    state.incomeQuarters = award.remainder;
+    const award = income(amount);
+    const total = award.earned + principal;
+    if (!Number.isSafeInteger(total) || !Number.isSafeInteger(state.coins + total))
+      return { ok: false };
+    state.coins += total;
+    carryIncome(award.remainder);
     onChange({ ...state });
-    return { ok: true, earned: award.earned, bonus: award.bonus };
+    return { ok: true, earned: total, bonus: award.bonus };
   }
   function buyPhone() {
     if (state.iphoneOwned)
@@ -300,6 +333,7 @@ export function createEconomy(
   return {
     state,
     trade,
+    canCredit,
     credit,
     buyHat,
     buyEquipment,

@@ -23,6 +23,33 @@ const cover = TAHOE_TREES.find(
   (p) => Math.abs(p.x - TAHOE.base.x + 13) < 0.1 && Math.abs(p.z - TAHOE.base.z + 7) < 0.1,
 );
 
+test('the four Tahoe giants scale health and attack power with their authored levels', () => {
+  const expected = {
+    'tahoe-giant-0': { level: 23, hp: 193, damage: 13 },
+    'tahoe-giant-1': { level: 32, hp: 292, damage: 19 },
+    'tahoe-giant-2': { level: 27, hp: 237, damage: 15 },
+    'tahoe-giant-3': { level: 18, hp: 138, damage: 11 },
+  };
+  const hits = new Map<string, number>();
+  const game = createWilderness({
+    spawns,
+    onDamage: (_person, damage, actor) => hits.set(actor.id, damage),
+  });
+  for (const [id, { level, hp }] of Object.entries(expected)) {
+    const actor = requiredFixture(game.actors.find((giant) => giant.id === id));
+    assert.equal(actor.level, level, id);
+    assert.equal(actor.max, hp, id);
+    assert.equal(actor.hp, hp, id);
+  }
+  const people = game.actors.map((actor) => ({
+    id: 'near-' + actor.id,
+    x: actor.x + 0.6,
+    z: actor.z,
+  }));
+  for (let i = 0; i < 80; i++) game.update(0.05, people);
+  for (const [id, { damage }] of Object.entries(expected)) assert.equal(hits.get(id), damage, id);
+});
+
 test('unprovoked aggression from both giant species still allows tree safespots', () => {
   for (const kind of ['snow-giant', 'ice-giant'] satisfies [string, string]) {
     assert.ok(cover != null, 'Missing test fixture: cover');

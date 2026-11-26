@@ -4,82 +4,86 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createServerMovement } from '../movement.mts';
 import { createRegionalRoad } from '../../src/regional-road.ts';
+import type { ServerEvent } from '../../src/types/network.ts';
 
-test('the server clamps raw off-road destinations and never routes a Ferrari through pedestrian grass', async (t) => {
+test('the server parks at the San Francisco bridge limit, dismounts once, and allows driving back', async (t) => {
   const road = createRegionalRoad({
-      route: [
-        [0, 1, 0] satisfies [number, number, number],
-        [20, 1, 0] satisfies [number, number, number],
-        [20, 1, -20] satisfies [number, number, number],
-      ],
-    }),
-    traffic = {
-      nodes: [
-        { x: 0, z: 0, neighbors: [1] },
-        { x: 0, z: 10, neighbors: [0, 2] satisfies [number, number] },
-        { x: 10, z: 10, neighbors: [1] },
-      ],
-      edges: [
-        { from: 0, to: 1, length: 10, street: 'Test road' },
-        { from: 1, to: 2, length: 10, street: 'Test road' },
-      ],
-    };
+    route: [
+      [0, 1, 0] satisfies [number, number, number],
+      [20, 1, 0] satisfies [number, number, number],
+      [20, 1, -20] satisfies [number, number, number],
+    ],
+  });
+  const traffic = {
+    nodes: [
+      { x: 0, z: 0, neighbors: [1] },
+      { x: 0, z: 10, neighbors: [0, 2] },
+      { x: 10, z: 10, neighbors: [1] },
+    ],
+    edges: [
+      { from: 0, to: 1, length: 10, street: 'Test road' },
+      { from: 1, to: 2, length: 10, street: 'Test road' },
+    ],
+  };
   const { game } = await fixture();
   t.after(() => game.close());
-  const { p } = await player(game, 44001);
-  Object.assign(p, {
-    id: p.id,
-    x: 0,
-    z: 0,
-    y: 1,
-    hp: 30,
-    phase: 0,
-    angle: 0,
-    profile: p.profile,
+  const { p } = await player(game, 44001, {
+    'sf-ferrari-v1': '{"owned":true,"distance":10,"fuel":1}',
   });
-  const players = new Map([[p.id, p]]);
-  const geometry = {
-    ...fixtureGeometry(),
-    regionalRoad: road,
-    streetTraffic: traffic,
-    characterGround: () => 1,
-    pathTo: () => assert.fail('driving must never consult pedestrian navigation'),
-  };
+  Object.assign(p, { x: 10, z: 0, y: 1 });
+  const messages: ServerEvent[] = [];
   const movement = createServerMovement({
-    geometry,
+    geometry: {
+      ...fixtureGeometry(),
+      regionalRoad: road,
+      streetTraffic: traffic,
+      characterGround: () => 1,
+      pathTo: () => assert.fail('driving must never consult pedestrian navigation'),
+    },
     routes: game.routes,
-    players,
-    send: () => {},
+    players: new Map([[p.id, p]]),
+    send: (_player, message) => messages.push(message as ServerEvent),
     dirty: () => {},
     now: () => 0,
     following: { ...game.following, stop: () => false, owns: () => false },
   });
+
+  const car = requiredFixture(movement.state(p).ferrari);
+  const parking = car.sample(car.cityParking);
   assert.equal(movement.activity(p, { mode: 'ferrari' }).ok, true);
-  const result = movement.move(p, { x: 9, z: 9 });
-  assert.deepEqual(result, { ok: true, goal: { x: 9, z: 10 } });
-  for (
-    let i = 0;
-    i < 200 && requiredFixture(movement.state(p).ferrari).state.target !== null;
-    i++
-  ) {
-    movement.tick(0.025);
-    assert.ok(
-      road.contains(p.x, p.z) ||
-        (Math.abs(p.x) < 1e-8 && p.z >= 0 && p.z <= 10) ||
-        (Math.abs(p.z - 10) < 1e-8 && p.x >= 0 && p.x <= 10),
-      'the server pose must stay on streets',
-    );
+  assert.deepEqual(movement.move(p, { x: 9, z: 9 }), {
+    ok: true,
+    goal: { x: parking.x, z: parking.z },
+  });
+  for (let i = 0; i < 100; i++) {
+    movement.tick(0.05);
+    assert.ok(car.state.distance >= car.cityParking);
+    assert.ok(road.contains(p.x, p.z));
   }
-  assert.equal(p.x, 9);
-  assert.equal(p.z, 10);
+  assert.equal(p.mode, 'walk');
+  assert.equal(movement.state(p).mode, 'walk');
+  assert.equal(p.moving, false);
+  assert.equal(car.state.riding, false);
+  assert.equal(car.state.distance, car.cityParking);
+  assert.equal(p.x, parking.x);
+  assert.equal(p.z, parking.z);
+  const notices = messages.flatMap((message) => (message.type === 'notice' ? [message.message] : []));
+  assert.equal(notices.length, 1);
+  assert.match(notices[0], /Ferrari doesn't work in San Francisco/);
+  const handoff = requiredFixture(messages.find((message) => message.type === 'position'));
+  assert.equal(handoff.reason, 'ferrariDismount');
+  assert.equal(handoff.x, parking.x);
+  assert.equal(JSON.parse(p.profile.privateState['sf-ferrari-v1']).distance, car.cityParking);
+
+  assert.equal(movement.activity(p, { mode: 'ferrari' }).ok, true);
   assert.equal(movement.move(p, { x: 25, z: -8 }).ok, true);
-  requiredFixture(movement.state(p).ferrari).refuel();
-  for (let i = 0; i < 200; i++) {
+  car.refuel();
+  for (let i = 0; i < 200 && car.state.target !== null; i++) {
     movement.tick(0.025);
-    const car = movement.state(p).ferrari;
-    if (requiredFixture(car).state.empty) requiredFixture(car).refuel();
-    else if (requiredFixture(car).state.target === null) break;
+    assert.ok(road.contains(p.x, p.z));
+    if (car.state.empty) car.refuel();
   }
   assert.equal(p.x, 20);
   assert.equal(p.z, -8);
+  assert.equal(p.mode, 'ferrari');
 });

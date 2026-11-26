@@ -276,7 +276,7 @@ export function createDialogue({
           continue;
         controls.append(button(choice.label, () => choose(choice)));
       }
-      controls.append(button(current.decline || 'Leave', cancel));
+      if (current.decline !== false) controls.append(button(current.decline || 'Leave', cancel));
     } else if (stage === 'pending') {
       const thinking = button('Thinking…', () => {});
       thinking.disabled = true;
@@ -322,16 +322,18 @@ export function createDialogue({
     if (navigationOnly) {
       element.dataset.layout = 'navigation';
       if (labels.length === 1 && labels[0] === 'leave') controls.dataset.leaveOnly = '';
-      element.append(portrait, copy, controls);
     } else {
       delete element.dataset.layout;
-      if (!amount) copy.append(controls);
-      element.append(portrait, copy);
     }
+    if (stage === 'choices') copy.append(controls);
+    element.append(portrait, copy);
+    if (!amount && stage !== 'choices') element.append(controls);
     const input = amount && !committed ? element.querySelector('input') : null;
-    (input || element.querySelector<HTMLButtonElement>('button:not([disabled])'))?.focus({
-      preventScroll: true,
-    });
+    if (input) input.focus();
+    else
+      element.querySelector<HTMLButtonElement>('button:not([disabled])')?.focus({
+        preventScroll: true,
+      });
   }
   function open(person: RuntimeDialogue, portrait?: (canvas: HTMLCanvasElement) => void) {
     if (!canInteract()) return false;
@@ -371,9 +373,7 @@ export function createDialogue({
     ) {
       event.preventDefault();
       const step = key === 'arrowup' || key === 'arrowleft' ? -1 : 1;
-      buttons[index < 0 ? 0 : (index + step + buttons.length) % buttons.length]?.focus({
-        preventScroll: true,
-      });
+      buttons[index < 0 ? 0 : (index + step + buttons.length) % buttons.length]?.focus();
       return true;
     }
     if (key === 'enter') {
@@ -389,7 +389,7 @@ export function createDialogue({
         (!event.shiftKey && index === buttons.length - 1)
       ) {
         event.preventDefault();
-        (event.shiftKey ? buttons.at(-1) : first)?.focus({ preventScroll: true });
+        (event.shiftKey ? buttons.at(-1) : first)?.focus();
       }
       return true;
     }

@@ -1,4 +1,5 @@
 import { requiredFixture } from './helpers/required.mts';
+import { createHash } from 'node:crypto';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createExpeditions, scientistDialogue, ahabDialogue } from '../src/jurassic.ts';
@@ -6,8 +7,12 @@ import { dialogueChoices } from '../src/dialogue-choices.ts';
 import { createHitpoints } from '../src/combat.ts';
 import { createEconomy } from '../src/economy.ts';
 import { createDeli } from '../src/deli.ts';
-import { ITEM_STATS } from '../src/item-stats.ts';
-import { MISSILE_EFFECT_SECONDS, MISSILE_BURST_SECONDS } from '../src/config/gameplay.ts';
+import { EQUIPMENT_IDS, ITEM_STATS, itemLoot } from '../src/item-stats.ts';
+import { MONSTER_DROPS } from '../src/config/monster-drops.ts';
+import { characterEquipmentMesh } from '../src/characters.ts';
+import { ENERGY_BOLT_SECONDS, MISSILE_FLIGHT_SECONDS } from '../src/config/gameplay.ts';
+import { projectileEffect } from '../src/projectile-models.ts';
+import { AKIMBO_SHOT_GAP, SHOT_BODY_HEIGHT } from '../src/ranged-weapon-mounts.ts';
 import { JURASSIC, PEQUOD, KRAKEN_CAPE_TEXT } from '../src/jurassic-layout.ts';
 import { Mesh, rayTriangleAt } from '../src/geometry.ts';
 import {
@@ -18,11 +23,11 @@ import {
   drawCattlePen,
   drawSpectre,
   drawPequod,
-  drawKraken,
   drawBeam,
   drawKrakenCape,
-  drawExpeditionLoot,
 } from '../src/jurassic-models.ts';
+import { drawGroundItem } from '../src/ground-item-models.ts';
+import { drawKraken, sampleKraken } from '../src/kraken-model.ts';
 import type { ExpeditionProgress } from '../src/types/content.ts';
 import type { ExpeditionEvent } from '../src/types/expeditions.ts';
 
@@ -56,6 +61,46 @@ const shoot = (
   return g.shoot(target, { x: target.x + 4, z: target.z, base: 0 }, 'railgun');
 };
 
+test('monster drops and equipment render distinct ground models from their item IDs', () => {
+  const items = new Set([
+    ...EQUIPMENT_IDS,
+    ...Object.values(MONSTER_DROPS).flatMap((rules) =>
+      rules.flatMap((rule) => rule.choose ?? (rule.item ? [rule.item] : [])),
+    ),
+    'iphone',
+    'light-crystal',
+  ]);
+  const hashes = new Map<string, string>();
+  for (const id of items) {
+    const mesh = new Mesh();
+    drawGroundItem(mesh, { ...itemLoot(id), x: 3, z: 7 }, 2, 0);
+    assert.ok(mesh.data.length && mesh.data.every(Number.isFinite), id);
+    const hash = createHash('sha256').update(JSON.stringify(mesh.data)).digest('hex');
+    assert.ok(!hashes.has(hash), id + ' uses the same model as ' + hashes.get(hash));
+    hashes.set(hash, id);
+  }
+});
+
+test('the dropped iron cuirass uses the worn chestplate, shoulders and metal palette', () => {
+  const mesh = new Mesh();
+  const worn = characterEquipmentMesh('top', { torso: 'iron-armor' });
+  drawGroundItem(mesh, { ...itemLoot('iron-armor'), x: 4, z: 9 }, 3, 0);
+  assert.equal(mesh.data.length, worn.length);
+  for (let i = 0; i < worn.length; i += 11) {
+    assert.ok(mesh.data[i + 1] > 3, 'the armor should sit on the ground surface');
+    assert.deepEqual(mesh.data.slice(i + 6, i + 11), worn.slice(i + 6, i + 11));
+    const [x, y, z] = worn.slice(i, i + 3);
+    const [u, v, w] = worn.slice(0, 3);
+    const sourceDistance = Math.hypot(x - u, y - v, z - w);
+    const groundDistance = Math.hypot(
+      mesh.data[i] - mesh.data[0],
+      mesh.data[i + 1] - mesh.data[1],
+      mesh.data[i + 2] - mesh.data[2],
+    );
+    assert.ok(Math.abs(sourceDistance - groundDistance) < 1e-9);
+  }
+});
+
 test('kraken spoils remain within reach on open deck and can be picked past the ship’s mast', () => {
   const { game } = setup({ saved: { raptor: 'completed', railgun: true, krakenDefeated: true } });
   game.board();
@@ -77,7 +122,7 @@ test('kraken spoils remain within reach on open deck and can be picked past the 
       ]),
     );
   drawPequod(ship, game.ship, 0, signs);
-  drawExpeditionLoot(coins, loot, PEQUOD.deck, 0);
+  drawGroundItem(coins, loot, PEQUOD.deck, 0);
   assert.ok(coins.data.every(Number.isFinite));
   const origin = [game.ship.x + 18.64, 20.23, game.ship.z + 2.54] satisfies [
       number,
@@ -158,9 +203,10 @@ test('railgun range, cooldown, collision and immunity cannot be bypassed; shooti
   const { game: g, events } = setup({ saved: { raptor: 'completed', railgun: true } });
   g.update(1);
   const cow = g.cows[0];
-  assert.equal(g.shoot(cow, { x: cow.x + 5.01, z: cow.z }).ok, false);
-  assert.equal(g.shoot(cow, { x: cow.x + 5, z: cow.z }).damage, 10);
-  assert.equal(g.shoot(cow, { x: cow.x + 5, z: cow.z }).cooldown, true);
+  const range = ITEM_STATS.railgun.range;
+  assert.equal(g.shoot(cow, { x: cow.x + range + 0.01, z: cow.z }).ok, false);
+  assert.equal(g.shoot(cow, { x: cow.x + range, z: cow.z }).damage, 10);
+  assert.equal(g.shoot(cow, { x: cow.x + range, z: cow.z }).cooldown, true);
   g.state.cooldown = 0;
   const ghost = { id: 'alien', label: 'Alien', combatKind: 'spectre', x: 0, z: 0, hp: 36 };
   assert.equal(g.shoot(ghost, { x: 0, z: 4 }).damage, 0);
@@ -294,6 +340,106 @@ test('Ahab requires an unlocked railgun; 140 boss hits deplete 1,400 HP and yiel
   assert.match(ahabDialogue({ name: 'Ahab' }, setup().game, false).intro, /railgun/);
   assert.equal(KRAKEN_CAPE_TEXT, 'I Killed the Kraken and All I Got Was This Lousy Cape');
 });
+test('returning to a defeated Kraken restores a pending crystal without rerolling', () => {
+  let received = 0;
+  for (const pending of [true, false]) {
+    const { game, saved } = setup({
+      saved: {
+        raptor: 'completed',
+        railgun: true,
+        krakenDefeated: true,
+        krakenCrystalPending: pending,
+      },
+      random: () => assert.fail('Approaching a defeated Kraken must not reroll loot'),
+      receiveCrystal: () => {
+        received++;
+        return { ok: true };
+      },
+    });
+    assert.ok(game.board().ok);
+    game.update(6);
+    assert.equal(game.state.loot.some((item) => item.lootKind === 'light-crystal'), pending);
+    const spoils = requiredFixture(game.state.loot.find((item) => item.lootKind === 'kraken'));
+    assert.ok(game.collect(spoils).ok);
+    assert.equal(game.state.loot.length, 0);
+    assert.equal(saved.at(-1)?.krakenCrystalPending, false);
+  }
+  assert.equal(received, 1);
+});
+
+test('Kraken windups, alternating strikes, enrage, and sinking follow the combat clock', () => {
+  const { game, health, events } = setup({ saved: { raptor: 'completed', railgun: true } });
+  health.state.hp = health.state.max = 1000;
+  assert.equal(game.board().ok, true);
+  game.update(6);
+  const { kraken } = game,
+    animation = kraken.animation,
+    first = requiredFixture(animation.strikeAt);
+  assert.equal(animation.emergedAt, game.state.clock);
+  assert.equal(sampleKraken(animation, game.state.clock).rise, 0);
+  const windup = sampleKraken(animation, first - 0.3);
+  assert.ok(windup.coil > 0.8);
+  assert.equal(windup.reach, 0);
+  assert.equal(windup.both, false);
+  assert.equal(sampleKraken(animation, first).reach, 1);
+  const raisedArms = (time: number) => {
+    const mesh = new Mesh(),
+      end = requiredFixture(drawKraken(mesh, kraken, time));
+    assert.ok(mesh.data.every(Number.isFinite));
+    const sides = new Set<number>();
+    for (let i = 0; i < end; i += 11) {
+      const y = mesh.data[i + 1],
+        z = mesh.data[i + 2] - kraken.z;
+      if (y > 2.6 && Math.abs(z) > 1.4) sides.add(Math.sign(z));
+    }
+    return sides.size;
+  };
+  assert.equal(raisedArms(first - 0.2), 1);
+
+  game.update(first - game.state.clock);
+  assert.equal(events.filter((e) => e.type === 'damage').length, 1);
+  assert.deepEqual(animation.lastStrike, { at: game.state.clock, enraged: false });
+  const next = requiredFixture(animation.strikeAt);
+  assert.equal(sampleKraken(animation, next - 0.3).side, -windup.side);
+
+  kraken.hp = kraken.max / 2;
+  game.update(0.05);
+  assert.equal(animation.enragedAt, game.state.clock);
+  const enragedStrike = requiredFixture(animation.strikeAt);
+  assert.ok(enragedStrike < next);
+  assert.equal(sampleKraken(animation, enragedStrike - 0.3, kraken.enraged).both, true);
+  assert.equal(raisedArms(enragedStrike - 0.2), 2);
+  game.update(enragedStrike - game.state.clock);
+  assert.equal(events.filter((e) => e.type === 'damage').length, 2);
+  assert.deepEqual(animation.lastStrike, { at: game.state.clock, enraged: true });
+
+  kraken.hp = 1;
+  assert.equal(shoot(game, kraken).ok, true);
+  assert.equal(kraken.hp, 0);
+  assert.equal(animation.defeatedAt, game.state.clock);
+  assert.equal(animation.strikeAt, undefined);
+  assert.ok(drawKraken(new Mesh(), kraken, game.state.clock + 0.8));
+  const afterSink = new Mesh();
+  assert.equal(drawKraken(afterSink, kraken, game.state.clock + 2), null);
+  assert.equal(afterSink.data.length, 0);
+});
+
+test('the Kraken waits to strike a cloaked player until they fire', () => {
+  const { game, health } = setup({
+    saved: { raptor: 'completed', railgun: true },
+    hiddenFromMonsters: () => true,
+  });
+  assert.equal(game.board().ok, true);
+  game.update(12);
+  assert.equal(game.ship.phase, 'fighting');
+  assert.equal(game.kraken.animation.strikeAt, undefined);
+  assert.equal(health.state.hp, health.state.max);
+  assert.equal(shoot(game, game.kraken).ok, true);
+  game.update(3.6);
+  assert.equal(game.kraken.animation.strikes, 1);
+  assert.ok(health.state.hp < health.state.max);
+});
+
 test('automatic ranged attacks remain frame-rate independent against the level-60 kraken', () => {
   const run = (step: number) => {
     const { game: g, p, health } = setup({ saved: { raptor: 'completed', railgun: true } });
@@ -311,7 +457,7 @@ test('automatic ranged attacks remain frame-rate independent against the level-6
   const small = run(1 / 60),
     large = run(0.2);
   assert.deepEqual(small, large);
-  assert.equal(small.boss, 1290);
+  assert.equal(small.boss, 1400 - (1 + Math.floor(8 / ITEM_STATS.railgun.interval)) * 10);
   assert.ok(small.hp > 0);
   assert.equal(small.phase, 'fighting');
 });
@@ -334,44 +480,102 @@ test('all expedition models and cape inscriptions produce finite geometry within
   drawCattlePen(mesh, () => 0);
   drawSpectre(mesh, { id: 'alien', label: 'Alien', x: 0, z: 0 }, 400);
   drawPequod(mesh, { x: 0, z: 0 }, 400, signs);
-  drawKraken(mesh, { x: 0, z: 0 }, 400);
+  drawKraken(mesh, { x: 0, z: 0 }, 0.4);
   drawBeam(mesh, { from: { x: 0, y: 1, z: 0 }, to: { x: 4, y: 1, z: 0 }, ttl: 0.22 });
   drawKrakenCape(mesh, 0, 0, 0, 0, 400, signs);
   assert.ok(mesh.data.every(Number.isFinite));
   assert.ok(mesh.data.length / 33 < 26000, 'new models stay in the shared mesh batch');
 });
 
-test('Akibo shots occupy a small volume moving along the shot path', () => {
-  const from = { x: 0, y: 1, z: 0 };
+test('each Akimbo bolt leaves its own muzzle on a separate firing beat', () => {
+  const from = { x: 0, y: SHOT_BODY_HEIGHT, z: 0 };
   const to = { x: 4, y: 1, z: 0 };
-  for (const [ttl, center] of [
-    [0.165, 1],
-    [0.055, 3],
-  ]) {
+  const shot = projectileEffect('akibo', from, to);
+  const [right, left] = requiredFixture(shot.muzzles);
+  assert.ok(right[2] < -0.2 && left[2] > 0.2);
+  assert.ok(right[0] > 0.65 && left[0] > 0.65);
+  const points = (age: number) => {
     const mesh = new Mesh();
-    drawBeam(mesh, { from, to, ttl, weapon: 'akibo' });
-    const xPositions = mesh.data.filter((_, i) => i % 11 === 0);
-    assert.ok(xPositions.length > 0);
-    assert.ok(xPositions.every((x) => Math.abs(x - center) < 0.1));
+    drawBeam(mesh, { ...shot, ttl: shot.ttl - age });
+    assert.ok(mesh.data.every(Number.isFinite));
+    return mesh.data.filter((_, index) => index % 11 < 3);
+  };
+  const first = points(0);
+  const firstLateral = first.filter((_, index) => index % 3 === 2);
+  assert.ok(firstLateral.length > 0 && firstLateral.every((z) => z < 0));
+  const second = points(AKIMBO_SHOT_GAP + 0.006);
+  for (const muzzle of [right, left]) {
+    const side = second.filter((_, index) => index % 3 === 0 &&
+      Math.sign(second[index + 2]) === Math.sign(muzzle[2]));
+    assert.ok(side.length > 0);
+    if (muzzle === right) assert.ok(Math.max(...side) > right[0] + 1);
+    else assert.ok(Math.min(...side) < left[0] + 0.12);
+  }
+  const turned = projectileEffect('akibo', from, { x: 0, y: 1, z: 4 });
+  for (const [i, muzzle] of requiredFixture(turned.muzzles).entries()) {
+    const original = requiredFixture(shot.muzzles)[i];
+    assert.ok(Math.abs(muzzle[0] + original[2]) < 1e-6);
+    assert.ok(Math.abs(muzzle[2] - original[0]) < 1e-6);
   }
 });
 
-test('missiles reach twice the railgun range and render a moving trail and impact', () => {
-  const range = ITEM_STATS['missile-launcher'].range;
-  assert.equal(range, ITEM_STATS.railgun.range * 2);
-  const from = { x: 0, y: 1.14, z: 0 };
-  const to = { x: range, y: 1.14, z: 0 };
-  function bounds(ttl: number) {
+test('railgun traces advance from the barrel then spark at the point of impact', () => {
+  const shot = projectileEffect('railgun', { x: 0, y: SHOT_BODY_HEIGHT, z: 0 }, { x: 6, y: 1, z: 0 });
+  const barrel = requiredFixture(shot.muzzles)[0];
+  assert.ok(barrel[0] > 0.9);
+  function maxX(age: number) {
     const mesh = new Mesh();
-    drawBeam(mesh, { from, to, ttl, weapon: 'missile-launcher' });
+    drawBeam(mesh, { ...shot, ttl: shot.ttl - age });
+    return Math.max(...mesh.data.filter((_, i) => i % 11 === 0));
+  }
+  assert.ok(maxX(0.035) > barrel[0] + 1 && maxX(0.035) < 6);
+  assert.ok(maxX(0.11) > 6);
+});
+
+test('EMF lightning forks before reaching its target and sparks on impact', () => {
+  const shot = projectileEffect('emf-lightning', { x: 0, y: 1.2, z: 0 }, { x: 6, y: 1, z: 0 });
+  const positions = (age: number) => {
+    const mesh = new Mesh();
+    drawBeam(mesh, { ...shot, ttl: shot.ttl - age });
+    assert.ok(mesh.data.length > 0 && mesh.data.every(Number.isFinite), 'valid lightning mesh');
+    return mesh.data.filter((_, index) => index % 11 < 3);
+  };
+  const flight = positions(ENERGY_BOLT_SECONDS * 0.6);
+  assert.ok(
+    Math.max(...flight.filter((_, index) => index % 3 === 0)) < shot.to.x - 1,
+    'the lightning tip advances toward the target during flight',
+  );
+  assert.ok(
+    flight.some((value, index) => index % 3 === 2 && Math.abs(value) > 0.3),
+    'the lightning branches sideways',
+  );
+  const impact = positions(ENERGY_BOLT_SECONDS + 0.04);
+  assert.ok(
+    Math.max(...impact.filter((_, index) => index % 3 === 0)) > shot.to.x + 0.1,
+    'impact sparks extend past the target',
+  );
+});
+
+test('missiles launch from the tube with rear exhaust, a smoke trail and an impact burst', () => {
+  const range = ITEM_STATS['missile-launcher'].range;
+  const shot = projectileEffect(
+    'missile-launcher',
+    { x: 0, y: SHOT_BODY_HEIGHT, z: 0 },
+    { x: range, y: 1.14, z: 0 },
+  );
+  assert.ok(requiredFixture(shot.exhaust)[0] < 0);
+  assert.ok(requiredFixture(shot.muzzles)[0][0] > 0.5);
+  function bounds(age: number) {
+    const mesh = new Mesh();
+    drawBeam(mesh, { ...shot, ttl: shot.ttl - age });
     assert.ok(mesh.data.every(Number.isFinite));
     const xs = mesh.data.filter((_, i) => i % 11 === 0);
     return { min: Math.min(...xs), max: Math.max(...xs) };
   }
-  const launch = bounds(MISSILE_EFFECT_SECONDS);
-  const flight = bounds((MISSILE_EFFECT_SECONDS + MISSILE_BURST_SECONDS) / 2);
-  const impact = bounds(MISSILE_BURST_SECONDS / 2);
-  assert.ok(launch.min > 0 && launch.max < 1);
+  const launch = bounds(0.025);
+  const flight = bounds(MISSILE_FLIGHT_SECONDS / 2);
+  const impact = bounds(MISSILE_FLIGHT_SECONDS + 0.07);
+  assert.ok(launch.min < -0.4 && launch.max > 0.7 && launch.max < 2);
   assert.ok(flight.max > range / 2 && flight.max - flight.min > 1.5);
-  assert.ok(impact.min > range - 0.5 && impact.max > range + 0.2);
+  assert.ok(impact.min > range - 1 && impact.max > range + 0.2);
 });

@@ -214,6 +214,7 @@ test('editor item saves change equipment defense and sign saves preserve atlas s
   const source = await readContent();
   const catalog = projectCatalog(source);
   const item = requiredFixture(catalog.items.find(({ key }) => key === 'item:combat-boots'));
+  const albatross = requiredFixture(catalog.items.find(({ key }) => key === 'item:albatross'));
   const sign = requiredFixture(
     catalog.labels.find(({ key }) => key === 'world-label.sign.Mazarine%20Coffee'),
   );
@@ -227,18 +228,19 @@ test('editor item saves change equipment defense and sign saves preserve atlas s
     before: defense,
     after: String(newDefense),
   };
-  assert.throws(() => planEditorWrite(catalog, source, [{ ...change, after: '-1' }]), /item field/);
   assert.throws(
     () => planEditorWrite(catalog, source, [{ ...change, after: '' }]),
     /finite number/,
   );
   const next = planEditorWrite(catalog, source, [
     change,
+    { ...change, record: albatross.key, before: albatross.fields.defense, after: '-6' },
     { record: sign.key, path: ['template'], before: sign.template, after: 'Mazarine Test' },
   ]);
   try {
     installContent(next);
     assert.equal(equipmentDefense({ boots: true }), newDefense);
+    assert.equal(equipmentDefense({ neck: 'albatross' }), -6);
     assert.equal(authoredSignLabel('Mazarine Coffee'), 'Mazarine Test');
     assert.deepEqual([...authoredSignSlots([])], slots);
   } finally {
@@ -446,12 +448,12 @@ test('industrial armorer inspection includes both quantity offers and quest stoc
       return (
         choices.some(
           (choice) =>
-            choice.label === 'Buy Akimbo ammo · 5 coins per 20 rounds' &&
+            choice.label === 'Buy Akimbo ammo · 45 coins per 20 rounds' &&
             choice.action === 'world.interactions.offer.action-2:buyAmmo',
         ) &&
         choices.some(
           (choice) =>
-            choice.label === 'Buy missiles · 50 coins each' &&
+            choice.label === 'Buy missiles · 9 coins each' &&
             choice.action === 'combat-supplies.armorer.buy-missiles',
         )
       );

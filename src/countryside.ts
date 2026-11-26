@@ -37,7 +37,7 @@ export function createCountryside({
 }) {
   const b = TAHOE_BOUNDS,
     bounds = {
-      west: EAST_BAY_COAST_X + 0.18,
+      west: EAST_BAY_COAST_X + EAST_BAY_SHORE.walkClearance,
       east: b.east + 256,
       north: b.north - 256,
       south: Math.max(...road.points.map((p) => p.z)) + 256,
@@ -76,7 +76,7 @@ export function createCountryside({
   const inBounds = (p: Point) =>
     isFiniteNumber(p.x) &&
     isFiniteNumber(p.y) &&
-    p.x >= eastBayShoreX(p.y) + 0.18 &&
+    p.x >= eastBayShoreX(p.y) + EAST_BAY_SHORE.walkClearance &&
     p.x <= bounds.east &&
     p.y >= bounds.north &&
     p.y <= bounds.south;
@@ -122,7 +122,7 @@ export function createCountryside({
     const south = Math.min(EAST_BAY_SHORE.south, Math.max(a.y, b.y));
     for (let z = Math.ceil(north / step) * step; z <= south; z += step) {
       const t = (z - a.y) / (b.y - a.y);
-      if (a.x + (b.x - a.x) * t < eastBayShoreX(z) + 0.18) return false;
+      if (a.x + (b.x - a.x) * t < eastBayShoreX(z) + EAST_BAY_SHORE.walkClearance) return false;
     }
     return true;
   }

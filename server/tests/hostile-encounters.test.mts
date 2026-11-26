@@ -109,6 +109,78 @@ test('server-driven aggression selects nearby eligible players and causes shared
   }
 });
 
+test('an equipped invisibility cloak prevents proximity aggression and drops an existing pursuit', async (t) => {
+  let now = 100_000;
+  const game = await createGame({
+    geometry: geometry(),
+    store: createMemoryStore(),
+    random: () => 0.5,
+    now: () => now,
+  });
+  t.after(() => game.close());
+  const a = await player(game, 763, {
+    'sf-purse-v1': JSON.stringify({ ownedEquipment: ['invisibility-cloak'] }),
+    'sf-character-v1': '{"back":"invisibility-cloak"}',
+  });
+  const b = await player(game, 764);
+  const [outlaw] = game.shared.wilderness.actors;
+  const changeBack = async (back: string) => {
+    now += 1000;
+    game.receive(a.p, {
+      type: 'checkpoint',
+      inventoryEpoch: a.p.inventory.meta.epoch,
+      privateState: { 'sf-character-v1': JSON.stringify({ back }) },
+    });
+    await a.p.queue;
+    assert.equal(a.p.appearance.back, back);
+  };
+  assert.equal(a.p.appearance.back, 'invisibility-cloak');
+  Object.assign(a.p, { x: outlaw.x - 0.9, z: outlaw.z });
+  Object.assign(b.p, { x: outlaw.x - 15, z: outlaw.z });
+  game.tick(0.05);
+  assert.equal(outlaw.enemy, null);
+
+  await changeBack('none');
+  game.tick(0.05);
+  assert.equal(outlaw.enemy, a.p.id, 'owning the cloak alone is insufficient');
+  await changeBack('invisibility-cloak');
+  game.tick(0.05);
+  assert.equal(outlaw.enemy, null);
+
+  b.p.x = outlaw.x - 2;
+  game.tick(0.05);
+  assert.equal(outlaw.enemy, b.p.id, 'the outlaw can still choose the visible player');
+  assert.equal(a.p.hp, 30);
+
+  await command(game, a.p, 'attack', { id: outlaw.id, weapon: 'unarmed' });
+  assert.equal(requiredResult(a.messages).ok, true);
+  game.tick(0.05);
+  assert.equal(outlaw.enemy, a.p.id, 'the cloak preserves retaliation for an intentional attack');
+});
+
+test('a loose Velociraptor loses prey as soon as the player equips the invisibility cloak', async (t) => {
+  const g = fixtureGeometry();
+  const game = await createGame({ geometry: g, store: createMemoryStore() });
+  t.after(() => game.close());
+  const a = await player(game, 765, {
+    'sf-purse-v1': JSON.stringify({ ownedEquipment: ['invisibility-cloak'] }),
+  });
+  const { raptor } = game.shared;
+  Object.assign(raptor, { x: a.p.x - 2, z: a.p.z, phase: 'loose', repath: 0 });
+  game.tick(0.05);
+  assert.equal(raptor.prey, a.p);
+
+  game.receive(a.p, {
+    type: 'checkpoint',
+    inventoryEpoch: a.p.inventory.meta.epoch,
+    privateState: { 'sf-character-v1': '{"back":"invisibility-cloak"}' },
+  });
+  await a.p.queue;
+  game.tick(0.05);
+  assert.equal(raptor.prey, null);
+  assert.equal(a.p.hp, 30);
+});
+
 test('one shared defeat yields exact coins, a wearable rare hat and durable ownership, with cow-timed respawns across restarts', async () => {
   const store = createMemoryStore(),
     g = geometry(),
@@ -118,14 +190,13 @@ test('one shared defeat yields exact coins, a wearable rare hat and durable owne
   let restored;
   try {
     for (const creature of game.shared.wilderness.actors) {
+      const existingDrops = new Set(game.shared.loot.keys());
       Object.assign(a.p, { x: creature.x - 1.2, z: creature.z, y: 1.15, shotAt: 0 });
       creature.hp = 1;
       await command(game, a.p, 'attack', { id: creature.id, weapon: 'railgun' });
       assert.equal(requiredResult(a.messages).ok, true);
       assert.equal(creature.hp, 0);
-      const drops = [...game.shared.loot.values()].filter(
-          (l) => l.x === creature.x && l.z === creature.z,
-        ),
+      const drops = [...game.shared.loot.values()].filter((l) => !existingDrops.has(l.id)),
         coin = drops.find((l) => l.lootKind === 'coins');
       assert.ok(coin != null, 'Missing test fixture: coin');
       assert.equal(coin.amount, creature.combatKind === 'outlaw' ? 10 : 8);
@@ -217,8 +288,8 @@ test('Landshark combat, Stetson and peptide loot are shared, authoritative, coll
     const a = await player(game, 756),
       b = await player(game, 757),
       shark = game.shared.wilderness.actors[0];
-    assert.equal(shark.level, 10);
-    assert.equal(shark.hp, 50);
+    assert.equal(shark.level, 25);
+    assert.equal(shark.hp, 215);
     game.receive(a.p, {
       type: 'checkpoint',
       inventoryEpoch: a.p.inventory.meta.epoch,
@@ -276,7 +347,7 @@ test('Landshark combat, Stetson and peptide loot are shared, authoritative, coll
     assert.equal(returning.p.inventory.meta.peptides, 1);
     assert.equal(game.shared.wilderness.actors[0].hp, 0);
     game.tick(10);
-    assert.equal(game.shared.wilderness.actors[0].hp, 50);
+    assert.equal(game.shared.wilderness.actors[0].hp, 215);
   } finally {
     await game.close();
   }

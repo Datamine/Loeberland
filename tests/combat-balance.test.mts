@@ -7,12 +7,76 @@ import {
   createAlienBattle,
   createHitpoints,
 } from '../src/combat.ts';
-import { monsterFighter, simulateFight } from '../editor/combat-simulator.ts';
-import { ownedEquipmentDefense } from '../src/item-stats.ts';
+import { monsterFighter, playerFighter, simulateFight } from '../editor/combat-simulator.ts';
+import { ITEM_STATS, ownedEquipmentDefense, sandwichCapacity } from '../src/item-stats.ts';
+import { PROGRESSION } from '../src/config/progression.ts';
+import { PEQUOD } from '../src/jurassic-layout.ts';
+import { combatRandomStream } from '../tools/combat-report.mts';
+import { BATTERY_SHOTS } from '../server/combat-supplies.mts';
 import { createExpeditions } from '../src/jurassic.ts';
 import { createEconomy } from '../src/economy.ts';
 import { MONSTER_STATS } from '../src/monster-drops.ts';
+import { GOBLIN_KING } from '../src/goblin-incubator-cave.ts';
 import { monsterInBombArea, bombTileArea } from '../src/stealth-bomber.ts';
+
+test('prepared players can beat solo encounters at matched Strength and Hitpoints levels', () => {
+  const armor = {
+    early: { owned: ['iron-armor'], look: { torso: 'iron-armor' } },
+    mid: {
+      owned: ['iron-armor', 'iron-armor-legs', 'combat-boots'],
+      look: { torso: 'iron-armor', legs: 'iron-armor-legs', boots: true },
+    },
+    late: {
+      owned: ['ice-top', 'ice-pants', 'combat-boots', 'backpack'],
+      look: { iceTop: true, icePants: true, boots: true },
+    },
+    emf: {
+      owned: ['tinfoil-suit', 'ice-pants', 'combat-boots', 'backpack'],
+      look: { tinfoil: true, icePants: true, boots: true },
+    },
+  };
+  const rounds = 500;
+  for (const [id, stats] of Object.entries(MONSTER_STATS)) {
+    // The King has a separate multiplayer test with his guards and both attacks.
+    if (id === GOBLIN_KING) continue;
+    // Bosses above the skill cap are tested with max-level player skills.
+    const level = Math.min(stats.level, PROGRESSION.maxLevel);
+    const railgun = level >= 32 || id === 'raptor';
+    const weapon = railgun ? 'railgun' : level >= 9 ? 'katana' : level >= 4 ? 'crowbar' : 'rolling-pin';
+    const kit = id === 'emf-warrior'
+      ? armor.emf
+      : level >= 32
+        ? armor.late
+        : level >= 16
+          ? armor.mid
+          : level >= 8
+            ? armor.early
+            : null;
+    const purse = { ownedEquipment: kit?.owned ?? [] };
+    const player = playerFighter({
+      level,
+      weapon,
+      defense: ownedEquipmentDefense(purse, kit?.look ?? {}),
+      sandwiches: sandwichCapacity(purse),
+      distance: id === 'kraken' ? PEQUOD.krakenDistance : railgun ? ITEM_STATS.railgun.range : 0,
+    });
+    const monster = monsterFighter(id);
+    const random = combatRandomStream(77190);
+    const availableShots = id === 'kraken' ? 2 * BATTERY_SHOTS : BATTERY_SHOTS;
+    let wins = 0;
+    let foodUsed = 0;
+    for (let round = 0; round < rounds; round++) {
+      const result = simulateFight([player, monster], random);
+      if (result.winner === 0 && (!railgun || result.attacks[0] <= availableShots)) {
+        wins++;
+        foodUsed += result.foodUsed[0];
+      }
+    }
+    assert.ok(wins >= rounds * 0.95, `${id}: ${wins}/${rounds} wins with ${weapon} at level ${level}`);
+    if (id === 'kraken') assert.ok(foodUsed / wins >= 4, 'the boss still rewards bringing food');
+    if (id === 'landshark') assert.ok(foodUsed / wins >= 0.75, 'Landshark bites threaten iron armor');
+  }
+});
 
 test('Mad Scientist DPS uses the live hit roll and cadence while simulated damage waits for impact', () => {
   const attacker = monsterFighter('mad-scientist');

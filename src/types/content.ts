@@ -173,6 +173,7 @@ export interface ContentBundle {
   texts: { schema: 1; texts: Record<string, TextRecord> };
 }
 export interface Appearance {
+  lightsaberColor?: import('../config/lightsaber.ts').LightsaberColor;
   gender?: string;
   skin?: string;
   shirt?: string;
@@ -189,6 +190,7 @@ export interface Appearance {
   hat?: string;
   topHat?: boolean | 'shirt';
   weapon?: string;
+  secondaryWeapon?: string;
   boots?: boolean | 'party-boots';
   iceTop?: boolean;
   icePants?: boolean;
@@ -212,6 +214,8 @@ export interface EconomyState {
   fish: number;
   mud: number;
   sand: number;
+  sandDelivered: number;
+  spoonDigs: number;
   saltLetters: number;
   saltLettersDelivered: number;
   ownedHats: string[];
@@ -220,6 +224,7 @@ export interface EconomyState {
   robotaxiOwned: boolean;
   softwareCopies: number;
   incomeQuarters: number;
+  incomeExtraTwentieths: number;
   ownedEquipment: string[];
 }
 export type MonkeyStage = 'not-started' | 'accepted' | 'carrying' | 'completed';
@@ -241,6 +246,7 @@ export interface ExpeditionProgress {
   krakenStarted: boolean;
   krakenDefeated: boolean;
   krakenReward: boolean;
+  krakenCrystalPending?: boolean;
   cape: boolean;
 }
 export interface GuildProgress {
@@ -261,12 +267,18 @@ export interface InventoryLedger {
   bisonHides: number;
   uni?: number;
   armorTrimmingKits?: number;
+  goblinHelmetUpgradeKits?: number;
+  weaponUpgradeKits?: number;
+  hikingBackpackUpgradeKits?: number;
+  lightCrystals?: number;
   bindTablets?: number;
+  fireworks?: number;
   pelts?: Partial<Record<import('../config/tahoe-pelts.ts').TahoePelt, number>>;
   coffee: number;
   akimboAmmo: number;
   missiles?: number;
   railgunCharge: number;
+  lightsaberCharge?: number;
   railgunBatteries: number;
   tablets: Record<string, number>;
 }
@@ -298,6 +310,11 @@ export interface VehicleState {
   distance?: number;
   [key: string]: JSONValue | undefined;
 }
+export interface GameCompletion {
+  at: number;
+  recordedOnVerification: boolean;
+}
+
 export interface PlayerDocument {
   schema: 2;
   appearance: Appearance;
@@ -317,6 +334,10 @@ export interface PlayerDocument {
     monkey: { stage: MonkeyStage };
     stochasticParrot: { stage: import('../stochastic-parrot.ts').ParrotQuestStage };
     burningMan: import('../burning-man.ts').BurningManProgress;
+    lightsaber: {
+      stage: import('../config/lightsaber.ts').LightsaberStage;
+      color: import('../config/lightsaber.ts').LightsaberColor;
+    };
     theyLive: AlienProgress;
     expeditions: ExpeditionProgress;
     illuminatus: { guild: GuildProgress | null; initiated: boolean; bomberOwned: boolean };
@@ -348,11 +369,15 @@ export interface PlayerDocument {
     bank: { balance: number; updatedAt: number } | null;
     growth: import('./finance.ts').GrowthPosition | null;
   };
-  social: { pvp: { enabled: boolean; disableAt: number } | null };
+  social: { pvp: { enabled: boolean; disableAt: number } | null; tradeDuelEnabled: boolean };
   progress: {
+    gameCompletion: GameCompletion | null;
     houseSearches: string[];
     goblinSpaceMud: number;
+    goblinBushRewards?: number;
+    scientificExperiments?: number;
     industrialistArmorPurchases?: import('../item-stats.ts').IronArmorPiece[];
+    armorTrimmerPayments?: number;
   };
   rewards: { pending: PendingAward[]; serial: number };
   equipment: { decorativeRocket: { readyAt: number; burnUntil: number; hopAt: number } };

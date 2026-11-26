@@ -4,6 +4,12 @@
     "config.hairstyles.module.broccoli": {
       "template": "Broccoli"
     },
+    "config.hairstyles.module.einstein": {
+      "template": "Einstein"
+    },
+    "config.hairstyles.module.marge": {
+      "template": "Marge"
+    },
     "adventure-sites.drawFitness.label-1": {
       "template": "SF Fitness"
     },
@@ -701,7 +707,7 @@
       "template": "A triumph of maritime understatement. Wear it proudly."
     },
     "jurassic.ahabDialogue.intro-42": {
-      "template": "I’m Ahab. That’s the Pequod at the berth. Out past the last buoy the fog can swallow the whole shoreline, so I check everyone’s gear while I can still see it. Equip a railgun under Character → Gear → Weapon before we set sail."
+      "template": "I’m Ahab. That’s the Pequod at the berth. Out past the last buoy the fog can swallow the whole shoreline, so I check everyone’s gear while I can still see it. You’ll need a railgun before we set sail."
     },
     "jurassic.ahabDialogue.question-43": {
       "template": "What counts as sufficiently powerful?"
@@ -2174,7 +2180,7 @@
       "template": "Pacifica surfboards"
     },
     "world.generation.setupPacificaSurf.description-100": {
-      "template": "Bright boards wait on the Pacifica beach. Paddle into the foam lines, press Esc then Space to catch a wave, and press Esc then 1, 2, or 3 for an Air 360, kickflip, or backflip. Esc then F returns you to the beach."
+      "template": "Bright boards wait on the Pacifica beach. Paddle into the foam lines. Open shortcuts and press Space to catch a wave. Use 1, 2, or 3 for tricks and F to return to the beach."
     },
     "world.generation.connectStreetNetwork.name-101": {
       "template": "Connecting walk"
@@ -2498,7 +2504,7 @@
       "template": "Bicycle"
     },
     "world.scene.createSFWorld.description-71": {
-      "template": "A red city bicycle. Ride it along Market Street and through the park. Press Esc then B to ride or park it; dismount automatically at shop doors."
+      "template": "A red city bicycle. Ride it along Market Street and through the park. Open shortcuts and press B to ride or park it; dismount automatically at shop doors."
     },
     "world.scene.createSFWorld.label-72": {
       "template": "Golden Gate Bridge"
@@ -2657,7 +2663,7 @@
       "template": "We do the appointment here, and I’ll arrange transport to UCSF once we finish. You can take a minute to think about it. I’ll be here when you’re ready."
     },
     "service.tax.root.intro": {
-      "template": "Welcome to the Tax Authority. You may contribute your entire coin purse, or ask how we spend it."
+      "template": "Welcome to our magnificent public institution. How may we assist you?"
     },
     "service.tax.root.choices.0.label": {
       "template": "Pay taxes · all coins"
@@ -2744,7 +2750,7 @@
       "template": "Buy a tinfoil suit · 20 coins"
     },
     "service.chef.root.choices.2.label": {
-      "template": "Buy a metal rolling pin · 20 coins"
+      "template": "Buy a rolling pin · 20 coins"
     },
     "service.gpu-buyer.root.intro": {
       "template": "We turn sand into GPUs. There are a few steps in the middle, but procurement asked me to keep this simple. I pay {sandPrice} coins per sack."
@@ -2783,7 +2789,7 @@
       "template": "Any advice for the descent?"
     },
     "service.ski-lift.root.choices.1.receipt": {
-      "template": "Click to steer, stay on the snow, and press Esc then Space to flip while airborne. If you’d rather keep your feet off the ground, the gondola will take you back down."
+      "template": "Click to steer and stay on the snow. Open shortcuts and press Space to flip while airborne. If you’d rather keep your feet off the ground, the gondola will take you back down."
     },
     "service.wizard.tablet-story.label": {
       "template": "How did you invent the tablets?"
@@ -2852,7 +2858,7 @@
       "template": "Where is my motorcycle?"
     },
     "service.motorcycle-rented.root.choices.0.receipt": {
-      "template": "Press Esc then M to find your parked motorcycle or get on it. Your rental remains valid."
+      "template": "Open shortcuts and press M to find your parked motorcycle or get on it. Your rental remains valid."
     },
     "service.ai-recruiter.root.intro": {
       "template": "Come in. The people with headphones are trying to get a run through before lunch. I handle hiring for the lab. We start with a short arithmetic interview. I can tell you what the work is like before you decide whether to sit it."
@@ -3132,6 +3138,12 @@
     },
     "advice.receipt": {
       "template": "“Morning light, plenty of mulch, and patience. The blue comes from the soil. The pride comes from the neighbors.”"
+    },
+    "service.neighborhood-bakery.loaf.label": {
+      "template": "Buy Loaf of Bread · 5 coins"
+    },
+    "service.neighborhood-bakery.loaf.receipt": {
+      "template": "A fresh loaf for the road. You can wear it from the Character menu."
     },
     "service.neighborhood-bakery.root.intro": {
       "template": "The bread is warm. I can make you a sandwich for the walk."
@@ -3693,6 +3705,12 @@
     },
     "world-label.sign.Goblin%20Frog%20Farm": {
       "template": "Goblin Frog Farm"
+    },
+    "world-label.sign.Goblin%20City%20Hall": {
+      "template": "Goblin City Hall"
+    },
+    "world-label.sign.SCOOTERS": {
+      "template": "SCOOTERS"
     },
     "world-label.sign.Goblin%20Phone%20Campus": {
       "template": "Goblin Phone Campus"

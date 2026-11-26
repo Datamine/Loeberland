@@ -23,7 +23,7 @@ import { createRegionalRoad } from '../src/regional-road.ts';
 import type { Actor } from '../src/types/world.ts';
 
 test('beer costs one coin, adds ten points, caps at 100 and wears off with elapsed time', () => {
-  const economy = createEconomy(),
+  const economy = createEconomy({ coins: 25 }),
     saved: (number | undefined)[] = [],
     drunk = createInebriation(0, (p) => saved.push(p));
   for (let i = 0; i < 10; i++) assert.ok(drunk.drink(economy).ok);

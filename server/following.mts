@@ -1,9 +1,23 @@
 import { contentText } from '../src/content-runtime.ts';
 import { isFiniteNumber } from '../src/types/json.ts';
 import type { Point } from '../src/types/geometry.ts';
+import type { ActionReceipt } from '../src/types/world.ts';
+import { GAMEPLAY } from '../src/config/gameplay.ts';
+import {
+  PLAYER_INTERACTION_RANGE,
+  interiorNavigation,
+  playerSegmentClear,
+  playersWithinReach,
+} from './player-proximity.mts';
+
+interface PlayerApproach {
+  error: (target: ServerPlayer | undefined) => string;
+  arrive: (target: ServerPlayer) => ActionReceipt;
+}
 interface FollowState {
   target: number;
   attack: boolean;
+  approach?: PlayerApproach;
   route: Point[];
   replan: number;
   goalX: number;
@@ -17,7 +31,8 @@ import { sameMapInstance } from '../src/map-instances.ts';
 import { inFighterYard } from '../src/fighter-yard-layout.ts';
 import { fighterYardMayEnter } from './fighter-yard.mts';
 import { guildMayEnter } from './guild.mts';
-const FOLLOW_SPEED = 4.6,
+const FOLLOW_SPEED = GAMEPLAY.walkSpeed,
+  APPROACH_SPEED = FOLLOW_SPEED * 1.35,
   FOLLOW_RANGE = 1.2,
   ORBIT_RANGE = 2.2,
   ORBIT_MIN_RADIUS = 0.75,
@@ -73,7 +88,8 @@ export function createServerFollowing({
     p.lastPoseAt = now();
     if (state.attack) pvp.stop(p);
     dirty(p);
-    send(p, { type: 'following', target: null, position: pose(p), message });
+    if (!state.approach) send(p, { type: 'following', target: null, position: pose(p), message });
+    else if (message) send(p, { type: 'notice', message });
     return true;
   }
   function validate(
@@ -120,11 +136,12 @@ export function createServerFollowing({
     return '';
   }
   function plan(
-    p: { x: number; z: number },
+    p: ServerPlayer,
     target: { x: number; z: number },
     range: number,
-    perimeter = false,
+    { perimeter = false, approach = false } = {},
   ) {
+    const interior = interiorNavigation(p);
     const origin = { x: p.x - 0.5, y: p.z - 0.5 },
       radius = perimeter ? range - 0.2 : Math.min(0.9, range * 0.75),
       candidates = Array.from({ length: 12 }, (_, i) => ({
@@ -137,47 +154,83 @@ export function createServerFollowing({
         Math.hypot(a.x - origin.x, a.y - origin.y) - Math.hypot(b.x - origin.x, b.y - origin.y),
     );
     for (const goal of candidates) {
-      if (!geometry.landClearAt(goal.x, goal.y)) continue;
-      const path = routes
-        ? routes.pathTo(goal.x, goal.y, origin, true)
-        : geometry.pathTo(goal.x, goal.y, origin, true);
+      if (interior ? !interior.free(goal.x, goal.y) : !geometry.landClearAt(goal.x, goal.y))
+        continue;
+      if (
+        approach &&
+        !playerSegmentClear(geometry, p, goal, { x: target.x - 0.5, y: target.z - 0.5 })
+      )
+        continue;
+      const path = interior
+        ? interior.path(origin, goal)
+        : (routes || geometry).pathTo(goal.x, goal.y, origin, true);
       if (path) return path.map((p) => ({ ...p }));
     }
     return null;
   }
+  function tooFar(p: ServerPlayer, target: ServerPlayer) {
+    return Math.hypot(p.x - target.x, p.z - target.z) > GAMEPLAY.viewRadius;
+  }
+  function noRoute() {
+    return {
+      ok: false,
+      message: contentText('world-message.server.following.no-walkable-route-to-that-player'),
+    };
+  }
+  function begin(
+    p: ServerPlayer,
+    target: ServerPlayer,
+    state: Pick<FollowState, 'attack' | 'route' | 'approach'>,
+  ) {
+    stop(p);
+    pvp.stop(p);
+    p.attack = null;
+    p.following = null;
+    p.mode = 'walk';
+    active.set(p.id, {
+      ...state,
+      target: target.id,
+      replan: elapsed + 0.5 + (p.id % 10) * 0.05,
+      goalX: Math.floor(target.x * 4),
+      goalZ: Math.floor(target.z * 4),
+    });
+    dirty(p);
+  }
+  function approach(p: ServerPlayer, target: ServerPlayer, interaction: PlayerApproach) {
+    if (playersWithinReach(geometry, p, target)) return interaction.arrive(target);
+    if (tooFar(p, target)) return { ok: false, message: 'That player is no longer nearby.' };
+    const route = plan(p, target.seat?.exit ?? target, PLAYER_INTERACTION_RANGE, {
+      approach: true,
+    });
+    if (!route?.length) return noRoute();
+    begin(p, target, { attack: false, route, approach: interaction });
+    return { ok: true };
+  }
+  function activate(p: ServerPlayer, target: ServerPlayer, attack: boolean, route: Point[] = []) {
+    begin(p, target, { attack, route });
+    p.following = target.id;
+    send(p, { type: 'following', target: target.id, attack, position: pose(p) });
+    return { ok: true, following: target.id };
+  }
   function start(p: ServerPlayer, id: unknown, { attack = false } = {}) {
-    const target = typeof id === 'number' ? players.get(id) : undefined,
-      error = validate(p, target, attack);
+    const target = typeof id === 'number' ? players.get(id) : undefined;
+    const error = validate(p, target, attack);
     if (error || !target) return { ok: false, message: error };
-    if (Math.hypot(p.x - target.x, p.z - target.z) > 38)
+    if (tooFar(p, target))
       return {
         ok: false,
         message: contentText(
           'world-message.server.following.that-player-is-too-far-away-to-follow',
         ),
       };
-    const range = attack ? pvp.rangeFor(p) : FOLLOW_RANGE,
-      route = Math.hypot(p.x - target.x, p.z - target.z) > range ? plan(p, target, range) : [];
-    if (!route)
-      return {
-        ok: false,
-        message: contentText('world-message.server.following.no-walkable-route-to-that-player'),
-      };
-    pvp.stop(p);
-    p.attack = null;
-    p.mode = 'walk';
-    p.following = target.id;
-    active.set(p.id, {
-      target: target.id,
-      attack,
-      route,
-      replan: elapsed + 0.5 + (p.id % 10) * 0.05,
-      goalX: Math.floor(target.x * 4),
-      goalZ: Math.floor(target.z * 4),
-    });
-    dirty(p);
-    send(p, { type: 'following', target: id, attack, position: pose(p) });
-    return { ok: true, following: id };
+    if (!attack)
+      return approach(p, target, {
+        error: (next) => validate(p, next, false, null),
+        arrive: (next) => activate(p, next, false),
+      });
+    const range = pvp.rangeFor(p);
+    const route = Math.hypot(p.x - target.x, p.z - target.z) > range ? plan(p, target, range) : [];
+    return route ? activate(p, target, true, route) : noRoute();
   }
   function orbit(a: ServerPlayer, b: ServerPlayer, state: FollowState, dt: number) {
     const centerX = (a.x + b.x) / 2;
@@ -253,9 +306,23 @@ export function createServerFollowing({
         active.delete(id);
         continue;
       }
-      const error = validate(p, target, state.attack, groundCache, true);
-      if (error || !target || (state.attack && Math.hypot(p.x - target.x, p.z - target.z) > 80)) {
+      const approach = state.approach;
+      const error = approach
+        ? approach.error(target)
+        : validate(p, target, state.attack, groundCache, true);
+      if (
+        error ||
+        !target ||
+        (approach && tooFar(p, target)) ||
+        (state.attack && Math.hypot(p.x - target.x, p.z - target.z) > 80)
+      ) {
         stop(p, error || 'That player is no longer nearby.');
+        continue;
+      }
+      if (approach && playersWithinReach(geometry, p, target)) {
+        stop(p);
+        const result = approach.arrive(target);
+        if (!result.ok && result.message) send(p, { type: 'notice', message: result.message });
         continue;
       }
       const reciprocal = active.get(target.id);
@@ -281,19 +348,22 @@ export function createServerFollowing({
         !state.attack && target.personalJailed && geometry.detention?.walkable(target.x, target.z)
           ? geometry.detention
           : null;
-      const destination = jail ?? target.tabletTeleport?.to ?? target;
+      const destination =
+        jail ?? target.tabletTeleport?.to ?? (approach ? target.seat?.exit : null) ?? target;
       const range = jail
           ? Math.max(jail.w, jail.d) / 2 + 0.8
-          : state.attack
-            ? pvp.rangeFor(p)
-            : FOLLOW_RANGE,
+          : approach
+            ? PLAYER_INTERACTION_RANGE
+            : state.attack
+              ? pvp.rangeFor(p)
+              : FOLLOW_RANGE,
         distance = Math.hypot(destination.x - p.x, destination.z - p.z),
         clear =
           !state.attack ||
           distance > range ||
           !geometry.lineClear ||
           geometry.lineClear({ ...p, base: p.y }, { ...target, base: target.y });
-      if (distance <= range && (!state.attack || clear)) {
+      if (!approach && distance <= range && (!state.attack || clear)) {
         p.moving = false;
         p.motion = 0;
         state.route = [];
@@ -303,7 +373,22 @@ export function createServerFollowing({
       if (state.attack) pvp.stop(p);
       const gx = Math.floor(destination.x * 4),
         gz = Math.floor(destination.z * 4);
+      // A clear straight approach can track a walking player every tick.
+      // Reuse the normal route planner when a wall or other obstacle intervenes.
+      const direct = { x: destination.x - 0.5, y: destination.z - 0.5 };
+      const tracksDirectly =
+        !state.attack &&
+        destination === target &&
+        target.moving &&
+        distance <= GAMEPLAY.viewRadius &&
+        playerSegmentClear(geometry, p, { x: p.x - 0.5, y: p.z - 0.5 }, direct);
+      if (tracksDirectly) {
+        state.route = [direct];
+        state.checked = direct;
+        state.checkedRevision = geometry.navigationRevision;
+      }
       if (
+        !tracksDirectly &&
         !state.attack &&
         Math.hypot(gx - state.goalX, gz - state.goalZ) > REPLAN_JUMP_DISTANCE * 4
       ) {
@@ -311,22 +396,24 @@ export function createServerFollowing({
         state.replan = elapsed;
       }
       if (
+        !tracksDirectly &&
         elapsed >= state.replan &&
         (gx !== state.goalX || gz !== state.goalZ || !state.route.length) &&
         (!routes || routes.allowReplan())
       ) {
         nextCursor = (index + 1) % ids.length;
-        const route = plan(p, destination, range, !!jail);
+        const route = plan(p, destination, range, { perimeter: !!jail, approach: !!approach });
         state.replan = elapsed + (route ? 0.5 : 2);
         state.goalX = gx;
         state.goalZ = gz;
-        if (route) state.route = route;
-        else if (state.attack && !state.route.length) {
+        if (route && (!approach || route.length)) state.route = route;
+        else if ((approach || state.attack) && !state.route.length) {
           stop(p, 'No walkable route to that player.');
           continue;
         }
       }
-      let budget = FOLLOW_SPEED * dt,
+      const interior = interiorNavigation(p);
+      let budget = (state.attack || jail ? FOLLOW_SPEED : APPROACH_SPEED) * dt,
         traveled = 0;
       while (budget > 1e-8 && state.route.length) {
         const next = state.route[0],
@@ -341,23 +428,23 @@ export function createServerFollowing({
         const step = Math.min(budget, length),
           x = p.x + (dx / length) * step,
           z = p.z + (dz / length) * step,
-          y = geometry.characterGround(x, z);
+          y = interior ? p.y : geometry.characterGround(x, z);
         // The tile map is immutable during play. Validate a new route edge
         // once, then consume its distance on subsequent ticks. A map
         // revision invalidates the cache if dynamic terrain is added.
         if (state.checked !== next || state.checkedRevision !== geometry.navigationRevision) {
-          if (!geometry.canTravel!(from.x, from.y, next.x, next.y, true)) {
+          if (!playerSegmentClear(geometry, p, from, next)) {
             stop(p, 'That route is blocked.');
             break;
           }
           state.checked = next;
           state.checkedRevision = geometry.navigationRevision;
         }
-        if (!inFighterYard(p.x, p.z) && !fighterYardMayEnter(p, x, z)) {
+        if (!interior && !inFighterYard(p.x, p.z) && !fighterYardMayEnter(p, x, z)) {
           stop(p, contentText('world-message.fighter-yard.admission-required'));
           break;
         }
-        if (!guildMayEnter(p, geometry, x, y, z)) {
+        if (!interior && !guildMayEnter(p, geometry, x, y, z)) {
           stop(p, 'The guild admits members only.');
           break;
         }
@@ -374,7 +461,12 @@ export function createServerFollowing({
         traveled += step;
         budget -= step;
         if (length <= step + 1e-8) state.route.shift();
-        if (Math.hypot(destination.x - p.x, destination.z - p.z) <= range) break;
+        if (
+          approach
+            ? playersWithinReach(geometry, p, target)
+            : Math.hypot(destination.x - p.x, destination.z - p.z) <= range
+        )
+          break;
       }
       if (!active.has(id)) continue;
       p.moving = traveled > 0;
@@ -386,7 +478,11 @@ export function createServerFollowing({
   }
   return {
     start,
+    approach,
     stop,
+    cancelApproach(p: ServerPlayer) {
+      if (active.get(p.id)?.approach) stop(p);
+    },
     tick,
     active,
     owns: (p: Pick<ServerPlayer, 'id'>) => active.has(p.id),

@@ -6,7 +6,9 @@ import { Mesh } from './geometry.ts';
 import { drawCharacter } from './characters.ts';
 import { drawKrakenCape } from './jurassic-models.ts';
 import { HAIRSTYLES } from './config/hairstyles.ts';
-import { normalizeBoots, PLAYER_WEAPONS } from './item-stats.ts';
+import { normalizeBoots, normalizeNeck, PLAYER_WEAPONS } from './item-stats.ts';
+import { lightsaberColor, type LightsaberColor } from './config/lightsaber.ts';
+import { HIKING_BACKPACK, UPGRADED_HIKING_BACKPACK, isHikingBackpack } from './config/hiking-backpack.ts';
 
 export const CHARACTER_DEFAULTS = Object.freeze({
   gender: 'man',
@@ -23,6 +25,8 @@ export const CHARACTER_DEFAULTS = Object.freeze({
   rocketBurnUntil: 0,
   hat: 'none',
   weapon: 'unarmed',
+  secondaryWeapon: 'none',
+  lightsaberColor: 'blue',
   boots: false,
   iceTop: false,
   icePants: false,
@@ -40,7 +44,7 @@ export type CharacterSettings = {
       : (typeof CHARACTER_DEFAULTS)[K] extends boolean
         ? boolean
         : number;
-} & { gender: 'man' | 'woman' };
+} & { gender: 'man' | 'woman'; lightsaberColor: LightsaberColor };
 export function normalizeCharacter(input: unknown = {}): CharacterSettings {
   const value = isRecord(input) ? input : {};
   const result: CharacterSettings = { ...CHARACTER_DEFAULTS };
@@ -55,21 +59,23 @@ export function normalizeCharacter(input: unknown = {}): CharacterSettings {
       : HAIRSTYLES[result.gender][0].id;
   result.sunglasses = value?.sunglasses === true;
   result.back = isOneOf(
-    ['none', 'backpack', 'new-year-rocket', 'cape'] satisfies [string, string, string, string],
+    ['none', HIKING_BACKPACK, UPGRADED_HIKING_BACKPACK, 'new-year-rocket', 'cape', 'invisibility-cloak'] satisfies string[],
     value.back,
   )
     ? value.back
     : value?.cape === true
       ? 'cape'
       : 'none';
-  result.neck =
-    value?.neck === 'clock-amulet' || value?.neck === 'recoil-amulet' ? value.neck : 'none';
+  result.neck = normalizeNeck(value.neck);
   result.cape = result.back === 'cape';
   result.rocketBurnUntil = isFiniteNumber(value?.rocketBurnUntil)
     ? Math.max(0, value.rocketBurnUntil)
     : 0;
   result.hat = hatById(typeof value.hat === 'string' ? value.hat : undefined)?.id || 'none';
   result.weapon = isOneOf(PLAYER_WEAPONS, value.weapon) ? value.weapon : 'unarmed';
+  if (value.secondaryWeapon !== result.weapon && isOneOf(PLAYER_WEAPONS, value.secondaryWeapon))
+    result.secondaryWeapon = value.secondaryWeapon;
+  result.lightsaberColor = lightsaberColor(value.lightsaberColor);
   result.boots = normalizeBoots(value.boots);
   result.iceTop = value?.iceTop === true;
   result.icePants = value?.icePants === true;
@@ -82,12 +88,16 @@ export function characterAppearance(settings: CharacterSettings & { phone?: bool
     railgun: settings.weapon === 'railgun',
     bayonet: settings.weapon === 'bayonet',
     battleaxe: settings.weapon === 'battleaxe',
+    combatLamp: settings.weapon === 'combat-lamp',
+    katana: settings.weapon === 'katana',
+    lightsaber: settings.weapon === 'lightsaber',
     rollingPin: settings.weapon === 'rolling-pin',
+    bowlingBall: settings.weapon === 'bowling-ball',
     crowbar: settings.weapon === 'crowbar',
     akibo: settings.weapon === 'akibo',
     female,
     longHair: female && settings.hairstyle === 'long',
-    backpack: settings.back === 'backpack',
+    backpack: isHikingBackpack(settings.back),
   };
 }
 

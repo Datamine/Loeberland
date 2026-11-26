@@ -25,6 +25,13 @@ export const OUTLAW_SITE = Object.freeze({
   x: 14.5,
   z: 219.5,
 });
+export const OUTLAW_COMPANION = Object.freeze({
+  ...OUTLAW_SITE,
+  id: 'south-grove-outlaw-companion',
+  level: 9,
+  x: 16.2,
+  z: 220.8,
+});
 export const BISON_SITE = Object.freeze({
   id: 'golden-gate-park-bison',
   combatKind: 'bison',

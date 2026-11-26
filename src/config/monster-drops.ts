@@ -1,15 +1,40 @@
+import { GOBLIN_BUSH_ALLY, GOBLIN_BUSH_GUARD } from '../goblin-bush.ts';
 import { LEGACY_BUGS } from '../legacy-software-layout.ts';
+import { ONODA } from '../onoda-island.ts';
+import { BASEMENT_CHURCHGOER } from '../church-basement-layout.ts';
 import type { DropRule } from '../types/monsters.ts';
 import { FIGHTER_LEVELS } from '../fighter-yard-layout.ts';
 import { IRON_ARMOR_PIECES } from '../item-stats.ts';
 import { defineMonsterStats } from '../types/monsters.ts';
+import { NEER_DO_WELLS, WAYWARD_GOBLINS } from './wayward-camp.ts';
+import { GOBLIN_CHARM, GOBLIN_KING, GOBLIN_ROCK, INCUBATOR_GUARD, INCUBATOR_VETERAN } from '../goblin-incubator-cave.ts';
+import { FIREWORK_ENFORCEMENT } from './fireworks.ts';
+import { WEAPON_UPGRADE_KIT } from './weapon-upgrades.ts';
+import { HIKING_BACKPACK_UPGRADE_KIT } from './hiking-backpack.ts';
 // CONTENT-BINDINGS-MIGRATED
 import { contentText } from '../content-runtime.ts';
 /** Independent drop rolls; choose splits one successful roll equally. */
 export const COMMON_RESPAWN_SECONDS = 10;
 const ironGearDrop: DropRule = { choose: [...IRON_ARMOR_PIECES, 'crowbar'], oneIn: 20 };
+const defenceAmuletDrop: DropRule = { item: 'defence-amulet', oneIn: 25 };
+const goblinHelmetDrops: readonly DropRule[] = [
+  { item: 'goblin-helmet', oneIn: 20 },
+  { item: 'goblin-helmet-upgrade-kit', oneIn: 50 },
+];
+const goblinGuardDrops: readonly DropRule[] = [
+  { item: 'coins', amount: 6, oneIn: 1 },
+  ironGearDrop,
+  ...goblinHelmetDrops,
+  { item: HIKING_BACKPACK_UPGRADE_KIT, oneIn: 100 },
+];
 export const MONSTER_DROPS: Readonly<Record<string, readonly DropRule[]>> = Object.freeze({
-  'emf-warrior': [{ item: 'railgun-upgrade', oneIn: 20 }],
+  [ONODA.id]: [{ item: 'invisibility-cloak', oneIn: 20 }],
+  'emf-disciple': [defenceAmuletDrop],
+  'emf-warrior': [{ item: WEAPON_UPGRADE_KIT, oneIn: 20 }],
+  [BASEMENT_CHURCHGOER]: [
+    { item: 'coins', amount: 18, oneIn: 1 },
+    { item: 'peptides', oneIn: 40 },
+  ],
   cow: [{ item: 'sandwich', oneIn: 1 }],
   goblin: [
     { item: 'coins', amount: 3, oneIn: 1 },
@@ -27,11 +52,25 @@ export const MONSTER_DROPS: Readonly<Record<string, readonly DropRule[]>> = Obje
     { item: 'combat-boots', oneIn: 8 },
     ironGearDrop,
   ],
-  'goblin-guard': [{ item: 'coins', amount: 6, oneIn: 1 }, ironGearDrop],
+  'goblin-guard': goblinGuardDrops,
+  [INCUBATOR_GUARD]: goblinGuardDrops,
+  [INCUBATOR_VETERAN]: [
+    { item: 'coins', amount: 20, oneIn: 1 },
+    ...goblinHelmetDrops,
+    ironGearDrop,
+  ],
+  [GOBLIN_KING]: [
+    { item: 'coins', amount: 1600, oneIn: 1 },
+    { item: 'sandwich', amount: 8, oneIn: 1 },
+    { item: GOBLIN_CHARM, oneIn: 20 },
+  ],
+  [GOBLIN_BUSH_GUARD]: goblinGuardDrops,
   'goblin-veteran': [
     { item: 'coins', amount: 10, oneIn: 1 },
     { item: 'combat-boots', oneIn: 8 },
     ironGearDrop,
+    ...goblinHelmetDrops,
+    defenceAmuletDrop,
   ],
   ...Object.fromEntries(
     FIGHTER_LEVELS.map((level) => [
@@ -69,6 +108,7 @@ export const MONSTER_DROPS: Readonly<Record<string, readonly DropRule[]>> = Obje
         { choose: ['coins', 'sandwich'], amount: Math.ceil(level / 5), oneIn: 1 },
         { item: 'armor-trimming-kit', oneIn: 20 },
         ...(level >= 20 ? [{ item: 'bind-tablet', oneIn: 20 }] : []),
+        ...(level === 20 ? [defenceAmuletDrop] : []),
       ],
     ]),
   ),
@@ -106,12 +146,22 @@ export const MONSTER_DROPS: Readonly<Record<string, readonly DropRule[]>> = Obje
     { item: 'coins', amount: 10, oneIn: 1 },
     { item: 'goose-membership-card', oneIn: 5 },
   ],
+  ...Object.fromEntries(
+    [...NEER_DO_WELLS, ...WAYWARD_GOBLINS].map(({ combatKind, level }) => [
+      combatKind,
+      [{ item: 'coins', amount: Math.ceil(level / 2), oneIn: 1 }],
+    ]),
+  ),
   'lost-pirate': [
     { item: 'coins', amount: 8, oneIn: 1 },
     { item: 'pirate-hat', oneIn: 20 },
   ],
 });
-function monsterCombat(level: number, interval: number, { passive = false, boss = false } = {}) {
+export function monsterCombat(
+  level: number,
+  interval: number,
+  { passive = false, boss = false } = {},
+) {
   return {
     level,
     hp: boss ? 20 * level : passive ? 10 * level : 5 * level + 6 * Math.max(0, level - 10),
@@ -133,6 +183,96 @@ const goblin = {
   description: contentText('config.monster-drops.module.description-2', {}),
 };
 export const MONSTER_STATS = defineMonsterStats({
+  [INCUBATOR_GUARD]: {
+    name: 'Goblin Guard',
+    ...monsterCombat(40, 2.05),
+    speed: 2.25, leash: 8, aggression: 3.2, roamRadius: 0.65,
+    respawn: 45, height: 1.45, model: 'goblin',
+    description: 'A veteran of several funding rounds. The spear is mostly for security.',
+  },
+  [INCUBATOR_VETERAN]: {
+    name: 'Goblin Veteran',
+    ...monsterCombat(50, 2.15),
+    speed: 2.4, leash: 9, aggression: 3.6, roamRadius: 0.85,
+    respawn: 55, height: 1.5, model: 'goblin',
+    description: 'A scarred guard with a red shield and an unwavering faith in procedure.',
+  },
+  [GOBLIN_KING]: {
+    name: 'Goblin King',
+    level: 90,
+    hp: 9_000,
+    damage: 52,
+    interval: 2.35,
+    attackRange: 1.9,
+    rangedAttack: { range: GOBLIN_ROCK.range, interval: 4.6, damage: 36, effect: 'goblin-rock' },
+    speed: 2.7, leash: 22, aggression: GOBLIN_ROCK.range, roamRadius: 0.5,
+    recoverOnReturn: true,
+    respawn: 105, height: 1.63, model: 'goblin',
+    description: 'Most definitely disapproves of regicide.',
+  },
+  ...Object.fromEntries(
+    NEER_DO_WELLS.map(({ combatKind, level }, index) => [
+      combatKind,
+      {
+        name: "Ne'er-Do-Well",
+        ...monsterCombat(level, 2),
+        respawn: COMMON_RESPAWN_SECONDS,
+        speed: 1.85,
+        leash: 5,
+        roamRadius: 0.7,
+        height: 1.85,
+        model: 'human',
+        appearance: {
+          skin: ['#b48664', '#835943', '#c89d7f', '#9f7255'][index],
+          shirt: ['#8a6b45', '#736078', '#786e4d', '#775744'][index],
+          pants: ['#49484a', '#454b45', '#51504c', '#41464b'][index],
+          hair: '#40302a',
+          coat: true,
+          hat: index % 2 ? 'stetson' : 'panama',
+        },
+        description: 'A dusty traveler making a very long stop for the night.',
+      },
+    ]),
+  ),
+  ...Object.fromEntries(
+    WAYWARD_GOBLINS.map(({ combatKind, level }, index) => [
+      combatKind,
+      {
+        ...goblin,
+        ...monsterCombat(level, 2.1),
+        name: 'Wayward Goblin',
+        roamRadius: 0.7,
+        description: 'A goblin who decided that the trail had gone far enough.',
+        appearance: { shirt: ['#866a4a', '#6f7050', '#8e5e4c', '#68745e', '#85704e'][index] },
+      },
+    ]),
+  ),
+  [ONODA.id]: {
+    name: 'Hiroo Onoda',
+    level: 55,
+    hp: 560,
+    damage: 36,
+    interval: 0.75,
+    aggression: 16,
+    attackRange: 16,
+    attackEffect: 'onoda-rifle',
+    respawn: 60,
+    speed: 1.55,
+    leash: 18,
+    roamRadius: 5.2,
+    roamSpeed: 0.9,
+    height: 1.88,
+    model: 'human',
+    appearance: {
+      skin: '#b88c69',
+      shirt: '#586248',
+      pants: '#51583c',
+      hair: '#322d27',
+      cap: true,
+      sunglasses: true,
+    },
+    description: 'An island sentry in woodland camouflage with a long rifle.',
+  },
   frog: {
     name: 'Frog',
     level: 10,
@@ -211,18 +351,37 @@ export const MONSTER_STATS = defineMonsterStats({
   },
   'emf-disciple': {
     name: 'EMF Disciple',
-    level: 20,
-    hp: 50,
-    damage: 25,
-    interval: 1.6,
+    level: 28,
+    hp: 75,
+    damage: 30,
+    interval: 1.65,
+    attackRange: 5.5,
+    attackEffect: 'emf-lightning',
     respawn: 25,
     speed: 2.1,
-    leash: 5,
+    leash: 7,
     roamRadius: 0.8,
     model: 'human',
     height: 1.9,
     appearance: { shirt: '#7a8290', pants: '#454959', hair: '#493e38', tinfoil: true },
     description: 'Static crackles around the disciple’s foil suit.',
+  },
+  'senior-emf-disciple': {
+    name: 'Senior EMF Disciple',
+    level: 39,
+    hp: 105,
+    damage: 36,
+    interval: 1.55,
+    attackRange: 7,
+    attackEffect: 'emf-lightning',
+    respawn: 35,
+    speed: 2.25,
+    leash: 8,
+    roamRadius: 0.8,
+    model: 'human',
+    height: 1.95,
+    appearance: { skin: '#a68269', hair: '#c1ae9a', tinfoil: true },
+    description: 'Copper coils hum against a carefully folded foil suit.',
   },
   'unusual-pastor': {
     name: 'Unusual Pastor',
@@ -235,6 +394,22 @@ export const MONSTER_STATS = defineMonsterStats({
     height: 1.85,
     appearance: { shirt: '#38363e', pants: '#2d2c34', hair: '#a9a19a' },
     description: 'The pastor of the Unusual Church. His collar sits high on his neck.',
+  },
+  [BASEMENT_CHURCHGOER]: {
+    name: 'Churchgoer',
+    level: 35,
+    hp: 150,
+    damage: 27,
+    interval: 1.9,
+    aggression: 3,
+    leash: 4.75,
+    respawn: 25,
+    speed: 2.05,
+    roamRadius: 0.48,
+    model: 'human',
+    height: 1.85,
+    appearance: { coat: true, shirt: '#525c67', pants: '#3b3c47', hair: '#635145' },
+    description: 'A Churchgoer in a dark coat with chalk on the sleeves.',
   },
   'bolinas-cultist': {
     name: 'Cultist',
@@ -254,6 +429,17 @@ export const MONSTER_STATS = defineMonsterStats({
     ...monsterCombat(7, 2),
     name: 'Goblin guard',
     description: 'A guard in a hammered helmet with a shield made from a chair seat.',
+  },
+  [GOBLIN_BUSH_GUARD]: {
+    ...goblin,
+    ...monsterCombat(20, 2),
+    name: 'Goblin guard',
+    description: 'A helmeted goblin guarding his prized bush.',
+  },
+  [GOBLIN_BUSH_ALLY]: {
+    ...goblin,
+    ...monsterCombat(10, 2.2),
+    description: 'A goblin who came to defend his neighbor’s bush.',
   },
   'goblin-veteran': {
     ...goblin,
@@ -381,6 +567,17 @@ export const MONSTER_STATS = defineMonsterStats({
       },
     ]),
   ),
+  [FIREWORK_ENFORCEMENT.kind]: {
+    name: FIREWORK_ENFORCEMENT.name,
+    ...monsterCombat(20, 1.85),
+    speed: 2.5,
+    leash: 15,
+    respawn: COMMON_RESPAWN_SECONDS,
+    model: 'human',
+    height: 1.85,
+    appearance: { shirt: '#365061', pants: '#283442', hair: '#4a382d', coat: true },
+    description: 'A city code enforcement officer in a blue uniform.',
+  },
   'securities-investigator': {
     name: 'Securities Investigator',
     ...monsterCombat(40, 1.85),
@@ -419,6 +616,7 @@ export const MONSTER_STATS = defineMonsterStats({
     damage: 45,
     speed: 1.8,
     leash: 6,
+    aggression: 5.5,
     roamRadius: 1.3,
     respawn: COMMON_RESPAWN_SECONDS,
     model: 'human',
@@ -566,7 +764,10 @@ export const MONSTER_STATS = defineMonsterStats({
   },
   landshark: {
     name: contentText('config.monster-drops.module.name-21', {}),
-    ...monsterCombat(10, 1.5),
+    level: 25,
+    hp: 250,
+    damage: 22,
+    interval: 1.5,
     respawn: COMMON_RESPAWN_SECONDS,
     speed: 1.6,
     leash: 2.2,

@@ -27,6 +27,7 @@ export function windowLayout(w: number, h: number, style = 'sash') {
     cross =
       h *
       (style === 'office' || style === 'storefront' ? 0.76 : style === 'industrial' ? 0.64 : 0.5);
+  if (style === 'ribbon') return { bar, divisions: [] };
   const divisions = vertical.map((x) => ({ x: x - bar / 2, y: 0, w: bar, h })),
     cuts = [
       0,

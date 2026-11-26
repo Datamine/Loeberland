@@ -57,7 +57,7 @@ export interface SharedSavedState {
 }
 export type SharedWorldOptions = Pick<
   SimulationServices,
-  'geometry' | 'players' | 'send' | 'dirty'
+  'geometry' | 'players' | 'send' | 'dirty' | 'publishPlayerHit'
 > &
   Partial<Pick<SimulationServices, 'routes' | 'random' | 'now'>> & {
     movement?: Pick<SimulationServices['movement'], 'approachCombat' | 'stopCombatRoute'>;

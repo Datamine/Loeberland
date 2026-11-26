@@ -18,6 +18,8 @@ import {
   MP_SELF_INTERPOLATION_MS,
 } from '../src/multiplayer-protocol.ts';
 import { createWorldMultiplayer } from '../src/multiplayer-world.ts';
+import { createCombatFeedback } from '../src/combat-feedback.ts';
+import { Mesh } from '../src/geometry.ts';
 import type { ServerEvent } from '../src/types/network.ts';
 
 test('bomber bank and successive barrel rolls interpolate through full turns over the existing movement packet', () => {
@@ -292,6 +294,93 @@ test('combat effects wait for the rendered PvP approach or wildlife lunge', (t) 
   time++;
   world.beforeUpdate();
   assert.deepEqual(received, [4]);
+});
+
+test('PvE and PvP splats follow remote players and use the darker palette even for your own attacks', (t) => {
+  let time = 1000;
+  t.mock.method(performance, 'now', () => time);
+  const listeners: ((message: ServerEvent) => void)[] = [];
+  const player = { x: 0, y: 0, angle: 0, gesture: null };
+  const remote = {
+    id: 2,
+    x: 2,
+    y: 0,
+    z: 0.5,
+    angle: 0,
+    phase: 0,
+    motion: 0,
+    mode: 'walk',
+    hp: 22,
+    name: 'Other player',
+    appearance: {},
+  };
+  const peers = new Map([[remote.id, remote]]);
+  const client = {
+    state: { id: 1, connected: true },
+    peers,
+    subscribe: (listener: (message: ServerEvent) => void) => listeners.push(listener),
+    selfPose: () => null,
+    remotePlayers: () => [...peers.values()],
+  };
+  const feedback = createCombatFeedback();
+  const health = { state: { hp: 30, max: 30 } };
+  const world = createWorldMultiplayer({
+    client,
+    player,
+    merchants: [],
+    controllers: {},
+    expeditions: { cows: [], state: { beams: [] } },
+    health,
+    refreshUI: () => {},
+    combatFeedback: feedback,
+    characterGround: () => 0,
+    actorInView: () => true,
+  } as unknown as Parameters<typeof createWorldMultiplayer>[0]);
+  const receive = (message: ServerEvent) => listeners.forEach((listener) => listener(message));
+  const pvpHit = (attacker: number, target: number, damage: number, hp: number) =>
+    receive({
+      type: 'pvpHit',
+      sampleTime: time,
+      attacker,
+      target,
+      damage,
+      hp,
+      max: 30,
+      weapon: 'unarmed',
+      from: { x: 2, y: 1, z: 0.5 },
+      to: { x: 3, y: 1, z: 0.5 },
+    });
+  receive({ type: 'playerHit', target: 2, sampleTime: time, damage: 4, hp: 26, max: 30 });
+  pvpHit(3, 2, 0, 26);
+  time += MP_SELF_INTERPOLATION_MS;
+  world.beforeUpdate();
+  assert.equal(feedback.entries().length, 0, 'the hits wait for the first rendered pose');
+  assert.equal(health.state.hp, 30, 'spectator hits are never applied to the local player');
+
+  const draw = () => world.draw(new Mesh(), time, () => {}, []);
+  draw();
+  const remoteFeedback = requiredFixture(feedback.entries()[0]);
+  assert.deepEqual(
+    remoteFeedback.hits.map(({ damage, other }) => [damage, other]),
+    [[4, true], [0, true]],
+  );
+  pvpHit(1, 2, 3, 23);
+  pvpHit(2, 1, 2, 28);
+  receive({ type: 'damage', sampleTime: time, damage: 0, hp: 28, max: 30 });
+  time += MP_SELF_INTERPOLATION_MS;
+  world.beforeUpdate();
+  assert.equal(remoteFeedback.hits.at(-1)?.other, true, 'your hit on another player is darker');
+  const own = requiredFixture(feedback.entries().find((entry) => entry.target === player));
+  assert.deepEqual(
+    own.hits.map(({ damage, other }) => [damage, other]),
+    [[0, false], [2, false]],
+  );
+  remote.x = 4;
+  draw();
+  assert.equal(Reflect.get(remoteFeedback.target, 'x'), remote.x);
+  peers.delete(remote.id);
+  draw();
+  assert.deepEqual(feedback.entries(), [own]);
 });
 
 test('leaving kraken waters clears private ship state so later deltas cannot reboard a ghost ship', async () => {

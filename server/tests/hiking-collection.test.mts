@@ -10,8 +10,20 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame } from '../game.mts';
 import { createMemoryStore } from '../store.mts';
+import { itemLoot } from '../../src/item-stats.ts';
+import { rollMonsterDrops } from '../../src/monster-drops.ts';
+import { INCUBATOR_GUARD } from '../../src/goblin-incubator-cave.ts';
+import { GOBLIN_BUSH_GUARD } from '../../src/goblin-bush.ts';
+import { equipmentOptions } from '../../src/equipment-options.ts';
+import { characterAppearance, normalizeCharacter } from '../../src/character-config.ts';
+import { swapHoldings } from '../trade-inventory.mts';
+import {
+  HIKING_BACKPACK,
+  HIKING_BACKPACK_UPGRADE_KIT,
+  UPGRADED_HIKING_BACKPACK,
+} from '../../src/config/hiking-backpack.ts';
 
-import type { ServerPlayer } from '../../src/types/server.ts';
+import type { ServerGeometry, ServerPlayer } from '../../src/types/server.ts';
 
 async function command(game: TestGame, p: ServerPlayer, action: string, args?: {} | undefined) {
   if (action !== 'inventory') return gameCommand(game, p, action, args);
@@ -25,9 +37,10 @@ async function command(game: TestGame, p: ServerPlayer, action: string, args?: {
   await p.queue;
 }
 
-async function setup() {
+async function setup(wilderness?: ServerGeometry['wilderness'], random?: () => number) {
   let time = 1000000;
   const geometry = fixtureGeometry();
+  geometry.wilderness = wilderness;
   geometry.merchants = [
     {
       label: 'hiking-supplier',
@@ -47,7 +60,7 @@ async function setup() {
     },
   ];
   const store = createMemoryStore(),
-    game = await createGame({ geometry, store, now: () => time });
+    game = await createGame({ geometry, store, now: () => time, random });
   return { game, store, geometry, advance: (ms: number) => (time += ms) };
 }
 test('five-sandwich capacity covers purchases and loot; the 100-coin backpack raises it to twenty', async () => {
@@ -95,6 +108,107 @@ test('five-sandwich capacity covers purchases and loot; the 100-coin backpack ra
     await f.game.close();
   }
 });
+test('each Goblin Guard variant has a one-in-100 backpack kit drop', () => {
+  for (const kind of ['goblin-guard', INCUBATOR_GUARD, GOBLIN_BUSH_GUARD]) {
+    const dropsKit = (value: number) =>
+      rollMonsterDrops(kind, () => value).some(
+        (item) => item.lootKind === HIKING_BACKPACK_UPGRADE_KIT,
+      );
+    assert.equal(dropsKit(0.01), false, kind);
+    assert.equal(dropsKit(0.01 - Number.EPSILON), true, kind);
+  }
+});
+
+test('the backpack kit requires ownership and adds five permanent sandwich slots', async (t) => {
+  const f = await setup(
+    {
+      actors: [
+        { id: 'guard-a', combatKind: 'goblin-guard', x: 92.2, z: 120 },
+        { id: 'guard-b', combatKind: 'goblin-guard', x: 92.2, z: 120 },
+      ],
+    },
+    () => 0,
+  );
+  t.after(() => f.game.close());
+  const newcomer = await player(f.game, 56005);
+  const owner = await player(f.game, 56006, {
+    'sf-purse-v1': JSON.stringify({ coins: 500, ownedEquipment: [HIKING_BACKPACK] }),
+  });
+  const act = async (action: string, args: Record<string, unknown>) => {
+    await command(f.game, owner.p, action, args);
+    return requiredResult(owner.messages);
+  };
+  const inventory = (op: string) => act('inventory', { op });
+  const [first, second] = f.game.shared.wilderness.actors;
+  const kits = () =>
+    [...f.game.shared.loot.values()].filter(
+      (item) => item.lootKind === HIKING_BACKPACK_UPGRADE_KIT,
+    );
+  f.game.shared.wilderness.damage(first.id, first.hp, newcomer.p);
+  assert.equal(kits().length, 0);
+  assert.equal(newcomer.p.inventory.receive(itemLoot(HIKING_BACKPACK_UPGRADE_KIT)).ok, false);
+  f.game.shared.wilderness.damage(second.id, second.hp, owner.p);
+  const [kit] = kits();
+  assert.ok(kit);
+  Object.assign(owner.p, { x: kit.x, z: kit.z });
+  assert.equal(
+    (await act('collect', { id: kit.id })).award?.inventory?.hikingBackpackUpgradeKits,
+    1,
+  );
+  assert.ok(owner.p.inventory.receive(itemLoot('sandwich', 20)).ok);
+  assert.equal(owner.p.inventory.receive(itemLoot('sandwich')).ok, false);
+  assert.equal((await act('equipAppearance', { look: { back: HIKING_BACKPACK } })).ok, true);
+  const upgrade = await inventory('upgradeBackpack');
+  assert.equal(upgrade.ok, true);
+  assert.equal(upgrade.appearance?.back, UPGRADED_HIKING_BACKPACK);
+  assert.equal(upgrade.inventory?.capacity, 25);
+  assert.equal(upgrade.inventory?.hikingBackpackUpgradeKits, 0);
+  assert.ok(upgrade.inventory?.collection.includes(UPGRADED_HIKING_BACKPACK));
+  assert.equal(
+    equipmentOptions(owner.p.inventory.economy.state).back[1].label,
+    'Upgraded Hiking Backpack',
+  );
+  assert.ok(characterAppearance(normalizeCharacter(owner.p.appearance)).backpack);
+  assert.equal((await inventory('buyBackpack')).ok, false);
+  assert.ok(owner.p.inventory.receive(itemLoot(HIKING_BACKPACK_UPGRADE_KIT)).ok);
+  assert.equal((await inventory('upgradeBackpack')).ok, false);
+  assert.equal(owner.p.inventory.meta.hikingBackpackUpgradeKits, 1);
+
+  assert.ok(owner.p.inventory.receive(itemLoot('sandwich', 4)).ok);
+  assert.equal((await inventory('order')).ok, true);
+  assert.equal(
+    owner.p.inventory.receive(itemLoot('sandwich')).ok,
+    false,
+    'delivery reserves the last slot',
+  );
+  f.advance(50);
+  for (let i = 0; i < 10 && owner.p.inventory.meta.deliveryPending; i++) f.game.tick(0.05);
+  assert.equal(owner.p.inventory.meta.sandwiches, 25);
+  assert.equal((await inventory('pickup')).ok, false);
+  assert.equal((await act('equipAppearance', { look: { back: 'none' } })).ok, true);
+  assert.equal(owner.p.inventory.snapshot().capacity, 25);
+
+  const holdings = (p: ServerPlayer) => ({
+    inventory: p.inventory.snapshot(),
+    growth: null,
+    grapplingHook: false,
+  });
+  const pack = { id: UPGRADED_HIKING_BACKPACK, quantity: 1 };
+  assert.equal(swapHoldings(holdings(owner.p), holdings(newcomer.p), [pack], []), null);
+  const swap = swapHoldings(
+    holdings(owner.p),
+    holdings(newcomer.p),
+    [pack, { id: 'sandwich', quantity: 25 }],
+    [],
+  );
+  assert.equal(swap?.[1].inventory.sandwiches, 25);
+  assert.ok(swap?.[1].inventory.purse.ownedEquipment.includes(UPGRADED_HIKING_BACKPACK));
+  await f.game.disconnect(owner.p);
+  const returning = await player(f.game, 56006);
+  assert.equal(returning.p.inventory.snapshot().capacity, 25);
+  assert.equal(returning.p.inventory.meta.sandwiches, 25);
+});
+
 test('a pending delivery reserves its sandwich slot so ground loot cannot overfill the bag', async () => {
   const f = await setup();
   try {

@@ -2,6 +2,7 @@ import { contentText } from '../src/content-runtime.ts';
 import type { ServerPlayer, SimulationServices } from '../src/types/server.ts';
 import {
   consumeWeaponShot,
+  spendLightsaberHit,
   advanceAttackDeadline,
   railgunRestriction,
 } from './combat-supplies.mts';
@@ -11,10 +12,12 @@ import {
   ITEM_STATS,
   ownedEquipmentDefense,
   recoilDamage,
+  goblinCharmEquipped,
 } from '../src/item-stats.ts';
-import { rollWeaponDamage } from '../src/combat.ts';
+import { damageAfterDefense, rollWeaponDamage } from '../src/combat.ts';
 import { sameMapInstance } from '../src/map-instances.ts';
 import { skillStatus } from '../src/progression.ts';
+import { SHOT_BODY_HEIGHT } from '../src/ranged-weapon-mounts.ts';
 
 export const PVP_DISABLE_COOLDOWN = 30000;
 export function createPvpCombat({
@@ -191,13 +194,14 @@ export function createPvpCombat({
       const target = allowed.target,
         weapon = weaponFor(p),
         range = ITEM_STATS[weapon].range,
-        time = now();
-      if (Math.hypot(p.x - target.x, p.z - target.z) > 38) {
+        time = now(),
+        distance = Math.hypot(p.x - target.x, p.z - target.z);
+      if (distance > 38) {
         stop(p);
         continue;
       }
       if (
-        Math.hypot(p.x - target.x, p.z - target.z) > range ||
+        distance > range ||
         Math.abs(p.y - target.y) > 2.5 ||
         time < (p.pvpNextHit || 0)
       )
@@ -223,17 +227,23 @@ export function createPvpCombat({
       p.angle = Math.atan2(target.z - p.z, target.x - p.x);
       const damage = Math.min(
         target.hp,
-        Math.max(
-          0,
+        damageAfterDefense(
           rollWeaponDamage(
             skillStatus(p.profile.playerState.skills.strength.xp).level,
             weapon,
             random,
             p.profile.playerState.conditions.inebriation,
-          ) - ownedEquipmentDefense(target.inventory.economy.state, target.appearance),
+            distance,
+            goblinCharmEquipped(p.inventory.economy.state, p.appearance),
+          ),
+          ownedEquipmentDefense(target.inventory.economy.state, target.appearance),
         ),
       );
       target.hp -= damage;
+      if (spendLightsaberHit(p, weapon, damage)) {
+        send(p, { type: 'inventory', inventory: p.inventory.snapshot() });
+        dirty(p);
+      }
       target.damagePending = true;
       onCombatDamage(p, damage);
       const event = {
@@ -245,7 +255,7 @@ export function createPvpCombat({
         hp: target.hp,
         max: target.max,
         weapon,
-        from: { x: p.x, y: p.y + 1.14, z: p.z },
+        from: { x: p.x, y: p.y + SHOT_BODY_HEIGHT, z: p.z },
         to: { x: target.x, y: target.y + 1, z: target.z },
       };
       publishHit(p, target, event);

@@ -1,3 +1,5 @@
+import { drawBushFoliage } from './goblin-bush.ts';
+import { drawGoblinHelmet } from './goblin-helmet-model.ts';
 import { Mesh, pose, rgb } from './geometry.ts';
 import { hatById } from './hat-catalog.ts';
 
@@ -45,7 +47,90 @@ export function getHatGeometry(id: string) {
       );
     }
   };
-  if (id === 'paper') {
+  if (id === 'loaf-of-bread') {
+    const length = 0.31,
+      rise = 0.134,
+      width = 0.147;
+    m.sphere(0, 0.095, -0.008, 0.295, 0.078, 0.136, body, 16, 8);
+    m.sphere(0, 0.134, -0.01, length, rise, width, body, 20, 10);
+    for (const slash of [-0.145, 0, 0.145]) {
+      const score = (t: number) => {
+        const x = slash + t * 0.036,
+          z = t * 0.09;
+        const y = 0.134 + rise * Math.sqrt(1 - (x / length) ** 2 - (z / width) ** 2);
+        return [x, y + 0.002, z - 0.01];
+      };
+      for (let i = 0; i < 5; i++)
+        m.rod(score(i / 2.5 - 1), score((i + 1) / 2.5 - 1), 0.017, trim, 6);
+    }
+  } else if (id === 'gnome-cap') {
+    m.cylinder(0, -0.015, 0, 0.164, 0.65, body, 24, 0);
+  } else if (id === 'napoleon-hat') {
+    m.sphere(0, 0.072, -0.01, 0.155, 0.12, 0.144, body, 18, 10);
+    const outline = [
+      [-0.278, 0.085],
+      [-0.233, 0.121],
+      [-0.153, 0.198],
+      [-0.067, 0.243],
+      [0.025, 0.251],
+      [0.11, 0.219],
+      [0.2, 0.155],
+      [0.28, 0.085],
+      [0.234, 0.046],
+      [0.129, 0.023],
+      [0, 0.018],
+      [-0.141, 0.023],
+      [-0.24, 0.048],
+    ];
+    for (const side of [-1, 1]) {
+      const points = outline.map(([x, y]) => [x, y, side * (0.135 - 0.22 * Math.abs(x))]);
+      const center = [0, 0.113, side * 0.159];
+      for (let i = 0; i < points.length; i++) {
+        const a = points[i];
+        const b = points[(i + 1) % points.length];
+        if (side === 1) m.tri(center, b, a, body);
+        else m.tri(center, a, b, body);
+        m.rod(a, b, i < 7 ? 0.008 : 0.005, i < 7 ? trim : body, 6);
+      }
+    }
+    m.rod([-0.108, 0.136, 0.154], [-0.108, 0.136, 0.169], 0.038, trim, 14);
+    m.rod([-0.108, 0.136, 0.171], [-0.108, 0.136, 0.177], 0.029, gem, 14);
+    m.sphere(-0.108, 0.136, 0.18, 0.013, 0.013, 0.005, trim, 10, 6);
+  } else if (id === 'bush-hat') {
+    drawBushFoliage(m, 0, 0.14, -0.055, 0.292, 0.225, 0.265, h.colors);
+  } else if (id === 'jester') {
+    m.sphere(0, 0.05, 0, 0.177, 0.133, 0.151, body, 18, 10);
+    band(0.178, 0, 0.041, trim);
+    for (let point = 0; point < 3; point++) {
+      const angle = (point * 2 * Math.PI) / 3;
+      pose(m, 0, 0, 0, angle, () => {
+        const cloth = point % 2 ? trim : body;
+        const rings = [
+          [0.084, 0.06, 0.089],
+          [0.144, 0.176, 0.08],
+          [0.225, 0.21, 0.061],
+          [0.293, 0.17, 0.04],
+          [0.334, 0.096, 0.014],
+        ];
+        const at = (row: number, i: number) => {
+          const [x, y, r] = rings[row];
+          const before = rings[Math.max(0, row - 1)],
+            after = rings[Math.min(rings.length - 1, row + 1)];
+          const dx = after[0] - before[0],
+            dy = after[1] - before[1];
+          const offset = (Math.sin((i * Math.PI) / 5) * r) / Math.hypot(dx, dy);
+          return [x - dy * offset, y + dx * offset, Math.cos((i * Math.PI) / 5) * r];
+        };
+        for (let row = 1; row < rings.length; row++)
+          for (let i = 0; i < 10; i++)
+            m.quad(at(row - 1, i), at(row, i), at(row, i + 1), at(row - 1, i + 1), cloth);
+        m.sphere(0.34, 0.072, 0, 0.039, 0.038, 0.039, gem, 12, 8, { metal: 0.8 });
+        m.rod([0.319, 0.05, 0.023], [0.361, 0.05, 0.023], 0.005, trim, 6);
+      });
+    }
+  } else if (id === 'goblin-helmet' || id === 'upgraded-goblin-helmet') {
+    drawGoblinHelmet(m, -0.032, 0.73, [body, trim, gem], id === 'upgraded-goblin-helmet');
+  } else if (id === 'paper') {
     const a = [-0.18, 0.01, -0.13] satisfies [number, number, number],
       b = [0.18, 0.01, -0.13] satisfies [number, number, number],
       c = [0.18, 0.01, 0.13] satisfies [number, number, number],

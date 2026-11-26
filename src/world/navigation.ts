@@ -1,4 +1,6 @@
-import { LAB_NAV } from '../berkeley-lab.ts';
+import { combatDungeon } from '../combat-dungeons.ts';
+import { CHURCH_BASEMENT_NAV, inChurchBasement } from '../church-basement-layout.ts';
+import { STARTING_POSITION } from '../config/gameplay.ts';
 import { hasPhysicalBounds } from '../picking.ts';
 import { isFiniteNumber } from '../types/json.ts';
 import type { Actor } from '../types/world.ts';
@@ -15,6 +17,7 @@ import { TAHOE_COMBAT_TRUNKS, nearTahoe } from '../tahoe.ts';
 import { insideGuild } from '../guild.ts';
 import { CAVE_NAVIGATION } from '../map-instances.ts';
 import { onSouthBeachPier } from '../south-beach.ts';
+import { onodaIslandNavigation } from '../onoda-island.ts';
 
 /** Navigation services for the browser scene.
  * Dependencies are explicit live scene bindings, preserving initialization
@@ -64,7 +67,10 @@ export function createNavigation(context: WorldContext) {
   }
 
   function landClearAt(x: number, y: number): boolean {
-    return context.countryside?.contains(x + 0.5, y + 0.5) ||
+    if (inChurchBasement(x + 0.5, y + 0.5))
+      return CHURCH_BASEMENT_NAV.contains(x + 0.5, y + 0.5);
+    return onodaIslandNavigation.contains(x + 0.5, y + 0.5) ||
+      context.countryside?.contains(x + 0.5, y + 0.5) ||
       context.marinLand?.contains(x + 0.5, y + 0.5) ||
       context.esotericCampus?.contains(x + 0.5, y + 0.5) ||
       context.goldenGate?.contains(x + 0.5, y + 0.5) ||
@@ -80,7 +86,8 @@ export function createNavigation(context: WorldContext) {
   }
 
   function clearAt(x: number, y: number): boolean {
-    if (context.secretWorld?.kind === 'berkeley-lab') return LAB_NAV.free(x, y);
+    const dungeon = combatDungeon(context.secretWorld?.kind);
+    if (dungeon) return dungeon.nav.free(x, y);
     if (context.secretWorld?.kind === 'illuminati') return CAVE_NAVIGATION.free(x, y);
     return context.chase?.state.jailed
       ? context.detention.walkable(x + 0.5, y + 0.5)
@@ -96,10 +103,14 @@ export function createNavigation(context: WorldContext) {
   ): boolean {
     if (context.secretWorld?.kind === 'illuminati')
       return CAVE_NAVIGATION.segment({ x: ax, y: ay }, { x: bx, y: by });
-    if (context.secretWorld?.kind === 'berkeley-lab')
-      return LAB_NAV.segment({ x: ax, y: ay }, { x: bx, y: by });
+    const dungeon = combatDungeon(context.secretWorld?.kind);
+    if (dungeon) return dungeon.nav.segment({ x: ax, y: ay }, { x: bx, y: by });
     const endpointFree = ignoreCustody ? landClearAt : clearAt;
     if (!endpointFree(ax, ay) || !endpointFree(bx, by)) return false;
+    if (inChurchBasement(ax + 0.5, ay + 0.5) || inChurchBasement(bx + 0.5, by + 0.5))
+      return CHURCH_BASEMENT_NAV.segment({ x: ax, y: ay }, { x: bx, y: by });
+    if (onodaIslandNavigation.contains(ax + 0.5, ay + 0.5))
+      return onodaIslandNavigation.segment({ x: ax, y: ay }, { x: bx, y: by });
     if (
       context.countryside?.segment({ x: ax, y: ay }, { x: bx, y: by }) ||
       context.marinLand?.segment({ x: ax, y: ay }, { x: bx, y: by })
@@ -288,7 +299,7 @@ export function createNavigation(context: WorldContext) {
         if (entry) s.entry = entry;
       }
     // Navigation uses tile indices offset by half a unit from the map coordinates.
-    const spawn = { x: 70 - 0.5, y: 43 - 0.5 };
+    const spawn = { x: STARTING_POSITION.x - 0.5, y: STARTING_POSITION.z - 0.5 };
     if (!context.cityNavigation.free(spawn.x, spawn.y))
       throw new Error('The starting tile must be walkable');
     context.camera.yaw = -(cafe.rotation ?? 0) - Math.PI / 4;
@@ -362,10 +373,20 @@ export function createNavigation(context: WorldContext) {
   ): Point[] | null {
     if (context.secretWorld?.kind === 'illuminati')
       return CAVE_NAVIGATION.path(from, { x: tx, y: ty });
-    if (context.secretWorld?.kind === 'berkeley-lab') return LAB_NAV.path(from, { x: tx, y: ty });
+    const dungeon = combatDungeon(context.secretWorld?.kind);
+    if (dungeon) return dungeon.nav.path(from, { x: tx, y: ty });
+    if (inChurchBasement(from.x + 0.5, from.y + 0.5) || inChurchBasement(tx + 0.5, ty + 0.5))
+      return landClearAt(from.x, from.y) && landClearAt(tx, ty)
+        ? CHURCH_BASEMENT_NAV.path(from, { x: tx, y: ty })
+        : null;
     const base = (a: Point, b: Point) =>
       context.esotericCampus
-        ? context.esotericCampus.path(a, b, (p, q) => basePathTo(q.x, q.y, p, ignoreCustody))
+        ? context.esotericCampus.path(
+            a,
+            b,
+            (p, q) => basePathTo(q.x, q.y, p, ignoreCustody),
+            (p) => !!context.countryside?.contains(p.x + 0.5, p.y + 0.5),
+          )
         : basePathTo(b.x, b.y, a, ignoreCustody);
     const path = context.marinLand
       ? context.marinLand.path(from, { x: tx, y: ty }, base)
@@ -383,6 +404,10 @@ export function createNavigation(context: WorldContext) {
     from: Point = context.player,
     ignoreCustody = false,
   ): Point[] | null {
+    const islandFrom = onodaIslandNavigation.contains(from.x + 0.5, from.y + 0.5);
+    const islandTo = onodaIslandNavigation.contains(tx + 0.5, ty + 0.5);
+    if (islandFrom || islandTo)
+      return islandFrom && islandTo ? onodaIslandNavigation.path(from, { x: tx, y: ty }) : null;
     // Overlapping city/peninsula cells still use their connected city
     // graph, rather than being forced through a distant regional gate.
     if (context.cityNavigation?.connected(from, { x: tx, y: ty })) {
@@ -450,7 +475,8 @@ export function createNavigation(context: WorldContext) {
       return CAVE_NAVIGATION.nearest(x, y, 40, (a, b) =>
         CAVE_NAVIGATION.connected(from, { x: a, y: b }),
       );
-    if (context.secretWorld?.kind === 'berkeley-lab') return LAB_NAV.nearest(x, y, from);
+    const dungeon = combatDungeon(context.secretWorld?.kind);
+    if (dungeon) return dungeon.nav.nearest(x, y, from);
     if (context.secretWorld?.bomber.state.active) return { x, y };
     if (sailing)
       return nearestMinimapPoint(
@@ -461,6 +487,11 @@ export function createNavigation(context: WorldContext) {
           reachable: (p) => !!context.surf.path(from, p),
         },
       );
+    if (inChurchBasement(from.x + 0.5, from.y + 0.5))
+      return nearestMinimapPoint(from, { x, y }, {
+        eligible: (p) => CHURCH_BASEMENT_NAV.contains(p.x + 0.5, p.y + 0.5),
+        reachable: (p) => !!CHURCH_BASEMENT_NAV.path(from, p),
+      });
     const origin = context.countryside?.contains(from.x + 0.5, from.y + 0.5)
       ? context.regionalRoad.gate('city')
       : context.marinLand?.contains(from.x + 0.5, from.y + 0.5)

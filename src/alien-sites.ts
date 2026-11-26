@@ -1,8 +1,9 @@
 import type { Point, Ray } from './types/geometry.ts';
-import type { Site, SignAtlas } from './types/world.ts';
+import type { Actor, Site, SignAtlas } from './types/world.ts';
 import { requiredValue } from './types/assert.ts';
 import { BURNING_MAN } from './burning-man.ts';
 import { BERKELEY_HOUSE_SEARCHES } from './config/search-houses.ts';
+import { WAYWARD_CAMP_CROSSINGS, WAYWARD_CAMP_PARCELS } from './config/wayward-camp.ts';
 import { searchHome } from './search-houses.ts';
 import { searchHouseFurniture } from './search-house-models.ts';
 // CONTENT-BINDINGS-MIGRATED
@@ -13,9 +14,19 @@ import { drawPlaque } from './southern-district.ts';
 import { drawFacadeWindow } from './windows.ts';
 import { makeSuburbanHome } from './suburban-homes.ts';
 import { drawStreetLamp } from './lighting.ts';
+import { EAST_BAY_GRASS_COLOR, EAST_BAY_SHORE, eastBayShoreX } from './geography.ts';
 import { drawNeighborhoodFlag } from './neighborhood-flags.ts';
 import { createNavigationGrid } from './navigation.ts';
 import { LAB_SIGN } from './berkeley-lab.ts';
+import { CHURCH_STAIRS_DOWN, CHURCH_STAIRWELL } from './church-basement-layout.ts';
+import { drawChurchStairwell } from './church-basement.ts';
+import {
+  CEDAR_SAUNA,
+  SAUNA_FLOOR_TOP,
+  SAUNA_GUEST,
+  SAUNA_OBSTACLES,
+  drawCedarSauna,
+} from './cedar-sauna.ts';
 import {
   instituteWalkable,
   instituteWallRects,
@@ -147,8 +158,16 @@ export function createEsotericCampus(
     return { u: dx * c + dz * s, v: -dx * s + dz * c };
   };
   const point = (u: number, v: number) => ({ x: p.x + u * c - v * s, z: p.z + u * s + v * c });
+  const campParcels = WAYWARD_CAMP_PARCELS.map(({ x, z, w, d }) => ({
+    ...local(x, z),
+    halfWidth: w / 2 + 0.18,
+    halfDepth: d / 2 + 0.18,
+  }));
   const shore = point(BERKELEY_SHORE_GATE, 0);
-  const regionalGates = [gate, { x: shore.x - 0.5, y: shore.z - 0.5 }];
+  const regionalGates = [
+    gate,
+    ...[shore, ...WAYWARD_CAMP_CROSSINGS].map(({ x, z }) => ({ x: x - 0.5, y: z - 0.5 })),
+  ];
   const inRect = (u: number, v: number, [a, b, d, e]: number[], pad = 0) =>
     u >= a - pad - 1e-8 && u <= d + pad + 1e-8 && v >= b - pad - 1e-8 && v <= e + pad + 1e-8;
   const inStrip = (u: number, v: number, strip: number[][]) =>
@@ -169,6 +188,15 @@ export function createEsotericCampus(
   const coversGround = (x: number, z: number) => {
     const { u, v } = local(x, z);
     return coversLocal(u, v);
+  };
+  // Give the campus and countryside grids overlapping walkable land at the
+  // campus edge so short walks can cross it in a single navigation graph.
+  const shoreOverlap = 3;
+  const connectsToShore = (u: number, v: number) => {
+    if (!inRect(u, v, layout.bounds, shoreOverlap)) return false;
+    if (!groundRects.some((rect) => inRect(u, v, rect, shoreOverlap))) return false;
+    const { x, z } = point(u, v);
+    return x >= eastBayShoreX(z) + EAST_BAY_SHORE.walkClearance;
   };
   const searchableResidences = BERKELEY_VILLAGE_HOMES.flatMap((house) => {
     const search = BERKELEY_HOUSE_SEARCHES[house.id as keyof typeof BERKELEY_HOUSE_SEARCHES];
@@ -228,14 +256,27 @@ export function createEsotericCampus(
         inRect(x, z, [wall.x, wall.z, wall.x + wall.w, wall.z + wall.d], 0.16),
       ) &&
       (id !== BERKELEY_CHURCH_ROOM.id ||
-        !churchPews.some((pew) => inRect(x, z, [pew.u, pew.v, pew.u + pew.w, pew.v + pew.d], 0.16)))
+        (!inRect(
+          x,
+          z,
+          [CHURCH_STAIRWELL.west, CHURCH_STAIRWELL.north, CHURCH_STAIRWELL.east, CHURCH_STAIRWELL.south],
+          0.16,
+        ) &&
+          !churchPews.some((pew) => inRect(x, z, [pew.u, pew.v, pew.u + pew.w, pew.v + pew.d], 0.16))))
     );
   };
   const clearLocal = (u: number, v: number) => {
-    if (!coversLocal(u, v)) return false;
+    if (!coversLocal(u, v) && !connectsToShore(u, v)) return false;
+    if (campParcels.some((parcel) =>
+      Math.abs((u - parcel.u) * c - (v - parcel.v) * s) <= parcel.halfWidth &&
+      Math.abs((u - parcel.u) * s + (v - parcel.v) * c) <= parcel.halfDepth,
+    )) return false;
     if (Math.hypot(u - BURNING_MAN.u, v - BURNING_MAN.v) < 0.59) return false;
+    if (SAUNA_OBSTACLES.some((rect) => inRect(u - CEDAR_SAUNA.x, v - CEDAR_SAUNA.z, rect, 0.16)))
+      return false;
     for (const b of layout.buildings)
-      if (inRect(u, v, b.rect, 0.16) && !clearRoom(b.id, u, v)) return false;
+      if (b.id !== CEDAR_SAUNA.id && inRect(u, v, b.rect, 0.16) && !clearRoom(b.id, u, v))
+        return false;
     if (layout.obstacles.some((o) => Math.hypot(u - o.u, v - o.v) < o.r + 0.16)) return false;
     return !layout.trees.some(([x, z]) => Math.hypot(u - x, v - z) < 0.3);
   };
@@ -245,10 +286,10 @@ export function createEsotericCampus(
   };
   const ground = () => base + 0.015;
   const resolution = 4,
-    west = layout.bounds[0],
-    north = layout.bounds[1],
-    width = (layout.bounds[2] - west) * resolution,
-    height = (layout.bounds[3] - north) * resolution;
+    west = layout.bounds[0] - shoreOverlap,
+    north = layout.bounds[1] - shoreOverlap,
+    width = (layout.bounds[2] + shoreOverlap - west) * resolution,
+    height = (layout.bounds[3] + shoreOverlap - north) * resolution;
   const graphPoint = (q: { u: number; v: number }) => ({ x: q.u - west, y: q.v - north }),
     worldPoint = (q: { x: number; y: number }) => {
       const at = point(q.x + west, q.y + north);
@@ -280,6 +321,19 @@ export function createEsotericCampus(
     canLink: clearGraphLine,
     prepared,
   });
+  function nearest(
+    x: number,
+    y: number,
+    radius = 3,
+    predicate: (x: number, y: number) => boolean = () => true,
+  ) {
+    const origin = graphPoint(local(x + 0.5, y + 0.5));
+    const found = graph.nearest(origin.x, origin.y, radius, (x, y) => {
+      const at = worldPoint({ x, y });
+      return predicate(at.x, at.y);
+    });
+    return found && worldPoint(found);
+  }
   function segment(a: { x: number; y: number }, b: { x: number; y: number }) {
     return graph.segment(
       graphPoint(local(a.x + 0.5, a.y + 0.5)),
@@ -300,20 +354,35 @@ export function createEsotericCampus(
     from: { x: number; y: number },
     to: { x: number; y: number },
     basePath: (from: Point, to: Point) => Point[] | null | undefined,
+    onCountryside?: (point: Point) => boolean,
   ) {
     const a = contains(from.x + 0.5, from.y + 0.5),
       b = contains(to.x + 0.5, to.y + 0.5);
     if (!a && !b) return basePath(from, to);
     if (a && b) return internal(from, to);
     const distance = (p: Point, q: Point) => Math.hypot(p.x - q.x, p.y - q.y);
-    for (const entry of [...regionalGates].sort(
-      (p, q) => distance(from, p) + distance(p, to) - distance(from, q) - distance(q, to),
-    )) {
+    const routeDistance = (route: Point[]) =>
+      route.reduce((total, point, i) => total + distance(i ? route[i - 1] : from, point), 0);
+    // Walk through the overlap directly when the countryside graph serves both ends.
+    let shortest = onCountryside?.(from) && onCountryside(to) ? basePath(from, to) ?? null : null;
+    let bestDistance = shortest ? routeDistance(shortest) : Infinity;
+    const crossings = regionalGates
+      .map((entry) => ({ entry, lowerBound: distance(from, entry) + distance(entry, to) }))
+      .sort((p, q) => p.lowerBound - q.lowerBound);
+    for (const { entry, lowerBound } of crossings) {
+      if (lowerBound >= bestDistance) break;
       const head = a ? internal(from, entry) : basePath(from, entry);
+      if (!head) continue;
       const tail = b ? internal(entry, to) : basePath(entry, to);
-      if (head && tail) return [...head, ...tail];
+      if (!tail) continue;
+      const route = [...head, ...tail];
+      const distanceWalked = routeDistance(route);
+      if (distanceWalked < bestDistance) {
+        shortest = route;
+        bestDistance = distanceWalked;
+      }
     }
-    return null;
+    return shortest;
   }
   const quad = (rect: readonly number[]) => {
     const [a, b, c, d] = rect;
@@ -328,6 +397,14 @@ export function createEsotericCampus(
     });
   };
   const footprint = (rect: readonly number[]) => quad(rect).map(([x, , z]) => [x, z]);
+  const saunaFootprints = SAUNA_OBSTACLES.map(([left, back, right, front]) =>
+    footprint([
+      CEDAR_SAUNA.x + left,
+      CEDAR_SAUNA.z + back,
+      CEDAR_SAUNA.x + right,
+      CEDAR_SAUNA.z + front,
+    ]),
+  );
   const wallFootprints = (
     room: typeof MAD_HOUSE | typeof BERKELEY_CHURCH_ROOM | typeof BERKELEY_INSTITUTE_ROOM,
   ) =>
@@ -366,6 +443,11 @@ export function createEsotericCampus(
       : null;
   }
   function draw(m: Mesh, signs: SignAtlas, { separateInterior = false } = {}) {
+    // Use the same world-space projection as the surrounding East Bay grass.
+    for (const polygon of groundQuads) {
+      const [a, b, c, d] = polygon.map(([x, , z]) => [x, base, z]);
+      m.quad(a, b, c, d, EAST_BAY_GRASS_COLOR, 'grass');
+    }
     for (const [left, , right] of layout.crossings) {
       const a = car.sample(p.distance + left + 0.14),
         b = car.sample(p.distance + right - 0.14);
@@ -539,16 +621,7 @@ export function createEsotericCampus(
             m.cylinder(left + 0.65, 0.83, back - 0.61, 0.12, 0.33, '#9daea6', 10, 0.09, 'glass');
           });
         } else {
-          m.box(
-            left,
-            0.13,
-            front,
-            w,
-            stories,
-            d,
-            home.color,
-            style === 'sauna' ? 'wood' : 'clapboard',
-          );
+          m.box(left, 0.13, front, w, stories, d, home.color, 'clapboard');
           if (victorian) {
             const trim = '#f3e5d0';
             const bay = x + (i % 2 ? -0.51 : 0.51);
@@ -692,19 +765,6 @@ export function createEsotericCampus(
             }
             m.box(left + 0.1, 0.065, back - 0.29, 1.38, 0.2, 0.35, '#8b714d', 'wood');
           }
-          if (style === 'sauna') {
-            m.cylinder(right - 0.54, 1.86, z + 0.36, 0.095, 1.24, '#584b43', 10, 0.095, {
-              metal: 0.68,
-            });
-            m.cylinder(right - 0.54, 3.1, z + 0.36, 0.145, 0.09, '#594f45', 12, 0.12, {
-              metal: 0.68,
-            });
-            for (let j = 0; j < 6; j++) {
-              const u = left + 0.3 + (j % 3) * 0.15,
-                y = 0.23 + Math.floor(j / 3) * 0.14;
-              m.rod([u, y, front - 0.29], [u, y, front - 0.03], 0.077, '#8f6947', 7);
-            }
-          }
           if (!victorian) {
             m.box(x - 0.28, 0.14, front - 0.038, 0.56, 1.18, 0.05, '#54483d', 'wood');
             m.box(x - 0.72, 1.42, front - 0.48, 1.44, 0.085, 0.58, roof, 'shingles');
@@ -744,10 +804,8 @@ export function createEsotericCampus(
               home.color,
               'clapboard',
             );
-          if (style !== 'sauna') {
-            m.box(right - 0.54, roofY - 0.15, z + 0.38, 0.39, 1.02, 0.44, '#8f6c57', 'brick');
-            m.box(right - 0.6, roofY + 0.85, z + 0.32, 0.51, 0.12, 0.56, '#a78d73', 'stone');
-          }
+          m.box(right - 0.54, roofY - 0.15, z + 0.38, 0.39, 1.02, 0.44, '#8f6c57', 'brick');
+          m.box(right - 0.6, roofY + 0.85, z + 0.32, 0.51, 0.12, 0.56, '#a78d73', 'stone');
         };
         if (isLab) {
           recordInstitutePart(m, parts, 'roof', null, drawRoof);
@@ -799,6 +857,7 @@ export function createEsotericCampus(
             { height: () => 0, cutPlot: () => {} },
             home.color,
           );
+        else if (style === 'sauna') pose(m, x, 0, z, 0, drawCedarSauna);
         else if (isLab) drawHouse();
         else {
           const turn = doorway.rotation + Math.PI;
@@ -813,12 +872,16 @@ export function createEsotericCampus(
         id: home.id,
         kind: isLab ? 'mad-scientist-house' : 'berkeley-house',
         label: home.label,
-        navigationPolygons: isLab ? wallFootprints(MAD_HOUSE) : [footprint(home.rect)],
+        navigationPolygons: isLab
+          ? wallFootprints(MAD_HOUSE)
+          : style === 'sauna'
+            ? saunaFootprints
+            : [footprint(home.rect)],
         entry: { x: approach.x - 0.5, y: approach.z - 0.5 },
         description: isLab
           ? 'A weathered Craftsman house. Warm air escapes through its foundation.'
           : style === 'sauna'
-            ? 'Cedar siding and a tall stove pipe face the shore park. A stack of split wood waits by the door.'
+            ? CEDAR_SAUNA.description
             : style === 'commune'
               ? 'The residents share a big kitchen, a garden and the porch. Painted shutters mark the rooms.'
               : victorian
@@ -881,12 +944,19 @@ export function createEsotericCampus(
       right = room.w / 2,
       front = room.d / 2,
       back = -front;
+    const stair = CHURCH_STAIRWELL;
     pose(m, center.x, base, center.z, p.angle, () => {
       recordInstitutePart(m, parts, 'floor', null, () => {
-        m.box(left, -0.03, back, room.w, 0.045, room.d, '#aa8662', 'wood');
-        m.box(-0.78, 0.016, back + 0.3, 1.56, 0.008, room.d - 0.3, '#86565e', 'canvasWeave');
+        for (const [x, z, w, d] of [
+          [left, back, room.w, stair.north - back],
+          [left, stair.south, room.w, front - stair.south],
+          [left, stair.north, stair.west - left, stair.south - stair.north],
+          [stair.east, stair.north, right - stair.east, stair.south - stair.north],
+        ]) m.box(x, -0.03, z, w, 0.045, d, '#aa8662', 'wood');
+        m.box(-0.78, 0.016, stair.south, 1.56, 0.008, front - stair.south, '#86565e', 'canvasWeave');
         m.box(-0.65, 0.002, front, 1.3, 0.033, 0.5, '#a6987c', 'stone');
       });
+      recordInstitutePart(m, parts, CHURCH_STAIRS_DOWN, null, () => drawChurchStairwell(m));
       const geometry = { ...room, x: 0, z: 0 };
       for (const side of [0, 1, 2, 3])
         recordInstitutePart(m, parts, 'wall', side, () => {
@@ -942,15 +1012,29 @@ export function createEsotericCampus(
     const end = m.data.length;
     const entry = point(room.x, room.z + front + 0.65);
     const inside = point(room.x, room.z + front - 0.75);
+    const stairLanding = point(room.x + stair.landing[0], room.z + stair.landing[1]);
     const site = alienSiteBounds(m, start, {
       id: room.id,
       kind: 'unusual-church',
       label: 'Unusual Church',
-      navigationPolygons: wallFootprints(room),
+      navigationPolygons: [
+        ...wallFootprints(room),
+        footprint([room.x + stair.west, room.z + stair.north, room.x + stair.east, room.z + stair.south]),
+      ],
       description: 'A clapboard chapel with an open door and a Goose Corp service schedule.',
       entry: { x: entry.x - 0.5, y: entry.z - 0.5 },
       inside: { x: inside.x - 0.5, y: inside.z - 0.5 },
       enterableInstitute: true,
+      details: [
+        {
+          id: CHURCH_STAIRS_DOWN,
+          kind: CHURCH_STAIRS_DOWN,
+          section: CHURCH_STAIRS_DOWN,
+          label: 'Church basement stairs',
+          description: 'Narrow wooden stairs lead down under the chapel.',
+          entry: { x: stairLanding.x - 0.5, y: stairLanding.z - 0.5 },
+        },
+      ],
       base,
     });
     const interior = detachInstituteMesh(m, { start, end, parts, spec: room });
@@ -982,13 +1066,35 @@ export function createEsotericCampus(
       description: 'A resident of ' + home.label + '.',
     };
   });
-  const churchgoers: import('./types/world.ts').Actor[] = [
+  const saunaEntry = point(CEDAR_SAUNA.x, CEDAR_SAUNA.z + CEDAR_SAUNA.d / 2 + 0.64);
+  const saunaGuest: Actor = {
+    ...point(CEDAR_SAUNA.x + SAUNA_GUEST.x, CEDAR_SAUNA.z + SAUNA_GUEST.z),
+    id: SAUNA_GUEST.id,
+    kind: SAUNA_GUEST.kind,
+    name: SAUNA_GUEST.name,
+    label: SAUNA_GUEST.name,
+    description: SAUNA_GUEST.description,
+    neighborLine: SAUNA_GUEST.line,
+    siteId: CEDAR_SAUNA.id,
+    approach: { x: saunaEntry.x - 0.5, y: saunaEntry.z - 0.5 },
+    base: base + SAUNA_FLOOR_TOP,
+    angle: p.angle + Math.PI / 4,
+    skin: '#a77459',
+    shirt: '#e3e0cd',
+    pants: '#708e87',
+    hair: '#493934',
+    height: 1.55,
+    seated: true,
+    stationary: true,
+    regional: true,
+  };
+  const churchgoers: Actor[] = [
     {
       id: 'berkeley-churchgoer-1',
       label: 'Churchgoer',
       name: 'Mara',
-      u: -3.5,
-      v: -7.4,
+      u: BERKELEY_CHURCH_ROOM.x + 1.0,
+      v: BERKELEY_CHURCH_ROOM.z - 2,
       female: true,
       skin: '#a9745a',
       shirt: '#77898a',
@@ -1040,6 +1146,7 @@ export function createEsotericCampus(
     contains,
     coversGround,
     ground,
+    nearest,
     segment,
     path,
     raycast,
@@ -1052,6 +1159,7 @@ export function createEsotericCampus(
     madScientistSpawn,
     pastorSpawn,
     residents,
+    saunaGuest,
     groundQuads,
     churchgoers,
     npc,

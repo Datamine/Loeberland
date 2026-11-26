@@ -38,7 +38,13 @@ export function cowSpawns() {
     angle: 0.3 + i * 1.7,
   }));
 }
-export const PEQUOD = Object.freeze({ z: 110, offshore: 4.2, travel: 23, deck: 0.86 });
+export const PEQUOD = Object.freeze({
+  z: 110,
+  offshore: 4.2,
+  travel: 23,
+  deck: 0.86,
+  krakenDistance: 4.4,
+});
 export const KRAKEN_CAPE_TEXT = 'I Killed the Kraken and All I Got Was This Lousy Cape';
 export const KRAKEN_CAPE_LINES = Object.freeze([
   'I KILLED THE KRAKEN',

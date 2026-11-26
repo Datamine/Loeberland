@@ -46,16 +46,19 @@ export function createGrowthEquity({
   const save = () => onSave(position ? structuredClone(position) : null),
     coins = () => economy.state.coins;
   function settle(message: string) {
-    const value = Math.floor(position!.value);
-    if (!Number.isSafeInteger(coins() + value))
+    const proceeds = Math.floor(position!.value);
+    const cost = position!.cost + position!.fee;
+    const earnings = Math.max(0, proceeds - cost);
+    const payment = economy.credit(earnings, proceeds - earnings);
+    if (!payment.ok)
       return {
         ok: false,
         message: contentText(
           'world-message.src.growth-equity.your-coin-purse-cannot-hold-the-proceeds',
         ),
       };
-    const profit = value - position!.cost - position!.fee;
-    economy.state.coins += value;
+    const value = payment.earned!;
+    const profit = value - cost;
     position = null;
     save();
     const result = {

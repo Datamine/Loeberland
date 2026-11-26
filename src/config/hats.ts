@@ -1,3 +1,5 @@
+import { BUSH_COLORS } from '../goblin-bush.ts';
+import { FANCY_DRESS } from './fancy-dress.ts';
 export interface HatStyle {
   id: string;
   name: string;
@@ -7,7 +9,10 @@ export interface HatStyle {
   gem?: boolean;
 }
 export type HatDefinition = HatStyle &
-  ({ dropOnly?: false; price: number } | { dropOnly: true; price?: never });
+  (
+    | { dropOnly?: false; price: number; seller?: string }
+    | { dropOnly: true; price?: never; seller?: never }
+  );
 // CONTENT-BINDINGS-MIGRATED
 import { contentText } from '../content-runtime.ts';
 /** Cosmetic hat prices and model palettes. Keep IDs stable for saved inventories. */
@@ -84,6 +89,52 @@ export const HAT_CATALOG: readonly Readonly<HatDefinition>[] = Object.freeze(
         name: contentText('config.hats.module.name-11', {}),
         price: 100000,
         colors: ['#3568d1', '#78a3ef', '#23478f'] satisfies [string, string, string],
+      },
+      {
+        id: 'loaf-of-bread',
+        name: 'Loaf of Bread',
+        price: 5,
+        seller: 'bakery',
+        colors: ['#af6534', '#f2c57e', '#6d411f'],
+      },
+      {
+        id: 'jester',
+        name: 'Jester hat',
+        price: 50,
+        seller: 'decorative-robe-seller',
+        colors: ['#bd2962', '#146d89', '#f2c04e'],
+      },
+      {
+        id: 'napoleon-hat',
+        name: 'Napoleon hat',
+        price: 2200,
+        seller: FANCY_DRESS.id,
+        colors: ['#262631', '#c3a773', '#9c3544'],
+      },
+      {
+        id: 'gnome-cap',
+        name: 'Gnome cap',
+        price: 4400,
+        seller: FANCY_DRESS.id,
+        colors: ['#3c8c49', '#3c8c49', '#3c8c49'],
+      },
+      {
+        id: 'goblin-helmet',
+        name: 'Goblin helmet',
+        dropOnly: true,
+        colors: ['#41474a', '#50575a', '#697278'],
+      },
+      {
+        id: 'upgraded-goblin-helmet',
+        name: 'Reinforced goblin helmet',
+        dropOnly: true,
+        colors: ['#39434c', '#97643c', '#dfb465'],
+      },
+      {
+        id: 'bush-hat',
+        name: 'Bush hat',
+        dropOnly: true,
+        colors: BUSH_COLORS,
       },
       {
         id: 'stetson',

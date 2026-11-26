@@ -1,4 +1,5 @@
-import { LAB_FLOOR, LAB_INSTANCE, LAB_NAV, labSegment } from '../src/berkeley-lab.ts';
+import { combatDungeon } from '../src/combat-dungeons.ts';
+import { CHURCH_STAIRS_DOWN, CHURCH_STAIRS_UP } from '../src/church-basement-layout.ts';
 import { contentText } from '../src/content-runtime.ts';
 import { hasPhysicalBounds } from '../src/picking.ts';
 import { isFiniteNumber, isRecord } from '../src/types/json.ts';
@@ -9,13 +10,15 @@ import type { SimulationServices, ServerPlayer } from '../src/types/server.ts';
 
 import { nearestMinimapPoint } from '../src/minimap-navigation.ts';
 import { GAMEPLAY } from '../src/config/gameplay.ts';
-import { CAVE_NAVIGATION, ILLUMINATI_CAVE, ILLUMINATI_INSTANCE } from '../src/map-instances.ts';
+import { SCOOTER_BACKFLIP } from '../src/config/scooter.ts';
+import { equipmentOwned } from '../src/item-stats.ts';
+import { ILLUMINATI_CAVE } from '../src/map-instances.ts';
 import { inFighterYard } from '../src/fighter-yard-layout.ts';
 import { fighterYardMayEnter } from './fighter-yard.mts';
 import { guildMayEnter } from './guild.mts';
 import { createStealthBomber, bomberCruiseHeight } from '../src/stealth-bomber.ts';
 import { createFerrari } from '../src/ferrari.ts';
-import { createFerrariCityRoads } from '../src/ferrari-roads.ts';
+import { createCityStreetDistance } from '../src/ferrari-roads.ts';
 import { createRocketTravel, rocketCruiseSpeed } from '../src/rocket.ts';
 import { createTahoe } from '../src/tahoe.ts';
 import { SF_SPACEPORT } from '../src/southern-district.ts';
@@ -25,6 +28,7 @@ import { CHARACTER_CLIPS } from '../src/characters.ts';
 import { createSurfing } from '../src/surfing.ts';
 import { createWindsurfing } from '../src/windsurfing.ts';
 import { createWhales, WHALE_JUMP_LEAD_MS } from '../src/wildlife.ts';
+import { ONODA_DOCK } from '../src/onoda-island.ts';
 import { nearbyServiceNPC } from '../src/interaction-access.ts';
 import { FORWARD_ROLL_DURATION } from '../src/forward-roll.ts';
 import { combatApproach, type CombatPoint } from '../src/combat-navigation.ts';
@@ -34,7 +38,7 @@ import {
   marketStreetcarRider,
   STREETCAR_BOARD_RANGE,
 } from '../src/market-streetcar.ts';
-import { ATV_RENTAL, ATV_SPEED, rampRise } from '../src/atv.ts';
+import { ATV_JUMP, ATV_RENTAL, ATV_ROOF, ATV_SPEED, rampRise } from '../src/atv.ts';
 import { MOTORCYCLE_SPEED, MOTORCYCLE_TRICKS } from '../src/motorcycle.ts';
 import { SWING_RANGE, swingAngle, swingRiderGround } from '../src/swings.ts';
 import { WAYMO_RENTAL } from '../src/waymo-rental.ts';
@@ -47,6 +51,7 @@ import {
   GOBLIN_HUTS,
 } from '../src/goblin-town.ts';
 import { MUD_BATH } from '../src/goblin-space-layout.ts';
+import { interiorNavigation } from './player-proximity.mts';
 
 const json = (value: string | undefined): Record<string, unknown> => {
   try {
@@ -58,13 +63,6 @@ const json = (value: string | undefined): Record<string, unknown> => {
 };
 /** User destinations enter here. Routes, distance budgets, fuel, elevation and
  * vehicle clocks never come from a browser pose or browser elapsed time. */
-const interiorNavigation = (p: ServerPlayer) =>
-  p.instance?.kind === ILLUMINATI_INSTANCE.kind
-    ? CAVE_NAVIGATION
-    : p.instance?.kind === LAB_INSTANCE.kind
-      ? LAB_NAV
-      : null;
-
 export function createServerMovement({
   geometry,
   routes,
@@ -112,10 +110,9 @@ export function createServerMovement({
               dirty(p);
             },
             {
-              cityDriving: createFerrariCityRoads({
-                road: geometry.regionalRoad,
-                traffic: () => geometry.streetTraffic || { nodes: [], edges: [] },
-                ground: geometry.characterGround,
+              cityStreetDistanceSquared: createCityStreetDistance({
+                gate: geometry.regionalRoad.points[0],
+                traffic: () => geometry.streetTraffic,
               }),
             },
           )
@@ -160,7 +157,8 @@ export function createServerMovement({
     !p.grappling &&
     !p.parachute &&
     !p.tabletTeleport &&
-    !p.depotLaunch;
+    !p.depotLaunch &&
+    !p.scientificExperiment;
   function park(p: ServerPlayer, s: MovementRuntime) {
     if (s.mode === 'bike') p.profile.bicycle = { x: p.x - 0.5, y: p.z - 0.5 };
     if (s.mode === 'motorcycle') {
@@ -176,6 +174,10 @@ export function createServerMovement({
       }
     }
     if (s.ferrari?.state.riding) s.ferrari.park();
+    if (p.gesture === SCOOTER_BACKFLIP.id) {
+      p.gesture = '';
+      p.gestureUntil = 0;
+    }
     s.atv = undefined;
   }
   function stop(p: ServerPlayer) {
@@ -293,7 +295,7 @@ export function createServerMovement({
     }
     if (s.wave.state.ride) return { ok: s.wave.steer(x, z) };
     if (s.atv) {
-      if (s.atv.donut) return { ok: false };
+      if (s.atv.air || s.atv.donut) return { ok: false };
       const to = { x, z };
       if (!geometry.marinLand?.onLand(x, z))
         return {
@@ -443,28 +445,30 @@ export function createServerMovement({
       return true;
     const from = { x: p.x - 0.5, y: p.z - 0.5 };
     let route: Point[] | null = null;
-    const lab = p.instance?.kind === LAB_INSTANCE.kind;
-    const canTravel: NonNullable<typeof geometry.canTravel> = lab
-      ? (ax, ay, bx, by) => LAB_NAV.segment({ x: ax, y: ay }, { x: bx, y: by })
+    const dungeon = combatDungeon(p.instance?.kind);
+    const canTravel: NonNullable<typeof geometry.canTravel> = dungeon
+      ? (ax, ay, bx, by) => dungeon.nav.segment({ x: ax, y: ay }, { x: bx, y: by })
       : geometry.canTravel!;
     const goal = combatApproach({
       from,
       target,
       range,
-      free: lab ? LAB_NAV.free : geometry.landClearAt,
-      ground: lab ? () => LAB_FLOOR + 0.025 : geometry.characterGround,
-      lineClear: lab ? labSegment : (geometry.lineClear ?? (() => true)),
+      free: dungeon ? dungeon.nav.free : geometry.landClearAt,
+      ground: dungeon ? () => dungeon.floor : geometry.characterGround,
+      lineClear: dungeon
+        ? (a, b) => canTravel(a.x - 0.5, a.z - 0.5, b.x - 0.5, b.z - 0.5)
+        : (geometry.lineClear ?? (() => true)),
       canTravel,
       pathTo: (x, y, start) => {
-        const candidate = lab
-          ? LAB_NAV.path(start, { x, y })
+        const candidate = dungeon
+          ? dungeon.nav.path(start, { x, y })
           : routes
             ? routes.pathTo(x, y, start, true)
             : geometry.pathTo(x, y, start, true);
         if (
           !candidate?.length ||
           !canTravel(start.x, start.y, candidate[0].x, candidate[0].y, true) ||
-          (!lab &&
+          (!dungeon &&
             candidate.some(
               (n) =>
                 !guildMayEnter(
@@ -506,6 +510,23 @@ export function createServerMovement({
         return false;
     }
     return true;
+  }
+  function atvJumpLanding(takeoff: { x: number; z: number }, angle: number) {
+    let previous = takeoff;
+    let landing = null;
+    const stepSize = 0.2;
+    const dx = Math.cos(angle) * stepSize;
+    const dz = Math.sin(angle) * stepSize;
+    // Follow the takeoff heading to the last clear patch before a building or the coast.
+    for (let step = 1; step * stepSize <= ATV_JUMP.distance; step++) {
+      const x = takeoff.x + step * dx;
+      const z = takeoff.z + step * dz;
+      if (!atvSegment(previous, { x, z })) break;
+      previous = { x, z };
+      if (!goblinRoofAt(x, z) && geometry.landClearAt(x - 0.5, z - 0.5))
+        landing = previous;
+    }
+    return landing && { ...landing, y: geometry.characterGround(landing.x, landing.z) };
   }
   function atvLanding(p: ServerPlayer) {
     const landing = geometry.landClearAt(p.x - 0.5, p.z - 0.5)
@@ -589,7 +610,7 @@ export function createServerMovement({
       stop(p);
       Object.assign(p, { x, z, y, mode: 'atv', angle: Math.PI });
       s.mode = 'atv';
-      s.atv = { air: null, donut: null, takeoffAngle: p.angle };
+      s.atv = { air: null, donut: null };
       dirty(p);
       return {
         ok: true,
@@ -614,17 +635,23 @@ export function createServerMovement({
         return { ok: false };
       atv.air.trick = args.trick;
       atv.air.trickAt = atv.air.elapsed;
+      atv.air.remaining = Math.max(atv.air.remaining, ATV_JUMP.trickSeconds);
       return { ok: true };
     }
     if (atv.air || atv.donut) return { ok: false };
     if (args.kind === 'atvJump') {
-      const hut =
-        args.id === undefined ? GOBLIN_HUTS[0] : GOBLIN_HUTS.find((h) => h.id === args.id);
+      const hut = GOBLIN_HUTS.find((h) => h.id === args.id);
       if (!hut) return { ok: false };
-      const { x, start, end } = goblinRampLane(hut);
-      const entry = { x, z: start };
+      const uphill = Math.sign(hut.z - p.z);
+      const runUp = goblinRampLane(hut, uphill);
+      const alreadyLinedUp =
+        Math.abs(p.x - hut.x) <= ATV_ROOF.halfWidth &&
+        (p.z - runUp.start) * uphill >= 0 &&
+        Math.sin(p.angle) * uphill > 0.4;
+      const { x, start, end } = alreadyLinedUp ? runUp : goblinRampLane(hut);
+      const entry = alreadyLinedUp ? p : { x, z: start };
       const route = atvSegment(p, entry)
-        ? [{ x: x - 0.5, y: start - 0.5 }]
+        ? [{ x: entry.x - 0.5, y: entry.z - 0.5 }]
         : geometry.marinLand?.path(
             { x: p.x - 0.5, y: p.z - 0.5 },
             { x: x - 0.5, y: start - 0.5 },
@@ -696,31 +723,37 @@ export function createServerMovement({
       }
     } else if (atv.air) {
       const air = atv.air;
-      air.elapsed += dt;
-      const x = p.x + Math.cos(atv.takeoffAngle) * ATV_SPEED * dt;
-      const z = p.z + Math.sin(atv.takeoffAngle) * ATV_SPEED * dt;
-      if (atvSegment(p, { x, z })) Object.assign(p, { x, z });
-      const ground = atvGround(p.x, p.z);
-      p.y += air.velocity * dt - 8.5 * dt * dt;
-      air.velocity -= 17 * dt;
+      const step = Math.min(dt, air.remaining);
+      // A late trick can extend the descent without rewinding distance already traveled.
+      const t =
+        step === air.remaining ? 1 : air.progress + ((1 - air.progress) * step) / air.remaining;
+      air.remaining -= step;
+      air.elapsed += step;
+      air.progress = t;
+      p.x = air.takeoff.x + (air.landing.x - air.takeoff.x) * t;
+      p.z = air.takeoff.z + (air.landing.z - air.takeoff.z) * t;
+      p.y = Math.max(
+        atvGround(p.x, p.z),
+        air.takeoff.y + (air.landing.y - air.takeoff.y) * t + 4 * ATV_JUMP.height * t * (1 - t),
+      );
       p.moving = true;
       const trickAngle = air.trick
-        ? Math.min(1, (air.elapsed - (air.trickAt || 0)) / 0.34) * Math.PI * 2
+        ? Math.min(1, (air.elapsed - (air.trickAt || 0)) / ATV_JUMP.trickSeconds) * Math.PI * 2
         : 0;
       p.phase = air.trick === 'roll' ? trickAngle : 0;
-      p.angle = atv.takeoffAngle + (air.trick === 'spin' ? trickAngle : 0);
-      if (p.y <= ground && air.velocity <= 0) {
-        p.y = ground;
-        p.angle = atv.takeoffAngle;
+      p.angle = air.angle + (air.trick === 'spin' ? trickAngle : 0);
+      if (t === 1) {
+        Object.assign(p, air.landing);
+        p.angle = air.angle;
         p.phase = 0;
         atv.air = null;
         p.gesture = '';
-        const aim = s.route[0];
-        if (
-          aim &&
-          (aim.x + 0.5 - p.x) * Math.cos(p.angle) + (aim.y + 0.5 - p.z) * Math.sin(p.angle) <= 0
-        )
-          s.route.shift();
+        const rollout = {
+          x: p.x + Math.cos(air.angle) * ATV_JUMP.rollout,
+          z: p.z + Math.sin(air.angle) * ATV_JUMP.rollout,
+        };
+        if (atvSegment(p, rollout))
+          beginRoute(p, s, [{ x: rollout.x - 0.5, y: rollout.z - 0.5 }], rollout);
       }
     } else {
       let budget = ATV_SPEED * dt;
@@ -749,18 +782,33 @@ export function createServerMovement({
           (z - hut.z) * dz >= 0;
         p.angle = Math.atan2(dz, dx);
         p.moving = true;
+        if (crest) {
+          const takeoffX = p.x + ((x - p.x) * (hut.z - p.z)) / (z - p.z);
+          const takeoff = { x: takeoffX, z: hut.z, y: atvGround(takeoffX, hut.z) };
+          const landing = atvJumpLanding(takeoff, p.angle);
+          if (landing) {
+            Object.assign(p, takeoff, { moveGoal: null, gesture: 'atv-air' });
+            s.route = [];
+            atv.air = {
+              takeoff,
+              landing,
+              angle: p.angle,
+              elapsed: 0,
+              remaining: ATV_JUMP.seconds,
+              progress: 0,
+            };
+            break;
+          }
+        }
         Object.assign(p, { x, z, y: atvGround(x, z) });
         if (step >= distance) s.route.shift();
-        if (crest) {
-          atv.takeoffAngle = p.angle;
-          atv.air = { velocity: 3.8, elapsed: 0 };
-          p.gesture = 'atv-air';
-          break;
-        }
         budget -= step;
       }
     }
-    if (!s.route.length) atv.ramp = undefined;
+    if (!s.route.length) {
+      atv.ramp = undefined;
+      p.moveGoal = null;
+    }
     p.motion = p.moving ? 1 : 0;
     dirty(p);
   }
@@ -771,6 +819,26 @@ export function createServerMovement({
     if (typeof mode !== 'string') return { ok: false };
     if (!available(p)) return { ok: false };
     if (s.mode === 'swing' && mode !== 'walk') return { ok: false };
+    const islandDock =
+      args.islandDock === true
+        ? geometry.sights?.find((site) => site.id === ONODA_DOCK.id)
+        : undefined;
+    if (args.islandDock === true) {
+      const landing = mode === 'walk' && s.mode === 'surf' && s.surfKind === 'windsurf' &&
+        !s.windsurf.state.jump && p.surfShore;
+      const launching = mode === 'surf' && s.mode === 'walk' && !args.pacifica;
+      const point = landing
+        ? islandDock?.launch
+        : launching
+          ? islandDock?.entry
+          : undefined;
+      if (
+        p.instance.kind !== 'world' ||
+        !point ||
+        Math.hypot(p.x - point.x - 0.5, p.z - point.y - 0.5) > ONODA_DOCK.range
+      )
+        return { ok: false, message: 'Approach the Onoda Island landing first.' };
+    }
     const mudBath = mode === 'sit' && args.mudBath === true;
     const exit = { x: MUD_BATH.entry.x + 0.5, z: MUD_BATH.entry.y + 0.5 };
     if (
@@ -860,12 +928,14 @@ export function createServerMovement({
       leaveSeat(p);
       following.stop(p);
       if (s.mode === 'surf' && p.surfShore) {
+        const shore = islandDock?.entry ?? p.surfShore;
         s.wave.stop();
-        s.windsurf.cancelJump();
+        s.windsurf.reset();
+        s.surfKind = undefined;
         Object.assign(p, {
-          x: p.surfShore.x + 0.5,
-          z: p.surfShore.y + 0.5,
-          y: geometry.characterGround(p.surfShore.x + 0.5, p.surfShore.y + 0.5),
+          x: shore.x + 0.5,
+          z: shore.y + 0.5,
+          y: geometry.characterGround(shore.x + 0.5, shore.y + 0.5),
         });
         p.surfShore = null;
       }
@@ -931,6 +1001,19 @@ export function createServerMovement({
           ok: false,
           message: contentText('world-message.server.movement.earn-your-skateboard-first'),
         };
+    } else if (mode === 'scooter') {
+      if (!equipmentOwned(p.inventory.economy.state, 'scooter'))
+        return { ok: false, message: 'Buy a scooter from the Scooter Manufacturer first.' };
+      if (
+        p.instance.kind !== 'world' ||
+        (p.boundUntil || 0) > now() ||
+        !['walk', 'sit', 'bench', 'dance', 'bike', 'skateboard', 'motorcycle'].includes(p.mode) ||
+        !geometry.landClearAt(p.x - 0.5, p.z - 0.5)
+      )
+        return { ok: false, message: 'Find a clear spot on the ground to take out your scooter.' };
+      following.stop(p);
+      wake(p);
+      park(p, s);
     } else if (mode === 'motorcycle') {
       const bike = json(p.profile.privateState['sf-motorcycle-v1']);
       if (
@@ -959,14 +1042,19 @@ export function createServerMovement({
       const launch = args.pacifica
         ? geometry.pacificaSurfSite
         : geometry.sights?.find((n) => n.kind === 'windsurf');
-      if (!launch || Math.hypot(p.x - launch.entry.x - 0.5, p.z - launch.entry.y - 0.5) > 5)
+      if (
+        !launch ||
+        (!islandDock && Math.hypot(p.x - launch.entry.x - 0.5, p.z - launch.entry.y - 0.5) > 5)
+      )
         return {
           ok: false,
           message: contentText('world-message.server.movement.walk-to-a-surf-launch-first'),
         };
-      p.surfShore = { ...launch.entry };
-      const water = args.pacifica ? geometry.pacificaSurfSite!.launch : geometry.surf?.state.launch;
+      const water =
+        islandDock?.launch ??
+        (args.pacifica ? geometry.pacificaSurfSite!.launch : geometry.surf?.state.launch);
       if (!water) return { ok: false };
+      p.surfShore = { ...launch.entry };
       p.x = water.x + 0.5;
       p.z = water.y + 0.5;
       p.y = 0.1;
@@ -978,6 +1066,7 @@ export function createServerMovement({
         ok: false,
         message: contentText('world-message.server.movement.that-movement-activity-is-unavailable'),
       };
+    if (s.mode === 'scooter') park(p, s);
     s.mode = mode;
     p.mode = mode;
     stop(p);
@@ -1056,11 +1145,55 @@ export function createServerMovement({
     }
     if (s.mode === 'swing') return { ok: false };
     if (args.kind === 'swingBoard') return boardSwing(p, s, args.id);
+    if (args.kind === CHURCH_STAIRS_DOWN || args.kind === CHURCH_STAIRS_UP) {
+      const from = geometry.sights?.find((sight) => sight.id === args.kind)?.entry;
+      const opposite = args.kind === CHURCH_STAIRS_DOWN ? CHURCH_STAIRS_UP : CHURCH_STAIRS_DOWN;
+      const to = geometry.sights?.find((sight) => sight.id === opposite)?.entry;
+      if (
+        !from ||
+        !to ||
+        p.mode !== 'walk' ||
+        (p.boundUntil || 0) > now() ||
+        Math.hypot(p.x - from.x - 0.5, p.z - from.y - 0.5) >= 0.95 ||
+        !geometry.canTravel?.(p.x - 0.5, p.z - 0.5, from.x, from.y, true) ||
+        !geometry.landClearAt(to.x, to.y)
+      )
+        return { ok: false, message: 'Walk up to the stairs to use them.' };
+      following.stop(p);
+      stop(p);
+      const x = to.x + 0.5;
+      const z = to.y + 0.5;
+      Object.assign(p, {
+        x,
+        z,
+        y: geometry.characterGround(x, z),
+        attack: null,
+        personalBattle: null,
+        moveGoal: null,
+      });
+      dirty(p);
+      send(p, { type: 'position', ...position(p), reason: 'churchStairs' });
+      return { ok: true };
+    }
     if (typeof args.kind === 'string' && args.kind.startsWith('waymo'))
       return waymo.action(p, s, args.kind);
     if (s.mode === 'waymo') return { ok: false };
     if (typeof args.kind === 'string' && args.kind.startsWith('atv')) return atvAction(p, s, args);
     if (s.atv) return { ok: false };
+    if (args.kind === 'scooterBackflip') {
+      const time = now();
+      if (
+        s.mode !== 'scooter' ||
+        p.mode !== 'scooter' ||
+        !p.moving ||
+        (p.boundUntil || 0) > time ||
+        (p.gesture === SCOOTER_BACKFLIP.id && (p.gestureUntil || 0) > time)
+      )
+        return { ok: false };
+      p.gesture = SCOOTER_BACKFLIP.id;
+      p.gestureUntil = time + SCOOTER_BACKFLIP.duration * 1000;
+      return { ok: true };
+    }
     if (args.kind === 'motorcycleTrick') {
       const trick = MOTORCYCLE_TRICKS.find(({ id }) => id === args.trick);
       const time = now();
@@ -1387,8 +1520,27 @@ export function createServerMovement({
               ? 'dance'
               : 'climb';
       } else if (s.ferrari?.state.riding) {
-        s.ferrari.update(dt);
+        const result = s.ferrari.update(dt);
         v = s.ferrari.position;
+        if (result === 'city-limit') {
+          s.mode = 'walk';
+          Object.assign(p, {
+            x: v.x,
+            y: geometry.characterGround(v.x, v.z),
+            z: v.z,
+            angle: v.angle,
+            phase: 0,
+            mode: 'walk',
+          });
+          stop(p);
+          dirty(p);
+          send(p, { type: 'position', ...position(p), reason: 'ferrariDismount' });
+          send(p, {
+            type: 'notice',
+            message: contentText('world-message.server.movement.ferrari-city-limit'),
+          });
+          continue;
+        }
         p.mode = 'ferrari';
         p.moving = s.ferrari.state.speed > 0;
       }
@@ -1457,7 +1609,8 @@ export function createServerMovement({
               walk: GAMEPLAY.walkSpeed,
               waymo: WAYMO_RENTAL.speed,
               roll: GAMEPLAY.rollSpeed,
-              bike: 8.2,
+              bike: GAMEPLAY.bicycleSpeed,
+              scooter: GAMEPLAY.bicycleSpeed,
               skateboard: 7.6,
               motorcycle: MOTORCYCLE_SPEED,
               surf: 7.2,
@@ -1505,7 +1658,7 @@ export function createServerMovement({
         p.y = p.personalJailed
           ? geometry.detention!.base + 0.18
           : interior
-            ? (p.instance?.kind === LAB_INSTANCE.kind ? LAB_FLOOR : ILLUMINATI_CAVE.floor) + 0.025
+            ? combatDungeon(p.instance?.kind)?.floor ?? ILLUMINATI_CAVE.floor + 0.025
             : s.mode === 'surf'
               ? 0.1
               : geometry.characterGround(p.x, p.z);
@@ -1553,8 +1706,12 @@ export function createServerMovement({
           angle: p.angle,
           hp: p.hp,
         };
+      if (p.depotLaunch?.catapult)
+        return { ...p.depotLaunch.catapult.landing, angle: p.angle, hp: Math.min(1, p.hp) };
       if (p.depotLaunch)
         return { ...fallback, y: p.depotLaunch.base, hp: p.depotLaunch.trampoline ? p.hp : 1 };
+      if (p.scientificExperiment)
+        return { ...p.scientificExperiment.exit, angle: p.angle, hp: p.hp };
       if (p.mode === 'streetcar' && geometry.streetcarRoute) {
         const car = marketStreetcarPose(geometry.streetcarRoute, now());
         return { ...(streetcarLanding(car) || fallback), angle: p.angle, hp: p.hp };
@@ -1596,7 +1753,12 @@ export function createServerMovement({
       state(p).waymo = undefined;
       leaveSeat(p);
       const s = active.get(p.id);
-      if (s) park(p, s);
+      if (s) {
+        park(p, s);
+        s.wave.stop();
+        s.windsurf.reset();
+      }
+      p.surfShore = null;
       stop(p);
       active.delete(p.id);
     },

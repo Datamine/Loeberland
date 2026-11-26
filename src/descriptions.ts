@@ -2,11 +2,16 @@ import type { Site, ActorMetadata } from './types/world.ts';
 import { buildingNPCService } from './building-interactions.ts';
 import { applyEntityEdits } from './world-edits.ts';
 import { AIRSHIP_TRAVELER } from './airship-rope.ts';
+import { RICK } from './config/rick.ts';
+import { SHRIMP_EXPERIMENT } from './config/shrimp-experiment.ts';
+import { BERKELEY_FISHING } from './config/berkeley-fishing.ts';
+import { FANCY_DRESS } from './config/fancy-dress.ts';
 /** Observation text stays separate from dialogue and its trading side effects. */
 const merchantDescriptions = Object.freeze({
   'airship-agent':
     'A punctual attendant with a brass watch and a very long retrieval cable. Their flight schedule has exactly one departure: whenever you are ready.',
   [AIRSHIP_TRAVELER]: 'A traveler taking in the view from the basket.',
+  [RICK.id]: RICK.description,
   'twitter-worker':
     'A backend engineer with impeccable bottle discipline. Every cork is a deployment.',
   'twitter-poster':
@@ -52,6 +57,12 @@ const citizenDescriptions = Object.freeze([
 export function describeCharacter(person: ActorMetadata) {
   applyEntityEdits(person, person.editorKey || 'actor:' + person.id);
   if (person.editorDescription) return person.description;
+  if (
+    person.kind === SHRIMP_EXPERIMENT.scientist ||
+    person.kind === BERKELEY_FISHING.vendor ||
+    person.kind === FANCY_DRESS.id
+  )
+    return person.description;
   if (person.wilderness && person.description) return person.description;
   if (person.kind === 'stockbroker')
     return 'A broker with a pocket watch, a tidy ledger, and an impressive ability to describe a falling number as price discovery.';
@@ -138,6 +149,8 @@ export function sightPrimaryVerb(
   if (sight.kind === 'unusual-church') return 'Search';
   if (sight.kind === 'secret-stairs') return 'Descend';
   if (sight.kind === 'cave-exit') return 'Climb';
+  if (sight.kind === 'goblin-incubator-exit') return 'Climb';
+  if (sight.kind === 'goblin-startup-incubator') return 'Enter';
   if (sight.kind === 'stealth-bomber') return 'Board';
   if (sight.kind === 'bench') return 'Sit on';
   if (sight.kind === 'neighborhood-garden' && sight.seats?.length) return 'Sit in';

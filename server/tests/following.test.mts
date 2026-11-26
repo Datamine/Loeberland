@@ -9,6 +9,7 @@ import { decodePlayerFrame } from '../../src/multiplayer-protocol.ts';
 import { CAPTURE_DURATION, DEATH_DURATION } from '../../src/capture-animation.ts';
 import { TABLET_TELEPORT_SECONDS } from '../../src/teleport-tablets.ts';
 import { ITEM_STATS } from '../../src/item-stats.ts';
+import { PLAYER_INTERACTION_RANGE } from '../player-proximity.mts';
 import type { ServerPlayer } from '../../src/types/server.ts';
 async function setup(geometry = fixtureGeometry()) {
   let time = 1000000;
@@ -45,7 +46,13 @@ test('following advances on server ticks with no follower poses, continues throu
     b = await player(game, 902);
   b.p.x += 7;
   try {
+    const distance = () => Math.hypot(a.p.x - b.p.x, a.p.z - b.p.z);
+    assert.equal(
+      requiredFixture(await act(game, b, 'moveTo', { x: b.p.x + 20, z: b.p.z })).ok,
+      true,
+    );
     assert.equal(requiredFixture(await act(game, a, 'followPlayer', { id: b.p.id })).ok, true);
+    assert.equal(a.p.following, null, 'the approach has not started following');
     const start = a.p.x;
     for (let i = 0; i < 20; i++) {
       advance(50);
@@ -53,7 +60,10 @@ test('following advances on server ticks with no follower poses, continues throu
     }
     assert.ok(a.p.x > start + 4);
     assert.ok(a.p.moving);
+    assert.ok(b.p.moving);
     assert.ok(a.p.phase > 0);
+    assert.ok(distance() > PLAYER_INTERACTION_RANGE);
+    assert.ok(!a.messages.some((m) => m.type === 'following' && m.target === b.p.id));
     game.broadcast();
     for (const observer of [a, b]) {
       const frame = decodePlayerFrame(
@@ -64,12 +74,20 @@ test('following advances on server ticks with no follower poses, continues throu
       assert.ok(follower.moving);
       assert.ok(follower.phase > 0);
     }
-    b.p.z += 7;
+    for (let i = 0; i < 65 && !a.p.following; i++) {
+      advance(50);
+      game.tick(0.05);
+    }
+    assert.ok(b.p.moving, 'the follower catches up before the leader stops');
+    assert.ok(distance() <= PLAYER_INTERACTION_RANGE);
+    assert.equal(a.p.following, b.p.id);
+
+    await act(game, b, 'moveTo', { x: b.p.x, z: b.p.z + 7 });
     for (let i = 0; i < 50; i++) {
       advance(50);
       game.tick(0.05);
     }
-    assert.ok(Math.hypot(a.p.x - b.p.x, a.p.z - b.p.z) <= 1.3);
+    assert.ok(distance() <= 1.3);
     assert.equal(a.p.following, b.p.id);
     const stale = { ...idlePose(a.p), x: start };
     game.receive(a.p, { type: 'pose', pose: stale });
@@ -156,7 +174,7 @@ test('followers run to respawns and long-distance teleports, then follow an arre
     assert.ok(distance() <= range);
   };
   try {
-    b.p.x += 3;
+    b.p.x += 1;
     assert.equal(requiredFixture(await act(game, a, 'followPlayer', { id: b.p.id })).ok, true);
     b.p.hp = 0;
     b.p.respawnAllowed = true;
@@ -200,6 +218,28 @@ test('followers run to respawns and long-distance teleports, then follow an arre
     tick();
     assert.equal(b.p.personalJailed, false);
     followUntil(1.25);
+  } finally {
+    await game.close();
+  }
+});
+
+test('choosing another destination cancels a pending follow', async () => {
+  const { game } = await setup();
+  const a = await player(game, 927);
+  const b = await player(game, 928);
+  b.p.x += 6;
+  try {
+    assert.equal(requiredFixture(await act(game, a, 'followPlayer', { id: b.p.id })).ok, true);
+    assert.equal(a.p.following, null);
+    game.tick(0.05);
+    assert.equal(
+      requiredFixture(await act(game, a, 'moveTo', { x: a.p.x, z: a.p.z + 3 })).ok,
+      true,
+    );
+    for (let i = 0; i < 45; i++) game.tick(0.05);
+    assert.equal(a.p.following, null);
+    assert.ok(!game.following.owns(a.p));
+    assert.ok(!a.messages.some((m) => m.type === 'following' && m.target === b.p.id));
   } finally {
     await game.close();
   }

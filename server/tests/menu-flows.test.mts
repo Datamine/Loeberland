@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { createWorldModel } from '../../src/world.ts';
 import { createGame } from '../game.mts';
 import { createMemoryStore } from '../store.mts';
-import { player, latestResult, requiredResult } from './fixtures.mts';
+import { player, latestResult, requiredResult, storedPlayerFixture } from './fixtures.mts';
 import { dialogueFixture } from '../../tests/helpers/dialogue-fixture.mts';
 import { npcContextActions, npcOffersAttack } from '../../src/npc-interactions.ts';
 import { neighborhoodShopDialogue } from '../../src/neighborhood-interactions.ts';
@@ -25,6 +25,10 @@ import { theyLiveDialogue, ALIEN_TARGETS } from '../../src/they-live.ts';
 import { createExpeditions, scientistDialogue, ahabDialogue } from '../../src/jurassic.ts';
 import { createSecretAdventures } from '../../src/secret-adventures.ts';
 import { hitpointMaximum, SKILL_THRESHOLDS } from '../../src/progression.ts';
+import { LEATHER_JACKET } from '../../src/config/leather-jacket.ts';
+import { leatherJacketDialogue } from '../../src/leather-jacket.ts';
+import { TOMMY } from '../../src/config/tommy.ts';
+import { tommyDialogue } from '../../src/tommy-dialogue.ts';
 import { PEQUOD } from '../../src/jurassic-layout.ts';
 import {
   bolinasCultistDialogue,
@@ -37,9 +41,9 @@ import { rehabilitationDialogue } from '../../src/rehabilitation.ts';
 import { HAIRSTYLES } from '../../src/config/hairstyles.ts';
 import { guildDialogue } from '../../src/guild.ts';
 import { guildStatusFor } from '../guild.mts';
-import { ILLUMINATI_CAVE } from '../../src/map-instances.ts';
+import { ILLUMINATI_CAVE, ILLUMINATI_INSTANCE } from '../../src/map-instances.ts';
 import { SF_SPACEPORT } from '../../src/southern-district.ts';
-import { ATV_RAMP_KIND, ATV_RENTAL, ATV_SPEED } from '../../src/atv.ts';
+import { ATV_RAMP_KIND, ATV_RENTAL, ATV_SPEED, rampRise } from '../../src/atv.ts';
 import { MOTORCYCLE_TRICKS } from '../../src/motorcycle.ts';
 import { WAYMO_RENTAL } from '../../src/waymo-rental.ts';
 import { marketStreetcarPose, marketStreetcarRider } from '../../src/market-streetcar.ts';
@@ -51,7 +55,10 @@ import {
 import { constructionForemanDialogue } from '../../src/construction-site.ts';
 import { airportSurfaceTypeAt } from '../../src/airship.ts';
 import { SOUTHERN_HOUSING } from '../../src/southern-layout.ts';
-import { FISHING_COOLDOWN_MS, FISHING_DURATION } from '../../src/fishing.ts';
+import { FISHING_COOLDOWN_MS, FISHING_DURATION, isFishingSite } from '../../src/fishing.ts';
+import { BERKELEY_FISHING } from '../../src/config/berkeley-fishing.ts';
+import { ONODA_DOCK } from '../../src/onoda-island.ts';
+import { DEATH_DURATION } from '../../src/capture-animation.ts';
 import { FIGHTER_LEVELS, FIGHTER_YARD, isYardFighter } from '../../src/fighter-yard-layout.ts';
 import { GIRARD_HOME, SCAPEGOAT } from '../../src/girard-layout.ts';
 import { POINT_REYES } from '../../src/point-reyes.ts';
@@ -65,7 +72,28 @@ import {
 import { goblinRampLane, GOBLIN_HUTS, GOBLIN_INCUBATOR } from '../../src/goblin-town.ts';
 import { FROG_FARM, FROG_SPAWNS, inFrogFarm } from '../../src/frog-farm.ts';
 import { houseClimb, SEARCH_HOMES } from '../../src/search-houses.ts';
-import { ITEM_STATS, ownedEquipmentDefense } from '../../src/item-stats.ts';
+import { itemLoot, ITEM_STATS, ownedEquipmentDefense } from '../../src/item-stats.ts';
+import { GOBLIN_BUSH, GOBLIN_BUSH_AMBUSH, GOBLIN_BUSH_REWARDS } from '../../src/goblin-bush.ts';
+import { WEDDING_ITEMS, WEDDING_PLANNER } from '../../src/config/wedding-planner.ts';
+import { FORMALWEAR_EXPERT, FORMALWEAR_ITEMS } from '../../src/config/formalwear.ts';
+import { FANCY_DRESS } from '../../src/config/fancy-dress.ts';
+import { SCOOTER_BACKFLIP, SCOOTER_MANUFACTURER } from '../../src/config/scooter.ts';
+import { ARMOR_TRIMMER } from '../../src/config/armor-trimmer.ts';
+import { PYROMANIAC_PETER } from '../../src/config/fireworks.ts';
+import { DYNAMITE_DEPOT } from '../../src/config/dynamite-depot.ts';
+import { GAMEPLAY } from '../../src/config/gameplay.ts';
+import { WAYWARD_CAMP } from '../../src/config/wayward-camp.ts';
+import { RICK, RICK_HOUSE, TECHWEAR_ITEMS } from '../../src/config/rick.ts';
+import { DEFENSE_WORKSHOP, ICY_KEVLAR, ICY_KEVLAR_PANTS } from '../../src/config/defense-workshop.ts';
+import {
+  LIGHTSABER_COLOR_PRICE,
+  LIGHTSABER_HITS,
+  LIGHTSABER_INDUSTRIALIST,
+  LIGHTSABER_SCIENTIST,
+} from '../../src/config/lightsaber.ts';
+import { SHRIMP_EXPERIMENT } from '../../src/config/shrimp-experiment.ts';
+import { CATAPULT_DURATION, GOBLIN_CATAPULT } from '../../src/config/goblin-catapult.ts';
+import { TABLET_TELEPORT_SECONDS } from '../../src/teleport-tablets.ts';
 import { PARROT_SCIENTIST, PROOF_BUYERS, proofBuyerChoice } from '../../src/stochastic-parrot.ts';
 import { BURNING_MAN, burningManDialogue, type BurningManAction } from '../../src/burning-man.ts';
 import {
@@ -153,13 +181,72 @@ function tick(seconds: number) {
   }
 }
 
+test('windsurfers can land on Onoda Island, relaunch, and reset after teleport or death', async () => {
+  const shore = requiredFixture(geometry.sights.find((site) => site.id === 'windsurf')).entry;
+  const a = await visitor(shore);
+  const landAtIsland = () => act(a, 'activity', { mode: 'walk', islandDock: true });
+  const launchFromIsland = () => act(a, 'activity', { mode: 'surf', islandDock: true });
+  try {
+    assert.equal((await launchFromIsland()).ok, false);
+    assert.equal((await act(a, 'activity', { mode: 'surf' })).ok, true);
+    assert.equal((await landAtIsland()).ok, false);
+    assert.equal(
+      (await act(a, 'moveTo', { x: ONODA_DOCK.launch.x + 0.5, z: ONODA_DOCK.launch.y + 0.5 })).ok,
+      true,
+    );
+    for (
+      let i = 0;
+      i < 600 &&
+      Math.hypot(a.p.x - ONODA_DOCK.launch.x - 0.5, a.p.z - ONODA_DOCK.launch.y - 0.5) > 0.15;
+      i++
+    )
+      tick(0.05);
+    assert.equal((await landAtIsland()).ok, true);
+    assert.equal(a.p.mode, 'walk');
+    assert.equal(a.p.x, ONODA_DOCK.entry.x + 0.5);
+    assert.equal(a.p.z, ONODA_DOCK.entry.y + 0.5);
+    assert.ok(a.p.y > 0.1);
+    assert.equal(game.movement.state(a.p).windsurf.state.riding, false);
+    assert.equal((await launchFromIsland()).ok, true);
+    assert.equal(a.p.mode, 'surf');
+    assert.equal(a.p.x, ONODA_DOCK.launch.x + 0.5);
+    assert.deepEqual(a.p.surfShore, shore);
+    assert.equal((await landAtIsland()).ok, true);
+    a.p.inventory.meta.tablets.downtown = 1;
+    assert.equal((await act(a, 'useTablet', { destination: 'downtown' })).ok, true);
+    tick(TABLET_TELEPORT_SECONDS + 0.1);
+    assert.equal(a.p.mode, 'walk');
+    assert.equal(a.p.x, geometry.tabletDestinations.downtown.x);
+    assert.equal(a.p.surfShore, null);
+    assert.equal(game.movement.state(a.p).windsurf.state.riding, false);
+    assert.equal((await launchFromIsland()).ok, false);
+
+    stand(a, ONODA_DOCK.entry);
+    assert.equal((await launchFromIsland()).ok, true);
+    assert.equal((await landAtIsland()).ok, true);
+    a.p.hp = 0;
+    tick(DEATH_DURATION + 0.2);
+    assert.equal(a.p.x, geometry.hospital.x + 0.5);
+    assert.equal(a.p.surfShore, null);
+    assert.equal(game.movement.state(a.p).windsurf.state.riding, false);
+    stand(a, shore);
+    assert.equal((await act(a, 'activity', { mode: 'surf' })).ok, true);
+    assert.equal(a.p.x, geometry.surf.state.launch.x + 0.5);
+    assert.equal(a.p.z, geometry.surf.state.launch.y + 0.5);
+  } finally {
+    stop(a);
+  }
+});
+
 test('new characters spawn at the authored starting tile', async () => {
-  assert.deepEqual(geometry.spawn, { x: 69.5, y: 42.5 });
+  assert.deepEqual(geometry.spawn, { x: 46.5, y: 46.5 });
   assert.ok(geometry.landClearAt(geometry.spawn.x, geometry.spawn.y));
   const a = await player(game, ++serial);
   try {
-    assert.equal(a.p.x, 70);
-    assert.equal(a.p.z, 43);
+    assert.equal(a.p.x, 47);
+    assert.equal(a.p.z, 47);
+    assert.equal(a.p.inventory.economy.state.coins, 25);
+    assert.equal(a.p.inventory.meta.tablets.downtown, 0);
   } finally {
     stop(a);
   }
@@ -536,6 +623,49 @@ test('the mud bath pays only seated bathers and the chief engineer exchanges mud
   }
 });
 
+test('Berkeley has a second fishing spot and the nearby mariner sells a negative-defense Albatross', async () => {
+  const shore = geometry.sights.find((s) => s.id === BERKELEY_FISHING.id);
+  assert.ok(isFishingSite(shore));
+  const institute = requiredFixture(geometry.sights.find((s) => s.id === 'berkeley-esoteric'));
+  const mariner = npc((n) => n.id === BERKELEY_FISHING.vendor);
+  const approach = requiredFixture(geometry.approaches.merchant(mariner));
+  assert.ok(geometry.pathTo(shore.entry.x, shore.entry.y, institute.entry)?.length);
+  assert.ok(geometry.pathTo(approach.x, approach.y, shore.entry)?.length);
+  assert.ok(geometry.surf.water(shore.water.x, shore.water.z));
+  const a = await player(game, ++serial, { 'sf-purse-v1': '{"coins":65}' });
+  const cast = (id?: string) => act(a, 'playerAction', { verb: 'fish', id });
+  const buy = () => act(a, 'inventory', { op: 'trade', kind: 'albatross' });
+  const equip = () => act(a, 'equipAppearance', { look: { neck: 'albatross' } });
+  const purse = a.p.inventory.economy.state;
+  try {
+    assert.equal((await cast(shore.id)).ok, false);
+    assert.equal((await buy()).ok, false);
+    assert.equal((await equip()).appearance?.neck, 'none');
+    stand(a, shore.entry);
+    assert.equal((await cast('wharf-fishing')).ok, false);
+    assert.equal((await cast(shore.id)).ok, true);
+    assert.equal(game.personal.runtime(a.p).fishing.state.site?.id, shore.id);
+    assert.ok(Math.abs(a.p.angle) > 3);
+    tick(FISHING_DURATION);
+    assert.equal(purse.fish, 1);
+    assert.equal(game.personal.runtime(a.p).fishing.state.site, null);
+    stand(a, requiredFixture(geometry.fishingSite).entry);
+    assert.match((await cast()).message ?? '', /again in 60s/);
+    time += FISHING_COOLDOWN_MS;
+    assert.equal((await cast()).ok, true);
+    tick(FISHING_DURATION);
+    assert.equal(purse.fish, 2);
+    stand(a, approach);
+    assert.equal((await buy()).ok, true);
+    assert.equal(purse.coins, 15);
+    assert.equal((await buy()).ok, false);
+    assert.equal((await equip()).appearance?.neck, 'albatross');
+    assert.equal(ownedEquipmentDefense(purse, a.p.appearance), -5);
+  } finally {
+    stop(a);
+  }
+});
+
 test('the chief engineer awards the Goose Corp T-shirt only after 100 more mud', async () => {
   const a = await visitor();
   const purse = a.p.inventory.economy.state;
@@ -657,17 +787,31 @@ test('the Industrious Goblin rents an ATV at both rates and the village roof sup
       Math.hypot(a.p.x - beforeDonut.x, a.p.z - beforeDonut.z) < 1e-7,
       'the donut completes',
     );
-    assert.equal((await act(a, 'travel', { kind: 'atvJump' })).ok, true);
+    assert.equal((await act(a, 'travel', { kind: 'atvJump' })).ok, false);
+    const southRamp = requiredFixture(geometry.sights.find(({ id }) => id === GOBLIN_HUTS[0].id));
+    assert.equal(southRamp.kind, ATV_RAMP_KIND);
+    assert.ok(southRamp.object?.count, 'the roof has a pickable mesh');
+    assert.equal((await act(a, 'travel', { kind: 'atvJump', id: southRamp.id })).ok, true);
     for (let i = 0; i < 160 && !game.movement.state(a.p).atv?.air; i++) tick(0.05);
-    assert.ok(game.movement.state(a.p).atv?.air, 'the actual village roof launches the ATV');
-    tick(0.05);
+    const atv = requiredFixture(game.movement.state(a.p).atv);
+    const southTakeoff = requiredFixture(atv.air).takeoff;
+    assert.equal((await act(a, 'moveTo', { x: southTakeoff.x, z: southTakeoff.z - 1 })).ok, false);
+    tick(2.05);
     assert.equal(a.p.gesture, 'atv-air');
+    assert.ok(a.p.z > southTakeoff.z + 8, 'the ATV flies forward off the roof');
     assert.equal((await act(a, 'travel', { kind: 'atvTrick', trick: 'roll' })).ok, true);
     tick(0.15);
     assert.equal(a.p.gesture, 'atv-trick');
     assert.ok(a.p.phase > 0.5, 'an air roll changes the replicated ATV pose');
-    tick(1.2);
-    assert.equal(game.movement.state(a.p).atv?.air, null);
+    let previousZ = a.p.z;
+    for (let i = 0; i < 34; i++) {
+      tick(0.05);
+      assert.ok(a.p.z >= previousZ - 1e-8, 'air and rollout both continue forward');
+      assert.ok(Math.sin(a.p.angle) > 0.99, 'the ATV keeps facing forward');
+      previousZ = a.p.z;
+    }
+    assert.equal(atv.air, null);
+    assert.ok(geometry.landClearAt(a.p.x - 0.5, a.p.z - 0.5), 'the landing is walkable');
     assert.equal((await act(a, 'travel', { kind: 'atvJump', id: 'missing-ramp' })).ok, false);
     for (const hut of GOBLIN_HUTS.slice(1)) {
       const ramp = requiredFixture(geometry.sights.find(({ id }) => id === hut.id));
@@ -678,16 +822,42 @@ test('the Industrious Goblin rents an ATV at both rates and the village roof sup
       assert.equal(a.p.gesture, 'atv-air');
       assert.ok(Math.hypot(a.p.x - hut.x, a.p.z - hut.z) <= ATV_SPEED * 0.05);
       const heading = a.p.angle;
+      tick(2.65);
+      assert.equal(
+        a.p.gesture,
+        'atv-air',
+        'the other roofs also give two seconds to choose a trick',
+      );
+      const zAtTrick = a.p.z;
       assert.equal((await act(a, 'travel', { kind: 'atvTrick', trick: 'spin' })).ok, true);
       tick(0.15);
+      assert.ok((a.p.z - zAtTrick) * hut.direction > 0, 'the late trick keeps traveling forward');
       assert.equal(a.p.gesture, 'atv-trick');
       assert.ok(a.p.angle > heading + 0.5, 'the spin rotates the replicated heading');
-      for (let i = 0; i < 50 && a.p.moving; i++) tick(0.05);
+      for (let i = 0; i < 75 && a.p.moving; i++) tick(0.05);
       const lane = goblinRampLane(hut);
       assert.ok((a.p.z - lane.end) * hut.direction >= -0.01, 'the ATV lands beyond the roof');
-      assert.equal(game.movement.state(a.p).atv?.air, null);
+      assert.equal(atv.air, null);
+      assert.ok(Math.cos(a.p.angle - heading) > 0.99, 'the spin ends facing the takeoff heading');
       assert.equal(a.p.gesture, '');
     }
+    const hut = GOBLIN_HUTS[0];
+    const reverseRunUp = hut.z + 0.85;
+    Object.assign(a.p, {
+      x: hut.x,
+      z: reverseRunUp,
+      y: geometry.characterGround(hut.x, reverseRunUp) + rampRise(reverseRunUp, hut.z),
+      angle: -Math.PI / 2,
+    });
+    assert.equal((await act(a, 'travel', { kind: 'atvJump', id: hut.id })).ok, true);
+    tick(0.05);
+    assert.ok(a.p.z < reverseRunUp, 'clicking the roof continues the current uphill approach');
+    for (let i = 0; i < 20 && !atv.air; i++) tick(0.05);
+    assert.ok(atv.air, 'the ATV also launches from the opposite approach');
+    tick(3.1);
+    assert.equal(atv.air, null);
+    assert.ok(a.p.z < hut.z - 4.2);
+    assert.ok(Math.sin(a.p.angle) < -0.99);
     time += 60_000;
     tick(0.05);
     assert.equal(a.p.mode, 'walk');
@@ -1056,6 +1226,7 @@ test('the clay phone trades for 10 and 35 coins and each 10-coin robe piece equi
     assert.equal((await trade('goblin-phone')).ok, false);
     assert.equal((await trade('decorative-robe-top')).ok, false);
     assert.equal((await trade('cashmere-turtleneck')).ok, false);
+    assert.equal((await trade('puffy-parka')).ok, false);
     atNPC(
       a,
       npc((n) => n.id === GOBLIN_INDUSTRIALIST.id),
@@ -1096,19 +1267,29 @@ test('the clay phone trades for 10 and 35 coins and each 10-coin robe piece equi
       true,
     );
     assert.equal(a.p.appearance.torso, 'cashmere-turtleneck');
+    const parka = () => act(a, 'equipAppearance', { look: { torso: 'puffy-parka' } });
+    await parka();
+    assert.equal(a.p.appearance.torso, 'shirt');
+    const beforeParka = purse.coins;
+    assert.equal((await trade('puffy-parka')).ok, true);
+    assert.equal(purse.coins, beforeParka - 75);
+    assert.equal(ownedEquipmentDefense(purse, a.p.appearance), 0);
+    assert.equal((await parka()).ok, true);
+    assert.equal(a.p.appearance.torso, 'puffy-parka');
+    assert.equal(ownedEquipmentDefense(purse, a.p.appearance), 1);
   } finally {
     stop(a);
   }
 });
 
-test('Cotogna sells an equippable metal rolling pin and SoMa has two aggressive level-five zombies', async () => {
+test('Cotogna sells an equippable rolling pin and SoMa has two aggressive level-five zombies', async () => {
   const a = await visitor();
   try {
     const chef = npc((n) => n.id === 'cotogna-chef');
     assert.equal((await act(a, 'inventory', { op: 'trade', kind: 'rolling-pin' })).ok, false);
     atNPC(a, chef);
     await choose(a, configuredDialogue('chef', chef, { buyTinfoil: () => undefined }), [
-      'Buy a metal rolling pin · 20 coins',
+      'Buy a rolling pin · 20 coins',
     ]);
     assert.equal(a.p.inventory.economy.state.coins, 999980);
     assert.equal((await act(a, 'equipAppearance', { look: { weapon: 'rolling-pin' } })).ok, true);
@@ -1207,6 +1388,118 @@ async function choose(
     f.restore();
   }
 }
+
+test('Tommy gives one spoon and every fifth Ocean Beach dig with it yields two sacks', async () => {
+  const tommy = npc((actor) => actor.id === TOMMY.id);
+  assert.deepEqual([tommy.x, tommy.z, tommy.torso], [66, 80, LEATHER_JACKET.item]);
+  assert.deepEqual(npcContextActions(tommy), ['talk', 'walk', 'examine']);
+  const account = ++serial;
+  let a = await player(game, account);
+  const trade = (kind: string) => act(a, 'inventory', { op: 'trade', kind });
+  const dig = () => trade('collect-sand');
+  const beach = requiredFixture(geometry.sandSite).entry;
+  const advanceDig = () => (time += GAMEPLAY.sandCollectSeconds * 1000);
+  try {
+    stand(a, beach);
+    assert.equal((await trade(TOMMY.spoon)).ok, false);
+    assert.equal((await dig()).ok, true);
+    assert.equal(a.p.inventory.economy.state.sand, 1);
+    assert.equal(a.p.inventory.economy.state.spoonDigs, 0);
+
+    atNPC(a, tommy);
+    const person = tommyDialogue(tommy, a.p.name, false, () => trade(TOMMY.spoon));
+    assert.equal(person.intro, 'Oh hi, Mark.');
+    await choose(a, person, [`That's not my name. My name is ${a.p.name}`], {
+      message: /ha-ha.*sorry.*spoon/i,
+    });
+    assert.equal((await trade(TOMMY.spoon)).ok, false);
+    stand(a, beach);
+    for (let i = 1; i < TOMMY.digsPerBonus; i++) {
+      advanceDig();
+      assert.equal((await dig()).ok, true);
+      assert.equal(a.p.inventory.economy.state.sand, i + 1);
+      assert.equal((await dig()).ok, false);
+    }
+    const stored = await storedPlayerFixture(game.store, 'player:' + a.p.owner);
+    assert.equal(stored.playerState.inventory.economy.spoonDigs, 4);
+    stop(a);
+    a = await player(game, account);
+    stand(a, beach);
+    assert.match((await dig()).message || '', /bonus sand.*spoon helps you dig faster/i);
+    assert.equal(a.p.inventory.economy.state.sand, 7);
+    assert.equal(a.p.inventory.economy.state.spoonDigs, 0);
+    for (let i = 1; i <= TOMMY.digsPerBonus; i++) {
+      advanceDig();
+      const result = await dig();
+      assert.equal(result.ok, true);
+      assert.equal(/bonus sand/i.test(result.message || ''), i === TOMMY.digsPerBonus);
+    }
+    assert.equal(a.p.inventory.economy.state.sand, 13);
+  } finally {
+    stop(a);
+  }
+});
+
+test('the GPU factory leather jacket trades 100 deliveries and Hitpoints XP for an equipped earnings bonus', async () => {
+  const seller = npc((actor) => actor.id === LEATHER_JACKET.seller);
+  const buyer = npc((actor) => actor.kind === 'gpu-buyer');
+  const xp = SKILL_THRESHOLDS[9];
+  const a = await player(game, ++serial, {
+    'sf-purse-v1': JSON.stringify({ coins: 100, sand: 3, sandDelivered: 99, iphoneOwned: true }),
+    'sf-hitpoints-v1': JSON.stringify({ xp, hp: hitpointMaximum(xp) }),
+    'sf-strength-v1': JSON.stringify({ xp }),
+  });
+  const purse = a.p.inventory.economy.state;
+  const trade = (kind: string) => act(a, 'inventory', { op: 'trade', kind });
+  const dialogue = () => leatherJacketDialogue(seller, purse, () => trade(LEATHER_JACKET.item));
+  try {
+    assert.deepEqual(npcContextActions(seller), ['talk', 'walk', 'examine']);
+    atNPC(a, seller);
+    assert.match(String(dialogue().intro), /1 to go/);
+    assert.deepEqual(dialogue().choices, []);
+    assert.equal((await trade(LEATHER_JACKET.item)).ok, false);
+    assert.equal(a.p.hitpointsXP, xp);
+    atNPC(a, buyer);
+    assert.equal((await trade('sand-sale')).ok, true);
+    assert.equal(purse.sandDelivered, 100);
+    assert.equal(purse.coins, 120);
+    stand(a, geometry.spawn);
+    assert.equal((await trade(LEATHER_JACKET.item)).ok, false);
+    atNPC(a, seller);
+    const offer = dialogue();
+    assert.match(String(offer.choices?.[0].next?.intro), /level 1/);
+    assert.doesNotMatch(String(offer.intro) + String(offer.choices?.[0].next?.intro), /20%|iPhone/);
+    await choose(a, offer, [
+      'Ask what the jacket costs',
+      'Reset my Hitpoints to level 1 and take the jacket',
+    ], { message: /20%.*iPhone/ });
+    assert.equal(purse.coins, 120);
+    assert.ok(purse.ownedEquipment.includes(LEATHER_JACKET.item));
+    assert.ok(a.p.profile.collection.includes(LEATHER_JACKET.item));
+    assert.deepEqual(a.p.profile.playerState.skills.hitpoints, {
+      xp: 0,
+      hp: hitpointMaximum(0),
+      max: hitpointMaximum(0),
+    });
+    assert.equal(a.p.profile.playerState.skills.strength.xp, xp);
+    assert.equal((await trade(LEATHER_JACKET.item)).ok, false);
+    atNPC(a, buyer);
+    assert.equal((await trade('sand-sale')).ok, true);
+    assert.equal(purse.coins, 140);
+    assert.equal((await act(a, 'saveCharacter', {
+      look: { torso: LEATHER_JACKET.item }, name: a.p.name, phone: true, pvp: false,
+    })).ok, true);
+    assert.equal(a.p.appearance.torso, LEATHER_JACKET.item);
+    assert.equal((await trade('sand-sale')).ok, true);
+    assert.equal(purse.coins, 170);
+    assert.equal(a.p.inventory.receive({ lootKind: 'coins', amount: 20 }).ok, true);
+    assert.equal(purse.coins, 200);
+    assert.equal(a.p.inventory.receive({ lootKind: 'coins', amount: 20, transfer: true }).ok, true);
+    assert.equal(purse.coins, 220);
+  } finally {
+    stop(a);
+  }
+});
 
 test('every authored actor has usable context actions, protected actors have no attack, and players have no Examine', (t) => {
   const actors = [
@@ -1359,6 +1652,11 @@ test('every offer at every neighborhood shop executes through its real menu and 
         if (offer.sober) assert.equal(game.personal.runtime(a.p).inebriation.state.percent, 30);
         if (offer.bouquet) assert.equal(a.p.inventory.economy.state.bouquets, 1);
         if (offer.sandwich) assert.equal(a.p.inventory.meta.sandwiches, 1);
+        if (offer.hat) {
+          assert.ok(a.p.inventory.economy.state.ownedHats.includes(offer.hat));
+          assert.equal((await act(a, 'equipAppearance', { look: { hat: offer.hat } })).ok, true);
+          assert.equal(a.p.appearance.hat, offer.hat);
+        }
         if (offer.reward)
           await choose(a, person, [choice.label], { ok: false, message: /Come back/ });
         if (offer.showMs) {
@@ -1374,10 +1672,11 @@ test('every offer at every neighborhood shop executes through its real menu and 
   t.diagnostic(`${count} real shop/offer combinations`);
 });
 
-test('every purchasable hat menu charges its actual price, grants ownership and selects the purchased hat', async (t) => {
+test('every haberdasher hat menu charges its actual price, grants ownership and selects the purchased hat', async (t) => {
   const n = npc((n) => n.kind === 'haberdasher');
   let count = 0;
-  for (const hat of HAT_CATALOG.filter((h) => !h.dropOnly)) {
+  for (const hat of HAT_CATALOG) {
+    if (hat.dropOnly || hat.seller) continue;
     const a = await visitor();
     atNPC(a, n);
     let worn = null;
@@ -1654,7 +1953,7 @@ test('the Unusual Pastor welcomes visitors and attacks when asked about his Goos
   }
 });
 
-test('the Bolinas Cultist attacks after the last dialogue line and their wardrobe grants one Goose Costume', async () => {
+test('the Bolinas Cultist attacks after the last dialogue line and their wardrobe grants one Goose costume', async () => {
   const a = await visitor();
   try {
     const cultist = requiredFixture(
@@ -1715,7 +2014,17 @@ test('the Bolinas Cultist attacks after the last dialogue line and their wardrob
 });
 
 test('Ahab’s menu boards a private hunt, arrives at the boss, collects the cape once, and returns to the beach', async () => {
-  const a = await visitor(),
+  const xp = SKILL_THRESHOLDS.at(-1)!;
+  const supplies = 20;
+  const a = await player(game, ++serial, {
+      'sf-strength-v1': JSON.stringify({ xp }),
+      'sf-hitpoints-v1': JSON.stringify({ xp }),
+      'sf-purse-v1': JSON.stringify({
+        coins: 1_000_000,
+        ownedEquipment: ['ice-top', 'ice-pants', 'combat-boots', 'backpack'],
+      }),
+      'sf-deli-v1': JSON.stringify({ sandwiches: supplies }),
+    }),
     captain = npc((n) => n.id === 'captain-ahab'),
     r = game.personal.runtime(a.p),
     expeditionSource = createExpeditions({ saved: { railgun: true } }),
@@ -1750,7 +2059,7 @@ test('Ahab’s menu boards a private hunt, arrives at the boss, collects the cap
     atNPC(a, captain);
     const shore = { x: a.p.x, y: a.p.y, z: a.p.z };
     const saved = await act(a, 'saveCharacter', {
-      look: { weapon: 'railgun' },
+      look: { weapon: 'railgun', torso: 'ice-top', legs: 'ice-pants', boots: true, back: 'backpack' },
       name: a.p.name,
       phone: false,
       pvp: false,
@@ -1774,22 +2083,27 @@ test('Ahab’s menu boards a private hunt, arrives at the boss, collects the cap
       'Missing test fixture: geometry.expeditions.ship.home',
     );
     assert.equal(a.p.x, geometry.expeditions.ship.home.x - PEQUOD.travel);
-    a.p.hitpointsXP = SKILL_THRESHOLDS.at(-1)!;
-    a.p.max = a.p.hp = hitpointMaximum(a.p.hitpointsXP);
+    assert.equal(a.p.hp, hitpointMaximum(xp));
+    assert.equal(ownedEquipmentDefense(a.p.inventory.economy.state, a.p.appearance), 12);
+    a.p.inventory.meta.railgunCharge = 12;
+    a.p.inventory.meta.railgunBatteries = 1;
     assert.equal(
       requiredFixture(await act(a, 'playerAction', { verb: 'attackKraken', weapon: 'railgun' })).ok,
       true,
     );
-    for (let i = 0; i < 3500 && r.expeditions.kraken.hp > 0; i++) {
-      a.p.hp = a.p.max;
+    for (let i = 0; i < 1200 && r.expeditions.kraken.hp > 0 && a.p.hp > 0; i++) {
+      if (a.p.max - a.p.hp >= ITEM_STATS.sandwich.healing)
+        assert.equal((await act(a, 'inventory', { op: 'eat' })).ok, true);
       if (!a.p.inventory.meta.railgunCharge) {
-        a.p.inventory.meta.railgunBatteries = 1;
         assert.equal(requiredFixture(await act(a, 'inventory', { op: 'chargeRailgun' })).ok, true);
         await act(a, 'playerAction', { verb: 'attackKraken', weapon: 'railgun' });
       }
       tick();
     }
     assert.equal(r.expeditions.kraken.hp, 0);
+    assert.ok(a.p.hp > 0);
+    assert.ok(a.p.inventory.meta.sandwiches < supplies);
+    assert.equal(a.p.inventory.meta.railgunBatteries, 0);
     assert.equal(r.expeditions.ship.phase, 'victory');
     const loot = r.expeditions.state.loot.find((l) => l.lootKind === 'kraken');
     assert.ok(loot);
@@ -2045,6 +2359,124 @@ test('Bolinas grocer calls officers from connected Marin ground for attacks and 
   }
 });
 
+test('Berkeley walking commands reach their destinations without long detours', async (t) => {
+  const entry = (id: string) => requiredFixture(geometry.sights.find((s) => s.id === id)).entry;
+  const avenue = { x: 120.5, y: -7.5 };
+  const northAvenue = { x: 120.5, y: -9.5 };
+  const shore = { x: 117, y: -9.5 };
+  const northClearing = { x: 133, y: -25 };
+  const homes = [
+    'acorn-cottage',
+    'claremont-bungalow',
+    'quince-house',
+    'berkeley-cypress-eichler',
+    'berkeley-laurel-craftsman',
+    'berkeley-crescent-bungalow',
+  ];
+  const destinations = [
+    WAYWARD_CAMP.fire.id,
+    WAYWARD_CAMP.horse.id,
+    WAYWARD_CAMP.wagon.id,
+  ];
+  const walks = [
+    { name: 'west avenue northbound', from: avenue, to: northAvenue, extra: 0.1 },
+    { name: 'west avenue to open shore', from: avenue, to: shore, extra: 0.1 },
+    {
+      name: 'Laurel Craftsman to the clearing north of camp',
+      from: entry('berkeley-laurel-craftsman'),
+      to: northClearing,
+      extra: 3,
+    },
+    {
+      name: 'north neighborhood road to the clearing west of camp',
+      from: { x: 123.5, y: -14.5 },
+      to: { x: 127, y: -24 },
+      extra: 2,
+    },
+    ...homes.flatMap((home) =>
+      destinations.map((destination) => ({
+        name: home + ' to ' + destination,
+        from: entry(home),
+        to: entry(destination),
+      })),
+    ),
+    ...homes.filter((id) => id !== 'berkeley-laurel-craftsman').map((home) => ({
+      name: home + ' to the clearing north of camp',
+      from: entry(home),
+      to: northClearing,
+    })),
+  ];
+  const a = await visitor(avenue);
+  const dt = 0.05;
+  let checked = 0;
+  try {
+    for (const walk of walks) {
+      for (const [direction, from, to] of [
+        ['outbound', walk.from, walk.to],
+        ['return', walk.to, walk.from],
+      ] as const) {
+        const name = `${walk.name} (${direction})`;
+        const goal = { x: to.x + 0.5, z: to.y + 0.5 };
+        const straight = Math.hypot(to.x - from.x, to.y - from.y);
+        const limit = straight + ('extra' in walk ? walk.extra : Math.max(3, straight * 0.55));
+        stand(a, from);
+        const result = await act(a, 'moveTo', goal);
+        assert.equal(result.ok, true, `${name}: ${result.message}`);
+        let distanceWalked = 0;
+        const maxTicks = Math.ceil(limit / (GAMEPLAY.walkSpeed * dt)) + 2;
+        for (let i = 0; i < maxTicks && a.p.moving; i++) {
+          const { x, z } = a.p;
+          time += dt * 1000;
+          game.movement.tick(dt);
+          const step = Math.hypot(a.p.x - x, a.p.z - z);
+          assert.ok(step <= GAMEPLAY.walkSpeed * dt + 0.001, `${name} jumped ahead`);
+          distanceWalked += step;
+        }
+        const measured = `${distanceWalked.toFixed(1)} tiles walked, ${straight.toFixed(1)} straight`;
+        assert.ok(distanceWalked <= limit, `${name} detoured: ${measured}`);
+        assert.ok(
+          Math.hypot(a.p.x - goal.x, a.p.z - goal.z) < 0.02,
+          `${name} stopped short: ${measured}`,
+        );
+        if ('extra' in walk) t.diagnostic(`${name}: ${measured}`);
+        checked++;
+      }
+    }
+    t.diagnostic(`Checked ${checked} walks through moveTo and the server movement tick`);
+  } finally {
+    stop(a);
+  }
+});
+
+test('Berkeley police spawn on the campus paths and arrest a stationary suspect', async () => {
+  const resident = npc((n) => n.id === 'claremont-bungalow-resident');
+  const a = await visitor(requiredFixture(resident.approach));
+  try {
+    assert.ok(npcOffersAttack(resident));
+    assert.equal(
+      (
+        await act(a, 'playerAction', { verb: 'attackPersonal', id: resident.id, weapon: 'unarmed' })
+      ).ok,
+      true,
+    );
+    const { police } = game.personal.runtime(a.p);
+    assert.equal(police.state.wanted, true);
+    assert.ok(police.state.officers.length > 0, 'local officers are dispatched');
+    for (const officer of police.state.officers) {
+      assert.ok(geometry.esotericCampus.contains(officer.x + 0.5, officer.y + 0.5));
+      assert.equal(geometry.surf.water(officer.x + 0.5, officer.y + 0.5), false);
+      assert.ok(geometry.pathTo(a.p.x - 0.5, a.p.z - 0.5, officer));
+    }
+    game.broadcast();
+    assert.ok(a.messages.some((m) => m.type === 'playerState' && m.state?.police?.officers?.length));
+    tick(8);
+    assert.equal(a.p.personalJailed, true);
+    assert.ok(a.messages.some((m) => m.type === 'detained'));
+  } finally {
+    stop(a);
+  }
+});
+
 test('the frog farm offers reachable level-10 practice targets that fight back, grant XP and respawn', async () => {
   const farmer = npc((n) => n.id === FROG_FARM.farmer.id);
   const frogs = FROG_SPAWNS.map(({ id }) =>
@@ -2052,11 +2484,16 @@ test('the frog farm offers reachable level-10 practice targets that fight back, 
   );
   assert.deepEqual(npcContextActions(farmer), ['talk', 'walk', 'examine']);
   assert.ok(geometry.approaches.merchant(farmer));
+  assert.equal(frogs.length, 6);
   assert.ok(frogs.every((frog) => frog.level === 10 && frog.max === 100));
 
+  const arrivals = frogs.map((frog) => {
+    const arrival = requiredFixture(geometry.approaches.combat(frog, 'unarmed', FROG_FARM.entry));
+    assert.ok(geometry.pathTo(arrival.x, arrival.y, FROG_FARM.entry), frog.id);
+    return arrival;
+  });
   const frog = frogs[0];
-  const arrival = requiredFixture(geometry.approaches.combat(frog, 'unarmed', FROG_FARM.entry));
-  assert.ok(geometry.pathTo(arrival.x, arrival.y, FROG_FARM.entry));
+  const arrival = arrivals[0];
   const a = await visitor(arrival);
   try {
     const skills = a.p.profile.playerState.skills;
@@ -2178,12 +2615,14 @@ test('SF Fitness retains the cumulative session limit and cooldown when reconnec
   time = ready;
   assert.equal((await start(a)).ok, true);
   game.personal.tick(1);
-  assert.equal(a.p.training, false, 'training stops at the Strength cap');
+  assert.equal(a.p.training, true, 'training continues at the maximum level');
+  game.personal.tick(2);
+  assert.equal(a.p.profile.playerState.skills.strength.xp, SKILL_THRESHOLDS.at(-1)! + 20);
   assert.equal(a.p.level, 25);
   await game.disconnect(a.p);
 });
 
-test('the roaming industrialist sells one of each iron armor piece and a kit trims the torso once', async () => {
+test('the roaming industrialist sells one of each iron armor piece and each one takes a kit to trim', async () => {
   const account = ++serial;
   const industrialist = npc((n) => n.id === 'enterprising-industrialist');
   let a = await player(game, account, { 'sf-purse-v1': '{"coins":500}' });
@@ -2216,6 +2655,13 @@ test('the roaming industrialist sells one of each iron armor piece and a kit tri
     assert.equal((await trim()).ok, true);
     assert.equal(a.p.inventory.meta.armorTrimmingKits, 0);
     assert.equal(a.p.appearance.torso, 'gold-trimmed-iron-armor');
+    assert.equal(a.p.appearance.legs, 'iron-armor-legs');
+    assert.equal((await trim()).ok, false);
+    assert.equal(a.p.inventory.receive({ lootKind: 'armor-trimming-kit', amount: 1 }).ok, true);
+    assert.equal((await trim()).ok, true);
+    assert.equal(a.p.inventory.meta.armorTrimmingKits, 0);
+    assert.equal(a.p.appearance.legs, 'gold-trimmed-iron-armor-legs');
+    assert.equal(ownedEquipmentDefense(a.p.inventory.economy.state, a.p.appearance), 5);
     assert.equal((await trim()).ok, false);
 
     // Leaving ownership through player trade does not restore the shop offer.
@@ -2227,6 +2673,627 @@ test('the roaming industrialist sells one of each iron armor piece and a kit tri
     assert.match((await buy('iron-armor')).message ?? '', /only once/);
     assert.match((await buy('iron-armor-legs')).message ?? '', /only once/);
     assert.equal(a.p.inventory.economy.state.coins, 280);
+  } finally {
+    stop(a);
+  }
+});
+
+test('the Armor Trimmer doubles his fee after each payment and remembers them', async () => {
+  const account = ++serial;
+  const trimmer = npc((n) => n.id === ARMOR_TRIMMER.id);
+  let a = await player(game, account, { 'sf-purse-v1': '{"coins":700}' });
+  const equipment = [...a.p.inventory.economy.state.ownedEquipment];
+  const pay = (amount: number) => act(a, 'playerAction', { verb: 'payArmorTrimmer', amount });
+  try {
+    assert.equal((await pay(100)).ok, false);
+    atNPC(a, trimmer);
+    assert.equal((await pay(200)).ok, false);
+    assert.equal((await pay(100)).ok, true);
+    assert.equal((await pay(100)).ok, false);
+    assert.equal((await pay(200)).ok, true);
+    await game.disconnect(a.p);
+    a = await player(game, account);
+    atNPC(a, trimmer);
+    assert.equal((await pay(400)).ok, true);
+    assert.equal((await pay(800)).ok, false);
+    assert.equal(a.p.inventory.economy.state.coins, 0);
+    assert.equal(a.p.profile.playerState.progress.armorTrimmerPayments, 3);
+    assert.deepEqual(a.p.inventory.economy.state.ownedEquipment, equipment);
+  } finally {
+    stop(a);
+  }
+});
+
+test('the village bush requires defeating both goblins and grants its three pieces in order', async () => {
+  const account = ++serial;
+  const bush = requiredFixture(geometry.sights.find((site) => site.id === GOBLIN_BUSH.id));
+  assert.deepEqual(bush.entry, GOBLIN_BUSH.entry);
+  assert.ok(geometry.pathTo(bush.entry.x, bush.entry.y, geometry.spawn)?.length);
+  for (const point of Object.values(GOBLIN_BUSH_AMBUSH))
+    assert.ok(geometry.pathTo(bush.entry.x, bush.entry.y, { x: point.x - 0.5, y: point.z - 0.5 })?.length);
+  let a = await player(game, account);
+  const take = () => act(a, 'takeGoblinBush');
+  const attackers = () => game.shared.wilderness.actors.filter((n) => n.dispatchedFor === a.p.id);
+  try {
+    assert.equal((await take()).ok, false);
+    stand(a, GOBLIN_BUSH.entry);
+    assert.match((await take()).message || '', /defeat both/i);
+    const [guard, ally] = attackers();
+    assert.deepEqual(attackers().map((n) => n.level), [20, 10]);
+    for (const goblin of [guard, ally]) {
+      assert.equal(goblin.enemy, a.p.id);
+      assert.ok((goblin.speechEndsAt || 0) > time);
+    }
+    assert.match((await take()).message || '', /defeat both/i);
+    assert.equal(attackers().length, 2);
+    assert.equal(a.p.profile.playerState.progress.goblinBushRewards, undefined);
+    assert.ok(game.shared.wilderness.damage(guard.id, guard.hp, a.p).ok);
+    tick(0.05);
+    assert.match((await take()).message || '', /defeat both/i);
+    assert.equal(attackers().length, 1);
+    assert.ok(game.shared.wilderness.damage(ally.id, ally.hp, a.p).ok);
+    assert.equal(a.p.profile.playerState.progress.goblinBushRewards, 0);
+
+    await game.disconnect(a.p);
+    a = await player(game, account);
+    stand(a, GOBLIN_BUSH.entry);
+    const purse = a.p.inventory.economy.state;
+    for (const [index, item] of GOBLIN_BUSH_REWARDS.entries()) {
+      assert.match((await take()).message || '', new RegExp(ITEM_STATS[item].name));
+      assert.equal(a.p.profile.playerState.progress.goblinBushRewards, index + 1);
+      assert.deepEqual(
+        GOBLIN_BUSH_REWARDS.filter((id) => purse.ownedHats.includes(id) || purse.ownedEquipment.includes(id)),
+        GOBLIN_BUSH_REWARDS.slice(0, index + 1),
+      );
+    }
+    assert.equal((await take()).ok, false);
+    assert.equal(attackers().length, 0);
+    const look = { hat: 'bush-hat', torso: 'bush-top', legs: 'bush-legs' };
+    assert.equal((await act(a, 'equipAppearance', { look })).ok, true);
+    assert.equal(ownedEquipmentDefense(purse, a.p.appearance), 3);
+  } finally {
+    stop(a);
+  }
+});
+
+test('Pyromaniac Peter sells single-use fireworks that nearby players can see', async () => {
+  const peter = npc((n) => n.id === PYROMANIAC_PETER.id);
+  const a = await visitor();
+  const witness = await visitor(requiredFixture(peter.approach));
+  const otherInstance = await visitor(requiredFixture(peter.approach));
+  const distant = await visitor();
+  otherInstance.p.instance = ILLUMINATI_INSTANCE;
+  const buy = () => act(a, 'inventory', { op: 'trade', kind: 'fireworks' });
+  const detonate = () => act(a, 'inventory', { op: 'detonateFireworks' });
+  const effects = (p: TestPlayer) => p.messages.filter((m) => m.type === 'fireworks');
+  try {
+    assert.ok(Math.hypot(peter.x - DYNAMITE_DEPOT.x, peter.z - DYNAMITE_DEPOT.z) < 4);
+    assert.equal((await buy()).ok, false);
+    assert.equal((await detonate()).ok, false);
+    assert.equal(effects(a).length, 0);
+    atNPC(a, peter);
+    const before = a.p.inventory.economy.state.coins;
+    assert.equal((await buy()).inventory?.fireworks, 1);
+    assert.equal((await buy()).inventory?.fireworks, 2);
+    assert.equal(a.p.inventory.economy.state.coins, before - 100);
+    assert.equal((await detonate()).inventory?.fireworks, 1);
+    const event = requiredFixture(effects(witness)[0]);
+    assert.deepEqual(event.position, { x: a.p.x, y: a.p.y, z: a.p.z });
+    assert.equal(effects(a).length, 1);
+    assert.equal(effects(a)[0].seed, event.seed);
+    assert.equal(effects(distant).length, 0);
+    assert.equal(effects(otherInstance).length, 0);
+    assert.equal(a.p.hp, a.p.max);
+    assert.equal(witness.p.hp, witness.p.max);
+    stand(a, geometry.spawn);
+    assert.equal((await detonate()).inventory?.fireworks, 0);
+    assert.equal((await detonate()).ok, false);
+    assert.equal(effects(distant).length, 1);
+    assert.equal(effects(witness).length, 1);
+    assert.equal(a.p.profile.playerState.inventory.ledger?.fireworks, 0);
+  } finally {
+    for (const character of [a, witness, otherInstance, distant]) stop(character);
+  }
+});
+
+test('the Scooter Manufacturer sells a portable, bicycle-speed scooter that can backflip', async () => {
+  const manufacturer = npc((n) => n.id === SCOOTER_MANUFACTURER.id);
+  const a = await visitor();
+  const buy = () => act(a, 'inventory', { op: 'trade', kind: 'scooter' });
+  const ride = () => act(a, 'activity', { mode: 'scooter' });
+  const flip = () => act(a, 'travel', { kind: 'scooterBackflip' });
+  try {
+    assert.deepEqual([manufacturer.x, manufacturer.z], [27, 207]);
+    assert.equal((await buy()).ok, false);
+    assert.equal((await ride()).ok, false);
+    assert.deepEqual(npcContextActions(manufacturer), ['talk', 'walk', 'examine']);
+    atNPC(a, manufacturer);
+    const purse = a.p.inventory.economy.state;
+    const before = purse.coins;
+    assert.equal((await buy()).ok, true);
+    assert.equal((await buy()).ok, false);
+    assert.equal(purse.coins, before - 100);
+    assert.ok(a.p.profile.playerState.inventory.economy.ownedEquipment.includes('scooter'));
+
+    // After purchase it can be taken out far from the shop and its previous ride.
+    const from = geometry.spawn;
+    stand(a, from);
+    const goal = requiredFixture(
+      [
+        { x: from.x + 6, y: from.y },
+        { x: from.x - 6, y: from.y },
+        { x: from.x, y: from.y + 6 },
+        { x: from.x, y: from.y - 6 },
+      ].find((p) => geometry.canTravel(from.x, from.y, p.x, p.y, true)),
+    );
+    assert.equal((await ride()).ok, true);
+    assert.equal((await flip()).ok, false, 'a backflip needs forward motion');
+    assert.equal((await act(a, 'moveTo', { x: goal.x + 0.5, z: goal.y + 0.5 })).ok, true);
+    tick(0.2);
+    const distance = Math.hypot(a.p.x - from.x - 0.5, a.p.z - from.y - 0.5);
+    assert.ok(Math.abs(distance - GAMEPLAY.bicycleSpeed * 0.2) < 1e-8);
+    assert.equal((await flip()).ok, true);
+    assert.equal(a.p.gesture, SCOOTER_BACKFLIP.id);
+    assert.equal((await flip()).ok, false, 'one backflip at a time');
+    tick(SCOOTER_BACKFLIP.duration + 0.05);
+    assert.equal(a.p.gesture, '');
+    assert.equal(a.p.mode, 'scooter');
+    assert.equal((await act(a, 'activity', { mode: 'walk' })).ok, true);
+    stand(a, from);
+    assert.equal((await ride()).ok, true);
+  } finally {
+    stop(a);
+  }
+});
+
+test('the Fancy Dress Merchant sells all six items at the listed prices and displays the outfit', async () => {
+  const merchant = npc((n) => n.id === FANCY_DRESS.id);
+  assert.deepEqual([merchant.x, merchant.z], [34, 80]);
+  assert.equal(merchant.hat, 'napoleon-hat');
+  const approach = requiredFixture(geometry.approaches.merchant(merchant));
+  assert.ok(geometry.pathTo(approach.x, approach.y, geometry.spawn)?.length);
+  const stock = [
+    ['white-scarf', 750, 'trade'],
+    ['blue-jeans', 1400, 'trade'],
+    ['silk-kimono', 800, 'trade'],
+    ['napoleon-hat', 2200, 'buyHat'],
+    ['bowling-ball', 60, 'trade'],
+    ['gnome-cap', 4400, 'buyHat'],
+  ] as const;
+  let balance = stock.reduce((total, [, price]) => total + price, 0);
+  const a = await player(game, ++serial, { 'sf-purse-v1': JSON.stringify({ coins: balance }) });
+  const buy = ([id, , op]: (typeof stock)[number]) =>
+    act(a, 'inventory', op === 'buyHat' ? { op, id } : { op, kind: id });
+  try {
+    for (const item of stock) assert.equal((await buy(item)).ok, false);
+    atNPC(a, merchant);
+    for (const item of stock) {
+      assert.equal((await buy(item)).ok, true);
+      balance -= item[1];
+      assert.equal(a.p.inventory.economy.state.coins, balance);
+      assert.equal((await buy(item)).ok, false);
+    }
+    const equipped = await act(a, 'equipAppearance', { look: FANCY_DRESS.outfit });
+    for (const [slot, id] of Object.entries(FANCY_DRESS.outfit))
+      assert.equal(equipped.appearance?.[slot as keyof typeof FANCY_DRESS.outfit], id);
+    const gnome = await act(a, 'equipAppearance', {
+      look: { ...FANCY_DRESS.outfit, hat: 'gnome-cap' },
+    });
+    assert.equal(gnome.appearance?.hat, 'gnome-cap');
+  } finally {
+    stop(a);
+  }
+});
+
+test('the Formalwear Expert sells an equippable suit and tie near the requested spot', async () => {
+  const expert = npc((n) => n.id === FORMALWEAR_EXPERT.id);
+  assert.equal(expert.name, FORMALWEAR_EXPERT.name);
+  assert.ok(Math.hypot(expert.x - FORMALWEAR_EXPERT.x, expert.z - FORMALWEAR_EXPERT.z) < 1);
+  const approach = requiredFixture(geometry.approaches.merchant(expert));
+  assert.ok(geometry.pathTo(approach.x, approach.y, geometry.spawn)?.length);
+  assert.equal(npc((n) => n.id === RICH_TABLE_CHEF).name, 'Rich Table Chef');
+  const a = await player(game, ++serial, { 'sf-purse-v1': '{"coins":125}' });
+  const buy = (kind: string) => act(a, 'inventory', { op: 'trade', kind });
+  try {
+    for (const kind of FORMALWEAR_ITEMS) assert.equal((await buy(kind)).ok, false);
+    atNPC(a, expert);
+    assert.equal((await buy('charcoal-suit')).ok, true);
+    assert.equal(a.p.inventory.economy.state.coins, 25);
+    assert.equal((await buy('black-tie')).ok, true);
+    assert.equal(a.p.inventory.economy.state.coins, 0);
+    const look = { torso: 'charcoal-suit', neck: 'black-tie' };
+    assert.equal((await act(a, 'equipAppearance', { look })).ok, true);
+    assert.equal(a.p.appearance.torso, look.torso);
+    assert.equal(a.p.appearance.neck, look.neck);
+  } finally {
+    stop(a);
+  }
+});
+
+test('Rick sells both wearable techwear pieces inside his granite house', async () => {
+  const rick = npc((n) => n.id === RICK.id);
+  const house = requiredFixture(rick.interior);
+  const entry = requiredFixture(house.entry);
+  const approach = requiredFixture(geometry.approaches.merchant(rick));
+  assert.equal(house.id, RICK_HOUSE.id);
+  assert.equal(rick.description, 'truly futuristic');
+  assert.equal(npcOffersAttack(rick), false);
+  assert.ok(Math.hypot(entry.x + 0.5 - 45, entry.y + 0.5 - 234) < 0.5);
+  assert.equal(geometry.placeAt(approach.x, approach.y), house);
+  assert.ok(geometry.pathTo(entry.x, entry.y, geometry.spawn)?.length);
+  assert.ok(geometry.pathTo(approach.x, approach.y, entry)?.length);
+
+  const price = TECHWEAR_ITEMS.reduce((total, item) => total + ITEM_STATS[item].price!, 0);
+  const a = await player(game, ++serial, { 'sf-purse-v1': JSON.stringify({ coins: price }) });
+  const buy = (kind: string) => act(a, 'inventory', { op: 'trade', kind });
+  try {
+    stand(a, entry);
+    assert.ok(Math.hypot(a.p.x - rick.x, a.p.z - rick.z) < 2.6);
+    for (const item of TECHWEAR_ITEMS) assert.equal((await buy(item)).ok, false);
+    atNPC(a, rick);
+    for (const item of TECHWEAR_ITEMS) assert.equal((await buy(item)).ok, true);
+    assert.equal(a.p.inventory.economy.state.coins, 0);
+    const look = { torso: TECHWEAR_ITEMS[0], legs: TECHWEAR_ITEMS[1] };
+    assert.equal((await act(a, 'equipAppearance', { look })).ok, true);
+    assert.equal(a.p.appearance.torso, look.torso);
+    assert.equal(a.p.appearance.legs, look.legs);
+  } finally {
+    stop(a);
+  }
+});
+
+test('the Defense Manufacturer sells armor and fuses both Icy Kevlar pieces at the workshop', async () => {
+  const maker = npc((n) => n.id === DEFENSE_WORKSHOP.manufacturer.id);
+  const assistant = npc((n) => n.id === DEFENSE_WORKSHOP.assistant.id);
+  const shop = requiredFixture(maker.interior);
+  assert.equal(shop.id, DEFENSE_WORKSHOP.id);
+  assert.deepEqual([maker.x, maker.z], [53, 211]);
+  assert.equal(assistant.interior, shop);
+  assert.ok(geometry.pathTo(shop.entry.x, shop.entry.y, geometry.spawn)?.length);
+  for (const staff of [maker, assistant]) {
+    const point = requiredFixture(geometry.approaches.merchant(staff));
+    assert.equal(geometry.placeAt(point.x, point.y), shop);
+    assert.ok(geometry.pathTo(point.x, point.y, shop.entry)?.length);
+  }
+  const id = ++serial;
+  const a = await player(game, id, {
+    'sf-purse-v1': JSON.stringify({ coins: 25400, sand: 100, ownedEquipment: ['ice-top'] }),
+  });
+  const buy = (kind: string) => act(a, 'inventory', { op: 'trade', kind });
+  const defense = () => ownedEquipmentDefense(a.p.inventory.economy.state, a.p.appearance);
+  const purse = a.p.inventory.economy.state;
+  try {
+    stand(a, shop.entry);
+    assert.equal((await buy('steel-chainmail')).ok, false);
+    atNPC(a, maker);
+    assert.equal((await buy('steel-chainmail')).ok, true);
+    assert.equal(purse.coins, 25000);
+    assert.equal(
+      (await act(a, 'equipAppearance', { look: { torso: 'steel-chainmail' } })).ok,
+      true,
+    );
+    assert.equal(defense(), 3);
+    assert.equal((await buy('kevlar-vest')).ok, true);
+    assert.equal(purse.coins, 22000);
+    assert.equal((await act(a, 'equipAppearance', { look: { torso: 'kevlar-vest' } })).ok, true);
+    assert.equal(defense(), 4);
+    assert.equal((await buy(ICY_KEVLAR.item)).ok, false);
+    assert.equal(purse.coins, 22000);
+    assert.equal(purse.sand, 100);
+    assert.ok(ICY_KEVLAR.ingredients.every((part) => purse.ownedEquipment.includes(part)));
+    a.p.inventory.meta.peptides = 10;
+    await act(a, 'equipAppearance', { look: { torso: 'ice-top' } });
+    const result = await buy(ICY_KEVLAR.item);
+    assert.equal(result.ok, true);
+    assert.equal(result.appearance?.torso, ICY_KEVLAR.item);
+    assert.equal(a.p.appearance.iceTop, false);
+    assert.equal(defense(), 10);
+    assert.equal(purse.coins, 0);
+    assert.equal(purse.sand, 0);
+    assert.equal(a.p.inventory.meta.peptides, 0);
+    assert.ok(ICY_KEVLAR.ingredients.every((part) => !purse.ownedEquipment.includes(part)));
+    assert.ok(purse.ownedEquipment.includes('steel-chainmail'));
+    assert.ok(purse.ownedEquipment.includes(ICY_KEVLAR.item));
+    assert.equal((await buy(ICY_KEVLAR.item)).ok, false);
+    Object.assign(purse, { coins: 25000, sand: 100 });
+    purse.ownedEquipment.push('ice-pants');
+    a.p.inventory.meta.peptides = 10;
+    assert.equal((await buy('kevlar-pants')).ok, true);
+    const look = { torso: ICY_KEVLAR.item, legs: 'kevlar-pants' };
+    assert.equal((await act(a, 'equipAppearance', { look })).ok, true);
+    assert.equal(defense(), 14);
+    assert.equal((await act(a, 'equipAppearance', { look: { ...look, legs: 'ice-pants' } })).ok, true);
+    assert.equal(a.p.appearance.icePants, true);
+    const pants = await buy(ICY_KEVLAR_PANTS.item);
+    assert.equal(pants.ok, true, pants.message);
+    assert.equal(pants.appearance?.legs, ICY_KEVLAR_PANTS.item);
+    assert.equal(a.p.appearance.icePants, false);
+    assert.equal(defense(), 20);
+    assert.deepEqual([purse.coins, purse.sand, a.p.inventory.meta.peptides], [0, 0, 0]);
+    assert.ok(ICY_KEVLAR_PANTS.ingredients.every((part) => !purse.ownedEquipment.includes(part)));
+  } finally {
+    stop(a);
+  }
+  const returned = await player(game, id);
+  try {
+    assert.equal(returned.p.appearance.torso, ICY_KEVLAR.item);
+    assert.equal(returned.p.appearance.legs, ICY_KEVLAR_PANTS.item);
+    assert.deepEqual(returned.p.inventory.economy.state.ownedEquipment, purse.ownedEquipment);
+  } finally {
+    stop(returned);
+  }
+});
+
+test('For Science requires a Light crystal at fabrication and persists workshop blade colors', async () => {
+  const industrialist = npc((n) => n.id === LIGHTSABER_INDUSTRIALIST);
+  const tim = npc((n) => n.id === 'tim-apple');
+  const maker = npc((n) => n.id === DEFENSE_WORKSHOP.manufacturer.id);
+  const scientist = requiredFixture(
+    game.shared.wilderness.actors.find((n) => n.id === LIGHTSABER_SCIENTIST),
+  );
+  const scientistApproach = geometry.esotericCampus.nearest(
+    scientist.x - 0.5,
+    scientist.z - 0.5,
+    1.5,
+    (x, y) => geometry.canTravel(x, y, scientist.x - 0.5, scientist.z - 0.5, true),
+  );
+  const id = ++serial;
+  const a = await player(game, id, {
+    'sf-purse-v1': JSON.stringify({ coins: LIGHTSABER_COLOR_PRICE + 400 }),
+    'sf-expeditions-v1': '{}',
+  });
+  const advance = (stage: string) => act(a, 'playerAction', { verb: 'lightsaberQuest', stage });
+  const color = (color: string) => act(a, 'inventory', { op: 'colorLightsaber', color });
+  const quest = () => a.p.profile.playerState.quests.lightsaber;
+  const purse = a.p.inventory.economy.state;
+  try {
+    atNPC(a, industrialist);
+    assert.equal((await advance('not-started')).ok, false);
+    assert.equal(a.p.inventory.receive({ lootKind: 'equipment', itemId: 'railgun', amount: 1 }).ok, true);
+    assert.equal((await advance('fabrication')).ok, false);
+    assert.equal((await advance('not-started')).ok, true);
+    assert.equal((await advance('pitch')).ok, false);
+    atNPC(a, tim);
+    assert.equal((await advance('pitch')).ok, true);
+    assert.equal((await advance('research')).ok, false);
+    stand(a, scientistApproach);
+    assert.equal((await advance('research')).ok, true);
+    atNPC(a, tim);
+    assert.equal((await advance('review')).ok, true);
+    atNPC(a, industrialist);
+    assert.equal((await advance('approval')).ok, true);
+    assert.equal((await advance('fabrication')).ok, false);
+    atNPC(a, maker);
+    const missing = await advance('fabrication');
+    assert.equal(missing.ok, false);
+    assert.match(missing.message || '', /Light crystal/);
+    assert.equal(quest().stage, 'fabrication');
+    assert.equal(purse.ownedEquipment.includes('lightsaber'), false);
+    assert.equal(a.p.inventory.receive(itemLoot('light-crystal', 2)).ok, true);
+    const crafted = await advance('fabrication');
+    assert.equal(crafted.ok, true);
+    assert.equal(crafted.inventory?.lightCrystals, 1);
+    assert.equal((await advance('fabrication')).ok, false);
+    assert.deepEqual(quest(), { stage: 'completed', color: 'blue' });
+    assert.equal(purse.ownedEquipment.filter((item) => item === 'lightsaber').length, 1);
+    assert.equal(a.p.inventory.meta.lightsaberCharge, LIGHTSABER_HITS);
+    assert.equal((await color('invisible')).ok, false);
+    stand(a, geometry.spawn);
+    assert.equal((await color('violet')).ok, false);
+    atNPC(a, maker);
+    assert.equal((await color('violet')).appearance?.lightsaberColor, 'violet');
+    assert.equal((await color('red')).ok, false);
+    assert.equal(purse.coins, 400);
+    assert.equal(
+      (await act(a, 'equipAppearance', { look: { weapon: 'lightsaber', lightsaberColor: 'red' } })).ok,
+      true,
+    );
+    assert.equal(a.p.appearance.weapon, 'lightsaber');
+    assert.equal(a.p.appearance.lightsaberColor, 'violet');
+  } finally {
+    stop(a);
+  }
+  const returned = await player(game, id);
+  try {
+    assert.deepEqual(returned.p.profile.playerState.quests.lightsaber, {
+      stage: 'completed',
+      color: 'violet',
+    });
+    assert.equal(returned.p.appearance.weapon, 'lightsaber');
+    assert.equal(returned.p.appearance.lightsaberColor, 'violet');
+    assert.equal(returned.p.inventory.meta.lightsaberCharge, LIGHTSABER_HITS);
+    assert.equal(returned.p.inventory.meta.lightCrystals, 1);
+  } finally {
+    stop(returned);
+  }
+});
+
+test('the Goblin Scientist pays once and launches the volunteer to Berkeley with one hitpoint', async () => {
+  const host = npc((n) => n.id === GOBLIN_CATAPULT.scientist.id);
+  const contraption = requiredFixture(geometry.sights.find((s) => s.id === GOBLIN_CATAPULT.id));
+  const frogPen = requiredFixture(geometry.sights.find((s) => s.id === FROG_FARM.id));
+  const rig = requiredFixture(contraption.seat);
+  assert.equal(contraption.label, 'Strange Contraption');
+  assert.doesNotMatch(contraption.description || '', /catapult|launch|throw/i);
+  assert.ok(geometry.pathTo(contraption.entry.x, contraption.entry.y, frogPen.entry)?.length);
+  assert.ok(rig.x > FROG_FARM.x && rig.z > FROG_FARM.z);
+  const campus = requiredFixture(geometry.esotericCampus);
+  const { u, v } = GOBLIN_CATAPULT.landing;
+  const landing = campus.point(u, v);
+  assert.ok(geometry.landClearAt(landing.x - 0.5, landing.z - 0.5));
+  const a = await visitor();
+  const participate = () => act(a, 'playerAction', { verb: GOBLIN_CATAPULT.verb });
+  const fish = a.p.inventory.economy.state.fish;
+  try {
+    assert.equal((await participate()).ok, false);
+    assert.equal(a.p.inventory.economy.state.fish, fish);
+    atNPC(a, host);
+    const hp = a.p.hp;
+    const start = { x: a.p.x, y: a.p.y, z: a.p.z };
+    const result = await participate();
+    assert.equal(result.ok, true);
+    assert.equal(result.inventory?.purse.fish, fish + 5);
+    assert.equal(a.p.mode, GOBLIN_CATAPULT.mode);
+    assert.equal((await participate()).ok, false);
+    assert.equal((await act(a, 'moveTo', { x: start.x + 2, z: start.z })).ok, false);
+    tick(GOBLIN_CATAPULT.mountSeconds + 0.12);
+    assert.notDeepEqual({ x: a.p.x, y: a.p.y, z: a.p.z }, start);
+    assert.ok(Math.hypot(a.p.x - rig.x, a.p.z - rig.z) < 1.5);
+    tick(GOBLIN_CATAPULT.releaseSeconds + GOBLIN_CATAPULT.flightSeconds / 2 - a.p.phase);
+    assert.ok(a.p.x > rig.x + 20 && a.p.x < landing.x);
+    assert.ok(a.p.y > rig.base + 20);
+    assert.equal(a.p.hp, hp);
+    tick(CATAPULT_DURATION - a.p.phase + 0.12);
+    assert.equal(a.p.mode, 'walk');
+    assert.equal(a.p.depotLaunch, undefined);
+    assert.ok(Math.hypot(a.p.x - landing.x, a.p.z - landing.z) < 0.01);
+    assert.equal(a.p.hp, 1);
+    assert.equal(a.p.inventory.economy.state.fish, fish + 5);
+    assert.ok(
+      a.messages.some(
+        (message) =>
+          message.type === 'damage' &&
+          message.source === contraption.label &&
+          message.damage === hp - 1,
+      ),
+    );
+  } finally {
+    stop(a);
+  }
+});
+
+test('the Berkeley Scientist sells teleports, accepts donations, and pays for ten completed experiments', async () => {
+  const scientist = npc((n) => n.id === SHRIMP_EXPERIMENT.scientist);
+  const institute = requiredFixture(
+    geometry.sights.find((site) => site.id === 'berkeley-esoteric'),
+  );
+  const approach = requiredFixture(geometry.approaches.merchant(scientist));
+  assert.ok(geometry.pathTo(approach.x, approach.y, institute.entry)?.length);
+  assert.ok(scientist.x > institute.entry.x);
+  const account = ++serial;
+  let a = await player(game, account, { 'sf-purse-v1': '{"coins":100}' });
+  const guest = await player(game, ++serial);
+  const buy = () => act(a, 'buyTablet', { destination: 'berkeley' });
+  const donate = (amount: number) => act(a, 'playerAction', { verb: 'shrimpDonation', amount });
+  const ride = (rider = a) => act(rider, 'playerAction', { verb: 'scientificExperiment' });
+  const advance = (ms: number, dt = 0.05) => {
+    time += ms;
+    game.tick(dt);
+  };
+  try {
+    assert.equal((await buy()).ok, false);
+    assert.equal((await donate(10)).ok, false);
+    assert.equal((await ride()).ok, false);
+    stand(a, approach);
+    assert.equal((await buy()).ok, true);
+    assert.equal(a.p.inventory.economy.state.coins, 80);
+    assert.equal(a.p.inventory.meta.tablets.berkeley, 1);
+    for (const amount of [0, -3, 1.5, 81]) assert.equal((await donate(amount)).ok, false);
+    assert.match(
+      (await donate(17)).message ?? '',
+      /Thank you for donating 17 coins to Shrimp Welfare/,
+    );
+    assert.equal(a.p.inventory.economy.state.coins, 63);
+
+    assert.equal((await act(a, 'useTablet', { destination: 'berkeley' })).ok, true);
+    advance(TABLET_TELEPORT_SECONDS * 1000 + 50);
+    assert.equal(a.p.x, geometry.tabletDestinations.berkeley.x);
+    assert.equal(a.p.z, geometry.tabletDestinations.berkeley.z);
+    assert.equal(a.p.inventory.meta.tablets.berkeley, 0);
+    stand(a, approach);
+    stand(guest, approach);
+    for (let i = 0; i < SHRIMP_EXPERIMENT.limit; i++) {
+      if (i >= 5) advance(3_200, 3.2);
+      assert.equal((await ride()).ok, true);
+      assert.equal(a.p.mode, SHRIMP_EXPERIMENT.mode);
+      assert.equal(a.p.inventory.economy.state.coins, 63 + i * 100);
+      if (i === 0) {
+        assert.equal((await ride(guest)).ok, false);
+        assert.equal((await ride()).ok, false);
+        assert.equal((await act(a, 'moveTo', { x: approach.x, y: approach.y })).ok, false);
+        advance(SHRIMP_EXPERIMENT.durationMs / 2);
+        assert.ok(Math.abs(a.p.phase - SHRIMP_EXPERIMENT.revolutions * Math.PI) < 0.001);
+        assert.equal(a.p.inventory.economy.state.coins, 63);
+        advance(SHRIMP_EXPERIMENT.durationMs / 2);
+      } else {
+        advance(SHRIMP_EXPERIMENT.durationMs);
+      }
+      assert.equal(a.p.mode, 'walk');
+      assert.equal(a.p.inventory.economy.state.coins, 63 + (i + 1) * 100);
+      assert.equal(a.p.profile.playerState.progress.scientificExperiments, i + 1);
+      if (i === 0) assert.equal(a.p.profile.playerState.conditions.inebriation, 20);
+      if (i === 4) {
+        assert.equal(a.p.profile.playerState.conditions.inebriation, 100);
+        assert.match((await ride()).message ?? '', /100% inebriated/);
+      }
+    }
+    await game.disconnect(a.p);
+    a = await player(game, account);
+    stand(a, approach);
+    assert.equal(a.p.profile.playerState.progress.scientificExperiments, 10);
+    assert.equal(a.p.inventory.economy.state.coins, 1063);
+    assert.match((await ride()).message ?? '', /already completed all ten/);
+  } finally {
+    stop(guest);
+    stop(a);
+  }
+});
+
+test('the Sunset Wedding Planner and robe seller sell wearable merchandise only in person', async () => {
+  const weddingPlanner = npc((n) => n.id === WEDDING_PLANNER);
+  const robeSeller = npc((n) => n.id === ROBE_SELLER);
+  assert.ok(!npcOffersAttack(weddingPlanner));
+  const approach = requiredFixture(geometry.approaches.merchant(weddingPlanner));
+  assert.ok(geometry.pathTo(approach.x, approach.y, geometry.spawn)?.length);
+  const a = await player(game, ++serial, { 'sf-purse-v1': '{"coins":250}' });
+  const buy = (kind: string) => act(a, 'inventory', { op: 'trade', kind });
+  const buyJester = () => act(a, 'inventory', { op: 'buyHat', id: 'jester' });
+  try {
+    for (const kind of WEDDING_ITEMS) assert.equal((await buy(kind)).ok, false);
+    atNPC(a, weddingPlanner);
+    assert.equal((await buyJester()).ok, false);
+    for (const [kind, balance] of [
+      ['yellow-top', 200],
+      ['yellow-pants', 150],
+      ['katana', 50],
+    ] as const) {
+      assert.equal((await buy(kind)).ok, true);
+      assert.equal(a.p.inventory.economy.state.coins, balance);
+      assert.equal((await buy(kind)).ok, false);
+    }
+    atNPC(a, robeSeller);
+    assert.equal((await buyJester()).ok, true);
+    assert.equal(a.p.inventory.economy.state.coins, 0);
+    const look = { hat: 'jester', torso: 'yellow-top', legs: 'yellow-pants', weapon: 'katana' };
+    assert.equal((await act(a, 'equipAppearance', { look })).ok, true);
+    for (const [slot, id] of Object.entries(look))
+      assert.equal(a.p.appearance[slot as keyof typeof look], id);
+  } finally {
+    stop(a);
+  }
+});
+
+test('a goblin helmet kit upgrades the owned and equipped hat once and persists across reconnects', async () => {
+  const account = ++serial;
+  let a = await player(game, account);
+  const upgrade = () => act(a, 'inventory', { op: 'upgradeGoblinHelmet' });
+  const defense = () => ownedEquipmentDefense(a.p.inventory.economy.state, a.p.appearance);
+  try {
+    assert.ok(a.p.inventory.receive(itemLoot('goblin-helmet-upgrade-kit', 2)).ok);
+    assert.equal((await upgrade()).ok, false);
+    assert.ok(a.p.inventory.receive(itemLoot('goblin-helmet')).ok);
+    assert.equal((await act(a, 'equipAppearance', { look: { hat: 'goblin-helmet' } })).ok, true);
+    assert.equal(defense(), 2);
+    const result = await upgrade();
+    assert.equal(result.ok, true);
+    assert.equal(result.appearance?.hat, 'upgraded-goblin-helmet');
+    assert.equal(defense(), 3);
+    assert.equal((await upgrade()).ok, false);
+    await game.disconnect(a.p);
+    a = await player(game, account);
+    assert.equal(a.p.inventory.meta.goblinHelmetUpgradeKits, 1);
+    assert.deepEqual(a.p.inventory.economy.state.ownedHats, ['upgraded-goblin-helmet']);
+    assert.equal(defense(), 3);
   } finally {
     stop(a);
   }
@@ -2257,11 +3324,11 @@ test('the entrepreneur keeps exactly the coins handed over with no investment po
 });
 
 test('a Bind Tablet consumes one item, costs 10 hitpoints and blocks neighboring PvP movement for ten seconds', async () => {
-  const a = await visitor(),
-    b = await visitor(),
-    spectator = await visitor(),
-    outside = await visitor();
-  const base = geometry.spawn;
+  const base = { x: 69.5, y: 42.5 };
+  const a = await visitor(base),
+    b = await visitor(base),
+    spectator = await visitor(base),
+    outside = await visitor(base);
   try {
     const activate = () => act(a, 'breakBind');
     assert.equal(a.p.inventory.receive({ lootKind: 'bind-tablet', amount: 1 }).ok, true);

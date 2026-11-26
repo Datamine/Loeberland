@@ -33,7 +33,9 @@ export function drawSwingRider(
     railgun: false,
     akibo: false,
     battleaxe: false,
+    katana: false,
     rollingPin: false,
+    bowlingBall: false,
     bayonet: false,
     phone: false,
   });

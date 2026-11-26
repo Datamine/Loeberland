@@ -741,13 +741,23 @@ function renderCombatStats(main: HTMLElement, record: EditorRecord) {
   if (stats.attackEffect) {
     const effects = {
       explosive: 'Thrown explosive',
+      'goblin-rock': 'Thrown boulder',
       akimbo: 'Akimbo projectiles',
       'robocop-laser': 'Laser',
+      'onoda-rifle': 'Rifle shot',
+      'emf-lightning': 'Lightning bolt',
       bind: 'May bind the target',
     };
     rows.push(['Attack effect', effects[stats.attackEffect]]);
     const flight = monsterProjectileFlight(stats.attackEffect);
     if (flight) rows.push(['Projectile travel time', flight + ' s']);
+  }
+  if (stats.rangedAttack) {
+    rows.push(
+      ['Ranged attack', `${stats.rangedAttack.range} tiles`],
+      ['Ranged base damage', String(stats.rangedAttack.damage)],
+      ['Ranged interval', stats.rangedAttack.interval + ' s'],
+    );
   }
   if (stats.reflectDamage)
     rows.push(['Damage reflected', Math.round(stats.reflectDamage * 100) + '%']);

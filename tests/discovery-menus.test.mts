@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createQuestMenu } from '../src/quest-menu.ts';
 import { createCollectionMenu } from '../src/collection-menu.ts';
+import { COLLECTION_ITEMS } from '../src/config/collection.ts';
 import { dialogueFixture } from './helpers/dialogue-fixture.mts';
 import { createExpeditions } from '../src/jurassic.ts';
 
@@ -60,7 +61,7 @@ test('quest journal lists the names and starting places of unstarted quests and 
   }
 });
 
-test('collection log reveals item names only after discovery', () => {
+test('the Item Log shows a short source hint until each item is discovered', () => {
   const fixture = dialogueFixture();
   try {
     const make = () => fixture.doc.createElement('div');
@@ -81,9 +82,29 @@ test('collection log reveals item names only after discovery', () => {
     menu.render();
     assert.match(content.textContent, /Undiscovered/);
     assert.doesNotMatch(content.textContent, /Railgun|Alien Evidence Certificate|Sandwich/);
+    const rows = content.querySelectorAll('li');
+    assert.equal(rows.length, COLLECTION_ITEMS.length);
+    for (const row of rows) {
+      assert.equal(row.dataset.found, 'false');
+      const hints = row.querySelectorAll('small');
+      assert.equal(hints.length, 1);
+      assert.match(hints[0].textContent, /^\S+(?: \S+){0,2}$/);
+    }
+    for (const [id, hint] of [
+      ['light-crystal', 'Any NPC'],
+      ['missile-launcher', 'Madder Scientist'],
+      ['fish', 'Fishing Spot'],
+      ['sand', 'Ocean Beach'],
+    ]) {
+      assert.equal(COLLECTION_ITEMS.find((item) => item.id === id)?.hint, hint);
+      assert.ok(content.querySelectorAll('small').some((element) => element.textContent === hint));
+    }
     found = ['sandwich'];
     menu.render();
-    assert.match(content.textContent, /✓ Sandwich/);
+    const sandwichRow = content.querySelectorAll('li').find((row) => row.dataset.found === 'true');
+    assert.equal(sandwichRow?.textContent, '✓ Sandwich');
+    assert.equal(sandwichRow?.querySelectorAll('small').length, 0);
+    assert.equal(content.querySelectorAll('small').length, COLLECTION_ITEMS.length - 1);
     assert.doesNotMatch(content.textContent, /Railgun|Alien Evidence Certificate/);
     assert.match(summary.textContent, /^1 \/ /);
   } finally {

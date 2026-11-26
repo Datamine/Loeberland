@@ -24,7 +24,7 @@ export const COIN_REWARD_TRADES = Object.freeze({
     saltLettersDelivered: 1,
     coins: TRADE_PRICES.saltLetter,
   },
-  'sand-sale': { coins: TRADE_PRICES.sand, sand: -1 },
+  'sand-sale': { coins: TRADE_PRICES.sand, sand: -1, sandDelivered: 1 },
   'fish-sale': { coins: TRADE_PRICES.fish, fish: -1 },
   'ai-lab-wage': { coins: 1 },
   secondary: { coins: TRADE_PRICES.secondary, equity: -1 },

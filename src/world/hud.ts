@@ -1,4 +1,9 @@
 import { MOTORCYCLE_TRICKS } from '../motorcycle.ts';
+import { SCOOTER_BACKFLIP } from '../config/scooter.ts';
+import { LIGHTSABER_HITS } from '../config/lightsaber.ts';
+import { WEAPON_UPGRADE_KIT } from '../config/weapon-upgrades.ts';
+import { HIKING_BACKPACK, HIKING_BACKPACK_UPGRADE_KIT } from '../config/hiking-backpack.ts';
+import { nearOnodaLanding } from '../onoda-island.ts';
 import type { GameElements } from '../types/ui.ts';
 import type { EconomyState } from '../types/content.ts';
 import type { InventorySnapshot } from '../types/network.ts';
@@ -12,14 +17,20 @@ import type { WorldContext } from './scene.ts';
 import { createUIJob, createDOMView } from '../ui/scheduler.ts';
 import { sampleRocketHop } from '../rocket-hop.ts';
 import { TABLET_PLACES } from '../teleport-tablets.ts';
-import { weaponDamageRange } from '../combat.ts';
+import { averageAttackDamage, weaponDamageRange } from '../combat.ts';
 import {
   ITEM_STATS,
   normalizeBoots,
   equipmentOwned,
+  canUpgradeWeapon,
+  trimmableIronArmor,
+  goblinCharmEquipped,
   ownedEquipmentDefense,
   selectedWeapon,
+  sandwichCapacity,
   weaponAttackInterval,
+  weaponDisplayName,
+  weaponOwned,
 } from '../item-stats.ts';
 import { ownedHat } from '../hat-catalog.ts';
 import { equipmentOptions, fillEquipmentSelect } from '../equipment-options.ts';
@@ -46,10 +57,15 @@ function updateSkillProgress(
   readout: HTMLElement,
   skillName: string,
   skill: ReturnType<typeof skillStatus>,
+  showXPAtMax = false,
 ) {
   if (bar.value !== skill.percent) bar.value = skill.percent;
   const progress =
-    skill.next === null ? 'Max level' : skill.percent.toFixed(2) + '% to Level ' + skill.next;
+    skill.next === null
+      ? showXPAtMax
+        ? Math.floor(skill.xp).toLocaleString() + ' XP'
+        : 'Max level'
+      : skill.percent.toFixed(2) + '% to Level ' + skill.next;
   const text = skillName + ' · Level ' + skill.level;
   if (label.textContent !== text) label.textContent = text;
   if (readout.textContent !== progress) readout.textContent = progress;
@@ -176,7 +192,18 @@ export function createHud(context: WorldContext) {
   }
 
   function updateSurfButton() {
-    const wave = context.surf.state.riding && context.surf.state.mode === 'surf';
+    const surf = context.surf.state;
+    const button = $('sf-surf-return');
+    if (button.hidden === surf.riding) button.hidden = !surf.riding;
+    if (button.disabled !== !!surf.jump) button.disabled = !!surf.jump;
+    if (surf.riding) {
+      const label =
+        surf.mode === 'windsurf' && nearOnodaLanding(context.player)
+          ? 'Land at Island'
+          : 'Surf Back to Shore';
+      if (button.textContent !== label) button.textContent = label;
+    }
+    const wave = surf.riding && surf.mode === 'surf';
     $('sf-wave-controls').hidden = !wave;
     if (wave) {
       const r = context.waveSurf.state.ride,
@@ -213,6 +240,14 @@ export function createHud(context: WorldContext) {
     if (context.headless) return;
     updateATVControls();
     const purse = context.economy.state;
+    const secondary = context.playerLook.secondaryWeapon;
+    const switchWeapon = $('sf-switch-weapon');
+    switchWeapon.hidden = secondary === context.playerLook.weapon || !weaponOwned(purse, secondary);
+    switchWeapon.disabled = context.health.state.hp <= 0 || context.capture.state.active;
+    if (!switchWeapon.hidden) {
+      const label = secondary === 'unarmed' ? 'Fist' : weaponDisplayName(secondary, purse);
+      updateActionLabel(switchWeapon, 'Switch to ' + label, label, 'item');
+    }
     for (const button of $('sf-chairs').querySelectorAll<HTMLButtonElement>('[data-chair]')) {
       const chair = button.dataset.chair;
       if (chair && chair !== 'normal') {
@@ -244,7 +279,7 @@ export function createHud(context: WorldContext) {
       ? 'No teleport tablets'
       : teleportBlocked
         ? 'Teleport unavailable here'
-        : 'Choose a destination (Esc, then T)';
+        : 'Choose a destination (shortcut T)';
     const coffee = context.bankService?.snapshot().coffee || 0;
     $('sf-drink-coffee').hidden = !coffee;
     $('sf-drink-coffee').disabled =
@@ -292,6 +327,8 @@ export function createHud(context: WorldContext) {
         ? 'Underground · Illuminati hangar'
         : kind === 'berkeley-lab'
           ? 'Underground · Berkeley laboratory'
+          : kind === 'goblin-incubator-cave'
+            ? 'Underground · Goblin City Hall'
           : 'Private kraken waters';
     updatePhoneControl();
     const hopButton = $('sf-rocket-hop');
@@ -372,11 +409,12 @@ export function createHud(context: WorldContext) {
         context.currentInterior)
     )
       context.skateboard.riding = false;
-    const { pelts, uni } = context.multiplayer?.state.inventory || {};
+    const { lightCrystals, pelts, uni } = context.multiplayer?.state.inventory || {};
     // Show carried quest and trade items without a Character entry or an action button.
     const q = context.quests.theyLive.state,
       items = [
         purse.sand > 0 ? 'Sand ×' + purse.sand.toLocaleString('en-US') : null,
+        lightCrystals ? ITEM_STATS['light-crystal'].name + ' ×' + lightCrystals : null,
         q.evidence && !q.permit ? 'Alien Evidence Certificate' : null,
         q.started && q.permit && !q.completed ? 'Alien-removal permit' : null,
         uni ? ITEM_STATS.uni.name + ' ×' + uni : null,
@@ -403,6 +441,19 @@ export function createHud(context: WorldContext) {
     const skateText = context.skateboard.riding ? 'Put away board' : 'Skateboard';
     updateActionLabel(skate, skateText, context.skateboard.riding ? 'board' : 'Skateboard', 'item');
     $('sf-skate-tricks').hidden = !context.skateboard.riding;
+    const scooter = $('sf-scooter-button'),
+      backflip = $('sf-scooter-backflip'),
+      ridingScooter = context.multiplayerWorld?.selfMode === 'scooter';
+    scooter.hidden = !equipmentOwned(purse, 'scooter');
+    scooter.disabled =
+      skate.disabled || context.secretWorld?.kind !== 'world' || context.health.state.hp <= 0;
+    scooter.setAttribute('aria-pressed', String(ridingScooter));
+    updateActionLabel(scooter, ridingScooter ? 'Put away scooter' : 'Scooter', 'scooter', 'item');
+    backflip.hidden = !ridingScooter;
+    backflip.disabled =
+      scooter.disabled ||
+      !context.player.moving ||
+      context.multiplayerWorld?.selfGesture === SCOOTER_BACKFLIP.id;
     for (const button of context.world.querySelectorAll<HTMLButtonElement>('[data-skate-trick]'))
       button.disabled =
         context.skateTricks.state.active ||
@@ -412,32 +463,82 @@ export function createHud(context: WorldContext) {
     for (const button of context.world.querySelectorAll<HTMLButtonElement>(
       '[data-inventory-action]',
     )) {
-      const trim = button.dataset.inventoryAction === 'trimArmor';
-      const count = (trim ? supplies.armorTrimmingKits : supplies.bindTablets) || 0;
-      button.hidden = !count;
-      button.disabled = trim && !equipmentOwned(context.economy.state, 'iron-armor');
-      updateActionLabel(
-        button,
-        (trim ? 'Trim iron armor' : 'Break Bind Tablet') + ' · ' + count,
-        trim ? 'iron armor' : 'Bind Tablet',
-        'item',
-      );
+      const purse = context.economy.state;
+      if (button.dataset.inventoryAction === 'upgradeWeapon') {
+        const weapon = button.dataset.weapon || '';
+        const kits = supplies.weaponUpgradeKits ?? 0;
+        button.hidden = !kits || !canUpgradeWeapon(purse, weapon);
+        button.disabled = context.health.state.hp <= 0 || context.capture.state.active;
+        updateActionLabel(
+          button,
+          (weapon === 'akibo' ? 'Upgrade Akimbo' : 'Upgrade Railgun') + ' · ' + kits,
+          ITEM_STATS[WEAPON_UPGRADE_KIT].name,
+          'item',
+        );
+        continue;
+      }
+      const ironArmor = trimmableIronArmor(purse);
+      const actions = {
+        trimArmor: {
+          count: supplies.armorTrimmingKits,
+          label: ironArmor === 'iron-armor-legs' ? 'Trim iron leg armor' : 'Trim iron torso armor',
+          item: 'Armor Trimming Kit',
+          enabled: ironArmor !== undefined,
+        },
+        upgradeGoblinHelmet: {
+          count: supplies.goblinHelmetUpgradeKits,
+          label: 'Upgrade goblin helmet',
+          item: 'Goblin helmet upgrade kit',
+          enabled:
+            purse.ownedHats.includes('goblin-helmet') &&
+            !purse.ownedHats.includes('upgraded-goblin-helmet'),
+        },
+        upgradeBackpack: {
+          count: purse.ownedEquipment.includes(HIKING_BACKPACK)
+            ? supplies.hikingBackpackUpgradeKits
+            : 0,
+          label: 'Upgrade Hiking Backpack',
+          item: ITEM_STATS[HIKING_BACKPACK_UPGRADE_KIT].name,
+          enabled: context.health.state.hp > 0 && !context.capture.state.active,
+        },
+        breakBind: {
+          count: supplies.bindTablets,
+          label: 'Break Bind Tablet',
+          item: 'Bind Tablet',
+          enabled: true,
+        },
+        detonateFireworks: {
+          count: supplies.fireworks,
+          label: 'Detonate fireworks',
+          item: 'fireworks',
+          enabled:
+            context.health.state.hp > 0 && !context.capture.state.active && !context.chase?.state.jailed,
+        },
+      };
+      const action = actions[button.dataset.inventoryAction as keyof typeof actions];
+      button.hidden = !action.count;
+      button.disabled = !action.enabled;
+      updateActionLabel(button, action.label + ' · ' + (action.count || 0), action.item, 'item');
     }
     const supplyStatus = $('sf-combat-supplies');
     const weapon = context.playerWeapon();
     const railgun = weapon === 'railgun';
+    const lightsaber = weapon === 'lightsaber';
     const railgunCharge = supplies.railgunCharge || 0;
+    const saberCharge = supplies.lightsaberCharge || 0;
     const batteries = supplies.railgunBatteries || 0;
     const weaponSupplies: Record<string, string> = {
       railgun: 'Railgun charge: ' + railgunCharge + '/25 · Batteries: ' + batteries,
+      lightsaber:
+        'Lightsaber charge: ' + saberCharge + '/' + LIGHTSABER_HITS + ' hits · Batteries: ' + batteries,
       akibo: 'Ammo: ' + (supplies.akimboAmmo || 0),
       'missile-launcher': 'Missiles: ' + (supplies.missiles || 0),
     };
     supplyStatus.textContent = weaponSupplies[weapon] || '';
     supplyStatus.hidden = !supplyStatus.textContent;
     const charge = $('sf-charge-railgun');
-    charge.hidden = !railgun || !batteries;
-    charge.disabled = railgunCharge >= 25;
+    charge.hidden = (!railgun && !lightsaber) || !batteries;
+    charge.disabled = lightsaber ? saberCharge >= LIGHTSABER_HITS : railgunCharge >= 25;
     updateDecorativeRocketControl();
     const hpText = 'Hitpoints ' + context.health.state.hp + '/' + context.health.state.max,
       enemy =
@@ -472,7 +573,7 @@ export function createHud(context: WorldContext) {
       'Eat sandwich · ' +
       (context.deli?.state.sandwiches || 0) +
       '/' +
-      (equipmentOwned(context.economy.state, 'backpack') ? 20 : 5);
+      sandwichCapacity(context.economy.state);
     updateActionLabel(food, foodLabel, 'sandwich', 'item');
     food.disabled =
       context.health.state.hp === context.health.state.max || context.capture.state.active;
@@ -514,6 +615,7 @@ export function createHud(context: WorldContext) {
       $('sf-strength-progress-text'),
       'Strength',
       s,
+      true,
     );
     const characterLevel = 'Level ' + playerLevel(s.level, hps.level);
     if ($('sf-character-level').textContent !== characterLevel)
@@ -583,6 +685,15 @@ export function createHud(context: WorldContext) {
       if (!options[key].some((o) => o.value === String(context.playerLook[key])))
         look[key] = options[key][0].value;
     }
+    const secondaryOptions = [
+      { value: 'none', label: 'No secondary weapon' },
+      ...options.weapon,
+    ];
+    const secondaryField = context.world.querySelector<HTMLSelectElement>(
+      '[data-character="secondaryWeapon"]',
+    )!;
+    fillEquipmentSelect(secondaryField, secondaryOptions, context.playerLook.secondaryWeapon);
+    look.secondaryWeapon = secondaryField.value;
     context.playerLook = normalizeCharacter(look);
   }
 
@@ -590,17 +701,27 @@ export function createHud(context: WorldContext) {
     const look = normalizeCharacter(readCharacterLook());
     const purse = context.economy.state;
     const weapon = selectedWeapon(look.weapon, purse);
-    const damage = weaponDamageRange(
-      context.strength.status.level,
-      weapon,
-      context.inebriation.state.percent,
-    );
+    const level = context.strength.status.level;
+    const inebriation = context.inebriation.state.percent;
+    const range = ITEM_STATS[weapon].range ?? ITEM_STATS.unarmed.range;
+    const interval = weaponAttackInterval(weapon, purse);
+    const weaponRoll = (distance: number) => {
+      const roll = weaponDamageRange(level, weapon, inebriation, distance);
+      if (goblinCharmEquipped(purse, look)) roll.accuracy = 1 - (1 - roll.accuracy) ** 2;
+      return roll;
+    };
+    const close = weaponRoll(0);
+    const edge = weaponRoll(range);
+    const accuracy = (roll: typeof close) => Math.round(roll.accuracy * 100) + '%';
+    const dps = (roll: typeof close) => (averageAttackDamage(roll) / interval).toFixed(1);
+    const fallsOff = close.accuracy !== edge.accuracy;
     const stats = {
       'sf-equipment-defense': String(ownedEquipmentDefense(purse, look)),
-      'sf-equipment-max-hit': String(damage.max),
-      'sf-equipment-accuracy': Math.round(damage.accuracy * 100) + '%',
-      'sf-equipment-attack-interval': weaponAttackInterval(weapon, purse).toFixed(2) + 's',
-      'sf-equipment-range': (ITEM_STATS[weapon].range ?? ITEM_STATS.unarmed.range) + ' tiles',
+      'sf-equipment-max-hit': close.min + '–' + close.max,
+      'sf-equipment-accuracy': fallsOff ? accuracy(close) + ' → ' + accuracy(edge) : accuracy(close),
+      'sf-equipment-attack-interval': interval.toFixed(2) + 's',
+      'sf-equipment-range': range + ' tiles',
+      'sf-equipment-dps': fallsOff ? dps(close) + ' → ' + dps(edge) : dps(close),
     };
     for (const [id, value] of Object.entries(stats)) {
       const stat = $(id);
@@ -659,11 +780,12 @@ export function createHud(context: WorldContext) {
     const now = Date.now() + (context.multiplayer?.state.serverOffset || 0);
     const readyAt = Math.max(status?.readyAt || 0, status?.burningUntil || 0);
     const seconds = Math.max(0, Math.ceil((readyAt - now) / 1000));
-    const owned = equipmentOwned(context.economy.state, 'new-year-rocket');
-    button.hidden = !owned;
+    const equipped =
+      context.playerLook.back === 'new-year-rocket' &&
+      equipmentOwned(context.economy.state, 'new-year-rocket');
+    button.hidden = !equipped;
     button.disabled =
-      !owned ||
-      context.playerLook.back !== 'new-year-rocket' ||
+      !equipped ||
       !context.multiplayer?.state.connected ||
       context.lightingDecorativeRocket ||
       context.capture.state.active ||
@@ -756,6 +878,7 @@ export function createHud(context: WorldContext) {
         name: $('sf-username').value.trim(),
         phone: $('sf-iphone-equipped').checked,
         pvp: $('sf-pvp-enabled').checked,
+        tradeDuelEnabled: $('sf-trade-duel-enabled').checked,
         password: $('sf-character-password').value,
         currentPassword: $('sf-current-password').value,
       });
@@ -804,6 +927,8 @@ export function createHud(context: WorldContext) {
     $('sf-reader-shade').hidden = false;
     $('sf-username').value = context.multiplayer.state.name;
     $('sf-pvp-enabled').checked = context.multiplayer.state.pvp?.enabled === true;
+    $('sf-trade-duel-enabled').checked =
+      context.multiplayer.state.playerState?.social.tradeDuelEnabled !== false;
     $('sf-character-save-status').textContent = '';
     showPasswordStatus(context.multiplayer.state.hasCharacterPassword === true);
     $('sf-character-tab').click();

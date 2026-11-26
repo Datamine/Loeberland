@@ -35,6 +35,7 @@ export const TABLET_PLACES = Object.freeze([
     'tahoe',
     'cupertino',
     'goblin-village',
+    'berkeley',
   ] satisfies string[]),
   TABLET_TELEPORT_SECONDS = 2.8;
 const teleportEase = (t: number) => {

@@ -136,7 +136,7 @@ export function createClientControllerFactory({
     }),
     job: (source: ControllerSources['job']) => ({ recordInterview: denied }),
     fishing: (source: ControllerSources['fishing']) => ({
-      start: () => personal('fish'),
+      start: (site: import('../fishing.ts').FishingLocation) => personal('fish', { id: site.id }),
       cancel: () => (source.state.active ? personal('cancelFishing') : { ok: true }),
     }),
     deli: (source: ControllerSources['deli']) => ({

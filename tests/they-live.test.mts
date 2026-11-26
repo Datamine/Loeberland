@@ -128,7 +128,7 @@ test('the square has usable public conversations and all native props block thei
   for (const prop of TIMES_SQUARE_PROPS)
     assert.equal(timesSquareWalkable(prop.x, prop.z), false, prop.id);
   const npcs = createSquareNPCs(),
-    economy = createEconomy();
+    economy = createEconomy({ coins: 25 });
   assert.ok(npcs.length >= 5);
   for (const n of npcs) {
     if (n.questRole === 'square-foreman') {

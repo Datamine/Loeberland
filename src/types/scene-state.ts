@@ -34,7 +34,7 @@ export interface LightSource {
   poolStrength: number;
   color: number[];
 }
-export interface ActorTag extends Pick<Actor, 'speechCue'> {
+export interface ActorTag extends Pick<Actor, 'speechCue' | 'helpUntil'> {
   x: number;
   z: number;
   base?: number;

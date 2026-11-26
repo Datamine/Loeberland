@@ -1,4 +1,5 @@
-import { LAB_INSTANCE } from '../src/berkeley-lab.ts';
+import { combatDungeon } from '../src/combat-dungeons.ts';
+import { policeCalling } from '../src/encounters.ts';
 import type { SimulationServices, ServerPlayer } from '../src/types/server.ts';
 import type { Appearance } from '../src/types/content.ts';
 import type { WorldKind, WorldPatch } from '../src/world-deltas.ts';
@@ -76,7 +77,7 @@ export function createReplication({
       if ((owner.instance?.kind || 'world') !== 'world') continue;
       const chase = personal.visiblePolice(owner);
       if (!chase) continue;
-      for (const officer of chase)
+      for (const officer of chase.officers)
         officers.push({
           id: 'police-' + owner.id + '-' + officer.index,
           ownerId: owner.id,
@@ -84,6 +85,7 @@ export function createReplication({
           z: officer.y + 0.5,
           angle: officer.angle,
           phase: officer.phase,
+          calling: officer === chase.officers[0] && policeCalling(chase.elapsed),
         });
     }
     return officers;
@@ -98,7 +100,7 @@ export function createReplication({
     );
     basementIndex.rebuild(
       [...players.values()].filter(
-        (p) => p.instance?.id === ILLUMINATI_INSTANCE.id || p.instance?.id === LAB_INSTANCE.id,
+        (p) => p.instance?.id === ILLUMINATI_INSTANCE.id || !!combatDungeon(p.instance?.kind),
       ),
     );
     frames.capture(players.values());
@@ -191,7 +193,7 @@ export function createReplication({
         const nearbyIndex =
           (p.instance?.kind || 'world') === 'world'
             ? playerIndex
-            : p.instance?.id === ILLUMINATI_INSTANCE.id || p.instance?.id === LAB_INSTANCE.id
+            : p.instance?.id === ILLUMINATI_INSTANCE.id || combatDungeon(p.instance?.kind)
               ? basementIndex
               : null;
         if (visible.length < MP_MAX_NEIGHBORS && nearbyIndex)
@@ -231,12 +233,14 @@ export function createReplication({
           removed: Partial<Record<WorldKind, string[]>> = {},
           state: Record<string, unknown> = {};
         const publicWorld = (p.instance?.kind || 'world') === 'world';
+        const dungeon = combatDungeon(p.instance?.kind);
         for (const kind of kinds) {
           if (kind === 'police' && !world?.police.length && !p.entityVersions.police?.size)
             continue;
+          const dungeonCreatures = !!dungeon && kind === 'wilderness';
           const visible =
             publicWorld ||
-            (p.instance?.id === LAB_INSTANCE.id && (kind === 'loot' || kind === 'wilderness'));
+            (dungeon && (kind === 'loot' || kind === 'wilderness'));
           const previous = p.entityVersions[kind] || new Map<string, readonly unknown[]>(),
             next = new Map<string, readonly unknown[]>(),
             radius = kind === 'npcs' ? 38 : 45,
@@ -245,11 +249,11 @@ export function createReplication({
                 ? GAMEPLAY.maxNearbyNPCs
                 : kind === 'loot'
                   ? GAMEPLAY.maxNearbyLoot
-                  : 12,
+                  : dungeonCreatures ? GAMEPLAY.maxNearbyNPCs : 12,
             // Allow room for the observer's own three officers, which use the private snapshot.
             nearby = !visible
               ? []
-              : kind === 'npcs' || kind === 'police'
+              : kind === 'npcs' || kind === 'police' || dungeonCreatures
                 ? indices[kind].near(p.x, p.z, radius, kind === 'police' ? limit + 3 : limit)
                 : [...previous.keys()]
                     .map((id) => packed[kind]!.get(id)?.record)

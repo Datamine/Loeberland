@@ -1,8 +1,10 @@
 import { bindTabs } from './ui/tabs.ts';
+import type { GameCompletion } from './types/content.ts';
 
 export interface HighScores {
   coins: { name: string; coins: number }[];
   strength: { name: string; level: number; xp: number }[];
+  completion: ({ name: string } & GameCompletion)[];
 }
 
 export function bindHighScores(
@@ -15,28 +17,45 @@ export function bindHighScores(
   const list = panel.querySelector<HTMLOListElement>('ol')!;
   const status = panel.querySelector<HTMLElement>('[role="status"]')!;
   const selector = panel.querySelector<HTMLSelectElement>('select')!;
-  const coins = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 });
+  const coins = new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 });
   const xp = new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 });
   let data: HighScores | undefined;
+  function appendRow(name: string, value: HTMLElement) {
+    const li = document.createElement('li');
+    const label = document.createElement('span');
+    value.className = 'sf-score-value';
+    label.textContent = name;
+    li.append(label, value);
+    list.append(li);
+  }
   function render() {
     list.replaceChildren();
     if (!data) return;
-    const money = selector.value === 'coins';
-    const rows = money
-      ? data.coins.map((row) => [row.name, coins.format(row.coins) + ' coins'])
-      : data.strength.map((row) => [
-          row.name,
-          'Level ' + row.level + ' · ' + xp.format(row.xp) + ' XP',
-        ]);
+    list.dataset.ranking = selector.value;
+    if (selector.value === 'completion') {
+      for (const row of data.completion ?? []) {
+        const time = document.createElement('time');
+        time.dateTime = new Date(row.at).toISOString();
+        time.textContent =
+          (row.recordedOnVerification ? 'Verified ' : '') +
+          time.dateTime.slice(0, 19).replace('T', ' ') +
+          ' UTC';
+        appendRow(row.name, time);
+      }
+      status.textContent = list.children.length ? '' : 'No players have completed the game yet.';
+      return;
+    }
+    const rows =
+      selector.value === 'coins'
+        ? data.coins.map((row) => [row.name, coins.format(Math.floor(row.coins)) + ' coins'])
+        : data.strength.map((row) => [
+            row.name,
+            'Level ' + row.level + ' · ' + xp.format(row.xp) + ' XP',
+          ]);
     for (const [name, score] of rows) {
-      const li = document.createElement('li');
-      const label = document.createElement('span');
       const value = document.createElement('span');
-      value.className = 'sf-score-value';
-      label.textContent = name;
       value.textContent = score;
-      li.append(label, value);
-      list.append(li);
+      appendRow(name, value);
     }
     status.textContent = rows.length ? '' : 'No scores yet.';
   }

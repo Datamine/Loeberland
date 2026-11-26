@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { createGame } from '../game.mts';
 import { createMemoryStore } from '../store.mts';
 import { fixtureGeometry, player, latestResult } from './fixtures.mts';
+import { ITEM_STATS } from '../../src/item-stats.ts';
 
 const gear = {
   'sf-expeditions-v1': '{"raptor":"completed","railgun":true,"equipped":true}',
@@ -64,14 +65,14 @@ test('shared cows and wilderness enemies use saved inebriation, ignore attack-ar
       await act(game, a, 'stopAttack');
       advance(1100);
       await sober(game, a);
-      game.tick(0.9);
+      game.tick(ITEM_STATS.railgun.interval + 0.05);
       assert.equal(
         requiredFixture(await act(game, a, 'attack', { id: target.id, weapon: 'railgun' })).ok,
         true,
       );
       assert.ok(target.hp < hp);
       await act(game, a, 'stopAttack');
-      game.tick(0.9);
+      game.tick(ITEM_STATS.railgun.interval + 0.05);
     }
   } finally {
     await game.close();
@@ -89,7 +90,7 @@ test('PvP applies the attacker’s current saved inebriation to automatic combat
     assert.equal(b.p.hp, 30);
     assert.equal(requiredFixture(a.messages.filter((m) => m.type === 'pvpHit').at(-1)).damage, 0);
     await sober(game, a);
-    advance(900);
+    advance((ITEM_STATS.railgun.interval + 0.05) * 1000);
     game.tick();
     assert.ok(b.p.hp < 30);
     assert.ok(requiredFixture(a.messages.filter((m) => m.type === 'pvpHit').at(-1)).damage > 0);

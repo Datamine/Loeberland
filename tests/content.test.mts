@@ -126,7 +126,7 @@ test('Ahab reads the Character weapon and authoritative raptor progress for the 
   assert.match(read('railgun').intro || '', /I see your railgun.*Defeat the raptor first/);
   state.quests.expeditions.raptorDefeated = true;
   state.quests.expeditions.equipped = false;
-  assert.match(read('unarmed').intro || '', /Equip a railgun under Character/);
+  assert.match(read('unarmed').intro || '', /You’ll need a railgun before we set sail\.$/);
   const ready = read('railgun');
   assert.match(ready.intro || '', /That railgun will do/);
   assert.equal(ready.choices?.[0].next?.choices?.[0].actionId, 'jurassic.ahabDialogue.action-58');

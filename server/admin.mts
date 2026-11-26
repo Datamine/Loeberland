@@ -52,7 +52,7 @@ function adminAuthorization(username: string | undefined, password: string | und
     /[\x00-\x1f\x7f]/.test(password)
   ) {
     throw Error(
-      'Set ADMIN_USERNAME and ADMIN_PASSWORD in server/.env (or ADMIN_ENV_FILE) before starting the admin panel. The username cannot contain a colon.',
+      'Set ADMIN_USERNAME and ADMIN_PASSWORD in deploy/.env.local-admin, in ADMIN_ENV_FILE, or in the process environment. The username cannot contain a colon.',
     );
   }
   const digest = (value: BinaryLike | Buffer<ArrayBuffer>) =>
@@ -635,15 +635,11 @@ export async function startAdmin({
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   if (process.argv.includes('--help')) {
     console.log(
-      'Usage: node server/admin.mjs [--check-auth]\n\nLoads server/.env automatically; ADMIN_ENV_FILE selects another env file.\nADMIN_USERNAME and ADMIN_PASSWORD are required for HTTP Basic Auth.\nADMIN_READ_ONLY=1 allows safe access while the game runs. Set ADMIN_QUEUE_EDITS=1 on both the game and editor to enable live Redis saves in this mode.\nFor offline editing, stop the game before saving.\nSTATE_FILE selects an existing SQLite database (default: server/data/world.sqlite).\nREDIS_URL selects Redis instead. ADMIN_PORT defaults to 8788.\nADMIN_HOST defaults to 127.0.0.1; use 0.0.0.0 inside a container with a loopback-only published port.',
+      'Usage: node server/admin.mjs [--check-auth]\n\nADMIN_ENV_FILE selects a credentials file. The local npm launcher defaults to deploy/.env.local-admin.\nADMIN_USERNAME and ADMIN_PASSWORD are required for HTTP Basic Auth.\nADMIN_READ_ONLY=1 allows safe access while the game runs. Set ADMIN_QUEUE_EDITS=1 on both the game and editor to enable live Redis saves in this mode.\nFor offline editing, stop the game before saving.\nSTATE_FILE selects an existing SQLite database (default: server/data/world.sqlite).\nREDIS_URL selects Redis instead. ADMIN_PORT defaults to 8788.\nADMIN_HOST defaults to 127.0.0.1; use 0.0.0.0 inside a container with a loopback-only published port.',
     );
   } else {
     try {
-      try {
-        process.loadEnvFile(process.env.ADMIN_ENV_FILE || new URL('.env', import.meta.url));
-      } catch (error) {
-        if (!isRecord(error) || error.code !== 'ENOENT' || process.env.ADMIN_ENV_FILE) throw error;
-      }
+      if (process.env.ADMIN_ENV_FILE) process.loadEnvFile(process.env.ADMIN_ENV_FILE);
       if (process.argv.includes('--check-auth')) {
         adminAuthorization(process.env.ADMIN_USERNAME, process.env.ADMIN_PASSWORD);
         console.log('Admin authentication is configured.');

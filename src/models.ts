@@ -8,6 +8,10 @@ import { drawBicycle } from './bicycle-model.ts';
 import { drawNeighborhoodTree } from './neighborhood-tree.ts';
 import { inSearchHousePlot } from './southern-layout.ts';
 import { drawSearchHouseInterior } from './search-house-models.ts';
+import { RICK_HOUSE } from './config/rick.ts';
+import { drawRickEntrance, drawRickInterior, drawRickRoof, rickWindow } from './rick-house.ts';
+import { DEFENSE_WORKSHOP } from './config/defense-workshop.ts';
+import { drawDefenseWorkshop } from './defense-workshop.ts';
 import { drawPiercedWall } from './wall-openings.ts';
 import { drawAILabInterior } from './ai-lab.ts';
 import {
@@ -21,6 +25,7 @@ import { createRestaurantPatio } from './restaurants.ts';
 import { createHousing } from './housing.ts';
 import { drawFacadeWindow } from './windows.ts';
 import { CITY_HALL, drawCityHall } from './city-hall.ts';
+import { drawConservatory, drawDeYoungMuseum } from './golden-gate-park-landmarks.ts';
 import { drawBrickOfficeTower } from './offices.ts';
 import { drawCommercialRoof } from './rooftops.ts';
 import { drawCharacter } from './characters.ts';
@@ -165,6 +170,14 @@ export function createModels({
   function furniture(m: Mesh, b: BuildingDefinition, base: number) {
     const { x, y: z, w, d, id } = b;
     const residents: ResidentFixture[] = [];
+    if (id === RICK_HOUSE.id) {
+      drawRickInterior(m, b, base);
+      return residents;
+    }
+    if (id === DEFENSE_WORKSHOP.id) {
+      drawDefenseWorkshop(m, b, base);
+      return residents;
+    }
     if (b.searchDefinition) {
       drawSearchHouseInterior(m, b, base);
       return residents;
@@ -353,8 +366,10 @@ export function createModels({
                     : style === 'barracks'
                       ? 'presidio'
                       : 'shop');
-    const bodyMaterial =
-      arch === 'warehouse'
+    const rickHouse = b.id === RICK_HOUSE.id;
+    const bodyMaterial = rickHouse
+      ? 'granite'
+      : arch === 'warehouse'
         ? 'brick'
         : arch === 'office' || arch === 'civic' || arch === 'beauxarts'
           ? 'stone'
@@ -373,7 +388,16 @@ export function createModels({
       doorWidth = b.inside ? 1 : Math.min(0.48, w * 0.42),
       trim = b.trim || '#e4d8bf';
     const foot = Math.min(...corners) - 0.19;
-    m.box(x - 0.055, foot, z - 0.055, w + 0.11, base - foot + 0.03, d + 0.11, '#a8a38e', 'stone');
+    m.box(
+      x - 0.055,
+      foot,
+      z - 0.055,
+      w + 0.11,
+      base - foot + 0.03,
+      d + 0.11,
+      rickHouse ? '#444d54' : '#a8a38e',
+      rickHouse ? bodyMaterial : 'stone',
+    );
     const residents = enterable ? furniture(m, b, base + 0.025) : [];
     if (enterable) {
       for (const [wx, wz, ww, dd] of [
@@ -383,7 +407,7 @@ export function createModels({
         [x, z + d - 0.1, door - x, 0.1],
         [door + 1, z + d - 0.1, x + w - door - 1, 0.1],
       ])
-        if (ww > 0) m.box(wx, base, wz, ww, 0.31, dd, color);
+        if (ww > 0) m.box(wx, base, wz, ww, 0.31, dd, color, rickHouse ? bodyMaterial : null);
     }
     const permanent = { start: start / 11, count: (m.data.length - start) / 11 },
       walls: WallSection[] = [];
@@ -400,7 +424,12 @@ export function createModels({
         windowSpecs = [];
       const floors = arch === 'office' ? Math.max(2, Math.floor(H / 0.7)) : H > 2.45 ? 2 : 1,
         spacing = arch === 'office' ? 0.7 : 1.05;
-      for (let floor = 0; floor < floors; floor++) {
+      if (rickHouse) {
+        const pane = rickWindow(side, { isX, plane, along, span, far, base });
+        windowSpecs.push(pane);
+        openings.push({ x: pane.along, y: pane.y, w: pane.w, h: pane.h });
+      }
+      for (let floor = 0; !rickHouse && floor < floors; floor++) {
         const count = Math.max(1, Math.floor((span - 0.12) / 0.68)),
           ww = Math.min(0.39, ((span - 0.22) / count) * 0.65),
           gap = span / count;
@@ -458,7 +487,8 @@ export function createModels({
             trim,
             far,
           );
-      facadeBox(m, isX, plane, along - 0.04, base + H - 0.12, span + 0.08, 0.1, 0.09, trim, far);
+      if (!rickHouse)
+        facadeBox(m, isX, plane, along - 0.04, base + H - 0.12, span + 0.08, 0.1, 0.09, trim, far);
       if (arch === 'victorian' || arch === 'beauxarts' || arch === 'civic')
         for (let i = 0.13; i < span - 0.05; i += 0.33)
           facadeBox(m, isX, plane, along + i, base + H - 0.26, 0.055, 0.14, 0.075, trim, far);
@@ -477,7 +507,8 @@ export function createModels({
               tint(trim, -8),
               far,
             );
-      if (side === 1) {
+      if (rickHouse && side === 1) drawRickEntrance(m, b, base, door);
+      if (!rickHouse && side === 1) {
         if (b.id === 'freemasons-guild') drawGuildEmblem(m, b, base, H);
         for (const xx of [door - 0.055, door + doorWidth])
           m.box(xx, base, z + d + 0.008, 0.055, 1.73, 0.065, trim);
@@ -526,7 +557,7 @@ export function createModels({
             b.signText || b.name,
           );
       }
-      if (b.name && side === 3)
+      if (!rickHouse && b.name && side === 3)
         sign(
           m,
           x + w + 0.105,
@@ -567,8 +598,9 @@ export function createModels({
               ? '#82928e'
               : '#82796b'),
       rise = roof === 'gable' ? 0.65 : roof === 'hip' ? 0.4 : 0.18;
-    m.box(x - 0.065, base + H, z - 0.065, w + 0.13, 0.09, d + 0.13, trim);
-    if (roof === 'flat') {
+    if (!rickHouse) m.box(x - 0.065, base + H, z - 0.065, w + 0.13, 0.09, d + 0.13, trim);
+    if (rickHouse) drawRickRoof(m, b, base + H);
+    else if (roof === 'flat') {
       if (w >= 1.6 && d >= 0.9)
         roofDetails = drawCommercialRoof(m, {
           x: x + 0.015,
@@ -654,7 +686,7 @@ export function createModels({
       m.tri(c, top, e, roofColor);
       m.tri(e, top, a, tint(roofColor, 8));
     }
-    if (!roofDetails) {
+    if (!rickHouse && !roofDetails) {
       m.box(x + w * 0.2, base + H + 0.06, z + d * 0.22, 0.14, 0.48, 0.18, '#9f8a70');
       m.box(
         x + w * 0.2 - 0.025,
@@ -1292,28 +1324,7 @@ export function createModels({
       2,
       1,
       3.7,
-      (m, h) => {
-        m.box(26, h, 29, 2, 0.7, 1, '#866544');
-        m.box(26.85, h + 0.7, 29.15, 0.55, 1.9, 0.55, '#936b45');
-        const bottom = [
-            [26.82, h + 2.6, 29.12] satisfies [number, number, number],
-            [27.43, h + 2.6, 29.12] satisfies [number, number, number],
-            [27.43, h + 2.6, 29.73] satisfies [number, number, number],
-            [26.82, h + 2.6, 29.73] satisfies [number, number, number],
-          ],
-          top = bottom.map((p) => {
-            const dx = p[0] - 27.125,
-              dz = p[2] - 29.425;
-            return [27.125 + (dx - dz) * 1.3, h + 3.35, 29.425 + (dx + dz) * 1.3] satisfies [
-              number,
-              number,
-              number,
-            ];
-          });
-        for (let i = 0; i < 4; i++)
-          m.quad(bottom[i], bottom[(i + 1) % 4], top[(i + 1) % 4], top[i], '#aa8253');
-        m.quad(top[0], top[1], top[2], top[3], '#b08d5c');
-      },
+      (m, h) => drawDeYoungMuseum(m, signs, 27, h, 29.5),
       true,
     );
     addScenery(
@@ -1351,21 +1362,7 @@ export function createModels({
       2,
       1,
       1.9,
-      (m, h) => {
-        m.box(30, h, 29, 2, 0.55, 0.9, '#a3bdb0');
-        gable(m, 30, h + 0.55, 29, 2, 0.9, 0.4, '#c3d5bf');
-        m.cylinder(31, h + 0.5, 29.45, 0.35, 0.65, '#aec9b8', 8);
-        m.sphere(31, h + 1.15, 29.45, 0.35, 0.32, 0.35, '#d9e4cd', 8, 4);
-        for (let i = 0; i < 9; i++)
-          m.rod(
-            [30 + i * 0.25, h, 29.915] satisfies [number, number, number],
-            [30 + i * 0.25, h + 0.55, 29.915] satisfies [number, number, number],
-            0.018,
-            '#f2ecd2',
-            4,
-          );
-        m.cylinder(31, h + 1.45, 29.45, 0.03, 0.15, '#f4edd5', 5);
-      },
+      (m, h) => drawConservatory(m, signs, 31, h, 29.5),
       true,
     );
     addScenery(
@@ -1594,59 +1591,6 @@ export function createModels({
         }
         for (const h of [4.25, 5.4, 6.1] satisfies [number, number, number])
           m.box(18.12, h, z - 0.12, 1.36, 0.14, 0.24, '#c1714d');
-      }
-    });
-    addScenery('deyoung', 26, 29, 2, 1, 3.7, (m, h) => {
-      for (let row = 0; row < 5; row++)
-        for (let i = 0; i < 18; i++)
-          m.box(26.06 + i * 0.104, h + 0.08 + row * 0.115, 30.013, 0.025, 0.035, 0.012, '#5c513c');
-      for (let i = 0; i < 8; i++)
-        m.rod(
-          [26.845, h + 0.8 + i * 0.22, 29.145] satisfies [number, number, number],
-          [27.41, h + 0.8 + i * 0.22, 29.145] satisfies [number, number, number],
-          0.009,
-          '#b39566',
-          4,
-        );
-      for (const x of [26.85, 27.4] satisfies [number, number])
-        for (let i = 0; i < 5; i++)
-          m.box(x, h + 2.3, 29.18 + i * 0.1, 0.012, 0.23, 0.06, '#4d6e6d');
-    });
-    addScenery('conservatory', 30, 29, 2, 1, 1.9, (m, h) => {
-      for (let i = 0; i < 12; i++) {
-        const a = (i * Math.PI) / 6;
-        for (let j = 0; j < 5; j++) {
-          const t = ((j / 5) * Math.PI) / 2,
-            u = (((j + 1) / 5) * Math.PI) / 2,
-            p = [
-              31 + Math.cos(a) * Math.cos(t) * 0.355,
-              h + 1.15 + Math.sin(t) * 0.33,
-              29.45 + Math.sin(a) * Math.cos(t) * 0.355,
-            ] satisfies [number, number, number],
-            q = [
-              31 + Math.cos(a) * Math.cos(u) * 0.355,
-              h + 1.15 + Math.sin(u) * 0.33,
-              29.45 + Math.sin(a) * Math.cos(u) * 0.355,
-            ] satisfies [number, number, number];
-          m.rod(p, q, 0.012, '#f2efdc', 4);
-        }
-      }
-      for (let i = 0; i < 12; i++) {
-        const x = 30.08 + i * 0.167;
-        m.rod(
-          [x, h + 0.07, 29.925] satisfies [number, number, number],
-          [x, h + 0.55, 29.925] satisfies [number, number, number],
-          0.012,
-          '#f5f0d9',
-          4,
-        );
-        m.rod(
-          [x, h + 0.55, 29.925] satisfies [number, number, number],
-          [x, h + 0.95 * (1 - Math.abs(x - 31) * 0.35), 29.45] satisfies [number, number, number],
-          0.012,
-          '#e8edd6',
-          4,
-        );
       }
     });
     addScenery('windmill', 11, 29, 1, 1, 3.5, (m, h) => {

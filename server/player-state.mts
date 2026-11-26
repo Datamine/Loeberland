@@ -1,3 +1,30 @@
+import { FORMALWEAR_EXPERT, FORMALWEAR_ITEMS } from '../src/config/formalwear.ts';
+import { FANCY_DRESS, FANCY_DRESS_ITEMS } from '../src/config/fancy-dress.ts';
+import { RICK, TECHWEAR_ITEMS } from '../src/config/rick.ts';
+import { SCOOTER_MANUFACTURER } from '../src/config/scooter.ts';
+import { PYROMANIAC_PETER } from '../src/config/fireworks.ts';
+import { upgradedWeaponId } from '../src/config/weapon-upgrades.ts';
+import { HIKING_BACKPACK, UPGRADED_HIKING_BACKPACK } from '../src/config/hiking-backpack.ts';
+import { LEATHER_JACKET } from '../src/config/leather-jacket.ts';
+import { TOMMY } from '../src/config/tommy.ts';
+import { SHOT_BODY_HEIGHT } from '../src/ranged-weapon-mounts.ts';
+import {
+  LIGHTSABER_COLORS,
+  LIGHTSABER_COLOR_PRICE,
+  LIGHTSABER_HITS,
+  LIGHT_CRYSTAL,
+  LIGHTSABER_SCIENTIST,
+  LIGHTSABER_STEPS,
+  lightsaberColor,
+} from '../src/config/lightsaber.ts';
+import { DEFENSE_ARMOR_STOCK, DEFENSE_WORKSHOP, DEFENSE_ARMOR_RECIPES } from '../src/config/defense-workshop.ts';
+import { actorLevel } from '../src/levels.ts';
+import { clothingSelection } from '../src/clothing.ts';
+import { experimentAngle, SHRIMP_EXPERIMENT } from '../src/config/shrimp-experiment.ts';
+import { GOBLIN_CATAPULT } from '../src/config/goblin-catapult.ts';
+import { BERKELEY_FISHING } from '../src/config/berkeley-fishing.ts';
+import { WEDDING_ITEMS, WEDDING_PLANNER } from '../src/config/wedding-planner.ts';
+import { hatById } from '../src/hat-catalog.ts';
 import { TRAMPOLINE } from '../src/backyard-details.ts';
 import { contentText } from '../src/content-runtime.ts';
 import { BURNING_MAN, burningManStrawAt, type BurningManProgress } from '../src/burning-man.ts';
@@ -43,7 +70,8 @@ import {
 } from '../src/goblin-space-layout.ts';
 import { isTahoePelt, TAHOE_PELT_PRICES } from '../src/config/tahoe-pelts.ts';
 import { hasFighterYardPass } from './fighter-yard.mts';
-import { GAMEPLAY } from '../src/config/gameplay.ts';
+import { GAMEPLAY, NPC_HELP_DURATION_MS } from '../src/config/gameplay.ts';
+import { npcOffersAttack } from '../src/npc-interactions.ts';
 import { TRADE_PRICES } from '../src/config/economy.ts';
 import { COFFEE_STALL_VENDOR, HARDWARE_CLERK, RICH_TABLE_CHEF } from '../src/config/npcs.ts';
 import { createStrength } from '../src/strength.ts';
@@ -54,7 +82,7 @@ import { createInebriation } from '../src/inebriation.ts';
 import { createTechVentures } from '../src/tech-ventures.ts';
 import { createSocialBusiness } from '../src/sales-conference.ts';
 import { createAILabJob, createArithmeticInterview } from '../src/ai-lab.ts';
-import { createFishing } from '../src/fishing.ts';
+import { createFishing, isFishingSite } from '../src/fishing.ts';
 import { createDeli } from '../src/deli.ts';
 import { createAlienBattle } from '../src/combat.ts';
 import { createExpeditions } from '../src/jurassic.ts';
@@ -67,10 +95,15 @@ import { CAPTURE_DURATION } from '../src/capture-animation.ts';
 import {
   ITEM_STATS,
   IRON_ARMOR_PIECES,
+  TRIMMED_IRON_ARMOR,
+  trimmableIronArmor,
   equipmentOwned,
+  canUpgradeWeapon,
   ownsIronArmorPiece,
   ownedEquipmentDefense,
   recoilDamage,
+  goblinCharmEquipped,
+  invisibilityCloakEquipped,
   sandwichCapacity,
   weaponAttackInterval,
   weaponOwned,
@@ -78,6 +111,7 @@ import {
 } from '../src/item-stats.ts';
 import { nearbyServiceNPC, fuelCarInRange } from '../src/interaction-access.ts';
 import { NEIGHBORHOOD_SERVICES } from '../src/config/neighborhood-services.ts';
+import { ARMOR_TRIMMER, armorTrimmerDemand } from '../src/config/armor-trimmer.ts';
 import { scrambleAppearance } from '../src/rehabilitation.ts';
 import type { Actor } from '../src/types/world.ts';
 
@@ -104,6 +138,7 @@ export function createPlayerState({
   shared,
   players,
   send,
+  publishPlayerHit,
   dirty,
   now,
   random,
@@ -116,6 +151,7 @@ export function createPlayerState({
   | 'shared'
   | 'players'
   | 'send'
+  | 'publishPlayerHit'
   | 'dirty'
   | 'now'
   | 'random'
@@ -134,6 +170,7 @@ export function createPlayerState({
     !p.grappling &&
     !p.airship &&
     !p.tabletTeleport &&
+    !p.scientificExperiment &&
     p.mode !== 'roof' &&
     p.mode !== 'atv' &&
     !(
@@ -161,6 +198,14 @@ export function createPlayerState({
   }
   const byKind = (p: ServerPlayer, kind: string) =>
     npc(p, (n) => n.kind === kind || n.questRole === kind || n.id === kind);
+  function atFurnitureMaker(p: ServerPlayer) {
+    const maker = shared.wilderness.actors.find((actor) => actor.combatKind === 'goblin-maker');
+    return p.instance.kind === 'world' && !!maker?.hp && maker.enemy === null && near(p, maker);
+  }
+  const atDefenseManufacturer = (p: ServerPlayer) =>
+    p.instance.kind === 'world' &&
+    geometry.placeAt?.(p.x - 0.5, p.z - 0.5)?.id === DEFENSE_WORKSHOP.id &&
+    !!npc(p, (actor) => actor.id === DEFENSE_WORKSHOP.manufacturer.id);
   const defense = (p: ServerPlayer) =>
     ownedEquipmentDefense(p.inventory.economy.state, p.appearance);
   function runtime(p: ServerPlayer) {
@@ -196,6 +241,7 @@ export function createPlayerState({
           xp: p.hitpointsXP,
           source: 'creature',
         });
+        publishPlayerHit(p, damage);
         dirty(p);
         if (!p.hp) {
           p.respawnAllowed = true;
@@ -266,7 +312,6 @@ export function createPlayerState({
       }),
       origin = geometry.sights?.find((n) => n.id === 'lucindas-deli')?.entry || geometry.spawn;
     const deli = createDeli({
-      capacity: () => sandwichCapacity(economy.state),
       now,
       economy,
       health,
@@ -295,9 +340,12 @@ export function createPlayerState({
         return r;
       },
       food: (amount: number) => p.inventory.receive({ lootKind: 'sandwich', amount }),
+      receiveCrystal: () => p.inventory.receive({ lootKind: LIGHT_CRYSTAL, amount: 1 }),
       level: () => strength.status.level,
       defense: () => defense(p),
       reflect: (damage) => recoilDamage(p.inventory.economy.state, p.appearance, damage),
+      rerollMiss: () => goblinCharmEquipped(p.inventory.economy.state, p.appearance),
+      hiddenFromMonsters: () => invisibilityCloakEquipped(p.appearance),
       inebriation: () => inebriation.state.percent,
       sharedWorld: () => true,
       player: () => ({ x: p.x, z: p.z, base: p.y, eligible: p.hp > 0 && !p.respawnAllowed }),
@@ -316,8 +364,8 @@ export function createPlayerState({
             hp: event.hp,
             max: event.max,
             weapon: expeditions.state.weapon,
-            from: { x: p.x, y: p.y + 1.14, z: p.z },
-            to: { x: event.target.x, y: (event.target.base || 0) + 1, z: event.target.z },
+            from: event.from ?? { x: p.x, y: p.y + SHOT_BODY_HEIGHT, z: p.z },
+            to: event.to ?? { x: event.target.x, y: (event.target.base || 0) + 1, z: event.target.z },
           });
         } else if (event.message) send(p, { type: 'notice', message: event.message });
       },
@@ -355,7 +403,9 @@ export function createPlayerState({
       ) =>
         (geometry.marinLand?.contains(p.x, p.z)
           ? geometry.marinLand.nearest(x, y, r, test)
-          : geometry.nearestNavigation?.(x, y, r, test)) ||
+          : geometry.esotericCampus?.contains(p.x, p.z)
+            ? geometry.esotericCampus.nearest(x, y, r, test)
+            : geometry.nearestNavigation?.(x, y, r, test)) ||
         geometry.airship?.nearest(x, y, r, test) ||
         null,
       canCapture: (a: { x: number; y: number }, b: { x: number; y: number }) =>
@@ -476,10 +526,7 @@ export function createPlayerState({
           'world-message.server.player-state.wait-until-you-respawn-before-using-your-inventory',
         ),
       );
-    if (
-      !eligible(p) &&
-      !(['eat', 'equipPhone', 'chargeRailgun'] satisfies [string, string, string]).includes(op)
-    )
+    if (!eligible(p) && !['eat', 'equipPhone', 'chargeRailgun', 'chargeLightsaber'].includes(op))
       return deny(
         contentText(
           'world-message.server.player-state.visit-the-merchant-on-foot-to-make-that-purchase',
@@ -488,7 +535,9 @@ export function createPlayerState({
     const r = runtime(p);
     r.deli.state.sandwiches = p.inventory.meta.sandwiches;
     let result;
-    if (['buyAmmo', 'buyMissile', 'buyBattery', 'chargeRailgun', 'buyTinfoil'].includes(op)) {
+    if (
+      ['buyAmmo', 'buyMissile', 'buyBattery', 'chargeRailgun', 'chargeLightsaber', 'buyTinfoil'].includes(op)
+    ) {
       result = combatSupplyAction(
         p,
         op,
@@ -518,18 +567,25 @@ export function createPlayerState({
         return deny(
           contentText('world-message.server.player-state.visit-the-hiking-supplies-clerk'),
         );
-      if (p.inventory.economy.state.ownedEquipment.includes('backpack'))
+      if (equipmentOwned(p.inventory.economy.state, HIKING_BACKPACK))
         return deny(
           contentText('world-message.server.player-state.you-already-have-a-hiking-backpack'),
         );
       if (p.inventory.economy.state.coins < 100)
         return deny(contentText('world-message.server.player-state.you-need-100-coins'));
       p.inventory.economy.state.coins -= 100;
-      result = p.inventory.receive({ lootKind: 'equipment', itemId: 'backpack', amount: 1 });
+      result = p.inventory.receive({ lootKind: 'equipment', itemId: HIKING_BACKPACK, amount: 1 });
     } else if (op === 'buyHat') {
-      if (!byKind(p, 'haberdasher'))
+      const id = typeof args.id === 'string' ? args.id : '';
+      const hat = hatById(id);
+      const seller = hat && !hat.dropOnly ? hat.seller : undefined;
+      if (seller && !npc(p, (actor) => actor.id === seller || actor.neighborhoodService === seller))
+        return deny(
+          contentText('world-message.server.player-state.speak-to-the-appropriate-npc-nearby'),
+        );
+      if (!seller && !byKind(p, 'haberdasher'))
         return deny(contentText('world-message.server.player-state.visit-the-haberdasher'));
-      result = p.inventory.economy.buyHat(typeof args.id === 'string' ? args.id : '');
+      result = p.inventory.economy.buyHat(id);
     } else if (op === 'buyPhone') {
       if (!byKind(p, 'tim-apple'))
         return deny(contentText('world-message.server.player-state.visit-tim-apple'));
@@ -541,18 +597,89 @@ export function createPlayerState({
       result = r.tech.buyRobotaxi();
     } else if (op === 'trimArmor') {
       const count = p.inventory.meta.armorTrimmingKits || 0;
-      const owned = p.inventory.economy.state.ownedEquipment;
-      const armor = owned.indexOf('iron-armor');
-      if (!count || armor < 0 || owned.includes('gold-trimmed-iron-armor'))
+      const purse = p.inventory.economy.state;
+      const piece = trimmableIronArmor(purse);
+      if (!count || !piece)
         return deny(contentText('world-message.iron-armor.trim-requirements'));
+      const trimmed = TRIMMED_IRON_ARMOR[piece];
+      const slot = piece === 'iron-armor' ? 'torso' : 'legs';
       p.inventory.meta.armorTrimmingKits = count - 1;
-      owned[armor] = 'gold-trimmed-iron-armor';
-      if (p.appearance.torso === 'iron-armor') {
-        p.appearance = { ...p.appearance, torso: 'gold-trimmed-iron-armor' };
+      purse.ownedEquipment[purse.ownedEquipment.indexOf(piece)] = trimmed;
+      if (p.appearance[slot] === piece) {
+        p.appearance = { ...p.appearance, [slot]: trimmed };
         p.profile.privateState['sf-character-v1'] = JSON.stringify(p.appearance);
         p.revision++;
       }
-      result = { ok: true, message: contentText('world-message.iron-armor.trimmed') };
+      result = {
+        ok: true,
+        message: contentText('world-message.iron-armor.trimmed'),
+      };
+    } else if (op === 'upgradeGoblinHelmet') {
+      const count = p.inventory.meta.goblinHelmetUpgradeKits || 0;
+      const hats = p.inventory.economy.state.ownedHats;
+      const helmet = hats.indexOf('goblin-helmet');
+      if (!count || helmet < 0 || hats.includes('upgraded-goblin-helmet'))
+        return deny(contentText('world-message.goblin-helmet.upgrade-requirements'));
+      p.inventory.meta.goblinHelmetUpgradeKits = count - 1;
+      hats[helmet] = 'upgraded-goblin-helmet';
+      if (p.appearance.hat === 'goblin-helmet') {
+        p.appearance = { ...p.appearance, hat: 'upgraded-goblin-helmet' };
+        p.profile.privateState['sf-character-v1'] = JSON.stringify(p.appearance);
+        p.revision++;
+      }
+      result = { ok: true, message: contentText('world-message.goblin-helmet.upgraded') };
+    } else if (op === 'upgradeBackpack') {
+      const count = p.inventory.meta.hikingBackpackUpgradeKits ?? 0;
+      const owned = p.inventory.economy.state.ownedEquipment;
+      const backpack = owned.indexOf(HIKING_BACKPACK);
+      if (!count || backpack < 0 || owned.includes(UPGRADED_HIKING_BACKPACK))
+        return deny('You need a Hiking Backpack and a Hiking Backpack Upgrade Kit.');
+      p.inventory.meta.hikingBackpackUpgradeKits = count - 1;
+      owned[backpack] = UPGRADED_HIKING_BACKPACK;
+      if (p.appearance.back === HIKING_BACKPACK) {
+        p.appearance = { ...p.appearance, back: UPGRADED_HIKING_BACKPACK };
+        p.profile.privateState['sf-character-v1'] = JSON.stringify(p.appearance);
+        p.revision++;
+      }
+      result = { ok: true, message: 'Your Upgraded Hiking Backpack holds 25 sandwiches.' };
+    } else if (op === 'upgradeWeapon') {
+      const { weapon } = args;
+      const upgraded = upgradedWeaponId(weapon);
+      const purse = p.inventory.economy.state;
+      const kits = p.inventory.meta.weaponUpgradeKits ?? 0;
+      if (!upgraded || typeof weapon !== 'string' || !canUpgradeWeapon(purse, weapon))
+        return deny('Choose a Railgun or Akimbo you own that has yet to be upgraded.');
+      if (!kits) return deny('You need a Weaponry upgrade kit.');
+      p.inventory.meta.weaponUpgradeKits = kits - 1;
+      purse.ownedEquipment[purse.ownedEquipment.indexOf(weapon)] = upgraded;
+      result = { ok: true, message: 'You fit the kit and now have an ' + ITEM_STATS[upgraded].name + '.' };
+    } else if (op === 'colorLightsaber') {
+      if (!atDefenseManufacturer(p))
+        return deny('Speak to the Defense Manufacturer in his workshop.');
+      const purse = p.inventory.economy.state;
+      if (!equipmentOwned(purse, 'lightsaber')) return deny('You don’t own a lightsaber.');
+      if (typeof args.color !== 'string' || !Object.hasOwn(LIGHTSABER_COLORS, args.color))
+        return deny('Choose a blade color from the manufacturer’s list.');
+      const color = lightsaberColor(args.color);
+      const quest = p.profile.playerState.quests.lightsaber;
+      if (quest.color === color) return deny('That’s already your blade color.');
+      if (purse.coins < LIGHTSABER_COLOR_PRICE)
+        return deny('You need 10,000 coins to change the blade color.');
+      purse.coins -= LIGHTSABER_COLOR_PRICE;
+      quest.color = color;
+      p.appearance = { ...p.appearance, lightsaberColor: color };
+      p.profile.privateState['sf-character-v1'] = JSON.stringify(p.appearance);
+      p.revision++;
+      result = {
+        ok: true,
+        appearance: p.appearance,
+        message: 'Your blade now glows ' + LIGHTSABER_COLORS[color].name.toLowerCase() + '.',
+      };
+    } else if (op === 'detonateFireworks') {
+      const count = p.inventory.meta.fireworks ?? 0;
+      if (count < 1) return deny('You are out of fireworks.');
+      p.inventory.meta.fireworks = count - 1;
+      result = { ok: true };
     } else if (op === 'fundBiomed') {
       const pitch = npc(p, (actor) => actor.id === 'biomed-entrepreneur');
       if (!pitch) return deny(contentText('world-message.biomed.nearby'));
@@ -571,13 +698,100 @@ export function createPlayerState({
         ),
       );
     if (result.ok) commit(p, r);
-    return { ...result, inventory: { ...p.inventory.snapshot(), hp: p.hp, max: p.max } };
+    return {
+      ...result,
+      inventory: { ...p.inventory.snapshot(), hp: p.hp, max: p.max, hitpointsXP: p.hitpointsXP },
+    };
   }
   function trade(p: ServerPlayer, kind: unknown) {
     if (typeof kind !== 'string')
       return deny(contentText('world-message.server.player-state.choose-a-trade-first'));
     const r = runtime(p),
       economy = p.inventory.economy;
+    if (kind === TOMMY.spoon) {
+      const tommy = p.instance.kind === 'world' && npc(p, (actor) => actor.id === TOMMY.id);
+      if (
+        !tommy ||
+        (geometry.canTravel &&
+          !geometry.canTravel(p.x - 0.5, p.z - 0.5, tommy.x - 0.5, tommy.z - 0.5, true))
+      )
+        return deny('Talk to Tommy to get a spoon.');
+      if (p.profile.collection.includes(TOMMY.spoon) || equipmentOwned(economy.state, TOMMY.spoon))
+        return deny('Tommy already gave you a spoon.');
+      economy.state.ownedEquipment.push(TOMMY.spoon);
+      return {
+        ok: true,
+        message: 'Ha-ha, sorry! Here, take a spoon. It helps you dig faster at Ocean Beach.',
+      };
+    }
+    if (kind === LEATHER_JACKET.item) {
+      const seller =
+        p.instance.kind === 'world' && npc(p, (actor) => actor.id === LEATHER_JACKET.seller);
+      if (
+        !seller ||
+        (geometry.canTravel &&
+          !geometry.canTravel(p.x - 0.5, p.z - 0.5, seller.x - 0.5, seller.z - 0.5, true))
+      )
+        return deny('Speak to the Leather Jacket Salesman outside the GPU Factory.');
+      if (equipmentOwned(economy.state, LEATHER_JACKET.item))
+        return deny('You already own the leather jacket.');
+      if (economy.state.sandDelivered < LEATHER_JACKET.sandRequired)
+        return deny(
+          `Deliver ${LEATHER_JACKET.sandRequired} sacks of sand to the GPU Factory first.`,
+        );
+      p.hitpointsXP = 0;
+      p.max = hitpointMaximum(0);
+      p.hp = Math.min(p.hp, p.max);
+      r.save('sf-hitpoints-v1')({ hp: p.hp, max: p.max, xp: p.hitpointsXP });
+      economy.state.ownedEquipment.push(LEATHER_JACKET.item);
+      return {
+        ok: true,
+        message: `Your Hitpoints are back at level 1. One thing I didn’t tell you: this jacket boosts your coin earnings by ${LEATHER_JACKET.bonusPercent}% while you wear it, and it stacks with your iPhone. Put it on in Character.`,
+      };
+    }
+    const armorRecipe = DEFENSE_ARMOR_RECIPES.find(({ item }) => item === kind);
+    if (isOneOf(DEFENSE_ARMOR_STOCK, kind) || armorRecipe) {
+      if (!atDefenseManufacturer(p))
+        return deny(contentText('world-message.defense-workshop.visit'));
+      if (!armorRecipe) return economy.buyEquipment(kind);
+      const { item, slot, ingredients, coins, sand, peptides } = armorRecipe;
+      const name = ITEM_STATS[item].name;
+      const purse = economy.state;
+      const ledger = p.inventory.meta;
+      if (purse.ownedEquipment.includes(item))
+        return deny(contentText('world-message.defense-workshop.already-upgraded', { name }));
+      if (
+        !ingredients.every((part) => purse.ownedEquipment.includes(part)) ||
+        purse.coins < coins ||
+        purse.sand < sand ||
+        ledger.peptides < peptides
+      )
+        return deny(
+          contentText('world-message.defense-workshop.materials', {
+            coins: coins.toLocaleString('en-US'),
+            sand,
+            peptides,
+            base: ITEM_STATS[ingredients[0]].name,
+            ice: ITEM_STATS[ingredients[1]].name,
+          }),
+        );
+      purse.coins -= coins;
+      purse.sand -= sand;
+      ledger.peptides -= peptides;
+      purse.ownedEquipment = purse.ownedEquipment.filter(
+        (id) => !ingredients.some((part) => part === id),
+      );
+      purse.ownedEquipment.push(item);
+      const result = { ok: true, message: contentText('world-message.defense-workshop.upgraded', { name }) };
+      if (!ingredients.some((part) => part === p.appearance[slot])) return result;
+      p.appearance = {
+        ...p.appearance,
+        ...clothingSelection({ ...p.appearance, [slot]: item }),
+      };
+      p.profile.privateState['sf-character-v1'] = JSON.stringify(p.appearance);
+      p.revision++;
+      return { ...result, appearance: p.appearance };
+    }
     if (isOneOf(IRON_ARMOR_PIECES, kind)) {
       if (!npc(p, (actor) => actor.id === 'enterprising-industrialist'))
         return deny(contentText('world-message.iron-armor.visit'));
@@ -599,11 +813,14 @@ export function createPlayerState({
       const count = p.inventory.meta.uni ?? 0;
       const price = TRADE_PRICES.uni;
       if (count < 1) return deny(contentText('world-message.uni.none', { price }));
-      if (!Number.isSafeInteger(economy.state.coins + price))
+      const payment = economy.credit(price);
+      if (!payment.ok)
         return deny(contentText('world-message.server.inventory.your-coin-purse-is-full'));
       p.inventory.meta.uni = count - 1;
-      economy.state.coins += price;
-      return { ok: true, message: contentText('world-message.uni.sold', { price }) };
+      return {
+        ok: true,
+        message: contentText('world-message.uni.sold', { price: payment.earned! }),
+      };
     }
     if (kind === 'fighter-yard-admission') {
       if (!npc(p, (actor) => actor.id === FIGHTER_YARD.tyler.id))
@@ -639,13 +856,13 @@ export function createPlayerState({
       const purse = economy.state;
       const index = purse.ownedEquipment.indexOf('goblin-phone');
       if (index < 0) return deny(contentText('world-message.goblin-phone.no-phone'));
-      if (!Number.isSafeInteger(purse.coins + GOBLIN_PHONE_RESALE))
+      const payment = economy.credit(GOBLIN_PHONE_RESALE);
+      if (!payment.ok)
         return deny(contentText('world-message.server.player-state.your-coin-purse-is-full'));
       purse.ownedEquipment.splice(index, 1);
-      purse.coins += GOBLIN_PHONE_RESALE;
       return {
         ok: true,
-        message: contentText('world-message.goblin-phone.sold', { price: GOBLIN_PHONE_RESALE }),
+        message: contentText('world-message.goblin-phone.sold', { price: payment.earned! }),
       };
     }
     const pelt = kind.slice(5);
@@ -658,15 +875,15 @@ export function createPlayerState({
       const count = pelts?.[pelt] || 0;
       if (!pelts || !count) return deny(contentText('world-message.tahoe-pelts.none'));
       const price = TAHOE_PELT_PRICES[pelt];
-      if (!Number.isSafeInteger(economy.state.coins + price))
+      const payment = economy.credit(price);
+      if (!payment.ok)
         return deny(contentText('world-message.server.player-state.your-coin-purse-is-full'));
       pelts[pelt] = count - 1;
-      economy.state.coins += price;
       return {
         ok: true,
         message: contentText('world-message.tahoe-pelts.sold', {
           pelt: ITEM_STATS[pelt].name.toLowerCase(),
-          price,
+          price: payment.earned!,
         }),
       };
     }
@@ -677,9 +894,52 @@ export function createPlayerState({
         );
       return economy.buyEquipment(kind);
     }
+    const apparelSeller = WEDDING_ITEMS.some((id) => id === kind)
+      ? WEDDING_PLANNER
+      : FORMALWEAR_ITEMS.some((id) => id === kind)
+        ? FORMALWEAR_EXPERT.id
+        : TECHWEAR_ITEMS.some((id) => id === kind)
+          ? RICK.id
+          : null;
+    if (apparelSeller) {
+      const seller = npc(p, (actor) => actor.id === apparelSeller);
+      if (
+        !seller ||
+        (seller.interior &&
+          geometry.placeAt &&
+          geometry.placeAt(p.x - 0.5, p.z - 0.5)?.id !== seller.interior.id)
+      )
+        return deny(
+          contentText('world-message.server.player-state.speak-to-the-appropriate-npc-nearby'),
+        );
+      return economy.buyEquipment(kind);
+    }
     if (kind === 'rolling-pin') {
       if (!npc(p, (actor) => actor.id === 'cotogna-chef'))
         return deny(contentText('world-message.server.player-state.visit-the-cotogna-counter'));
+      return economy.buyEquipment(kind);
+    }
+    if (kind === 'combat-lamp') {
+      if (!atFurnitureMaker(p))
+        return deny(
+          contentText(
+            'world-message.server.player-state.visit-the-furniture-maker-at-the-goblin-furniture-factory-when',
+          ),
+        );
+      return economy.buyEquipment(kind);
+    }
+    if (kind === 'albatross') {
+      if (p.instance.kind !== 'world' || !npc(p, (actor) => actor.id === BERKELEY_FISHING.vendor))
+        return deny(
+          contentText('world-message.server.player-state.speak-to-the-appropriate-npc-nearby'),
+        );
+      return economy.buyEquipment(kind);
+    }
+    if (FANCY_DRESS_ITEMS.some((id) => id === kind)) {
+      if (p.instance.kind !== 'world' || !npc(p, (actor) => actor.id === FANCY_DRESS.id))
+        return deny(
+          contentText('world-message.server.player-state.speak-to-the-appropriate-npc-nearby'),
+        );
       return economy.buyEquipment(kind);
     }
     if (kind === 'crowbar') {
@@ -688,6 +948,25 @@ export function createPlayerState({
           contentText('world-message.server.player-state.speak-to-the-appropriate-npc-nearby'),
         );
       return economy.buyEquipment(kind);
+    }
+    if (kind === 'scooter') {
+      if (p.instance.kind !== 'world' || !byKind(p, SCOOTER_MANUFACTURER.id))
+        return deny(
+          contentText('world-message.server.player-state.speak-to-the-appropriate-npc-nearby'),
+        );
+      const result = economy.buyEquipment(kind);
+      return result.ok
+        ? { ...result, message: 'You buy a scooter. Use the Scooter button to ride it.' }
+        : result;
+    }
+    if (kind === 'fireworks') {
+      if (p.instance.kind !== 'world' || !byKind(p, PYROMANIAC_PETER.id))
+        return deny('Visit Pyromaniac Peter by the dynamite depot to buy fireworks.');
+      const { price } = ITEM_STATS.fireworks;
+      if (economy.state.coins < price) return deny('You need ' + price + ' coins.');
+      economy.state.coins -= price;
+      p.inventory.meta.fireworks = (p.inventory.meta.fireworks ?? 0) + 1;
+      return { ok: true, message: 'You buy a set of fireworks.' };
     }
     const merchants: Record<string, string> = {
       equity: 'founder',
@@ -771,8 +1050,9 @@ export function createPlayerState({
         return deny(
           contentText('world-message.server.player-state.finish-filling-your-sack-first'),
         );
-      p.nextSandAt = now() + GAMEPLAY.sandCollectSeconds * 1000;
-      return economy.trade(kind);
+      const result = economy.trade(kind);
+      if (result.ok) p.nextSandAt = now() + GAMEPLAY.sandCollectSeconds * 1000;
+      return result;
     }
     if (kind === 'feed') {
       if (!geometry.sights?.some((n) => n.kind === 'ducks' && near(p, n, 5)))
@@ -932,6 +1212,186 @@ export function createPlayerState({
     saveBurningMan(p, { stage: 'burned', burnAt: now() });
     return true;
   }
+  function atShrimpScientist(p: ServerPlayer) {
+    return p.instance.kind === 'world' && p.mode === 'walk' && !p.detainAt
+      ? nearbyServiceNPC(geometry, p, (actor) => actor.id === SHRIMP_EXPERIMENT.scientist, {
+          height: 0.6,
+        })
+      : null;
+  }
+  function startCatapultExperiment(p: ServerPlayer) {
+    const { id, scientist, landing, reward, releaseSeconds, resetSeconds, mode } = GOBLIN_CATAPULT;
+    const campus = geometry.esotericCampus;
+    const rig = geometry.sights?.find((site) => site.id === id)?.seat;
+    const host = nearbyServiceNPC(geometry, p, (actor) => actor.id === scientist.id, {
+      height: 0.65,
+    });
+    if (
+      !host ||
+      !rig ||
+      !campus ||
+      p.instance.kind !== 'world' ||
+      p.mode !== 'walk' ||
+      p.detainAt ||
+      !geometry.canTravel?.(p.x - 0.5, p.z - 0.5, host.x - 0.5, host.z - 0.5, true)
+    )
+      return deny(contentText('world-message.goblin-catapult.visit'));
+    const arrival = campus.point(landing.u, landing.v);
+    if (!geometry.landClearAt(arrival.x - 0.5, arrival.z - 0.5))
+      return deny(contentText('world-message.goblin-catapult.unavailable'));
+    if (
+      [...players.values()].some((player) => {
+        const flight = player.depotLaunch;
+        return flight?.catapult && flight.elapsed < releaseSeconds + resetSeconds;
+      })
+    )
+      return deny(contentText('world-message.goblin-catapult.busy'));
+    const purse = p.inventory.economy.state;
+    if (!Number.isSafeInteger(purse.fish + reward))
+      return deny(contentText('world-message.goblin-catapult.fish-full'));
+    const catapult = {
+      rig,
+      from: { x: p.x, y: p.y, z: p.z },
+      landing: { ...arrival, y: geometry.characterGround(arrival.x, arrival.z) },
+    };
+    movement.stop(p);
+    Object.assign(p, {
+      phase: 0,
+      mode,
+      attack: null,
+      personalBattle: null,
+      talkingTo: undefined,
+      gesture: '',
+      gestureUntil: 0,
+      depotLaunch: { base: rig.base, elapsed: 0, catapult },
+    });
+    purse.fish += reward;
+    return {
+      ok: true,
+      message: contentText('world-message.goblin-catapult.paid', { reward }),
+      inventory: p.inventory.snapshot(),
+    };
+  }
+  function startScientificExperiment(p: ServerPlayer, r: PlayerRuntime) {
+    const scientist = atShrimpScientist(p);
+    const seat = geometry.sights?.find((site) => site.id === SHRIMP_EXPERIMENT.id)?.seat;
+    if (!scientist?.approach || !seat)
+      return deny('Speak to the scientist east of the Berkeley institute.');
+    if ((p.profile.playerState.progress.scientificExperiments ?? 0) >= SHRIMP_EXPERIMENT.limit)
+      return deny('You’ve already completed all ten experiments.');
+    if (Math.ceil(r.inebriation.state.percent) >= 100)
+      return deny('You’re 100% inebriated. Come back after you’ve sobered up a little.');
+    if ([...players.values()].some((rider) => rider.scientificExperiment))
+      return deny('The experiment is in progress. Wait for the wheel to stop.');
+    if (!Number.isSafeInteger(p.inventory.economy.state.coins + SHRIMP_EXPERIMENT.reward))
+      return deny(contentText('world-message.server.player-state.your-coin-purse-is-full'));
+    const x = scientist.approach.x + 0.5;
+    const z = scientist.approach.y + 0.5;
+    movement.stop(p);
+    Object.assign(p, {
+      x: seat.x,
+      z: seat.z,
+      y: seat.base + seat.height,
+      angle: seat.angle + Math.PI / 2,
+      phase: 0,
+      mode: SHRIMP_EXPERIMENT.mode,
+      attack: null,
+      personalBattle: null,
+      talkingTo: undefined,
+      gesture: '',
+      gestureUntil: 0,
+      scientificExperiment: { startedAt: now(), exit: { x, z, y: geometry.characterGround(x, z) } },
+    });
+    return { ok: true };
+  }
+  function tickScientificExperiment(p: ServerPlayer, r: PlayerRuntime) {
+    const ride = p.scientificExperiment;
+    if (!ride) return;
+    const elapsed = now() - ride.startedAt;
+    const riding = p.mode === SHRIMP_EXPERIMENT.mode;
+    const safe =
+      riding && p.hp > 0 && !p.respawnAllowed && !p.detainAt && p.instance.kind === 'world';
+    if (safe && elapsed < SHRIMP_EXPERIMENT.durationMs) {
+      p.phase = experimentAngle(elapsed);
+      return;
+    }
+    p.scientificExperiment = undefined;
+    if (riding) Object.assign(p, ride.exit, { mode: 'walk', phase: 0, lastPoseAt: now() });
+    dirty(p);
+    if (!safe) return;
+    const payment = p.inventory.economy.credit(SHRIMP_EXPERIMENT.reward);
+    if (!payment.ok) {
+      send(p, {
+        type: 'notice',
+        message: contentText('world-message.server.player-state.your-coin-purse-is-full'),
+      });
+      return;
+    }
+    const progress = p.profile.playerState.progress;
+    const completed = (progress.scientificExperiments ?? 0) + 1;
+    progress.scientificExperiments = completed;
+    r.inebriation.set(r.inebriation.state.percent + SHRIMP_EXPERIMENT.inebriation);
+    send(p, {
+      type: 'notice',
+      message: `Experiment complete. You earn ${payment.earned} coins. Rides completed ${completed}/${SHRIMP_EXPERIMENT.limit}.`,
+    });
+  }
+  function donateToShrimpWelfare(p: ServerPlayer, r: PlayerRuntime, amount: unknown) {
+    if (!atShrimpScientist(p))
+      return deny('Speak to the scientist east of the Berkeley institute.');
+    if (typeof amount !== 'number' || !Number.isSafeInteger(amount) || amount < 1)
+      return deny('Enter a positive whole number of coins.');
+    const purse = p.inventory.economy.state;
+    if (purse.coins < amount) return deny('You don’t have that many coins.');
+    purse.coins -= amount;
+    commit(p, r);
+    return {
+      ok: true,
+      message: `Thank you for donating ${amount} ${amount === 1 ? 'coin' : 'coins'} to Shrimp Welfare.`,
+      inventory: p.inventory.snapshot(),
+    };
+  }
+  function advanceLightsaberQuest(p: ServerPlayer, r: PlayerRuntime, requestedStage: unknown) {
+    const quest = p.profile.playerState.quests.lightsaber;
+    if (p.instance.kind !== 'world' || requestedStage !== quest.stage || quest.stage === 'completed')
+      return deny('Follow your current objective in For Science.');
+    const step = LIGHTSABER_STEPS[quest.stage];
+    if (quest.stage === 'research') {
+      const scientist = shared.wilderness.actors.find((actor) => actor.id === LIGHTSABER_SCIENTIST);
+      if (
+        !scientist?.hp ||
+        !near(p, scientist) ||
+        !geometry.canTravel?.(
+          p.x - 0.5,
+          p.z - 0.5,
+          scientist.x - 0.5,
+          scientist.z - 0.5,
+          true,
+        )
+      )
+        return deny('Speak to the Mad Scientist at his house in Berkeley.');
+    } else if (
+      quest.stage === 'fabrication'
+        ? !atDefenseManufacturer(p)
+        : !npc(p, (actor) => actor.id === step.npc)
+    ) {
+      return deny(step.objective);
+    }
+    if (quest.stage === 'not-started' && !equipmentOwned(p.inventory.economy.state, 'railgun'))
+      return deny('Bring your railgun to the Industrialist.');
+    if (step.next === 'completed' && !equipmentOwned(p.inventory.economy.state, 'lightsaber')) {
+      const crystals = p.inventory.meta.lightCrystals ?? 0;
+      if (crystals < 1) return deny('Bring one Light crystal to the Defense Manufacturer.');
+      const award = p.inventory.receive({ lootKind: 'equipment', itemId: 'lightsaber', amount: 1 });
+      if (!award.ok) return award;
+      p.inventory.meta.lightCrystals = crystals - 1;
+      p.inventory.meta.lightsaberCharge = LIGHTSABER_HITS;
+    }
+    quest.stage = step.next;
+    commit(p, r);
+    return { ok: true, message: step.receipt, inventory: p.inventory.snapshot() };
+  }
+
   function action(p: ServerPlayer, args: Record<string, unknown> = {}) {
     const r = runtime(p),
       { verb } = args;
@@ -958,6 +1418,27 @@ export function createPlayerState({
       return deny(contentText('world-message.server.player-state.find-your-feet-first'));
     if (verb === 'stochasticParrot') return parrotQuest(p, r, args);
     if (verb === 'burningMan') return burningMan(p, args.step);
+    if (verb === 'lightsaberQuest') return advanceLightsaberQuest(p, r, args.stage);
+    if (verb === 'shrimpDonation') return donateToShrimpWelfare(p, r, args.amount);
+    if (verb === 'payArmorTrimmer') {
+      if (p.instance.kind !== 'world' || !byKind(p, ARMOR_TRIMMER.id))
+        return deny('Speak to the Armor Trimmer near the Cupertino gardens.');
+      const progress = p.profile.playerState.progress;
+      const payments = progress.armorTrimmerPayments ?? 0;
+      const demand = armorTrimmerDemand(payments);
+      if (demand === null || args.amount !== demand)
+        return deny('Ask the Armor Trimmer what you owe.');
+      const purse = p.inventory.economy.state;
+      if (purse.coins < demand) return deny('You don’t have that many coins.');
+      purse.coins -= demand;
+      progress.armorTrimmerPayments = payments + 1;
+      commit(p, r);
+      return {
+        ok: true,
+        message: `You hand the Armor Trimmer ${demand.toLocaleString('en-US')} coins.`,
+        inventory: p.inventory.snapshot(),
+      };
+    }
     if (verb === 'tradeMud') {
       if (
         p.instance.kind !== 'world' ||
@@ -1100,6 +1581,12 @@ export function createPlayerState({
           return deny(contentText('world-message.server.player-state.your-coin-purse-is-full'));
         (p.profile.laborReadyAt ??= {})[laborKey] = now() + (offer.cooldownMs || 0);
       }
+      if (offer.hat) {
+        const purchased = p.inventory.economy.buyHat(offer.hat);
+        if (!purchased.ok) return purchased;
+        commit(p, r);
+        return { ...purchased, message: offer.message, inventory: p.inventory.snapshot() };
+      }
       purse.coins -= offer.price || 0;
       if (offer.bouquet) purse.bouquets += offer.bouquet;
       if (offer.sandwich) p.inventory.meta.sandwiches += offer.sandwich;
@@ -1147,6 +1634,8 @@ export function createPlayerState({
       result = r.sunglasses.pickUp();
       if (result.ok) r.quests.theyLive.start();
     } else if (verb === 'claimFunding') result = r.strength.claim(p.inventory.economy);
+    else if (verb === 'scientificExperiment') result = startScientificExperiment(p, r);
+    else if (verb === GOBLIN_CATAPULT.verb) result = startCatapultExperiment(p);
     else if (verb === 'trampoline') {
       const { x, z, radius } = TRAMPOLINE;
       if (
@@ -1223,17 +1712,16 @@ export function createPlayerState({
       movement.leaveConstruction(p);
       result = { ok: true };
     } else if (verb === 'fish') {
-      if (
-        !geometry.fishingSite ||
-        !('water' in geometry.fishingSite) ||
-        !near(p, geometry.fishingSite, 2)
-      )
-        return deny(
-          contentText('world-message.server.player-state.walk-to-the-wharf-fishing-spot'),
-        );
+      const site =
+        args.id === undefined
+          ? geometry.fishingSite
+          : geometry.sights?.find((s) => s.id === args.id);
+      if (p.instance.kind !== 'world' || !isFishingSite(site) || !near(p, site, 2))
+        return deny(contentText('world-message.server.player-state.walk-to-a-fishing-spot'));
       movement.stop(p);
-      result = r.fishing.start(geometry.fishingSite);
+      result = r.fishing.start(site);
       if (result.ok) {
+        p.angle = Math.atan2(site.water.z - p.z, site.water.x - p.x);
         p.gesture = 'fish';
         p.gestureUntil = 0;
       }
@@ -1301,18 +1789,19 @@ export function createPlayerState({
         return deny(contentText('world-message.server.player-state.choose-a-chair'));
       const purse = p.inventory.economy.state;
       if (args.trade === 'buy') {
-        const maker = shared.wilderness.actors.find((actor) => actor.combatKind === 'goblin-maker');
-        if (!maker?.hp || maker.enemy !== null || !near(p, maker))
+        if (!atFurnitureMaker(p))
           return deny(
             contentText(
               'world-message.server.player-state.visit-the-furniture-maker-at-the-goblin-furniture-factory-when',
             ),
           );
         if (purse.coins < chair.buy)
-          return deny(contentText('world-message.furniture.price', {
-            name: chair.name,
-            price: chair.buy.toLocaleString('en-US'),
-          }));
+          return deny(
+            contentText('world-message.furniture.price', {
+              name: chair.name,
+              price: chair.buy.toLocaleString('en-US'),
+            }),
+          );
         if (purse.ownedEquipment.includes(chair.id))
           return deny(contentText('world-message.server.player-state.you-already-own-this-chair'));
         purse.coins -= chair.buy;
@@ -1338,16 +1827,14 @@ export function createPlayerState({
         const index = purse.ownedEquipment.indexOf(chair.id);
         if (index < 0)
           return deny(contentText('world-message.server.player-state.you-do-not-own-this-chair'));
-        if (!Number.isSafeInteger(purse.coins + price))
+        const payment = p.inventory.economy.credit(price);
+        if (!payment.ok)
           return deny(contentText('world-message.server.player-state.your-coin-purse-is-full'));
         purse.ownedEquipment.splice(index, 1);
         if (p.mode === 'sit' && chairForGesture(p.gesture) === chair) movement.wake(p);
-        purse.coins += price;
         result = {
           ok: true,
-          message: contentText('world-message.server.player-state.you-sell-the-for-220-coins', {
-            name: String(chair.name),
-          }),
+          message: `You sell the ${chair.name} for ${payment.earned} coins.`,
         };
       }
     } else if (verb === 'seizeBicycle') {
@@ -1373,6 +1860,7 @@ export function createPlayerState({
         return mounted;
       }
       rider.bicycleTakenUntil = now() + 60_000;
+      rider.helpUntil = now() + NPC_HELP_DURATION_MS;
       p.attack = null;
       p.personalBattle = null;
       r.battle = null;
@@ -1412,6 +1900,7 @@ export function createPlayerState({
             level: () => r.strength.status.level,
             defense: () => defense(p),
             reflect: (damage) => recoilDamage(p.inventory.economy.state, p.appearance, damage),
+            rerollMiss: () => goblinCharmEquipped(p.inventory.economy.state, p.appearance),
             bayonet: () => r.battle?.weapon === 'bayonet',
             beforePlayerHit: () => {
               const weapon = r.battle?.weapon || 'unarmed',
@@ -1434,6 +1923,8 @@ export function createPlayerState({
         p.personalBattle = true;
         result = { ok: true };
       } else {
+        if (p.instance.kind === 'world' && npcOffersAttack(target))
+          target.helpUntil = now() + NPC_HELP_DURATION_MS;
         r.police.start();
         result = {
           ok: true,
@@ -1449,7 +1940,11 @@ export function createPlayerState({
       );
     } else if (verb === 'collectPersonal') {
       const item = r.expeditions.state.loot.find((n) => n.id === args.id);
-      if (!item || Math.hypot(p.x - item.x, p.z - item.z) > 3)
+      if (
+        !item ||
+        (item.base === PEQUOD.deck && p.instance.kind !== 'kraken') ||
+        Math.hypot(p.x - item.x, p.z - item.z) > 3
+      )
         return deny(contentText('world-message.server.player-state.that-loot-is-not-nearby'));
       result = r.expeditions.collect(item);
     } else if (verb === 'returnShip') {
@@ -1477,7 +1972,9 @@ export function createPlayerState({
       commit(p, r);
       if (
         verb === 'tradeFactoryChair' ||
+        verb === 'collectPersonal' ||
         verb === 'bayonet' ||
+        verb === GOBLIN_CATAPULT.verb ||
         (verb === 'startRaptor' && 'inventory' in result)
       )
         return { ...result, inventory: p.inventory.snapshot() };
@@ -1497,6 +1994,7 @@ export function createPlayerState({
       krakenStarted: s.krakenStarted,
       krakenDefeated: s.krakenDefeated,
       krakenReward: s.krakenReward,
+      krakenCrystalPending: s.krakenCrystalPending,
     };
   }
   function interviewState(r: PlayerRuntime) {
@@ -1516,6 +2014,8 @@ export function createPlayerState({
         coins = p.inventory.economy.state.coins,
         fish = p.inventory.economy.state.fish,
         phone = p.inventory.economy.state.iphoneOwned;
+      const ridingExperiment = !!p.scientificExperiment;
+      if (ridingExperiment) tickScientificExperiment(p, r);
       r.deli.state.sandwiches = p.inventory.meta.sandwiches;
       const seat = p.seat;
       if (seat?.soakSeconds !== undefined) {
@@ -1553,9 +2053,7 @@ export function createPlayerState({
             dirty(p);
             send(p, { type: 'notice', message: contentText('world-message.gym.shift-ended') });
           }
-          const strengthLevel = r.strength.status.level;
-          updatePlayerLevel(p, strengthLevel);
-          if (strengthLevel === PROGRESSION.maxLevel) movement.leaveTraining(p);
+          updatePlayerLevel(p, r.strength.status.level);
         }
       }
       if (p.constructing) {
@@ -1612,12 +2110,18 @@ export function createPlayerState({
         p.seatedRecoverySeconds = Math.max(0, seconds - recovered * interval);
         if (recovered > 0 && p.hp < p.max) r.health.heal(recovered);
       } else if (p.seatedRecoverySeconds) p.seatedRecoverySeconds = 0;
-      r.social.update(dt, {
-        insideTwitter: geometry.instituteRoomAt?.(p.x, p.z)?.id === 'twitter-hq',
-        sitting,
-      });
+      if (!ridingExperiment)
+        r.social.update(dt, {
+          insideTwitter: geometry.instituteRoomAt?.(p.x, p.z)?.id === 'twitter-hq',
+          sitting,
+        });
       if (r.fishing.state.active) {
-        if (!eligible(p) || p.moving || !near(p, geometry.fishingSite, 2)) {
+        if (
+          p.instance.kind !== 'world' ||
+          !eligible(p) ||
+          p.moving ||
+          !near(p, r.fishing.state.site, 2)
+        ) {
           r.fishing.cancel();
           if (p.gesture === 'fish') p.gesture = '';
         } else {
@@ -1672,6 +2176,7 @@ export function createPlayerState({
             }
             if (event.type === 'victory') {
               const result = r.quests.theyLive.defeat(target.alienId, { revealed: true });
+              if (result.ok) shared.monsterDrops('alien', target, p.owner, actorLevel(target));
               send(p, { type: 'notice', message: result.message });
               r.battle = null;
               p.personalBattle = null;
@@ -1772,7 +2277,7 @@ export function createPlayerState({
     components,
     visiblePolice: (p: ServerPlayer) => {
       const state = runtimes.get(p.id)?.police.state;
-      return state?.wanted && !state.jailed ? state.officers : undefined;
+      return state?.wanted && !state.jailed ? state : undefined;
     },
     awardCombat,
     remove: (p: Pick<ServerPlayer, 'id'>) => {

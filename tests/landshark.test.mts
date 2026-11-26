@@ -12,7 +12,7 @@ import { getHatGeometry } from '../src/hat-models.ts';
 import { normalizeCharacter } from '../src/character-config.ts';
 
 const drops = (hat: number, peptide: number) => {
-  const rolls = [hat, peptide] satisfies [number, number];
+  const rolls = [hat, peptide, 0.5];
   return rollMonsterDrops('landshark', () => requiredFixture(rolls.shift()));
 };
 test('Landshark drops four coins with exact independent one-in-ten Stetson and peptide rolls', () => {
@@ -49,7 +49,7 @@ test('Landshark drops four coins with exact independent one-in-ten Stetson and p
   assert.equal(requiredFixture(hatById('stetson')).dropOnly, true);
   assert.equal(normalizeCharacter({ hat: 'stetson' }).hat, 'stetson');
 });
-test('the level-10 Landshark guards a three-by-three territory, respects obstacles and respawns', () => {
+test('the level-25 Landshark guards a three-by-three territory, respects obstacles and respawns', () => {
   const harm: number[] = [],
     loot: import('../src/types/monsters.ts').WildernessDrop[] = [],
     world = createWilderness({
@@ -60,8 +60,8 @@ test('the level-10 Landshark guards a three-by-three territory, respects obstacl
     }),
     actor = world.actors[0],
     person = { id: 1, x: 1.4, z: 1.4 };
-  assert.equal(actor.level, 10);
-  assert.equal(actor.hp, 50);
+  assert.equal(actor.level, 25);
+  assert.equal(actor.hp, 250);
   assert.ok(LANDSHARK_SITE.z > 43.5 && LANDSHARK_SITE.z < 96);
   assert.ok(LANDSHARK_SITE.x > westernCoastX(LANDSHARK_SITE.z));
   world.update(0.01, [{ id: 2, x: 1.51, z: 0 }]);
@@ -71,7 +71,7 @@ test('the level-10 Landshark guards a three-by-three territory, respects obstacl
   assert.ok(actor.x > 0);
   for (let i = 0; i < 80; i++) world.update(0.05, [person]);
   assert.ok(harm.length >= 2);
-  assert.ok(harm.every((n) => n === 6));
+  assert.ok(harm.every((n) => n === 22));
   person.x = 1.51;
   world.update(0.05, [person]);
   assert.equal(actor.enemy, 1);
@@ -79,9 +79,10 @@ test('the level-10 Landshark guards a three-by-three territory, respects obstacl
   assert.equal(actor.enemy, null);
   assert.ok(Math.max(Math.abs(actor.x), Math.abs(actor.z)) <= 1.5);
   assert.equal(world.damage(actor.id, 1000, person).ok, true);
-  assert.equal(loot.length, 3);
+  assert.equal(loot.length, 4);
+  assert.equal(loot.at(-1)?.lootKind, 'light-crystal');
   assert.equal(world.damage(actor.id, 1000, person).ok, false);
-  assert.equal(loot.length, 3);
+  assert.equal(loot.length, 4);
   world.update(9.9);
   assert.equal(actor.hp, 0);
   world.update(0.11);

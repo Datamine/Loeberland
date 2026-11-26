@@ -21,10 +21,10 @@ test('server validates gender-specific hairstyles and persists them for reconnec
     await game.flush();
     game.disconnect(a.p);
     const b = await player(game, 980);
-    assert.equal(b.p.appearance.hairstyle, 'braid');
+    assert.equal(b.p.appearance.hairstyle, 'marge');
     game.receive(b.p, {
       type: 'checkpoint',
-      privateState: { 'sf-character-v1': '{"gender":"man","hairstyle":"braid"}' },
+      privateState: { 'sf-character-v1': '{"gender":"man","hairstyle":"marge"}' },
     });
     await b.p.queue;
     assert.equal(b.p.appearance.hairstyle, 'short');

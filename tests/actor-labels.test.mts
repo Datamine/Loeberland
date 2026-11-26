@@ -35,3 +35,9 @@ test('player chat and explicit event cues retain their text only while active', 
   }
   assert.equal(actorSpeechText({ player: true, speechUntil: 200 }, 100), '');
 });
+
+test('a civilian calls for help until the server deadline', () => {
+  const victim = { helpUntil: 104500, speech: 'Good morning.', speechUntil: 1000 };
+  assert.equal(actorSpeechText(victim, 150, 100200), 'Help!');
+  assert.equal(actorSpeechText(victim, 160, 104500), '');
+});

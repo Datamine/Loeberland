@@ -64,8 +64,9 @@ test('hostile defeats roll loot once, stay dead for the cow timer, and respawn a
     const attacker = { id: 1, owner: 'owner', x: 0, z: 0, weapon: 'railgun', level: 10 };
     assert.ok(world.damage(kind, 1000, attacker).ok);
     assert.equal(actor.hp, 0);
-    assert.equal(drops.length, 2);
+    assert.equal(drops.length, 3);
     assert.equal(drops[1].lootKind, kind === 'outlaw' ? 'goose-membership-card' : 'hat');
+    assert.equal(drops[2].lootKind, 'light-crystal');
     if (kind === 'lost-pirate') assert.equal(drops[1].hatId, 'pirate');
     assert.equal(world.strike(kind, attacker).ok, false);
     assert.equal(drops.filter((d) => d.lootKind === 'coins')[0].amount, kind === 'outlaw' ? 10 : 8);

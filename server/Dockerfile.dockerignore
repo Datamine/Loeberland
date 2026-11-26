@@ -6,6 +6,7 @@
 **/*.sqlite*
 **/*.tfstate*
 **/*.tfvars
+**/*.tfvars.json
 **/.env
 **/.env.*
 **/game.tar.gz

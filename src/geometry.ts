@@ -8,6 +8,7 @@ import type {
   Ray,
 } from './types/geometry.ts';
 import type { createCharacterBatch } from './rendering/character-gpu.ts';
+import type { LampHalo } from './lighting.ts';
 import { GLASS_UV } from './glazing.ts';
 import { MATERIAL_IDS } from './materials.ts';
 
@@ -97,6 +98,7 @@ function sphereMaterial(input: Material): number[] {
 class Mesh {
   data: number[];
   characters?: ReturnType<typeof createCharacterBatch>;
+  halos?: LampHalo[];
   constructor() {
     this.data = [];
   }

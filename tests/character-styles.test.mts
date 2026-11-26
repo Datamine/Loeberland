@@ -23,9 +23,11 @@ test('a cashmere turtleneck changes the knit collar geometry and is offered to o
   assert.ok(equipmentOptions().torso.every((choice) => choice.value !== 'cashmere-turtleneck'));
 });
 
-test('hairstyle menus offer Broccoli and Ponytail with distinct animated meshes', () => {
+test('hairstyle menus offer the named styles with distinct animated meshes', () => {
   assert.equal(HAIRSTYLES.man.find((style) => style.id === 'broccoli')?.label, 'Broccoli');
+  assert.equal(HAIRSTYLES.man.find((style) => style.id === 'einstein')?.label, 'Einstein');
   assert.ok(HAIRSTYLES.woman.some((style) => style.id === 'ponytail'));
+  assert.equal(HAIRSTYLES.woman.find((style) => style.id === 'marge')?.label, 'Marge');
   for (const [gender, styles] of Object.entries(HAIRSTYLES)) {
     const meshes: import('../src/characters.ts').CharacterMesh[] = [];
     for (const style of styles) {
@@ -49,6 +51,17 @@ test('hairstyle menus offer Broccoli and Ponytail with distinct animated meshes'
     assert.equal(normalizeCharacter({ gender, hairstyle: '<script>' }).hairstyle, styles[0].id);
     const other = HAIRSTYLES[gender === 'man' ? 'woman' : 'man'][2].id;
     assert.equal(normalizeCharacter({ gender, hairstyle: other }).hairstyle, styles[0].id);
+  }
+});
+
+test('Marge adds a tall crown that fits under equipped headwear', () => {
+  const appearance = characterAppearance(normalizeCharacter({ gender: 'woman', hairstyle: 'marge' }));
+  for (const [cap, minimum, maximum] of [[false, 2.35, 2.45], [true, 1.73, 1.85]] as const) {
+    const { vertices, slots } = getCharacterMesh({ ...appearance, cap });
+    let crown = 0;
+    for (let i = 0; i < slots.length; i++)
+      if (slots[i] === 3) crown = Math.max(crown, vertices[i * 6 + 1]);
+    assert.ok(crown >= minimum && crown <= maximum, `Hair crown height ${crown} with cap=${cap}`);
   }
 });
 

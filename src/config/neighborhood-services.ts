@@ -8,6 +8,7 @@ interface ServiceEffect {
   sober?: number;
   bouquet?: number;
   sandwich?: number;
+  hat?: string;
 }
 interface NeighborhoodService {
   intro?: string;
@@ -17,6 +18,7 @@ interface NeighborhoodService {
 // CONTENT-BINDINGS-MIGRATED
 import { NPC_DIALOGUES } from './dialogue.ts';
 import { DOG_PONY_SHOW } from '../dog-pony-layout.ts';
+import { hatById } from '../hat-catalog.ts';
 
 /** Authoritative service prices and effects. Spoken copy is in ../dialogues/services.json. */
 const SERVICE_EFFECTS: Record<string, ServiceEffect[]> = {
@@ -76,6 +78,7 @@ const SERVICE_EFFECTS: Record<string, ServiceEffect[]> = {
       price: 2,
       sandwich: 1,
     },
+    { id: 'loaf-of-bread', price: hatById('loaf-of-bread')?.price, hat: 'loaf-of-bread' },
   ],
   pottery: [
     {

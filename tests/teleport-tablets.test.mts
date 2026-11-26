@@ -28,7 +28,13 @@ test('tablet purchases and use cannot fall back to local inventory or local trav
   });
   assert.equal((await t.buy('tahoe')).ok, false);
   assert.equal((await t.use('tahoe')).ok, false);
-  assert.deepEqual(t.inventory(), { downtown: 0, tahoe: 0, cupertino: 0, 'goblin-village': 0 });
+  assert.deepEqual(t.inventory(), {
+    downtown: 0,
+    tahoe: 0,
+    cupertino: 0,
+    'goblin-village': 0,
+    berkeley: 0,
+  });
   assert.equal(economy.state.coins, 45);
   assert.equal(arrivals, 0);
   assert.deepEqual(tabletCounts({ downtown: -1, tahoe: Infinity }), {
@@ -36,6 +42,7 @@ test('tablet purchases and use cannot fall back to local inventory or local trav
     tahoe: 0,
     cupertino: 0,
     'goblin-village': 0,
+    berkeley: 0,
   });
 });
 test('teleport raises both arms, swooshes up with finite purple geometry, then settles at the fixed destination', () => {

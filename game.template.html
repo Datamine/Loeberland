@@ -182,7 +182,7 @@
           >
             <div id="sf-you-panel" class="sf-you" role="tabpanel" aria-labelledby="sf-you-tab">
               <div class="sf-purse" aria-live="polite">
-                <span>◉ <strong id="sf-coins">25</strong> coins</span
+                <span>◉ <strong id="sf-coins">100</strong> coins</span
                 ><span id="sf-inebriation">0% inebriated</span>
                 <span id="sf-sales-status" hidden></span>
                 <span id="sf-robotaxi-status" hidden>Robotaxi · dispatched</span>
@@ -235,8 +235,28 @@
               <button class="sf-bike-button" type="button" data-inventory-action="trimArmor" hidden>
                 Trim iron armor
               </button>
+              <button
+                class="sf-bike-button"
+                type="button"
+                data-inventory-action="upgradeGoblinHelmet"
+                hidden
+              >
+                Upgrade goblin helmet
+              </button>
+              <button class="sf-bike-button" type="button" data-inventory-action="upgradeBackpack" hidden>
+                Upgrade Hiking Backpack
+              </button>
+              <button class="sf-bike-button" type="button" data-inventory-action="upgradeWeapon" data-weapon="railgun" hidden>
+                Upgrade Railgun
+              </button>
+              <button class="sf-bike-button" type="button" data-inventory-action="upgradeWeapon" data-weapon="akibo" hidden>
+                Upgrade Akimbo
+              </button>
               <button class="sf-bike-button" type="button" data-inventory-action="breakBind" hidden>
                 Break Bind Tablet
+              </button>
+              <button class="sf-bike-button" type="button" data-inventory-action="detonateFireworks" hidden>
+                Detonate fireworks
               </button>
               <small id="sf-combat-supplies" hidden></small
               ><button id="sf-charge-railgun" class="sf-bike-button" type="button" hidden>
@@ -299,6 +319,9 @@
                 <button id="sf-grapple-button" class="sf-bike-button" type="button" disabled hidden>
                   Grapple <span class="sf-action-target" data-kind="object">airship</span>
                 </button>
+                <button id="sf-surf-return" class="sf-bike-button" type="button" hidden>
+                  Surf Back to Shore
+                </button>
                 <div
                   id="sf-wave-controls"
                   class="sf-wave-controls"
@@ -348,6 +371,18 @@
                   aria-pressed="false"
                 >
                   Skateboard
+                </button>
+                <button
+                  id="sf-scooter-button"
+                  class="sf-bike-button"
+                  type="button"
+                  hidden
+                  aria-pressed="false"
+                >
+                  Scooter
+                </button>
+                <button id="sf-scooter-backflip" class="sf-bike-button" type="button" hidden>
+                  Backflip
                 </button>
                 <div
                   id="sf-skate-tricks"
@@ -426,9 +461,6 @@
                   aria-label="ATV controls"
                   hidden
                 >
-                  <button class="sf-bike-button" type="button" data-atv-action="atvJump">
-                    Roof jump
-                  </button>
                   <button class="sf-bike-button" type="button" data-atv-action="atvDonut">
                     Donut
                   </button>
@@ -509,6 +541,9 @@
                   >
                     Character
                   </button>
+                  <button id="sf-switch-weapon" class="sf-bike-button" type="button" hidden>
+                    Switch weapon
+                  </button>
                   <button
                     id="sf-teleport-button"
                     class="sf-bike-button"
@@ -534,7 +569,7 @@
                     aria-haspopup="dialog"
                     aria-controls="sf-collection"
                   >
-                    Collection log
+                    Item Log
                   </button>
                   <button
                     id="sf-quests-button"
@@ -612,6 +647,15 @@
                     >
                       Goblin Village <span>· 0</span>
                     </button>
+                    <button
+                      id="sf-tablet-berkeley"
+                      class="sf-bike-button"
+                      type="button"
+                      data-tablet="berkeley"
+                      hidden
+                    >
+                      Berkeley <span>· 0</span>
+                    </button>
                   </div>
                 </div>
                 <div id="sf-growth-ticker" class="sf-growth-ticker" aria-live="polite" hidden></div>
@@ -622,6 +666,7 @@
               class="sf-high-scores"
               role="tabpanel"
               aria-labelledby="sf-scores-tab"
+              tabindex="0"
               hidden
             >
               <label
@@ -629,6 +674,7 @@
                 <select>
                   <option value="coins">Coins</option>
                   <option value="strength">Strength</option>
+                  <option value="completion">Game Completion</option>
                 </select></label
               >
               <p role="status"></p>
@@ -698,7 +744,7 @@
         class="sf-help sf-collection"
         role="dialog"
         aria-modal="true"
-        aria-label="Collection log"
+        aria-label="Item Log"
         tabindex="-1"
         hidden
       >
@@ -788,7 +834,7 @@
           </div>
           <div>
             <dt>Coins in your purse</dt>
-            <dd><output data-bank-purse>25</output></dd>
+            <dd><output data-bank-purse>100</output></dd>
           </div>
         </dl>
         <form class="sf-bank-form">
@@ -938,8 +984,6 @@
                     <option value="woman">Woman</option>
                   </select></label
                 >
-                <label>Skin <input data-character="skin" type="color" value="#bd9369" /></label>
-                <label>Hair <input data-character="hair" type="color" value="#453a30" /></label>
                 <label
                   >Hairstyle
                   <select data-character="hairstyle">
@@ -948,23 +992,25 @@
                     <option value="side-part">Side part</option>
                     <option value="short-curls">Curls</option>
                     <option value="broccoli">Broccoli</option>
+                    <option value="einstein">Einstein</option>
                   </select></label
                 >
+                <label>Skin <input data-character="skin" type="color" value="#bd9369" /></label>
+                <label>Hair <input data-character="hair" type="color" value="#453a30" /></label>
                 <label>Shirt <input data-character="shirt" type="color" value="#707b4b" /></label>
                 <label
                   >Trousers <input data-character="pants" type="color" value="#626955"
                 /></label>
                 <label>Shoes <input data-character="shoes" type="color" value="#3c3d36" /></label>
               </div>
-              <div class="sf-pvp-option">
-                <label
-                  ><input id="sf-pvp-enabled" type="checkbox" aria-describedby="sf-pvp-status" />
-                  Enable PvP</label
-                ><small id="sf-pvp-status" role="status"
-                  >Both players must opt in. Wait 30 seconds before disabling PvP.</small
-                >
-                <p>On death, you drop only your coins, iPhone, and sandwiches.</p>
-              </div>
+              <label class="sf-character-option">
+                <input id="sf-pvp-enabled" type="checkbox" />
+                Enable PvP
+              </label>
+              <label class="sf-character-option">
+                <input id="sf-trade-duel-enabled" type="checkbox" checked />
+                Enable Trade &amp; Duel
+              </label>
             </div>
             <div class="sf-character-gear">
               <h3>Gear</h3>
@@ -974,11 +1020,11 @@
                   <dd id="sf-equipment-defense"></dd>
                 </div>
                 <div>
-                  <dt>Max hit</dt>
+                  <dt>Damage on hit</dt>
                   <dd id="sf-equipment-max-hit"></dd>
                 </div>
                 <div>
-                  <dt>Accuracy</dt>
+                  <dt title="Close-range accuracy followed by accuracy at maximum reach">Accuracy</dt>
                   <dd id="sf-equipment-accuracy"></dd>
                 </div>
                 <div>
@@ -988,6 +1034,10 @@
                 <div>
                   <dt>Range</dt>
                   <dd id="sf-equipment-range"></dd>
+                </div>
+                <div>
+                  <dt title="Average damage per second against an unarmored target">DPS</dt>
+                  <dd id="sf-equipment-dps"></dd>
                 </div>
               </dl>
               <div class="sf-character-fields">
@@ -1016,9 +1066,15 @@
                   </select></label
                 >
                 <label
-                  >Necklace
+                  >Secondary weapon
+                  <select data-character="secondaryWeapon">
+                    <option value="none">No secondary weapon</option>
+                  </select></label
+                >
+                <label
+                  >Neckwear
                   <select data-character="neck">
-                    <option value="none">No necklace</option>
+                    <option value="none">Nothing on neck</option>
                   </select></label
                 >
                 <label
@@ -1126,6 +1182,8 @@
           <dd>Additional buttons and keyboard hints appear during activities.</dd>
           <dt>Sitting</dt>
           <dd>Recover 1 hitpoint every 5 seconds while seated.</dd>
+          <dt>PvP</dt>
+          <dd>On death, you drop only your coins, iPhone, and sandwiches.</dd>
           <dt>Tab / Shift+Tab</dt>
           <dd>Move keyboard focus between controls.</dd>
           <dt>Escape</dt>
@@ -1133,44 +1191,45 @@
         </dl>
         <h3>Shortcuts</h3>
         <p>
-          Press <kbd class="sf-key">Esc</kbd> to see the available shortcuts, then press a key shown
-          in the menu. Activity shortcuts appear when the action is available.
+          Press <kbd class="sf-key">Alt</kbd> (<kbd class="sf-key">Ctrl</kbd> on Mac) to show the
+          shortcut keys on the buttons. Release it, then press one of the keys shown.
         </p>
         <dl>
           <dt>
-            <kbd class="sf-key">Esc</kbd> then <kbd class="sf-key">C</kbd> /
-            <kbd class="sf-key">Q</kbd> / <kbd class="sf-key">L</kbd> / <kbd class="sf-key">H</kbd>
+            <kbd class="sf-key">C</kbd> / <kbd class="sf-key">Q</kbd> /
+            <kbd class="sf-key">L</kbd> / <kbd class="sf-key">H</kbd>
           </dt>
-          <dd>Open Character, Quests, Collection log, or Help.</dd>
+          <dd>Open Character, Quests, Item Log, or Help.</dd>
           <dt>
-            <kbd class="sf-key">Esc</kbd> then <kbd class="sf-key">X</kbd> /
-            <kbd class="sf-key">D</kbd> / <kbd class="sf-key">V</kbd>
+            <kbd class="sf-key">X</kbd> / <kbd class="sf-key">D</kbd> / <kbd class="sf-key">V</kbd>
           </dt>
           <dd>Sit or stand, dance, or roll forward.</dd>
-          <dt><kbd class="sf-key">Esc</kbd> then <kbd class="sf-key">J</kbd></dt>
+          <dt><kbd class="sf-key">J</kbd></dt>
           <dd>Hop while your equipped rocket is burning.</dd>
-          <dt><kbd class="sf-key">Esc</kbd> then <kbd class="sf-key">T</kbd></dt>
+          <dt><kbd class="sf-key">W</kbd></dt>
+          <dd>Switch weapons. You can also hold Alt (Ctrl on Mac) and press W.</dd>
+          <dt><kbd class="sf-key">T</kbd></dt>
           <dd>
             Choose a teleport destination. If you cannot use a tablet, opens the coordinate prompt
             when the server permits it.
           </dd>
           <dt>
-            <kbd class="sf-key">Esc</kbd> then <kbd class="sf-key">B</kbd> /
-            <kbd class="sf-key">K</kbd> / <kbd class="sf-key">M</kbd>
+            <kbd class="sf-key">B</kbd> / <kbd class="sf-key">K</kbd> / <kbd class="sf-key">M</kbd>
           </dt>
           <dd>Use the bicycle, skateboard, or rented motorcycle.</dd>
           <dt>
-            <kbd class="sf-key">Esc</kbd> then <kbd class="sf-key">1</kbd> /
-            <kbd class="sf-key">2</kbd> / <kbd class="sf-key">3</kbd>
+            <kbd class="sf-key">1</kbd> / <kbd class="sf-key">2</kbd> / <kbd class="sf-key">3</kbd>
           </dt>
           <dd>Do an ollie, kickflip, or 360 shove-it while skateboarding.</dd>
+          <dt><kbd class="sf-key">U</kbd> / <kbd class="sf-key">1</kbd></dt>
+          <dd>Take out or put away your scooter with U. Press 1 to backflip while riding.</dd>
           <dt>
-            <kbd class="sf-key">Esc</kbd> then <kbd class="sf-key">E</kbd> /
-            <kbd class="sf-key">F</kbd> / <kbd class="sf-key">R</kbd>
+            <kbd class="sf-key">E</kbd> / <kbd class="sf-key">F</kbd> / <kbd class="sf-key">R</kbd>
           </dt>
           <dd>
             Use E to get off the swing or cable car, exit Waymo, open Sutro Tower exit options, or
-            use the Tahoe activity button. Use F to return from surfing or R to park the Ferrari.
+            use the Tahoe activity button. While surfing, press F or use the surf button to go
+            ashore. Near Onoda Island, choose Land at Island. Use R to park the Ferrari.
           </dd>
         </dl>
         <p>A yellow X confirms a click. A red X means the action is unavailable.</p>
@@ -1245,10 +1304,11 @@
           spellcheck="false"
           autocapitalize="off"
           aria-describedby="sf-command-status"
-          placeholder=":debug or :tp x,y"
+          placeholder=":debug or :tp x,y or NPC name"
         /><button type="submit">Run</button
         ><button type="button" data-command-close aria-label="Cancel command">×</button>
       </div>
+      <ul class="sf-command-npcs" data-command-npcs aria-label="Matching NPCs" hidden></ul>
       <p id="sf-command-status" role="status">Enter runs the command. Escape cancels.</p>
     </form>
     <section
@@ -1286,6 +1346,7 @@
       <div>
         <h1 id="sf-screen-requirement-title">Loeberland is best enjoyed on a desktop.</h1>
         <p id="sf-screen-requirement-size" hidden></p>
+        <canvas class="sf-screen-dancer" width="360" height="274" aria-hidden="true"></canvas>
       </div>
     </dialog>
     <div

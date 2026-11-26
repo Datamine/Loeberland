@@ -20,9 +20,9 @@ import { buildingNPCService } from '../src/building-interactions.ts';
 
 test('the permanent hat catalog spans one to one hundred thousand coins and every purchase is atomic', () => {
   const sold = HAT_CATALOG.filter((h) => !h.dropOnly);
-  assert.equal(sold.length, 11);
+  assert.equal(sold.filter((h) => !h.seller).length, 11);
   assert.equal(sold[0].price, 1);
-  assert.equal(requiredFixture(sold.at(-1)).price, 100000);
+  assert.equal(Math.max(...sold.map((h) => h.price)), 100000);
   assert.ok(HAT_CATALOG.every((h) => !('prestige' in h) || h.prestige === undefined));
   for (const h of sold) {
     const writes: import('../src/types/content.ts').EconomyState[] = [],

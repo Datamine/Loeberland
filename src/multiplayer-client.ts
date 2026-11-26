@@ -113,7 +113,8 @@ export function interpolateNetworkPose(
     Math.hypot(b.x - a.x, b.z - a.z) > 12 ||
     a.mode === 'hidden' ||
     b.mode === 'hidden' ||
-    (a.mode !== b.mode && (a.mode === 'swing' || b.mode === 'swing'))
+    (a.mode !== b.mode &&
+      [a.mode, b.mode].some((mode) => mode === 'swing' || mode === 'scientificExperiment'))
   )
     return { ...b };
   const result = { ...b };
@@ -415,6 +416,11 @@ export function createMultiplayerClient({
         state.pvpTarget = null;
         if (isFiniteNumber(message.hp)) state.hp = message.hp;
       }
+      if (message.type === 'position' && message.reason === 'ferrariDismount') {
+        selfSamples.length = 0;
+        state.self = null;
+        state.position = message;
+      }
       if (message.type === 'instance') {
         worldMaps = {};
         selfSamples.length = 0;
@@ -438,7 +444,7 @@ export function createMultiplayerClient({
       if (message.playerState) state.playerState = message.playerState;
       if (message.type !== 'welcome')
         acceptInventory(message.inventory || message.award?.inventory);
-      if (message.type === 'pvpHit') {
+      if (message.type === 'pvpHit' || message.type === 'playerHit') {
         const peer = peers.get(message.target);
         if (peer) peer.hp = message.hp;
       }
@@ -543,7 +549,9 @@ export function createMultiplayerClient({
         }
         if (
           message.ok &&
-          (message.action === 'saveCharacter' || message.action === 'inventory') &&
+          (message.action === 'saveCharacter' ||
+            message.action === 'inventory' ||
+            message.action === 'switchWeapon') &&
           message.appearance
         ) {
           const value = JSON.stringify(message.appearance);

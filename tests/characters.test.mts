@@ -2,7 +2,9 @@ import { requiredFixture } from './helpers/required.mts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Mesh } from '../src/geometry.ts';
+import { heldMeleeWeapon } from '../src/melee-weapon-models.ts';
 import type { CharacterPose } from '../src/characters.ts';
+import { AKIMBO_SHOT_GAP, FIRING_GESTURE_SECONDS } from '../src/ranged-weapon-mounts.ts';
 import {
   CHARACTER_BONES,
   CHARACTER_CLIPS,
@@ -15,9 +17,39 @@ const joint = (p: CharacterPose, i: number) => Array.from(p.joints.subarray(i * 
 const distance = (a: readonly number[], b: readonly number[]) =>
   Math.hypot(...a.map((v, i) => v - b[i]));
 
-test('held melee weapons rise overhead, strike down and recover with planted feet', () => {
+test('the held katana tip curves up while the blade projects forward', () => {
+  const blade = heldMeleeWeapon('katana');
+  let tip = 0;
+  for (let i = 11; i < blade.length; i += 11)
+    if (blade[i + 2] > blade[tip + 2]) tip = i;
+  assert.ok(blade[tip + 2] > 1.1);
+  assert.ok(blade[tip + 1] > 0.74);
+});
+
+test('the Puffy Parka zipper follows the front of the baffles', () => {
+  const { vertices } = getCharacterMesh({ torso: 'puffy-parka' });
+  const teethAndTape = [];
+  for (let i = 0; i < vertices.length; i += 6) {
+    const [x, y, z] = vertices.subarray(i, i + 3);
+    if (Math.abs(Math.abs(x) - 0.009) < 1e-6 && y > 0.78 && y < 1.405 && z > 0)
+      teethAndTape.push(z);
+  }
+  assert.ok(teethAndTape.length > 0);
+  assert.ok(Math.max(...teethAndTape) < 0.203);
+});
+
+test('melee weapons project through the fist and swing across the forearm', () => {
   const { rightHand, rightArm, rightForearm, leftFoot, rightFoot, head } = CHARACTER_BONES;
-  for (const weapon of ['bayonet', 'crowbar', 'battleaxe', 'rollingPin'] as const) {
+  const shaft = (p: CharacterPose) => [2, 5, 8].map((axis) => p.rotations[rightHand][axis]);
+  for (const [weapon, id] of [
+    ['bayonet', 'bayonet'],
+    ['crowbar', 'crowbar'],
+    ['battleaxe', 'battleaxe'],
+    ['combatLamp', 'combat-lamp'],
+    ['rollingPin', 'rolling-pin'],
+    ['katana', 'katana'],
+    ['lightsaber', 'lightsaber'],
+  ] as const) {
     const settings = { [weapon]: true, action: 'attack' };
     const sample = (actionT: number) => sampleCharacterPose('idle', 0, { ...settings, actionT });
     const start = sample(0);
@@ -26,10 +58,23 @@ test('held melee weapons rise overhead, strike down and recover with planted fee
     assert.ok(joint(raised, rightHand)[1] > joint(raised, head)[1] + 0.28, weapon);
     assert.ok(joint(hit, rightHand)[1] < joint(raised, rightHand)[1] - 0.65, weapon);
     assert.ok(joint(hit, rightHand)[2] > joint(raised, rightHand)[2] + 0.48, weapon);
-    // The grip's local up axis points along the carried item.
-    const weaponUp = rightHand * 12 + 5;
-    assert.ok(raised.matrices[weaponUp] > 0.75);
-    assert.ok(hit.matrices[weaponUp] < -0.5);
+    assert.ok(shaft(start)[2] > 0.94);
+    assert.ok(shaft(raised)[2] < -0.8);
+    assert.ok(shaft(hit)[1] < -0.35 && shaft(hit)[2] > 0.2);
+    const held = heldMeleeWeapon(id);
+    let front = -Infinity;
+    let shoulder = -Infinity;
+    for (let i = 0; i < held.length; i += 11) {
+      front = Math.max(front, held[i + 2]);
+      shoulder = Math.max(shoulder, held[i + 1]);
+    }
+    assert.ok(front > 0.55 && shoulder < 1.03, weapon);
+    for (const frame of [start, raised, hit, sampleCharacterPose('move', Math.PI, settings)]) {
+      const elbow = joint(frame, rightForearm);
+      const arm = joint(frame, rightHand).map((value, axis) => value - elbow[axis]);
+      const alongArm = shaft(frame).reduce((sum, value, axis) => sum + value * arm[axis], 0);
+      assert.ok(Math.abs(alongArm) < 1e-6, weapon);
+    }
     for (const frame of [raised, hit]) {
       assert.ok(Math.abs(distance(joint(frame, rightArm), joint(frame, rightForearm)) - 0.31) < 1e-5);
       assert.ok(Math.abs(distance(joint(frame, rightForearm), joint(frame, rightHand)) - 0.275) < 1e-5);
@@ -48,7 +93,7 @@ test('held melee weapons rise overhead, strike down and recover with planted fee
     action: 'attack',
     actionT: 0.34,
   });
-  assert.ok(rendered.data.some((value, index) => index % 11 === 1 && value > 2.15));
+  assert.ok(rendered.data.some((value, index) => index % 11 === 2 && value < -0.55));
 });
 
 test('the missile launcher braces both hands, kicks back, and recovers with planted feet', () => {
@@ -66,6 +111,24 @@ test('the missile launcher braces both hands, kicks back, and recovers with plan
   for (const foot of [leftFoot, rightFoot])
     assert.ok(distance(joint(recoil, foot), joint(held, foot)) < 1e-5);
   assert.deepEqual(fire(1).matrices, held.matrices);
+});
+
+test('the Akimbo pistols kick on separate beats and both recover', () => {
+  const { rightHand, leftHand } = CHARACTER_BONES;
+  const fire = (age: number) =>
+    sampleCharacterPose('idle', 0, {
+      akibo: true,
+      action: 'attack',
+      actionT: age / FIRING_GESTURE_SECONDS,
+    });
+  const start = fire(0);
+  const first = fire(0.028);
+  const second = fire(AKIMBO_SHOT_GAP + 0.028);
+  assert.ok(joint(first, rightHand)[2] < joint(start, rightHand)[2] - 0.065);
+  assert.deepEqual(joint(first, leftHand), joint(start, leftHand));
+  assert.ok(joint(second, leftHand)[2] < joint(first, leftHand)[2] - 0.065);
+  assert.ok(joint(second, rightHand)[2] > joint(first, rightHand)[2]);
+  assert.deepEqual(fire(FIRING_GESTURE_SECONDS).matrices, start.matrices);
 });
 
 test('petting crouches with planted feet, a lowered hand and an exact return to idle', () => {

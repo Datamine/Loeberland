@@ -1,8 +1,21 @@
+import { FORMALWEAR_EXPERT } from './config/formalwear.ts';
+import { FANCY_DRESS } from './config/fancy-dress.ts';
+import { RICK } from './config/rick.ts';
+import { SHRIMP_EXPERIMENT } from './config/shrimp-experiment.ts';
+import { BERKELEY_FISHING } from './config/berkeley-fishing.ts';
+import { SCOOTER_MANUFACTURER } from './config/scooter.ts';
+import { ARMOR_TRIMMER } from './config/armor-trimmer.ts';
+import { FIREWORK_ENFORCEMENT, PYROMANIAC_PETER } from './config/fireworks.ts';
+import { LIGHTSABER_SCIENTIST } from './config/lightsaber.ts';
+import { LEATHER_JACKET } from './config/leather-jacket.ts';
+import { TOMMY } from './config/tommy.ts';
 import type { ActorMetadata } from './types/world.ts';
 import { MERCHANTS } from './config/npcs.ts';
 import { applyEntityEdits } from './world-edits.ts';
 import { POOL_SWIMMER } from './communal-pool.ts';
+import { SAUNA_GUEST } from './cedar-sauna.ts';
 import { AIRSHIP_TRAVELER } from './airship-rope.ts';
+import { GOBLIN_CITY_HALL } from './goblin-incubator-cave.ts';
 /** Menu capability, shared by combat labels and action construction. */
 export function npcOffersAttack(npc: ActorMetadata = {}) {
   if (
@@ -11,6 +24,7 @@ export function npcOffersAttack(npc: ActorMetadata = {}) {
     npc.kind === 'delivery-cooler' ||
     npc.kind === AIRSHIP_TRAVELER ||
     npc.kind === POOL_SWIMMER ||
+    npc.kind === SAUNA_GUEST.kind ||
     npc.kind === 'cafe-patron' ||
     (typeof npc.id === 'string' &&
       (npc.id.startsWith('cotogna-diner-') || npc.id.startsWith('rich-table-diner-')))
@@ -31,9 +45,16 @@ export function npcOffersAttack(npc: ActorMetadata = {}) {
     npc.kind === 'goblin-scientist' ||
     npc.kind === 'goblin-plumber' ||
     npc.kind === 'goblin-frog-farmer' ||
+    npc.kind === GOBLIN_CITY_HALL.clerk.id ||
     npc.kind === 'goblin-space-engineer' ||
     npc.kind === 'goblin-industrialist' ||
     npc.kind === 'decorative-robe-seller' ||
+    npc.kind === 'wedding-planner' ||
+    npc.kind === FORMALWEAR_EXPERT.id ||
+    npc.kind === LEATHER_JACKET.seller ||
+    npc.kind === TOMMY.id ||
+    npc.kind === FANCY_DRESS.id ||
+    npc.kind === RICK.id ||
     npc.kind === 'fighter-yard-host' ||
     npc.kind === 'construction-foreman' ||
     npc.kind === 'mud-bath-regular' ||
@@ -41,6 +62,11 @@ export function npcOffersAttack(npc: ActorMetadata = {}) {
     npc.kind === 'legacy-developer' ||
     npc.kind === 'biomed-entrepreneur' ||
     npc.kind === 'berkeley-mathematician' ||
+    npc.kind === SHRIMP_EXPERIMENT.scientist ||
+    npc.kind === BERKELEY_FISHING.vendor ||
+    npc.kind === SCOOTER_MANUFACTURER.id ||
+    npc.kind === ARMOR_TRIMMER.id ||
+    npc.kind === PYROMANIAC_PETER.id ||
     npc.kind === 'churchgoer' ||
     npc.kind?.startsWith('burning-man-') ||
     npc.kind === 'rene-girard' ||
@@ -97,7 +123,13 @@ export function npcDisplayLabel(
   if (npc.networkPlayer) return name + ' - Level ' + level;
   return name + (npcOffersAttack(npc) ? ' (Level ' + level + ')' : '');
 }
-export function npcPrimaryVerb(npc: ActorMetadata, revealed = false) {
+export function npcPrimaryVerb(npc: ActorMetadata, revealed = false, viewer?: number | null) {
+  if (npc.combatKind === FIREWORK_ENFORCEMENT.kind)
+    return viewer == null || npc.dispatchedFor !== viewer
+      ? 'examine'
+      : npc.citationPending
+        ? 'talk'
+        : 'attack';
   if (npc.wilderness)
     return npc.combatKind === 'bear'
       ? 'pet'
@@ -118,6 +150,8 @@ export function npcContextActions(
   { primary = 'talk', duel = false, pvp = false } = {},
 ) {
   if (npc.kind === 'delivery-cooler') return ['examine'];
+  if (npc.combatKind === FIREWORK_ENFORCEMENT.kind && primary !== 'attack')
+    return primary === 'talk' ? ['talk', 'walk', 'examine'] : ['examine'];
   if (npc.kind === AIRSHIP_TRAVELER) return ['talk', 'examine'];
   if (npc.networkPlayer)
     return ['trade', ...(duel ? ['duel'] : []), 'follow', ...(pvp ? ['attack'] : []), 'walk'];
@@ -129,7 +163,8 @@ export function npcContextActions(
         ? ['pet', 'attack']
         : npc.combatKind === 'goblin-maker' ||
             npc.combatKind === 'bolinas-cultist' ||
-            npc.combatKind === 'unusual-pastor'
+            npc.combatKind === 'unusual-pastor' ||
+            (npc.id === LIGHTSABER_SCIENTIST && primary === 'talk')
           ? ['talk', 'attack']
           : ['attack'];
   else if (
@@ -137,7 +172,10 @@ export function npcContextActions(
   )
     actions = ['attack'];
   else if (!npcOffersAttack(npc)) actions = ['talk'];
-  else actions = primary === 'attack' ? ['attack', 'talk'] : ['talk', 'attack'];
+  else {
+    actions = primary === 'attack' ? ['attack', 'talk'] : ['talk', 'attack'];
+    if (primary === 'talk' && (npc.label === 'Man' || npc.label === 'Woman')) actions.push('steal');
+  }
   return [...actions, 'walk', 'examine'];
 }
 export function promoteWalkAction(menu: HTMLDivElement) {

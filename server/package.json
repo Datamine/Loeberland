@@ -11,7 +11,7 @@
     "test": "node --import ../node_modules/tsx/dist/loader.mjs --test --test-concurrency=4 tests/*.test.mts",
     "load": "node --import ../node_modules/tsx/dist/loader.mjs ../tools/run-server.mts load-test",
     "build": "npm --prefix .. run build:runtime",
-    "dev": "node --import ../node_modules/tsx/dist/loader.mjs --watch index.mts",
+    "dev": "node --import ../node_modules/tsx/dist/loader.mjs ../tools/run-server.mts dev",
     "backup": "node --import ../node_modules/tsx/dist/loader.mjs ../tools/run-server.mts backup"
   },
   "dependencies": {

@@ -63,6 +63,9 @@ export function createCombatFeedback<T extends object = object>() {
     entries() {
       return [...actors.values()].filter((actor) => actor.engaged || actor.ttl > 0);
     },
+    remove(target: T) {
+      actors.delete(target);
+    },
     clear() {
       actors.clear();
     },

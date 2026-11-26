@@ -111,7 +111,7 @@ const NPC_APPEARANCES = {
     shirt: '#e3e2d5',
   },
   [RICH_TABLE_CHEF]: {
-    name: 'Rich Table chef',
+    name: 'Rich Table Chef',
     skin: '#a2765b',
     hair: '#514235',
     shirt: '#e8dfce',

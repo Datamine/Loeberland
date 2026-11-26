@@ -1,7 +1,9 @@
 import type { InventorySnapshot } from '../src/types/network.ts';
 import type { GrowthPosition } from '../src/types/finance.ts';
 import type { TradeItem, TradeLine } from '../src/types/trade.ts';
-import { ITEM_STATS, EQUIPMENT_IDS, sandwichCapacity } from '../src/item-stats.ts';
+import { ITEM_STATS, EQUIPMENT_IDS, baseEquipmentId, sandwichCapacity, upgradeKitRequirement } from '../src/item-stats.ts';
+import { UPGRADED_RAILGUN, WEAPON_UPGRADE_KIT } from '../src/config/weapon-upgrades.ts';
+import { HIKING_BACKPACK_UPGRADE_KIT } from '../src/config/hiking-backpack.ts';
 import { GROWTH_EQUITY } from '../src/config/finance.ts';
 import { HAT_CATALOG } from '../src/hat-catalog.ts';
 import { TABLET_PLACES } from '../src/teleport-tablets.ts';
@@ -19,7 +21,7 @@ type CountedItem = {
   max?: number;
 };
 const catalog = new Map<string, CountedItem>();
-const boundEquipment = new Set(['bayonet', 'railgun', 'battleaxe', 'fighter-yard-pass']);
+const boundEquipment = new Set(['bayonet', 'railgun', UPGRADED_RAILGUN, 'battleaxe', 'fighter-yard-pass', 'scooter', 'lightsaber']);
 for (const [id, key, name] of [
   ['coins', 'coins', 'Coins'],
   ['startup-equity', 'equity', 'Startup equity'],
@@ -44,6 +46,10 @@ for (const [id, key, name, max] of [
   ['bison-hide', 'bisonHides', 'Bison hides'],
   ['uni', 'uni', 'Uni'],
   ['armor-trimming-kit', 'armorTrimmingKits', 'Armor trimming kits'],
+  ['goblin-helmet-upgrade-kit', 'goblinHelmetUpgradeKits', 'Goblin helmet upgrade kits'],
+  [WEAPON_UPGRADE_KIT, 'weaponUpgradeKits', 'Weaponry upgrade kit'],
+  [HIKING_BACKPACK_UPGRADE_KIT, 'hikingBackpackUpgradeKits', ITEM_STATS[HIKING_BACKPACK_UPGRADE_KIT].name],
+  ['light-crystal', 'lightCrystals', 'Light crystals'],
   ['bind-tablet', 'bindTablets', 'Bind Tablets'],
   ['akimbo-ammo', 'akimboAmmo', 'Akimbo rounds', 1_000_000],
   ['missile', 'missiles', 'Missiles', 1_000_000],
@@ -97,6 +103,7 @@ catalog.set('iphone', {
     h.inventory.purse.iphoneOwned = quantity === 1;
     h.inventory.purse.iphoneEquipped = false;
     h.inventory.purse.incomeQuarters = 0;
+    h.inventory.purse.incomeExtraTwentieths = 0;
   },
 });
 catalog.set('grappling-hook', {
@@ -174,10 +181,16 @@ function add(h: TradeHoldings, offer: TradeLine[], growth: GrowthPosition | null
       item.write(h, total);
     }
   }
+  const purse = h.inventory.purse;
   return (
+    new Set(purse.ownedEquipment.map(baseEquipmentId)).size === purse.ownedEquipment.length &&
+    mayReceiveUpgradeKit(h, offer) &&
     h.inventory.sandwiches + Number(h.inventory.deliveryPending) <=
-    sandwichCapacity(h.inventory.purse)
+    sandwichCapacity(purse)
   );
+}
+function mayReceiveUpgradeKit(h: TradeHoldings, incoming: readonly TradeLine[]) {
+  return incoming.every(({ id }) => !upgradeKitRequirement(id, h.inventory.purse));
 }
 export function swapHoldings(
   a: TradeHoldings,
@@ -187,7 +200,9 @@ export function swapHoldings(
 ) {
   if (
     !offerA.every((line) => validTradeLine(a, line)) ||
-    !offerB.every((line) => validTradeLine(b, line))
+    !offerB.every((line) => validTradeLine(b, line)) ||
+    !mayReceiveUpgradeKit(a, offerB) ||
+    !mayReceiveUpgradeKit(b, offerA)
   )
     return null;
   const draftA = structuredClone(a),

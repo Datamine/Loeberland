@@ -9,10 +9,11 @@ import {
   instituteWindowOpenings,
 } from './institute-interiors.ts';
 import { drawPlaque } from './southern-district.ts';
-import { EAST_BAY_GRASS_COLOR } from './geography.ts';
 import type { SignAtlas } from './types/world.ts';
 import { drawNeighborhoodTree } from './neighborhood-tree.ts';
 import { BURNING_MAN } from './burning-man.ts';
+import { SHRIMP_EXPERIMENT } from './config/shrimp-experiment.ts';
+import { CEDAR_SAUNA } from './cedar-sauna.ts';
 
 export const MAD_HOUSE = Object.freeze({
   id: 'mad-scientist-house',
@@ -203,11 +204,11 @@ export const BERKELEY_NEIGHBORHOOD: Home[] = [
     'east',
   ),
   {
-    id: 'bay-sauna',
-    label: 'Cedar Sauna',
-    color: '#a2744d',
+    id: CEDAR_SAUNA.id,
+    label: CEDAR_SAUNA.label,
+    color: CEDAR_SAUNA.color,
     style: 'sauna',
-    rect: roomRect({ x: -15, z: -12.1, w: 2.7, d: 2.15 }),
+    rect: roomRect(CEDAR_SAUNA),
   },
   {
     id: 'bay-commune',
@@ -720,6 +721,7 @@ export const BERKELEY_CAMPUS = Object.freeze({
     [-14.7, 2.1, 17.35, 3.25] satisfies [number, number, number, number],
     [-7.8, 2.1, 7.8, 4.3],
     [9.1, 2.8, 10.1, 17.9],
+    [10.1, 5.6, 15.05, 10.65],
     [-10.45, 2.8, -9.5, 17.8],
     ...BERKELEY_SIDEWALKS,
     ...frontWalks,
@@ -791,6 +793,16 @@ export const BERKELEY_CAMPUS = Object.freeze({
   ],
   obstacles: [
     ...playground.obstacles,
+    ...[-1.25, 0, 1.25].map((offset) => ({
+      u: SHRIMP_EXPERIMENT.wheel.u + offset,
+      v: SHRIMP_EXPERIMENT.wheel.v,
+      r: 0.57,
+    })),
+    ...[-0.62, 0, 0.62].map((offset) => ({
+      u: SHRIMP_EXPERIMENT.tank.u + offset,
+      v: SHRIMP_EXPERIMENT.tank.v,
+      r: 0.52,
+    })),
     ...streetLamps.map(({ u, v }) => ({ u, v, r: 0.115 })),
     ...hydrants.map(({ u, v }) => ({ u, v, r: 0.18 })),
     ...mailboxes.map(({ u, v }) => ({ u, v, r: 0.14 })),
@@ -1052,9 +1064,6 @@ export function drawBerkeleyPlayground(m: Mesh) {
  * a campanile, a classical library, redwoods and a real walkable quadrangle. */
 export function drawBerkeleyCampus(m: Mesh, signs: SignAtlas, title: string) {
   const b = BERKELEY_CAMPUS;
-  for (const [x, z, xx, zz] of b.grounds)
-    m.quad([x, 0, z], [x, 0, zz], [xx, 0, zz], [xx, 0, z], EAST_BAY_GRASS_COLOR, 'grass');
-  for (const [x, z, xx, zz] of b.parks) m.box(x, 0, z, xx - x, 0.002, zz - z, '#8ca37b', 'grass');
   for (const [x, z, xx, zz] of b.roads) m.box(x, 0, z, xx - x, 0.012, zz - z, '#797b76', 'asphalt');
   for (const polygon of b.crookedRoads) {
     const [a, b, c, d] = polygon.map(([u, v]) => [u, 0.012, v]);
@@ -1157,7 +1166,22 @@ export function drawBerkeleyCampus(m: Mesh, signs: SignAtlas, title: string) {
       }
     });
   recordInstitutePart(m, parts, 'roof', null, () => {
-    m.box(-3.72, 2.75, 5.58, 7.44, 0.09, 5.14, berkeleyTrim, 'stone');
+    for (const [x, y, z, w, h, d] of [
+      [-3.72, 2.75, 5.58, 7.44, 0.09, 5.14],
+      [-2.4, 4.38, 6.3, 3.9, 0.12, 3.2],
+    ]) {
+      m.box(x, y, z, w, h, d, berkeleyTrim, 'stone');
+      const edge = 0.1,
+        top = y + h + 0.005;
+      m.quad(
+        [x + edge, top, z + edge],
+        [x + edge, top, z + d - edge],
+        [x + w - edge, top, z + d - edge],
+        [x + w - edge, top, z + edge],
+        '#a2594b',
+        'roofTile',
+      );
+    }
     // A shifted upper study, pierced by a watchful circular stained-glass eye.
     for (const isX of [false, true] satisfies [boolean, boolean])
       for (const far of [false, true] satisfies [boolean, boolean])
@@ -1175,7 +1199,6 @@ export function drawBerkeleyCampus(m: Mesh, signs: SignAtlas, title: string) {
             ? [{ x: -1.05, y: 3.1, w: 1.2, h: 1.04, ellipse: true, segments: 24 }]
             : [],
         });
-    m.box(-2.4, 4.38, 6.3, 3.9, 0.12, 3.2, berkeleyTrim, 'stone');
     for (const side of [-1, 1] satisfies [number, number])
       pose(m, -0.45, 3.62, side < 0 ? 6.415 : 9.385, side < 0 ? 0 : Math.PI, () => {
         for (let i = 0; i < 48; i++) {

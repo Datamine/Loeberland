@@ -48,6 +48,7 @@ export interface GameElements {
   'sf-coins': HTMLElementTagNameMap['strong'];
   'sf-collection': HTMLElementTagNameMap['section'];
   'sf-collection-button': HTMLElementTagNameMap['button'];
+  'sf-switch-weapon': HTMLElementTagNameMap['button'];
   'sf-collection-list': HTMLElementTagNameMap['div'];
   'sf-collection-summary': HTMLElementTagNameMap['p'];
   'sf-combat-overlay': HTMLElementTagNameMap['div'];
@@ -130,7 +131,7 @@ export interface GameElements {
   'sf-player-pvp': HTMLElementTagNameMap['div'];
   'sf-player-speech': HTMLElementTagNameMap['div'];
   'sf-pvp-enabled': HTMLElementTagNameMap['input'];
-  'sf-pvp-status': HTMLElementTagNameMap['small'];
+  'sf-trade-duel-enabled': HTMLElementTagNameMap['input'];
   'sf-quest-inventory': HTMLElementTagNameMap['span'];
   'sf-quest-list': HTMLElementTagNameMap['div'];
   'sf-quests': HTMLElementTagNameMap['section'];
@@ -166,10 +167,13 @@ export interface GameElements {
   'sf-sit-button': HTMLElementTagNameMap['button'];
   'sf-skate-tricks': HTMLElementTagNameMap['div'];
   'sf-skateboard-button': HTMLElementTagNameMap['button'];
+  'sf-scooter-button': HTMLElementTagNameMap['button'];
+  'sf-scooter-backflip': HTMLElementTagNameMap['button'];
   'sf-ski-button': HTMLElementTagNameMap['button'];
   'sf-atv-controls': HTMLElementTagNameMap['div'];
   'sf-status': HTMLElementTagNameMap['div'];
   'sf-tablet-downtown': HTMLElementTagNameMap['button'];
+  'sf-tablet-berkeley': HTMLElementTagNameMap['button'];
   'sf-tablet-goblin-village': HTMLElementTagNameMap['button'];
   'sf-tablet-cupertino': HTMLElementTagNameMap['button'];
   'sf-tablet-tahoe': HTMLElementTagNameMap['button'];
@@ -181,6 +185,7 @@ export interface GameElements {
   'sf-wanted': HTMLElementTagNameMap['div'];
   'sf-wanted-countdown': HTMLElementTagNameMap['span'];
   'sf-wave-catch': HTMLElementTagNameMap['button'];
+  'sf-surf-return': HTMLElementTagNameMap['button'];
   'sf-wave-controls': HTMLElementTagNameMap['div'];
   'sf-wave-status': HTMLElementTagNameMap['span'];
   'sf-world': HTMLElementTagNameMap['section'];

@@ -10,7 +10,13 @@ export const WORLD_SIZE = 96,
 // Compressed East Bay shore: a short crossing from the island to the shops.
 export const EAST_BAY_COAST_X = 112;
 export const EAST_BAY_GRASS_COLOR = '#a7ac87';
-export const EAST_BAY_SHORE = Object.freeze({ north: -96, south: 112, east: 128, step: 4 });
+export const EAST_BAY_SHORE = Object.freeze({
+  north: -96,
+  south: 112,
+  east: 128,
+  step: 4,
+  walkClearance: 0.18,
+});
 function shoreVertex(z: number) {
   if (z <= EAST_BAY_SHORE.north || z >= EAST_BAY_SHORE.south) return EAST_BAY_COAST_X;
   const edge = Math.min(1, (z - EAST_BAY_SHORE.north) / 20, (EAST_BAY_SHORE.south - z) / 20);
@@ -288,11 +294,12 @@ export function cutBuildingPlot(
 
 /** Layered headland ridges, with lower Rodeo/Gerbode valleys and the bridge landing. */
 export const MARIN_BOLINAS_SHORE = {
+  headland: [-20, -65] satisfies [number, number],
   north: [-8, -25] satisfies [number, number],
   south: [-2, -12] satisfies [number, number],
 };
 export const MARIN_OUTLINE = [
-  [-20, -65] satisfies [number, number],
+  MARIN_BOLINAS_SHORE.headland,
   [65, -65] satisfies [number, number],
   [58, -38] satisfies [number, number],
   [46, -22] satisfies [number, number],
@@ -340,7 +347,10 @@ export function marinElevation(x: number, z: number) {
     bolinas = bell(x, z, -4.7, -32.5, 8, 6),
     localHills =
       tam * (1.15 + 0.85 * Math.sin(x * 0.83 + z * 0.52)) +
-      bolinas * (0.92 + 0.73 * Math.cos(x * 0.91 - z * 0.69));
+      bolinas * (0.92 + 0.73 * Math.cos(x * 0.91 - z * 0.69)) +
+      0.92 * bell(x, z, 24, -30.5, 5, 5.5) +
+      0.76 * bell(x, z, 33, -23.5, 5.1, 4.6) -
+      0.7 * bell(x, z, 29, -26.5, 3.2, 4.2);
   let h = 0.42 + 9.2 * Math.tanh(Math.max(0, ridges - valleys + folds) / 9.2) + localHills;
   // Bluffs give way to sloping coves instead of a single vertical shelf.
   let coast = Infinity;

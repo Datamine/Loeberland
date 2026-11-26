@@ -4,6 +4,11 @@ import type { Point } from './types/geometry.ts';
 import type { Mesh } from './geometry.ts';
 import { marinElevation } from './geography.ts';
 export const POLICE_PURSUIT_SECONDS = 10;
+export const POLICE_PURSUIT_LINE = 'Stop, you’re under arrest!';
+
+export function policeCalling(elapsed: number) {
+  return elapsed % 4.2 < 2.8;
+}
 
 interface PoliceOfficer extends Point {
   path: Point[];

@@ -36,6 +36,22 @@ test('goblins drop a few coins, boots use a 1/8 roll and the stronger maker has 
   assert.match(MONSTER_STATS.goblin.description, /Mount Tam/);
 });
 
+test('helmeted goblins independently roll a 1/20 helmet and 1/50 upgrade kit', () => {
+  for (const kind of ['goblin-guard', 'goblin-veteran']) {
+    const drops = (roll: number) => rollMonsterDrops(kind, () => roll);
+    assert.ok(!drops(1 / 20).some((drop) => drop.hatId === 'goblin-helmet'));
+    assert.ok(drops(1 / 20 - 0.0001).some((drop) => drop.hatId === 'goblin-helmet'));
+    assert.ok(!drops(1 / 50).some((drop) => drop.lootKind === 'goblin-helmet-upgrade-kit'));
+    assert.ok(drops(1 / 50 - 0.0001).some((drop) => drop.lootKind === 'goblin-helmet-upgrade-kit'));
+  }
+  for (const kind of ['goblin', 'goblin-maker', 'lost-goblin'])
+    assert.ok(
+      !rollMonsterDrops(kind, () => 0).some(
+        (drop) => drop.hatId === 'goblin-helmet' || drop.lootKind === 'goblin-helmet-upgrade-kit',
+      ),
+    );
+});
+
 test('a new unarmed player can defeat a goblin with at most a few sandwiches; rewards roll once per kill', () => {
   let hp = 30,
     sandwiches = 0,
@@ -103,7 +119,9 @@ test('boots require ownership for defense and wardrobe availability; all new mes
   drawBallChair(chair, 0, 0, 0);
   assert.ok(chair.data.every(Number.isFinite));
   const tamGoblins = GOBLIN_SPAWNS.filter((spawn) => spawn.z < 0);
-  assert.equal(tamGoblins.length, 17);
+  assert.equal(tamGoblins.length, 21);
+  assert.equal(tamGoblins.filter(({ combatKind }) => combatKind === 'goblin-guard').length, 7);
+  assert.equal(tamGoblins.filter(({ combatKind }) => combatKind === 'goblin-veteran').length, 5);
   assert.deepEqual(
     [...new Set(tamGoblins.map(({ combatKind }) => MONSTER_STATS[combatKind].level))].sort(
       (a, b) => a - b,

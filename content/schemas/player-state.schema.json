@@ -11,7 +11,10 @@
       "additionalProperties": true
     },
     "position": {
-      "type": ["object", "null"]
+      "type": [
+        "object",
+        "null"
+      ]
     },
     "skills": {
       "type": "object",
@@ -26,7 +29,10 @@
               "type": "boolean"
             }
           },
-          "required": ["xp", "funded"],
+          "required": [
+            "xp",
+            "funded"
+          ],
           "additionalProperties": true
         },
         "hitpoints": {
@@ -42,11 +48,18 @@
               "type": "number"
             }
           },
-          "required": ["hp", "max", "xp"],
+          "required": [
+            "hp",
+            "max",
+            "xp"
+          ],
           "additionalProperties": true
         }
       },
-      "required": ["strength", "hitpoints"],
+      "required": [
+        "strength",
+        "hitpoints"
+      ],
       "additionalProperties": true
     },
     "inventory": {
@@ -82,6 +95,12 @@
             "sand": {
               "type": "number"
             },
+            "sandDelivered": {
+              "type": "number"
+            },
+            "spoonDigs": {
+              "type": "number"
+            },
             "saltLetters": {
               "type": "number"
             },
@@ -106,6 +125,9 @@
             "incomeQuarters": {
               "type": "number"
             },
+            "incomeExtraTwentieths": {
+              "type": "number"
+            },
             "ownedEquipment": {
               "type": "array"
             }
@@ -120,6 +142,8 @@
             "fish",
             "mud",
             "sand",
+            "sandDelivered",
+            "spoonDigs",
             "saltLetters",
             "saltLettersDelivered",
             "ownedHats",
@@ -128,12 +152,16 @@
             "robotaxiOwned",
             "softwareCopies",
             "incomeQuarters",
+            "incomeExtraTwentieths",
             "ownedEquipment"
           ],
           "additionalProperties": true
         },
         "ledger": {
-          "type": ["object", "null"]
+          "type": [
+            "object",
+            "null"
+          ]
         },
         "sunglasses": {
           "type": "object",
@@ -142,7 +170,9 @@
               "type": "boolean"
             }
           },
-          "required": ["owned"],
+          "required": [
+            "owned"
+          ],
           "additionalProperties": true
         },
         "grapplingHook": {
@@ -152,7 +182,13 @@
           "type": "array"
         }
       },
-      "required": ["economy", "ledger", "sunglasses", "grapplingHook", "collection"],
+      "required": [
+        "economy",
+        "ledger",
+        "sunglasses",
+        "grapplingHook",
+        "collection"
+      ],
       "additionalProperties": true
     },
     "quests": {
@@ -162,20 +198,66 @@
           "type": "object",
           "properties": {
             "stage": {
-              "enum": ["not-started", "accepted", "carrying", "completed"]
+              "enum": [
+                "not-started",
+                "accepted",
+                "carrying",
+                "completed"
+              ]
             }
           },
-          "required": ["stage"],
+          "required": [
+            "stage"
+          ],
           "additionalProperties": true
         },
         "stochasticParrot": {
           "type": "object",
           "properties": {
             "stage": {
-              "enum": ["not-started", "accepted", "carrying", "proof", "sold"]
+              "enum": [
+                "not-started",
+                "accepted",
+                "carrying",
+                "proof",
+                "sold"
+              ]
             }
           },
-          "required": ["stage"],
+          "required": [
+            "stage"
+          ],
+          "additionalProperties": true
+        },
+        "lightsaber": {
+          "type": "object",
+          "properties": {
+            "stage": {
+              "enum": [
+                "not-started",
+                "pitch",
+                "research",
+                "review",
+                "approval",
+                "fabrication",
+                "completed"
+              ]
+            },
+            "color": {
+              "enum": [
+                "blue",
+                "violet",
+                "pink",
+                "green",
+                "gold",
+                "red"
+              ]
+            }
+          },
+          "required": [
+            "stage",
+            "color"
+          ],
           "additionalProperties": true
         },
         "burningMan": {
@@ -197,7 +279,10 @@
               "type": "number"
             }
           },
-          "required": ["stage", "burnAt"],
+          "required": [
+            "stage",
+            "burnAt"
+          ],
           "additionalProperties": true
         },
         "theyLive": {
@@ -244,7 +329,12 @@
           "type": "object",
           "properties": {
             "raptor": {
-              "enum": ["not-started", "escaped", "carrying", "completed"]
+              "enum": [
+                "not-started",
+                "escaped",
+                "carrying",
+                "completed"
+              ]
             },
             "raptorDefeated": {
               "type": "boolean"
@@ -284,7 +374,10 @@
           "type": "object",
           "properties": {
             "guild": {
-              "type": ["object", "null"]
+              "type": [
+                "object",
+                "null"
+              ]
             },
             "initiated": {
               "type": "boolean"
@@ -293,13 +386,18 @@
               "type": "boolean"
             }
           },
-          "required": ["guild", "initiated", "bomberOwned"],
+          "required": [
+            "guild",
+            "initiated",
+            "bomberOwned"
+          ],
           "additionalProperties": true
         }
       },
       "required": [
         "monkey",
         "stochasticParrot",
+        "lightsaber",
         "burningMan",
         "theyLive",
         "expeditions",
@@ -323,7 +421,10 @@
           "additionalProperties": true
         },
         "bicycle": {
-          "type": ["object", "null"]
+          "type": [
+            "object",
+            "null"
+          ]
         },
         "bomber": {
           "type": "object",
@@ -332,11 +433,18 @@
               "type": "number"
             }
           },
-          "required": ["bombReadyAt"],
+          "required": [
+            "bombReadyAt"
+          ],
           "additionalProperties": true
         }
       },
-      "required": ["ferrari", "motorcycle", "bicycle", "bomber"],
+      "required": [
+        "ferrari",
+        "motorcycle",
+        "bicycle",
+        "bomber"
+      ],
       "additionalProperties": true
     },
     "activities": {
@@ -373,7 +481,10 @@
               "type": "number"
             }
           },
-          "required": ["workedSeconds", "readyAt"],
+          "required": [
+            "workedSeconds",
+            "readyAt"
+          ],
           "additionalProperties": true
         },
         "construction": {
@@ -386,7 +497,10 @@
               "type": "number"
             }
           },
-          "required": ["workedSeconds", "readyAt"],
+          "required": [
+            "workedSeconds",
+            "readyAt"
+          ],
           "additionalProperties": true
         }
       },
@@ -410,13 +524,21 @@
           "type": "boolean"
         },
         "police": {
-          "type": ["object", "null"]
+          "type": [
+            "object",
+            "null"
+          ]
         },
         "deathPending": {
           "type": "boolean"
         }
       },
-      "required": ["inebriation", "jailed", "police", "deathPending"],
+      "required": [
+        "inebriation",
+        "jailed",
+        "police",
+        "deathPending"
+      ],
       "additionalProperties": true
     },
     "employment": {
@@ -432,11 +554,16 @@
               "type": "number"
             }
           },
-          "required": ["hired", "bestScore"],
+          "required": [
+            "hired",
+            "bestScore"
+          ],
           "additionalProperties": true
         }
       },
-      "required": ["aiLab"],
+      "required": [
+        "aiLab"
+      ],
       "additionalProperties": true
     },
     "business": {
@@ -449,35 +576,80 @@
           "additionalProperties": true
         }
       },
-      "required": ["tech"],
+      "required": [
+        "tech"
+      ],
       "additionalProperties": true
     },
     "finance": {
       "type": "object",
       "properties": {
         "bank": {
-          "type": ["object", "null"]
+          "type": [
+            "object",
+            "null"
+          ]
         },
         "growth": {
-          "type": ["object", "null"]
+          "type": [
+            "object",
+            "null"
+          ]
         }
       },
-      "required": ["bank", "growth"],
+      "required": [
+        "bank",
+        "growth"
+      ],
       "additionalProperties": true
     },
     "social": {
       "type": "object",
       "properties": {
         "pvp": {
-          "type": ["object", "null"]
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "tradeDuelEnabled": {
+          "type": "boolean"
         }
       },
-      "required": ["pvp"],
+      "required": [
+        "pvp",
+        "tradeDuelEnabled"
+      ],
       "additionalProperties": true
     },
     "progress": {
       "type": "object",
       "properties": {
+        "gameCompletion": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "at": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 8640000000000000
+                },
+                "recordedOnVerification": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "at",
+                "recordedOnVerification"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
         "houseSearches": {
           "type": "array"
         },
@@ -486,9 +658,29 @@
         },
         "industrialistArmorPurchases": {
           "type": "array"
+        },
+        "armorTrimmerPayments": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "goblinBushRewards": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "scientificExperiments": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
         }
       },
-      "required": ["houseSearches", "goblinSpaceMud", "industrialistArmorPurchases"],
+      "required": [
+        "gameCompletion",
+        "houseSearches",
+        "goblinSpaceMud",
+        "industrialistArmorPurchases",
+        "armorTrimmerPayments"
+      ],
       "additionalProperties": true
     },
     "rewards": {
@@ -501,7 +693,10 @@
           "type": "number"
         }
       },
-      "required": ["pending", "serial"],
+      "required": [
+        "pending",
+        "serial"
+      ],
       "additionalProperties": true
     },
     "equipment": {
@@ -520,11 +715,17 @@
               "type": "number"
             }
           },
-          "required": ["readyAt", "burnUntil", "hopAt"],
+          "required": [
+            "readyAt",
+            "burnUntil",
+            "hopAt"
+          ],
           "additionalProperties": true
         }
       },
-      "required": ["decorativeRocket"],
+      "required": [
+        "decorativeRocket"
+      ],
       "additionalProperties": true
     }
   },

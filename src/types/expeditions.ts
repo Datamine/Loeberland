@@ -2,6 +2,15 @@ import type { Actor } from './world.ts';
 import type { WorldPoint } from './geometry.ts';
 import type { ExpeditionProgress } from './content.ts';
 import type { Economy, Health } from './controllers.ts';
+export interface KrakenAnimation {
+  strikes: number;
+  emergedAt?: number;
+  enragedAt?: number;
+  strikeAt?: number;
+  lastStrike?: { at: number; enraged: boolean };
+  hitAt?: number;
+  defeatedAt?: number;
+}
 export interface ExpeditionLoot extends WorldPoint {
   id: string;
   kind: string;
@@ -24,6 +33,8 @@ export interface ExpeditionBeam {
   from: WorldPoint & { y: number };
   to: WorldPoint & { y: number };
   ttl: number;
+  muzzles?: readonly (readonly [number, number, number])[];
+  exhaust?: readonly [number, number, number];
 }
 export interface ExpeditionEvent {
   type: string;
@@ -32,6 +43,8 @@ export interface ExpeditionEvent {
   damage?: number;
   hp?: number;
   max?: number;
+  from?: ExpeditionBeam['from'];
+  to?: ExpeditionBeam['to'];
 }
 export interface ExpeditionPrey extends WorldPoint {
   base?: number;
@@ -60,10 +73,13 @@ export interface ExpeditionOptions {
   health?: Health;
   economy?: Economy;
   food?: (amount: number) => unknown;
+  receiveCrystal?: () => { ok: boolean; message?: string };
   level?: () => number;
   defense?: () => number;
   reflect?: (damage: number) => number;
   inebriation?: () => number;
+  rerollMiss?: () => boolean;
+  hiddenFromMonsters?: () => boolean;
   sharedWorld?: () => boolean;
   player?: () => ExpeditionPrey;
   pedestrians?: () => Actor[];

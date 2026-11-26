@@ -2,6 +2,6 @@
 services:
   game:
     env_file:
-      - ${ADMIN_ENV_FILE:-.env}
+      - ${ADMIN_ENV_FILE:-../deploy/.env.local-admin}
     environment:
       ADMIN_ENV_FILE: ''

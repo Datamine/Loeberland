@@ -15,9 +15,12 @@ import {
   ITEM_STATS,
   PLAYER_WEAPONS,
   equipmentDefense,
+  sandwichCapacity,
   weaponAttackInterval,
 } from '../src/item-stats.ts';
 import { PROGRESSION } from '../src/config/progression.ts';
+import { upgradedWeaponId } from '../src/config/weapon-upgrades.ts';
+import { UPGRADED_HIKING_BACKPACK } from '../src/config/hiking-backpack.ts';
 import { SKILL_THRESHOLDS, hitpointMaximum } from '../src/progression.ts';
 
 type Attack = {
@@ -32,10 +35,47 @@ type Fighter = Attack & {
   defense: number;
   firstAttack: number;
   flight: number;
+  sandwiches?: number;
   reflect?: number;
   enrage?: Attack & { at: number };
 };
 type Pair<T> = [T, T];
+
+export function playerFighter({
+  name = 'Player',
+  level = 1,
+  hitpointsLevel = level,
+  weapon = 'unarmed',
+  defense = 0,
+  sandwiches = 0,
+  inebriation = 0,
+  distance = 0,
+  upgrade = false,
+}: {
+  name?: string;
+  level?: number;
+  hitpointsLevel?: number;
+  weapon?: string;
+  defense?: number;
+  sandwiches?: number;
+  inebriation?: number;
+  distance?: number;
+  upgrade?: boolean;
+} = {}): Fighter {
+  const upgraded = upgrade ? upgradedWeaponId(weapon) : undefined;
+  return {
+    name,
+    level,
+    hp: hitpointMaximum(SKILL_THRESHOLDS[hitpointsLevel - 1]),
+    interval: weaponAttackInterval(weapon, { ownedEquipment: upgraded ? [upgraded] : [] }),
+    firstAttack: 0,
+    flight: 0,
+    defense,
+    sandwiches,
+    range: () => weaponDamageRange(level, weapon, inebriation, distance),
+    damage: (_target, random) => rollWeaponDamage(level, weapon, random, inebriation, distance),
+  };
+}
 
 export function monsterFighter(kind: string): Fighter {
   const npc = MONSTER_STATS[kind];
@@ -74,6 +114,8 @@ export function simulateFight(
   const hp: Pair<number> = [fighters[0].hp, fighters[1].hp];
   const next: Pair<number> = [fighters[0].firstAttack, fighters[1].firstAttack];
   const damage: Pair<number> = [0, 0];
+  const attacks: Pair<number> = [0, 0];
+  const foodUsed: Pair<number> = [0, 0];
   const enraged: Pair<boolean> = [false, false];
   const impacts: { time: number; attacker: 0 | 1; attack: Attack }[] = [];
   let time = 0;
@@ -92,6 +134,7 @@ export function simulateFight(
       attacker = next[0] === next[1] ? (random() < 0.5 ? 0 : 1) : next[0] < next[1] ? 0 : 1;
       const fighter = fighters[attacker];
       attack = enraged[attacker] ? fighter.enrage! : fighter;
+      attacks[attacker]++;
       next[attacker] += attack.interval;
       if (fighter.flight) {
         impacts.push({ time: time + fighter.flight, attacker, attack });
@@ -114,10 +157,22 @@ export function simulateFight(
       enraged[target] = true;
       next[target] = Math.min(next[target], time + phase.interval);
     }
+    for (const side of [0, 1] as const) {
+      const fighter = fighters[side];
+      const heal = ITEM_STATS.sandwich.healing;
+      if (
+        hp[side] > 0 &&
+        fighter.hp - hp[side] >= heal &&
+        foodUsed[side] < (fighter.sandwiches ?? 0)
+      ) {
+        hp[side] += heal;
+        foodUsed[side]++;
+      }
+    }
     trace?.(time, hp);
   }
   const winner = hp[0] === 0 ? 1 : hp[1] === 0 ? 0 : -1;
-  return { winner, time: winner === -1 ? 120 : time, damage };
+  return { winner, time: winner === -1 ? 120 : time, damage, attacks, foodUsed };
 }
 
 function fighterFields(side: string, preset: string) {
@@ -129,10 +184,12 @@ function fighterFields(side: string, preset: string) {
       <label>Hitpoints level <input data-field="hp" type="number" min="1" max="${PROGRESSION.maxLevel}" value="1" required></label>
       <label>Weapon <select data-field="weapon"></select></label>
       <label>Inebriation (%) <input data-field="inebriation" type="number" min="0" max="100" value="0" required></label>
+      <label>Sandwiches <input data-field="food" type="number" min="0" max="${sandwichCapacity({ ownedEquipment: [UPGRADED_HIKING_BACKPACK] })}" value="0" required></label>
+      <label><input data-field="edge" type="checkbox"> Use maximum-range accuracy</label>
       <label><input data-field="boots" type="checkbox"> Combat boots</label>
       <label>Torso <select data-field="torso"></select></label>
       <label>Legs <select data-field="legs"></select></label>
-      <label><input data-field="upgrade" type="checkbox"> Weaponry upgrade kit</label>
+      <label><input data-field="upgrade" type="checkbox"> Weapon upgraded</label>
     </div>`;
   const field = <T extends HTMLElement>(key: string) =>
     group.querySelector<T>(`[data-field="${key}"]`)!;
@@ -145,7 +202,7 @@ function fighterFields(side: string, preset: string) {
   for (const id of PLAYER_WEAPONS) weapon.add(new Option(ITEM_STATS[id].name, id));
   const torso = field<HTMLSelectElement>('torso');
   torso.add(new Option('Regular shirt', 'shirt'));
-  for (const id of ['iron-armor', 'gold-trimmed-iron-armor', 'ice-top'])
+  for (const id of ['iron-armor', 'gold-trimmed-iron-armor', 'ice-top', 'kevlar-vest', 'icy-kevlar-vest'])
     torso.add(new Option(ITEM_STATS[id].name, id));
   const legs = field<HTMLSelectElement>('legs');
   legs.add(new Option('Regular trousers', 'trousers'));
@@ -157,32 +214,29 @@ function fighterFields(side: string, preset: string) {
       (input as HTMLInputElement).disabled = playerFields.hidden;
     field<HTMLInputElement>('upgrade').disabled =
       playerFields.hidden || (weapon.value !== 'railgun' && weapon.value !== 'akibo');
+    field<HTMLInputElement>('edge').disabled =
+      playerFields.hidden || !ITEM_STATS[weapon.value]?.accuracyFalloff;
   };
   kind.addEventListener('change', update);
   weapon.addEventListener('change', update);
   update();
   const read = (): Fighter => {
     if (kind.value !== 'player') return monsterFighter(kind.value);
-    const level = field<HTMLInputElement>('level').valueAsNumber;
-    const inebriation = field<HTMLInputElement>('inebriation').valueAsNumber;
     const checked = (key: string) => field<HTMLInputElement>(key).checked;
-    const id = weapon.value;
-    return {
+    return playerFighter({
       name: side,
-      level,
-      hp: hitpointMaximum(SKILL_THRESHOLDS[field<HTMLInputElement>('hp').valueAsNumber - 1]),
-      interval: weaponAttackInterval(id, {
-        ownedEquipment: checked('upgrade') ? ['railgun-upgrade'] : [],
-      }),
-      firstAttack: 0,
-      flight: 0,
+      level: field<HTMLInputElement>('level').valueAsNumber,
+      hitpointsLevel: field<HTMLInputElement>('hp').valueAsNumber,
+      weapon: weapon.value,
+      distance: checked('edge') ? ITEM_STATS[weapon.value]?.range : 0,
+      inebriation: field<HTMLInputElement>('inebriation').valueAsNumber,
+      sandwiches: field<HTMLInputElement>('food').valueAsNumber,
+      upgrade: checked('upgrade'),
       defense: equipmentDefense({
         ...clothingSelection({ torso: torso.value, legs: legs.value }),
         boots: checked('boots'),
       }),
-      range: () => weaponDamageRange(level, id, inebriation),
-      damage: (_target, random) => rollWeaponDamage(level, id, random, inebriation),
-    };
+    });
   };
   return { group, read };
 }
@@ -196,7 +250,7 @@ export function setupCombatSimulator() {
       <form>
         <div class="combat-fighters"></div>
         <button type="submit">Simulate fights</button>
-        <p class="muted">Both fighters start at full health and in range, with unlimited ammo. A fight ends at the first defeat or after two minutes.</p>
+        <p class="muted">Both fighters start at full health and can reach each other. Ammo is unlimited. Players eat after losing a sandwich’s worth of health. Fights end after two minutes or on defeat.</p>
         <output aria-live="polite"></output>
         <p class="muted">Sustained DPS uses the opponent’s Strength and armor. HP removed/s counts only hitpoints lost during the simulated fights.</p>
         <p class="muted">Sample fight · HP over time · A is teal, B is amber</p>
@@ -267,7 +321,8 @@ export function setupCombatSimulator() {
         ? `${dps(fighter)} base / ${dps(fighter.enrage)} enraged sustained DPS`
         : `${dps(fighter)} sustained DPS`;
       const delivered = elapsed > 0 ? (damage[i] / elapsed).toFixed(2) : '—';
-      result.textContent = `${i === 0 ? 'A' : 'B'} · ${fighter.name} · ${fighter.hp} HP · ${((100 * wins[i]) / rounds).toFixed(1)}% wins · ${sustained} · ${delivered} HP removed/s`;
+      const accuracy = Math.round(fighter.range(target).accuracy * 100);
+      result.textContent = `${i === 0 ? 'A' : 'B'} · ${fighter.name} · ${fighter.hp} HP · ${((100 * wins[i]) / rounds).toFixed(1)}% wins · ${accuracy}% accuracy · ${sustained} · ${delivered} HP removed/s`;
       output.append(result);
     });
     const summary = document.createElement('p');

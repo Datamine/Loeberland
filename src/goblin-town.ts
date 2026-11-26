@@ -7,6 +7,7 @@ import { GOBLIN_AI_LAB, goblinAILabScrapBlocks } from './goblin-ai-lab.ts';
 import { GOBLIN_SPACE_PROGRAM, VILLAGE_GOOSE } from './goblin-space-layout.ts';
 import { FROG_FARM } from './frog-farm.ts';
 import { drawMarshmallowSofa, drawOvaliaChair } from './furniture-models.ts';
+import { GOBLIN_CITY_HALL } from './goblin-incubator-cave.ts';
 
 export const FURNITURE_FACTORY = Object.freeze({
   name: 'Goblin Furniture Factory',
@@ -67,11 +68,11 @@ export const GOBLIN_HUTS = Object.freeze([
   { id: 'goblin-ramp-east', x: 33.5, z: -23, color: '#7d8757', direction: -1 },
   { id: 'goblin-ramp-north', x: 26.5, z: -26, color: '#8b7198', direction: -1 },
 ]);
-export function goblinRampLane(hut: (typeof GOBLIN_HUTS)[number]) {
+export function goblinRampLane(hut: (typeof GOBLIN_HUTS)[number], direction = hut.direction) {
   return {
     x: hut.x,
-    start: hut.z - hut.direction * (ATV_ROOF.run + 0.4),
-    end: hut.z + hut.direction * 4.2,
+    start: hut.z - direction * (ATV_ROOF.run + 0.4),
+    end: hut.z + direction * 4.2,
   };
 }
 export const GOBLIN_SPAWNS = Object.freeze([
@@ -96,8 +97,12 @@ export const GOBLIN_SPAWNS = Object.freeze([
   { id: 'tam-ridge-guard-2', combatKind: 'goblin-guard', x: 33, z: -38.5 },
   { id: 'tam-ridge-guard-3', combatKind: 'goblin-guard', x: 36.6, z: -40.2 },
   { id: 'tam-ridge-guard-4', combatKind: 'goblin-guard', x: 47.5, z: -36.3 },
+  { id: 'tam-ridge-guard-5', combatKind: 'goblin-guard', x: 26.5, z: -38 },
+  { id: 'tam-ridge-guard-6', combatKind: 'goblin-guard', x: 51, z: -38 },
   { id: 'tam-ridge-veteran-1', combatKind: 'goblin-veteran', x: 23.7, z: -40.2 },
   { id: 'tam-ridge-veteran-2', combatKind: 'goblin-veteran', x: 46.8, z: -44.8 },
+  { id: 'tam-ridge-veteran-3', combatKind: 'goblin-veteran', x: 35, z: -44.5 },
+  { id: 'tam-ridge-veteran-4', combatKind: 'goblin-veteran', x: 42, z: -47.5 },
 ]);
 export function goblinRoofAt(x: number, z: number) {
   return GOBLIN_HUTS.find(
@@ -113,6 +118,7 @@ export function goblinHutBlocks(x: number, z: number) {
     (Math.abs(x - VILLAGE_GOOSE.x) < 0.57 && Math.abs(z - VILLAGE_GOOSE.z) < 0.54) ||
     (Math.abs(x - GOBLIN_SPACE_PROGRAM.x) < 1.16 && Math.abs(z - GOBLIN_SPACE_PROGRAM.z) < 0.88) ||
     incubatorPitRadius(x, z) < 0.86 ||
+    (Math.abs(x - GOBLIN_CITY_HALL.x) < 2.65 && Math.abs(z - GOBLIN_CITY_HALL.z) < 1.75) ||
     goblinAILabScrapBlocks(x, z) ||
     [FURNITURE_FACTORY, GOBLIN_AI_LAB, GOBLIN_INDUSTRIALIST].some(
       (hut) =>
@@ -169,6 +175,12 @@ export function drawGoblinTown(m: Mesh, ground: (arg0: number, arg1: number) => 
       [44.1, -32.3],
       [44.2, -35.5],
       [GOBLIN_INCUBATOR.entry.x + 0.5, GOBLIN_INCUBATOR.entry.y + 0.5],
+    ],
+    [
+      [44.2, -35.5],
+      [48.8, -39.4],
+      [52.6, -42.4],
+      [GOBLIN_CITY_HALL.entry.x + 0.5, GOBLIN_CITY_HALL.entry.y + 0.5],
     ],
     [
       [41.8, -28.5],
@@ -284,7 +296,7 @@ export function drawGoblinRamp(
     kind: ATV_RAMP_KIND,
     label: 'ATV Ramp',
     description:
-      'Click the roof or its flags while riding an ATV to line up and jump. Press Esc then R to roll, or Esc then S to spin in the air.',
+      'Click the roof or its flags while riding an ATV to line up and jump. Open shortcuts and press R to roll, or S to spin in the air.',
     entry: { x: lane.x - 0.5, y: lane.start - 0.5 },
     solid: false,
     start,

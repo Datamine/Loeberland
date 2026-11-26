@@ -14,6 +14,14 @@ import { configuredDialogue } from '../../src/dialogue-config.ts';
 import { createTeleportTablets } from '../../src/teleport-tablets.ts';
 import type { Actor } from '../../src/types/world.ts';
 import type { Point } from '../../src/types/geometry.ts';
+import {
+  BASEMENT_CHURCHGOER,
+  BASEMENT_CHURCHGOERS,
+  CHURCH_STAIRS_DOWN,
+  CHURCH_STAIRS_UP,
+  inChurchBasement,
+} from '../../src/church-basement-layout.ts';
+import { rollMonsterDrops } from '../../src/monster-drops.ts';
 
 // Exercise actual production geometry and command handlers. No browser clicks,
 // replacement pathfinder, guessed building center or saved screenshot is used.
@@ -47,6 +55,45 @@ async function act(a: TestPlayer, action: string, args: Record<string, unknown> 
   return latestResult(a.messages);
 }
 const arrival = (n?: Actor | undefined) => geometry.approaches.merchant(requiredFixture(n));
+
+test('the church stairs bring two players into one public basement with hostile Churchgoers', async () => {
+  const entry = (id: string) => requiredFixture(geometry.sights.find((site) => site.id === id)).entry;
+  const down = entry(CHURCH_STAIRS_DOWN);
+  const up = entry(CHURCH_STAIRS_UP);
+  const a = await visitor(down);
+  const b = await visitor(geometry.spawn);
+  try {
+    assert.equal((await act(b, 'travel', { kind: CHURCH_STAIRS_DOWN }))?.ok, false);
+    Object.assign(b.p, { x: down.x + 0.5, z: down.y + 0.5 });
+    for (const who of [a, b]) {
+      assert.equal((await act(who, 'travel', { kind: CHURCH_STAIRS_DOWN }))?.ok, true);
+      assert.equal(who.p.instance.kind, 'world');
+      assert.deepEqual({ x: who.p.x - 0.5, y: who.p.z - 0.5 }, up);
+      assert.ok(inChurchBasement(who.p.x, who.p.z));
+    }
+    const spawn = BASEMENT_CHURCHGOERS[2];
+    const enemy = requiredFixture(game.shared.wilderness.actors.find(({ id }) => id === spawn.id));
+    const target = { x: spawn.x - 1.3, z: spawn.z };
+    assert.equal((await act(a, 'moveTo', target))?.ok, true);
+    for (let n = 0; n < 60 && enemy.enemy !== a.p.id; n++) game.tick(0.025);
+    assert.equal(enemy.level, 35);
+    assert.equal(enemy.enemy, a.p.id);
+    assert.deepEqual(
+      rollMonsterDrops(BASEMENT_CHURCHGOER, () => 1 / 40).map((loot) => loot.lootKind),
+      ['coins'],
+    );
+    assert.deepEqual(
+      rollMonsterDrops(BASEMENT_CHURCHGOER, () => 0.02).map((loot) => loot.lootKind),
+      ['coins', 'peptides'],
+    );
+    assert.equal((await act(b, 'travel', { kind: CHURCH_STAIRS_UP }))?.ok, true);
+    assert.deepEqual({ x: b.p.x - 0.5, y: b.p.z - 0.5 }, down);
+    assert.ok(inChurchBasement(a.p.x, a.p.z), 'one player can remain after another leaves');
+  } finally {
+    await game.disconnect(a.p);
+    await game.disconnect(b.p);
+  }
+});
 
 test('every authored merchant approach and patrol waypoint is within authoritative conversation range', () => {
   const audit = auditInteractionApproaches(geometry);
@@ -203,6 +250,7 @@ test('all wizard dialogue choices purchase tablets from the authored house appro
     tahoe: 1,
     cupertino: 1,
     'goblin-village': 0,
+    berkeley: 0,
   });
   assert.equal(a.p.inventory.economy.state.coins, before - 60);
   const poor = await visitor(point, { 'sf-purse-v1': '{"coins":19}' }),
@@ -215,6 +263,7 @@ test('all wizard dialogue choices purchase tablets from the authored house appro
     tahoe: 0,
     cupertino: 0,
     'goblin-village': 0,
+    berkeley: 0,
   });
 });
 

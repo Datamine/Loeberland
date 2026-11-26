@@ -58,7 +58,13 @@ export interface MapInstance {
 export interface ServerPlayer {
   characterPlaying?: boolean;
   hasCharacterPassword?: boolean;
-  depotLaunch?: { base: number; elapsed: number; trampoline?: boolean };
+  depotLaunch?: {
+    base: number;
+    elapsed: number;
+    trampoline?: boolean;
+    catapult?: import('../config/goblin-catapult.ts').CatapultFlight;
+  };
+  scientificExperiment?: { startedAt: number; exit: NetworkPosition };
   depotTriggered?: boolean;
   id: number;
   owner: string;
@@ -160,6 +166,7 @@ export interface SimulationServices {
   random: () => number;
   dirty: (player: ServerPlayer) => void;
   send: (player: ServerPlayer, message: object | string | ArrayBuffer) => void;
+  publishPlayerHit: (player: ServerPlayer, damage: number, attacker?: string | number) => void;
   routes: ReturnType<typeof import('../../server/routes.mts').createRoutePlanner>;
   shared: ReturnType<typeof import('../../server/shared-world.mts').createSharedWorld>;
   pvp: ReturnType<typeof import('../../server/pvp.mts').createPvpCombat>;

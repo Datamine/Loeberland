@@ -1,3 +1,4 @@
+import { drawBushFoliage, GOBLIN_BUSH } from './goblin-bush.ts';
 import type { Point, Ray } from './types/geometry.ts';
 interface MarinPickGroup {
   lo: number[];
@@ -7,11 +8,13 @@ interface MarinPickGroup {
 import {
   drawBolinas,
   drawBolinasBeach,
+  drawBolinasGardens,
   bolinasBeachBlend,
   bolinasBeachHeight,
   bolinasBlocks,
   bolinasWetSand,
-  BOLINAS_PATH,
+  nearBolinasTrail,
+  CULTIST_COTTAGE,
 } from './bolinas.ts';
 import {
   drawGoblinTown,
@@ -24,6 +27,8 @@ import {
 } from './goblin-town.ts';
 import { ATV_RENTAL } from './atv.ts';
 import { FROG_FARM, frogFarmBlocks, frogFarmGrade, inFrogFarm } from './frog-farm.ts';
+import { GOBLIN_CATAPULT } from './config/goblin-catapult.ts';
+import { GOBLIN_CITY_HALL } from './goblin-incubator-cave.ts';
 import { createNavigationGrid } from './navigation.ts';
 import { Mesh, unit, rayTriangle, rayBox, rand } from './geometry.ts';
 import type { RenderedSite } from './types/world.ts';
@@ -39,6 +44,7 @@ const marinInside = (x: number, z: number, poly: number[][]) => {
   return inside;
 };
 const mudColor = [0.33, 0.22, 0.14];
+const FINE_TERRAIN_STEP = 0.6;
 
 function drawMarinSurface(
   terrain: Mesh,
@@ -56,7 +62,7 @@ function drawMarinSurface(
   // Distant northern ridges use a coarse mesh; the visible headlands keep
   // finer contours without a rectangular land edge behind them.
   for (let z = mapPosition(-65); z < mapPosition(3.2);) {
-    const step = z < fineNorth ? 2.4 : 0.6;
+    const step = z < fineNorth ? 2.4 : FINE_TERRAIN_STEP;
     for (let x = mapPosition(-20); x < mapPosition(65); x += step) {
       const points = [],
         insideCell = (p: number[]) =>
@@ -73,7 +79,7 @@ function drawMarinSurface(
         if (marinInside(...p, MARIN)) points.push(p);
       // Match the fine row's vertices at the terrain LOD seam.
       if (step > 1 && z + step >= fineNorth)
-        for (let dx = 0.6; dx < step - 0.01; dx += 0.6) {
+        for (let dx = FINE_TERRAIN_STEP; dx < step - 0.01; dx += FINE_TERRAIN_STEP) {
           const p = [x + dx, z + step] satisfies [number, number];
           if (marinInside(...p, MARIN)) points.push(p);
         }
@@ -118,7 +124,7 @@ function drawMarinSurface(
         const muddy = incubatorPitRadius(xMid, zMid) < 1.16;
         const worn =
           inFrogFarm(xMid, zMid, -0.12) &&
-          Math.hypot((xMid - FROG_FARM.x) / 2.2, (zMid - FROG_FARM.z) / 2.1) <
+          Math.hypot((xMid - FROG_FARM.x) / 2.2, (zMid - FROG_FARM.z) / (FROG_FARM.d / 2)) <
             0.85 + 0.13 * Math.sin(xMid * 4 + zMid * 3);
         const m = muddy ? mud : terrain,
           start = m.data.length,
@@ -208,17 +214,30 @@ export function createMarinLand({
     north = Math.floor(Math.min(...polygon.map((p) => p[1]))),
     width = Math.ceil((Math.max(...polygon.map((p) => p[0])) - west) * resolution) + 1,
     height = Math.ceil((Math.max(...polygon.map((p) => p[1])) - north) * resolution) + 1;
-  const onLand = (x: number, z: number) => marinInside(x, z, polygon),
-    ground = (x: number, z: number) => {
-      const natural = detention.terrain(x, z);
-      const land = natural + (bolinasBeachHeight(x, z) - natural) * bolinasBeachBlend(x, z);
-      const radius = incubatorPitRadius(x, z);
-      return frogFarmGrade(x, z, land) - 0.94 * Math.max(0, 1 - radius ** 2) ** 2;
-    };
+  const onLand = (x: number, z: number) => marinInside(x, z, polygon);
+  const ungradedGround = (x: number, z: number) => {
+    const natural = detention.terrain(x, z);
+    const land = natural + (bolinasBeachHeight(x, z) - natural) * bolinasBeachBlend(x, z);
+    const radius = incubatorPitRadius(x, z);
+    return frogFarmGrade(x, z, land) - 0.94 * Math.max(0, 1 - radius ** 2) ** 2;
+  };
+  const cottage = CULTIST_COTTAGE;
+  const cottageGrade = ungradedGround(cottage.x, cottage.z);
+  function ground(x: number, z: number) {
+    const natural = ungradedGround(x, z);
+    const distance = Math.max(
+      Math.abs(x - cottage.x) - cottage.w / 2,
+      Math.abs(z - cottage.z) - cottage.d / 2,
+    );
+    // Keep all terrain vertices under the cottage and its threshold on the level pad.
+    const blend = Math.max(0, 1 - Math.max(0, distance - FINE_TERRAIN_STEP) / 0.9);
+    return natural + (cottageGrade - natural) * blend ** 2 * (3 - 2 * blend);
+  }
   const freeWorld = (x: number, z: number) =>
     onLand(x, z) &&
     !goblinHutBlocks(x, z) &&
     !frogFarmBlocks(x, z) &&
+    !(Math.abs(x - GOBLIN_CATAPULT.x) < 1.19 && Math.abs(z - GOBLIN_CATAPULT.z) < 0.82) &&
     !bolinasBlocks(x, z) &&
     ![
       [-0.18, 0] satisfies [number, number],
@@ -299,9 +318,12 @@ export function createMarinLand({
       // the terrain underneath them.
       pickLength = surface.data.length;
       drawBolinasBeach(surface, ground);
+      drawBolinasGardens(surface, ground);
       const jumpLanes = GOBLIN_HUTS.map(goblinRampLane);
       for (const patch of [
         { x: 30, z: -24, width: 31, depth: 29, count: 400, coastal: false },
+        { x: 35, z: -46, width: 32, depth: 18, count: 210, coastal: false },
+        { x: 50, z: -34, width: 16, depth: 27, count: 160, coastal: false },
         { x: -7, z: -47, width: 28, depth: 29, count: 390, coastal: true },
         { x: 38, z: -5, width: 39, depth: 17, count: 145, coastal: false },
       ]) {
@@ -310,8 +332,10 @@ export function createMarinLand({
             x = patch.x + (rand(seed, 73) - 0.5) * patch.width,
             z = patch.z + (rand(seed + 1, 73) - 0.5) * patch.depth;
           if (
+            Math.hypot(x - GOBLIN_BUSH.x, z - GOBLIN_BUSH.z) < 0.85 ||
             bolinasBeachBlend(x, z) > 0.28 ||
             incubatorPitRadius(x, z) < 1.42 ||
+            Math.hypot(x - GOBLIN_CITY_HALL.x, z - GOBLIN_CITY_HALL.z) < 3.3 ||
             inFrogFarm(x, z, 1.05) ||
             !freeWorld(x, z) ||
             !freeWorld(x + 0.36, z - 0.35) ||
@@ -323,13 +347,7 @@ export function createMarinLand({
                 z < Math.max(lane.start, lane.end) + 2.3,
             ) ||
             Math.hypot(x - ATV_RENTAL.parking.x, z - ATV_RENTAL.parking.z) < 2.4 ||
-            BOLINAS_PATH.slice(1).some(([bx, bz], j) => {
-              const [ax, az] = BOLINAS_PATH[j],
-                dx = bx - ax,
-                dz = bz - az,
-                t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz)));
-              return Math.hypot(x - ax - dx * t, z - az - dz * t) < 1.48;
-            }) ||
+            nearBolinasTrail(x, z) ||
             (!patch.coastal &&
               ((Math.abs(x - 30) < 1.8 && z > FURNITURE_FACTORY.front + 0.2 && z < -16.3) ||
                 (x >= 30 && x < 41.5 && z > -22.6 && z < -19.6) ||
@@ -418,28 +436,56 @@ export function createMarinLand({
     }
     return surface;
   }
+  function drawCollectibleBush(m: Mesh): RenderedSite {
+    const { id, label, x, z, entry } = GOBLIN_BUSH;
+    const y = ground(x, z);
+    const start = m.data.length;
+    drawBushFoliage(m, x, y + 0.38, z, 0.54, 0.43, 0.49);
+    return {
+      id,
+      kind: id,
+      label,
+      entry: { ...entry },
+      solid: false,
+      start,
+      count: m.data.length - start,
+      lo: [x - 0.57, y - 0.04, z - 0.52],
+      hi: [x + 0.57, y + 0.84, z + 0.52],
+    };
+  }
   function drawIncubator(m: Mesh): RenderedSite {
     surfaceMesh();
     const start = m.data.length;
     for (const value of mud.data) m.data.push(value);
+    const { id, name, entry, x, z } = GOBLIN_INCUBATOR;
+    const ladderZ = z + 0.92, lip = ground(x, ladderZ);
+    for (const side of [-1, 1]) {
+      const railX = x + side * 0.43;
+      m.rod([railX, ground(railX, z + 0.08), z + 0.08], [railX, lip + 0.92, ladderZ],
+        0.064, '#68472e', 7, 'wood');
+    }
+    for (let step = 0; step < 7; step++) {
+      const t = step / 6, y = lip - 0.62 + t * 1.49;
+      m.rod([x - 0.44, y, z + 0.08 + t * 0.84], [x + 0.44, y, z + 0.08 + t * 0.84],
+        0.047, '#ae7d49', 6, 'wood');
+    }
     const lo = [Infinity, Infinity, Infinity];
     const hi = [-Infinity, -Infinity, -Infinity];
-    for (let i = 0; i < mud.data.length; i += 11)
+    for (let i = start; i < m.data.length; i += 11)
       for (let axis = 0; axis < 3; axis++) {
-        lo[axis] = Math.min(lo[axis], mud.data[i + axis]);
-        hi[axis] = Math.max(hi[axis], mud.data[i + axis]);
+        lo[axis] = Math.min(lo[axis], m.data[i + axis]);
+        hi[axis] = Math.max(hi[axis], m.data[i + axis]);
       }
-    const { id, name, entry } = GOBLIN_INCUBATOR;
     return {
       id,
       kind: id,
       label: name,
       entry,
       start,
-      count: mud.data.length,
+      count: m.data.length - start,
       lo,
       hi,
-      description: 'A muddy hole in the ground. The Goblin Founder does business at the rim.',
+      description: 'A muddy excavation where the Goblin Founder pitches the next big thing.',
     };
   }
   // Group terrain faces once. Ordinary city clicks reject every headland
@@ -498,6 +544,7 @@ export function createMarinLand({
     nearest,
     raycast,
     drawIncubator,
+    drawCollectibleBush,
     draw(m: { data: number[] }) {
       const { data } = surfaceMesh();
       // The incubator has its own scene object so its mud can be examined.

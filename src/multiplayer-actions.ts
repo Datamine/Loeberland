@@ -17,11 +17,11 @@ interface MultiplayerControllers extends ControllerStates {
   aiLabJob: Pick<PlayerRuntime['job'], 'state'>;
   chase: Pick<PlayerRuntime['police'], 'state'>;
   monkeyKeeper: Pick<PlayerRuntime['keeper'], 'state'>;
-  fishingSite: import('./fishing.ts').FishingLocation;
+  fishingSite: (id?: string) => import('./fishing.ts').FishingLocation | undefined;
   merchants: Actor[];
   ferrari?: Pick<
     NonNullable<import('./types/movement.ts').MovementRuntime['ferrari']>,
-    'state'
+    'state' | 'applySaved'
   > | null;
   resolvePitch?: (message: Extract<ServerEvent, { type: 'notice' | 'salesDecision' }>) => unknown;
 }
@@ -186,6 +186,7 @@ export function createMultiplayerActions({
   } = controllers;
   const pursuits = createPursuitPresentation({ police: chase, keeper: monkeyKeeper });
   const deliveryPresentation = createDeliveryPresentation();
+  let krakenSource: PersonalSnapshot['kraken'];
   function request(verb: string, args: object = {}) {
     const promise = client.command('playerAction', { verb, ...args }).then((r) => {
       if (r.message) announce(r.message, r.ok ? 'You' : 'Server');
@@ -218,6 +219,7 @@ export function createMultiplayerActions({
         if (isRecord(theyLive)) Object.assign(quests.theyLive.state, theyLive);
       } else if (key === 'sf-inebriation-v1' && typeof value === 'number')
         inebriation.state.percent = value;
+      else if (key === 'sf-ferrari-v1') controllers.ferrari?.applySaved(value);
       else if (mapping[key]) Object.assign(mapping[key].state, value);
       else if (key === 'sf-hitpoints-v1') Object.assign(health.state, value);
     }
@@ -225,8 +227,10 @@ export function createMultiplayerActions({
       deliveryPresentation.accept(state.delivery, state.deliveryArrivals ?? [], time);
       deli.state.arrivals = state.deliveryArrivals ?? [];
       if (state.fishing) {
-        Object.assign(fishing.state, state.fishing);
-        fishing.state.site = controllers.fishingSite;
+        const { siteId, ...cast } = state.fishing;
+        Object.assign(fishing.state, cast, {
+          site: cast.active ? (controllers.fishingSite(siteId) ?? null) : null,
+        });
       }
       if (state.delivery) {
         Object.assign(deli.state, state.delivery);
@@ -246,7 +250,13 @@ export function createMultiplayerActions({
         : null;
       pursuits.syncPersonal(state, time);
       if (state.ship) Object.assign(expeditions.ship, state.ship);
-      if (state.kraken) Object.assign(expeditions.kraken, state.kraken);
+      if (state.kraken && state.kraken !== krakenSource) {
+        krakenSource = state.kraken;
+        const { clock, ...kraken } = state.kraken;
+        Object.assign(expeditions.kraken, kraken, {
+          animationSample: clock === undefined ? undefined : { clock, time },
+        });
+      }
       if (state.loot)
         expeditions.state.loot = [
           ...expeditions.state.loot.filter((n) => n.network),
@@ -261,6 +271,9 @@ export function createMultiplayerActions({
     if (message.type === 'instance' || message.type === 'welcome') {
       pursuits.clear();
       deliveryPresentation.clear();
+      krakenSource = undefined;
+      expeditions.kraken.visible = false;
+      expeditions.kraken.animationSample = undefined;
     }
     if (message.type === 'playerState')
       apply(message.privateState, message.state, message.sampleTime);

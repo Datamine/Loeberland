@@ -11,7 +11,7 @@ import { characterRoot, characterNormal } from './character-frame.ts';
 const CHARACTER_SKIN_GLSL = `
 attribute vec4 aRig;
 uniform float uSkinning,uCharacterUVAngle,uCharacterNormalize;
-uniform vec4 uBones[48],uPalette[23];
+uniform vec4 uBones[48],uPalette[24];
 uniform mat4 uCharacterRoot;
 uniform mat3 uCharacterNormal;
 void sfCharacterSkin(inout vec3 p,inout vec3 n,inout vec3 color,inout vec2 uv){

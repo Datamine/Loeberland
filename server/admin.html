@@ -306,7 +306,15 @@
       },
       "railgun-upgrade": {
         name: "Weaponry upgrade kit",
-        description: "Increases the fire rate of your railgun and Akimbos by 10% while owned."
+        description: "Use one kit to increase the fire rate of either a Railgun or an Akimbo by 10%."
+      },
+      "upgraded-railgun": {
+        name: "Upgraded Railgun",
+        description: "A Railgun fitted with a Weaponry upgrade kit. It fires 10% faster."
+      },
+      "upgraded-akimbo": {
+        name: "Upgraded Akimbo",
+        description: "Dual pistols fitted with a Weaponry upgrade kit. They fire 10% faster."
       },
       "combat-boots": {
         name: "Combat boots",
@@ -342,103 +350,155 @@
       unarmed: {
         name: "Fist",
         slot: "weapon",
-        range: 1.35,
-        interval: 1.05,
+        range: 1.2,
+        interval: 0.95,
         min: 1,
-        max: 2,
-        minPerLevel: 0,
-        maxPerLevel: 0.8,
-        accuracy: 0.65,
-        accuracyPerLevel: 0.02,
-        accuracyCap: 0.9
+        max: 3,
+        minPerLevel: 0.1,
+        maxPerLevel: 0.38,
+        accuracy: 0.64,
+        accuracyPerLevel: 4e-3,
+        accuracyCap: 0.76,
+        description: "Quick bare-handed strikes with very short reach."
       },
       "rolling-pin": {
-        name: "Metal rolling pin",
+        name: "Rolling pin",
         slot: "weapon",
         price: 20,
         range: 1.4,
-        interval: 1,
+        interval: 0.95,
         min: 2,
         max: 5,
-        minPerLevel: 0.15,
-        maxPerLevel: 0.8,
-        accuracy: 0.78,
-        accuracyPerLevel: 0.012,
-        accuracyCap: 0.94,
-        description: "A stainless-steel rolling pin from Cotogna, with a solid barrel and worn wooden handles."
+        minPerLevel: 0.24,
+        maxPerLevel: 0.55,
+        accuracy: 0.82,
+        accuracyPerLevel: 4e-3,
+        accuracyCap: 0.9,
+        description: "A reliable starter weapon with a narrow damage spread."
+      },
+      "bowling-ball": {
+        name: "Bowling ball",
+        slot: "weapon",
+        price: 60,
+        range: 1.25,
+        interval: 1.12,
+        min: 2,
+        max: 9,
+        minPerLevel: 0.29,
+        maxPerLevel: 0.84,
+        accuracy: 0.7,
+        accuracyPerLevel: 4e-3,
+        accuracyCap: 0.8,
+        description: "A heavy close-range swing. Trades some accuracy for a bigger hit than the rolling pin."
       },
       crowbar: {
         name: "Crowbar",
         slot: "weapon",
         price: 35,
-        range: 1.5,
-        interval: 1,
-        min: 2,
-        max: 6,
-        minPerLevel: 0.15,
-        maxPerLevel: 0.8,
-        accuracy: 0.78,
-        accuracyPerLevel: 0.012,
-        accuracyCap: 0.94,
-        description: "A steel crowbar with a red shaft and a forged hook."
+        range: 1.65,
+        interval: 0.99,
+        min: 3,
+        max: 7,
+        minPerLevel: 0.31,
+        maxPerLevel: 0.72,
+        accuracy: 0.75,
+        accuracyPerLevel: 4e-3,
+        accuracyCap: 0.84,
+        description: "The hooked steel bar gives you extra reach and a solid hit."
+      },
+      "combat-lamp": {
+        name: "Combat Lamp",
+        slot: "weapon",
+        price: 45,
+        range: 2.1,
+        interval: 1.16,
+        min: 3,
+        max: 10,
+        minPerLevel: 0.35,
+        maxPerLevel: 0.97,
+        accuracy: 0.74,
+        accuracyPerLevel: 4e-3,
+        accuracyCap: 0.83,
+        description: "A brass floor lamp with a weighted base, a glowing shade, and enough reach to keep your distance."
       },
       bayonet: {
         name: "Bayonet",
         slot: "weapon",
-        range: 1.35,
-        interval: 1.05,
-        min: 4,
-        max: 11,
-        minPerLevel: 0.4,
-        maxPerLevel: 1,
-        accuracy: 0.92,
-        accuracyPerLevel: 6e-3,
-        accuracyCap: 0.98
+        range: 1.4,
+        interval: 0.88,
+        min: 5,
+        max: 9,
+        minPerLevel: 0.49,
+        maxPerLevel: 0.83,
+        accuracy: 0.83,
+        accuracyPerLevel: 4e-3,
+        accuracyCap: 0.92,
+        description: "A precise thrust with steady damage. It can strike spectres."
       },
       battleaxe: {
         name: "Battleaxe",
         slot: "weapon",
         price: 50,
+        range: 1.65,
+        interval: 1.23,
+        min: 4,
+        max: 19,
+        minPerLevel: 0.32,
+        maxPerLevel: 1.56,
+        accuracy: 0.65,
+        accuracyPerLevel: 4e-3,
+        accuracyCap: 0.77,
+        description: "A slow, wide swing with a high max hit. Useful against armor."
+      },
+      katana: {
+        name: "Katana",
+        slot: "weapon",
+        price: 100,
         range: 1.5,
-        interval: 1.05,
-        min: 6,
-        max: 11.5,
-        minPerLevel: 0.35,
-        maxPerLevel: 0.85,
-        accuracy: 0.935,
-        accuracyPerLevel: 5e-3,
-        accuracyCap: 0.985
+        interval: 0.74,
+        min: 4,
+        max: 9,
+        minPerLevel: 0.4,
+        maxPerLevel: 0.83,
+        accuracy: 0.81,
+        accuracyPerLevel: 4e-3,
+        accuracyCap: 0.91,
+        description: "A light, accurate blade. Deals smaller hits more often than the battleaxe."
       },
       railgun: {
         name: "Railgun",
         slot: "weapon",
-        range: 5,
-        interval: 0.8,
-        min: 8,
+        range: 7.5,
+        interval: 1.02,
+        min: 7,
         max: 12,
-        minPerLevel: 0.3,
-        maxPerLevel: 0.7,
-        accuracy: 0.95,
+        minPerLevel: 0.7,
+        maxPerLevel: 1.65,
+        accuracy: 0.83,
         accuracyPerLevel: 4e-3,
-        accuracyCap: 0.99
+        accuracyCap: 0.93,
+        accuracyFalloff: 0.14,
+        description: "A long-range precision weapon. Its battery powers 25 shots."
       },
       akibo: {
         name: "Akimbos",
         slot: "weapon",
-        range: 7,
-        interval: 0.8,
-        min: 8,
+        range: 5.5,
+        interval: 0.56,
+        min: 6,
         max: 12,
-        minPerLevel: 0.3,
-        maxPerLevel: 0.7,
-        accuracy: 0.95,
+        minPerLevel: 0.45,
+        maxPerLevel: 0.92,
+        accuracy: 0.76,
         accuracyPerLevel: 4e-3,
-        accuracyCap: 0.99
+        accuracyCap: 0.87,
+        accuracyFalloff: 0.42,
+        description: "Fast dual pistols with strong close-range DPS. Accuracy falls off sharply at distance."
       },
       "new-year-rocket": {
         name: "New Year\u2019s rocket",
         slot: "back",
-        description: "An oversized decorative rocket. Light it for ten seconds, once a minute. Press Esc then J while it burns to hop about a character-height into the air."
+        description: "An oversized decorative rocket. Light it for ten seconds, once a minute. Open shortcuts and press J while it burns to hop about a character-height into the air."
       },
       uni: {
         name: "Uni",
@@ -468,43 +528,143 @@
         defense: 3,
         description: "A dark iron breastplate edged with polished gold."
       },
+      "gold-trimmed-iron-armor-legs": {
+        name: "Gold-trimmed iron leg armor",
+        slot: "legs",
+        defense: 2,
+        description: "Articulated iron leg plates edged with polished gold."
+      },
+      "steel-chainmail": {
+        name: "Steel chainmail",
+        slot: "torso",
+        defense: 3,
+        price: 400,
+        color: "#696e71",
+        trim: "#b8c1c2",
+        description: "A riveted shirt of steel rings with a dark leather edging."
+      },
+      "kevlar-vest": {
+        name: "Kevlar Vest",
+        slot: "torso",
+        defense: 4,
+        price: 3e3,
+        color: "#3e4544",
+        trim: "#6d7868",
+        description: "A charcoal protective vest with broad shoulder straps and layered webbing."
+      },
+      "icy-kevlar-vest": {
+        name: "Icy Kevlar Vest",
+        slot: "torso",
+        defense: 10,
+        color: "#376f82",
+        trim: "#a3e3eb",
+        description: "A Kevlar Vest fused with an Ice Top. Pale ice plates overlap the protective fabric."
+      },
+      "kevlar-pants": {
+        name: "Kevlar Pants",
+        slot: "legs",
+        defense: 4,
+        price: 3e3,
+        color: "#343a3b",
+        trim: "#14171b",
+        description: "Charcoal protective trousers with black knee pads and reinforced thighs."
+      },
+      "icy-kevlar-pants": {
+        name: "Icy Kevlar Pants",
+        slot: "legs",
+        defense: 10,
+        color: "#305c70",
+        trim: "#a3e3eb",
+        description: "Kevlar Pants fused with Ice Pants. Beveled ice plates protect the thighs and knees."
+      },
       "armor-trimming-kit": {
         name: "Armor trimming kit",
-        description: "Apply it to a suit of iron armor to add gold trim."
+        description: "Adds gold trim to one piece of iron armor."
       },
       "bind-tablet": {
         name: "Bind Tablet",
-        description: "Binds nearby PvP opponents for ten seconds. Breaking it deals 10 damage to you."
+        description: "Roots nearby monsters and eligible PvP opponents for ten seconds. Breaking it deals 10 damage to you."
       },
       "recoil-amulet": {
-        name: "Recoil Amulet",
+        name: "Recoil amulet",
         slot: "neck",
         description: "Returns one fifth of damage taken to the attacker."
+      },
+      "defence-amulet": {
+        name: "Defence amulet",
+        slot: "neck",
+        defense: 1,
+        description: "A shield-shaped pendant. Grants +1 defence while equipped."
+      },
+      "goblin-charm": {
+        name: "Goblin Charm",
+        slot: "neck",
+        description: "The Goblin King\u2019s bronze seal. While equipped, it gives each missed attack one fresh accuracy roll."
+      },
+      "invisibility-cloak": {
+        name: "Invisibility cloak",
+        slot: "back",
+        description: "Hides your torso, limbs, amulet, and the cloak itself. Your head, hands, and feet remain visible. Monsters ignore you until provoked."
       },
       "missile-launcher": {
         name: "Missile Launcher",
         slot: "weapon",
-        description: "A heavy shoulder launcher built in the Berkeley lab. Uses one missile per shot.",
-        interval: 2.4,
-        range: 10,
-        min: 17,
-        max: 60,
-        minPerLevel: 0.9,
-        maxPerLevel: 2.95,
-        accuracy: 0.95,
+        description: "The longest reach and largest single hit. Slow to fire and uses one missile per shot.",
+        interval: 2.2,
+        range: 12,
+        min: 18,
+        max: 68,
+        minPerLevel: 0.6,
+        maxPerLevel: 3.7,
+        accuracy: 0.6,
         accuracyPerLevel: 4e-3,
-        accuracyCap: 0.99
+        accuracyCap: 0.77,
+        accuracyFalloff: 0.16
+      },
+      lightsaber: {
+        name: "Lightsaber",
+        slot: "weapon",
+        range: 1.5,
+        interval: 0.56,
+        min: 8,
+        max: 15,
+        minPerLevel: 0.62,
+        maxPerLevel: 1.3,
+        accuracy: 0.77,
+        accuracyPerLevel: 4e-3,
+        accuracyCap: 0.87,
+        description: "The highest sustained melee damage. A railgun battery powers ten landed hits."
+      },
+      "light-crystal": {
+        name: "Light crystal",
+        description: "A rare crystal dropped by monsters. The Defense Manufacturer needs one to build a lightsaber."
       },
       "clock-amulet": {
         name: "Clock amulet",
         slot: "neck",
         description: "A tiny clock on a chain. It keeps its own appointments."
       },
+      albatross: {
+        name: "Albatross",
+        slot: "neck",
+        price: 50,
+        defense: -5,
+        description: "A whole albatross, worn on a rope around your neck. Reduces defense by 5."
+      },
       backpack: {
         name: "Hiking backpack",
         slot: "back",
         price: 100,
         description: "A sturdy hiking pack with room for twenty sandwiches."
+      },
+      "upgraded-backpack": {
+        name: "Upgraded Hiking Backpack",
+        slot: "back",
+        description: "A reinforced hiking pack with room for twenty-five sandwiches."
+      },
+      "hiking-backpack-upgrade-kit": {
+        name: "Hiking Backpack Upgrade Kit",
+        description: "Adds room for five more sandwiches to a Hiking Backpack."
       },
       "bison-hide": {
         name: "Bison hide",
@@ -521,6 +681,16 @@
       "fighter-yard-pass": {
         name: "Fighter Yard pass",
         description: "A signed waiver and receipt for 10 coins, recorded by Tyler at the Fighter Yard."
+      },
+      scooter: {
+        name: "Scooter",
+        price: 100,
+        description: "A compact stunt scooter with a reinforced deck. Take it out anywhere you can ride."
+      },
+      fireworks: {
+        name: "Fireworks",
+        price: 50,
+        description: "A single-use display of colorful fireworks from Pyromaniac Peter."
       },
       "goblin-phone": {
         name: "Goblin Phone",
@@ -539,13 +709,39 @@
         slot: "top",
         price: 500
       },
+      spoon: {
+        name: "Spoon",
+        description: "A spoon from Tommy. Carry it to collect an extra sack on every fifth dig at Ocean Beach."
+      },
+      "leather-jacket": {
+        name: "Leather jacket",
+        slot: "top",
+        description: "An open black leather jacket with a folded collar and brushed metal hardware. Increases coin earnings by 20% while equipped and stacks with the iPhone.",
+        color: "#16181d",
+        trim: "#353943"
+      },
+      "puffy-parka": {
+        name: "Puffy Parka",
+        slot: "top",
+        price: 75,
+        defense: 1,
+        color: "#456a82",
+        trim: "#263e50",
+        description: "A quilted blue parka with a padded hood. Adds 1 defense when worn."
+      },
+      barrel: {
+        name: "Barrel",
+        slot: "top",
+        defense: 2,
+        description: "A wooden barrel with iron hoops and cutouts for your arms. Adds 2 defense when worn."
+      },
       "goose-corp-shirt": {
         name: "Goose Corp T-shirt",
         description: "A charcoal T-shirt with a white goose logo on the chest.",
         slot: "top"
       },
       "goose-costume": {
-        name: "Goose Costume",
+        name: "Goose costume",
         slot: "torso",
         description: "A padded white goose costume with an orange bill."
       },
@@ -565,6 +761,106 @@
         slot: "legs",
         description: "A sweeping black skirt. Enough fabric to consider the wind a collaborator."
       },
+      "charcoal-suit": {
+        name: "Charcoal Suit",
+        slot: "top",
+        price: 100,
+        color: "#383b42",
+        description: "A fitted charcoal jacket with matching trousers and a crisp white shirt."
+      },
+      "black-tie": {
+        name: "Black Tie",
+        slot: "neck",
+        price: 25,
+        description: "A black silk tie with a neatly dimpled knot."
+      },
+      "white-scarf": {
+        name: "White scarf",
+        slot: "neck",
+        price: 750,
+        description: "A soft white scarf with a loose wrap and fringed ends."
+      },
+      "blue-jeans": {
+        name: "Blue jeans",
+        slot: "legs",
+        price: 1400,
+        color: "#385980",
+        description: "Indigo denim with faded knees, gold stitching, and turned cuffs."
+      },
+      "silk-kimono": {
+        name: "Silk kimono",
+        slot: "top",
+        price: 800,
+        color: "#584067",
+        trim: "#c4a375",
+        description: "A plum silk kimono with wide sleeves, an obi sash, and embroidered blossoms."
+      },
+      "techwear-top": {
+        name: "Techwear Top",
+        slot: "top",
+        price: 125,
+        color: "#35434c",
+        description: "A close-cut graphite jacket with an offset zipper, alloy chest fittings, and adjustable cuffs."
+      },
+      "techwear-bottoms": {
+        name: "Techwear Cargo Pants",
+        slot: "legs",
+        price: 100,
+        color: "#41494e",
+        description: "Loose cargo trousers with gusseted pockets, brushed metal clasps, and cinch straps."
+      },
+      "yellow-top": {
+        name: "Bride's top",
+        slot: "top",
+        price: 50,
+        color: "#f9c72e",
+        trim: "#232226",
+        description: "A fitted golden-yellow zip jacket with black racing stripes."
+      },
+      "yellow-pants": {
+        name: "Bride's pants",
+        slot: "legs",
+        price: 50,
+        color: "#f9c72e",
+        description: "Slim yellow trousers with a black stripe down each leg."
+      },
+      "goblin-helmet": {
+        name: "Goblin helmet",
+        slot: "hat",
+        hatId: "goblin-helmet",
+        defense: 2,
+        description: "A goblin guard's hammered helmet. Blocks up to 2 damage per incoming combat hit."
+      },
+      "upgraded-goblin-helmet": {
+        name: "Reinforced goblin helmet",
+        slot: "hat",
+        hatId: "upgraded-goblin-helmet",
+        defense: 3,
+        description: "A goblin helmet reinforced with a riveted band. Blocks up to 3 damage per incoming combat hit."
+      },
+      "goblin-helmet-upgrade-kit": {
+        name: "Goblin helmet upgrade kit",
+        description: "Rivets and a reinforced band. Use it from the inventory to improve a goblin helmet."
+      },
+      "bush-hat": {
+        name: "Bush hat",
+        slot: "hat",
+        hatId: "bush-hat",
+        defense: 1,
+        description: "A huge round crown of leaves. Adds 1 defense when worn."
+      },
+      "bush-top": {
+        name: "Bush top",
+        slot: "top",
+        defense: 1,
+        description: "A round bush big enough to hide your whole torso. Adds 1 defense when worn."
+      },
+      "bush-legs": {
+        name: "Bush legs",
+        slot: "legs",
+        defense: 1,
+        description: "Two round clumps of foliage, one for each leg. Adds 1 defense when worn."
+      },
       "downtown-tablet": {
         name: "Downtown Teleport",
         price: 20,
@@ -582,6 +878,11 @@
       "goblin-village-tablet": {
         name: "Goblin Village Teleport",
         price: 20
+      },
+      "berkeley-tablet": {
+        name: "Berkeley Teleport",
+        price: 20,
+        description: "A purple teleport tablet stamped with the Berkeley institute\u2019s campanile."
       },
       "ice-top": {
         name: "Ice top",
@@ -655,6 +956,43 @@
     return texts[id];
   }
 
+  // src/config/defense-workshop.ts
+  var VEST_STOCK = ["steel-chainmail", "kevlar-vest"];
+  var DEFENSE_ARMOR_STOCK = [...VEST_STOCK, "kevlar-pants"];
+  var ICY_KEVLAR = {
+    item: "icy-kevlar-vest",
+    slot: "torso",
+    ingredients: ["kevlar-vest", "ice-top"],
+    coins: 22e3,
+    sand: 100,
+    peptides: 10
+  };
+  var ICY_KEVLAR_PANTS = {
+    ...ICY_KEVLAR,
+    item: "icy-kevlar-pants",
+    slot: "legs",
+    ingredients: ["kevlar-pants", "ice-pants"]
+  };
+  var DEFENSE_TORSOS = [...VEST_STOCK, ICY_KEVLAR.item];
+  var DEFENSE_LEGS = ["kevlar-pants", ICY_KEVLAR_PANTS.item];
+
+  // src/config/weapon-upgrades.ts
+  var UPGRADED_RAILGUN = "upgraded-railgun";
+  var UPGRADED_AKIMBO = "upgraded-akimbo";
+  function upgradedWeaponId(weapon) {
+    if (weapon === "railgun") return UPGRADED_RAILGUN;
+    if (weapon === "akibo") return UPGRADED_AKIMBO;
+  }
+  function baseWeaponId(id) {
+    if (id === UPGRADED_RAILGUN) return "railgun";
+    if (id === UPGRADED_AKIMBO) return "akibo";
+    return id;
+  }
+
+  // src/config/hiking-backpack.ts
+  var HIKING_BACKPACK = "backpack";
+  var UPGRADED_HIKING_BACKPACK = "upgraded-backpack";
+
   // src/config/item-stats.ts
   function defineItems(items) {
     const copies = Object.fromEntries(
@@ -671,7 +1009,6 @@
   subscribeContent(applyItemContent);
   var EQUIPMENT_IDS = Object.freeze([
     "tinfoil-suit",
-    "railgun-upgrade",
     "combat-boots",
     "party-boots",
     "ball-chair",
@@ -681,28 +1018,58 @@
     "ovalia-chair",
     "bayonet",
     "railgun",
+    UPGRADED_RAILGUN,
     "battleaxe",
+    "combat-lamp",
+    "katana",
+    "lightsaber",
     "rolling-pin",
+    "bowling-ball",
     "crowbar",
     "ice-top",
     "ice-pants",
     "akibo",
-    "backpack",
+    UPGRADED_AKIMBO,
+    HIKING_BACKPACK,
+    UPGRADED_HIKING_BACKPACK,
     "new-year-rocket",
+    "invisibility-cloak",
     "clock-amulet",
     "recoil-amulet",
+    "defence-amulet",
+    "goblin-charm",
+    "albatross",
     "iron-armor",
     "iron-armor-legs",
     "gold-trimmed-iron-armor",
+    "gold-trimmed-iron-armor-legs",
+    ...DEFENSE_TORSOS,
+    ...DEFENSE_LEGS,
     "missile-launcher",
     "black-cloak-top",
     "black-cloak-bottom",
     "decorative-robe-top",
     "cashmere-turtleneck",
+    "puffy-parka",
+    "leather-jacket",
+    "spoon",
+    "barrel",
     "goose-corp-shirt",
     "goose-costume",
     "decorative-robe-bottom",
+    "charcoal-suit",
+    "black-tie",
+    "white-scarf",
+    "blue-jeans",
+    "silk-kimono",
+    "techwear-top",
+    "techwear-bottoms",
+    "yellow-top",
+    "yellow-pants",
+    "bush-top",
+    "bush-legs",
     "goblin-phone",
+    "scooter",
     "fighter-yard-pass"
   ]);
 
@@ -710,16 +1077,59 @@
   var PLAYER_WEAPONS = [
     "unarmed",
     "rolling-pin",
+    "bowling-ball",
     "crowbar",
+    "combat-lamp",
     "bayonet",
     "battleaxe",
+    "katana",
     "railgun",
     "akibo",
-    "missile-launcher"
+    "missile-launcher",
+    "lightsaber"
   ];
+  function equipmentOwned(purse, id) {
+    const upgraded = id === HIKING_BACKPACK ? UPGRADED_HIKING_BACKPACK : upgradedWeaponId(id);
+    return !!(purse?.ownedEquipment?.includes(id) || upgraded && purse?.ownedEquipment?.includes(upgraded));
+  }
+  function baseEquipmentId(id) {
+    return id === UPGRADED_HIKING_BACKPACK ? HIKING_BACKPACK : baseWeaponId(id);
+  }
+  function weaponDisplayName(weapon, purse) {
+    const upgraded = upgradedWeaponId(weapon);
+    const equipped = upgraded && purse.ownedEquipment.includes(upgraded) ? upgraded : weapon;
+    return ITEM_STATS[equipped]?.name ?? ITEM_STATS.unarmed.name;
+  }
   function normalizeBoots(value) {
     return value === "party-boots" ? value : value === true || value === "true";
   }
+  function weaponOwned(purse, id) {
+    return id === "unarmed" || !!purse && isOneOf(PLAYER_WEAPONS, id) && equipmentOwned(purse, id);
+  }
+
+  // src/goblin-bush.ts
+  var GOBLIN_BUSH_GUARD = "goblin-bush-guard";
+  var GOBLIN_BUSH_ALLY = "goblin-bush-ally";
+  var GOBLIN_BUSH_AMBUSH = {
+    [GOBLIN_BUSH_GUARD]: { x: 51.5, z: -31.5, line: "Hey! That is my private property!" },
+    [GOBLIN_BUSH_ALLY]: { x: 49.75, z: -33, line: "Stop violating his private property rights!" }
+  };
+  var BUSH_COLORS = ["#435e32", "#627d3d", "#81934b"];
+
+  // src/config/fancy-dress.ts
+  var FANCY_DRESS = {
+    id: "fancy-dress-merchant",
+    name: "Fancy Dress Merchant",
+    x: 34,
+    z: 80,
+    outfit: {
+      neck: "white-scarf",
+      legs: "blue-jeans",
+      torso: "silk-kimono",
+      hat: "napoleon-hat",
+      weapon: "bowling-ball"
+    }
+  };
 
   // src/config/hats.ts
   var HAT_CATALOG = Object.freeze(
@@ -796,6 +1206,52 @@
         colors: ["#3568d1", "#78a3ef", "#23478f"]
       },
       {
+        id: "loaf-of-bread",
+        name: "Loaf of Bread",
+        price: 5,
+        seller: "bakery",
+        colors: ["#af6534", "#f2c57e", "#6d411f"]
+      },
+      {
+        id: "jester",
+        name: "Jester hat",
+        price: 50,
+        seller: "decorative-robe-seller",
+        colors: ["#bd2962", "#146d89", "#f2c04e"]
+      },
+      {
+        id: "napoleon-hat",
+        name: "Napoleon hat",
+        price: 2200,
+        seller: FANCY_DRESS.id,
+        colors: ["#262631", "#c3a773", "#9c3544"]
+      },
+      {
+        id: "gnome-cap",
+        name: "Gnome cap",
+        price: 4400,
+        seller: FANCY_DRESS.id,
+        colors: ["#3c8c49", "#3c8c49", "#3c8c49"]
+      },
+      {
+        id: "goblin-helmet",
+        name: "Goblin helmet",
+        dropOnly: true,
+        colors: ["#41474a", "#50575a", "#697278"]
+      },
+      {
+        id: "upgraded-goblin-helmet",
+        name: "Reinforced goblin helmet",
+        dropOnly: true,
+        colors: ["#39434c", "#97643c", "#dfb465"]
+      },
+      {
+        id: "bush-hat",
+        name: "Bush hat",
+        dropOnly: true,
+        colors: BUSH_COLORS
+      },
+      {
         id: "stetson",
         name: contentText("config.hats.module.name-12", {}),
         dropOnly: true,
@@ -823,17 +1279,22 @@
       ],
       weapon: [
         option("unarmed", "Fist"),
-        ...PLAYER_WEAPONS.filter((id) => id !== "unarmed").filter(owns).map((id) => option(id, ITEM_STATS[id].name))
+        ...PLAYER_WEAPONS.filter((id) => id !== "unarmed").filter((id) => weaponOwned({ ownedEquipment }, id)).map((id) => option(id, weaponDisplayName(id, { ownedEquipment })))
       ],
       back: [
         option("none", "Nothing on back"),
-        ...["backpack", "new-year-rocket"].filter(owns).map((id) => option(id, ITEM_STATS[id].name)),
+        ...[HIKING_BACKPACK, UPGRADED_HIKING_BACKPACK, "new-year-rocket", "invisibility-cloak"].filter(owns).map((id) => option(id, ITEM_STATS[id].name)),
         ...progress.cape ? [option("cape", "Kraken cape")] : []
       ],
       neck: [
-        option("none", "No necklace"),
+        option("none", "Nothing on neck"),
+        ...owns("black-tie") ? [option("black-tie", ITEM_STATS["black-tie"].name)] : [],
+        ...owns("white-scarf") ? [option("white-scarf", ITEM_STATS["white-scarf"].name)] : [],
         ...owns("recoil-amulet") ? [option("recoil-amulet", ITEM_STATS["recoil-amulet"].name)] : [],
-        ...owns("clock-amulet") ? [option("clock-amulet", ITEM_STATS["clock-amulet"].name)] : []
+        ...owns("defence-amulet") ? [option("defence-amulet", ITEM_STATS["defence-amulet"].name)] : [],
+        ...owns("goblin-charm") ? [option("goblin-charm", ITEM_STATS["goblin-charm"].name)] : [],
+        ...owns("clock-amulet") ? [option("clock-amulet", ITEM_STATS["clock-amulet"].name)] : [],
+        ...owns("albatross") ? [option("albatross", ITEM_STATS.albatross.name)] : []
       ],
       torso: [
         option("shirt", "Regular shirt"),
@@ -842,16 +1303,36 @@
           "black-cloak-top",
           "tinfoil-suit",
           "decorative-robe-top",
+          "charcoal-suit",
+          "silk-kimono",
+          "techwear-top",
+          "yellow-top",
+          "bush-top",
           "cashmere-turtleneck",
+          "puffy-parka",
+          "leather-jacket",
+          "barrel",
           "goose-corp-shirt",
           "goose-costume",
           "iron-armor",
-          "gold-trimmed-iron-armor"
+          "gold-trimmed-iron-armor",
+          ...DEFENSE_TORSOS
         ].filter(owns).map((id) => option(id, ITEM_STATS[id].name))
       ],
       legs: [
         option("trousers", "Regular trousers"),
-        ...["ice-pants", "black-cloak-bottom", "decorative-robe-bottom", "iron-armor-legs"].filter(owns).map((id) => option(id, ITEM_STATS[id].name))
+        ...[
+          "ice-pants",
+          "black-cloak-bottom",
+          "decorative-robe-bottom",
+          "yellow-pants",
+          "blue-jeans",
+          "techwear-bottoms",
+          "bush-legs",
+          "iron-armor-legs",
+          "gold-trimmed-iron-armor-legs",
+          ...DEFENSE_LEGS
+        ].filter(owns).map((id) => option(id, ITEM_STATS[id].name))
       ],
       boots: [
         option("false", "Regular shoes"),
@@ -889,11 +1370,20 @@
         "black-cloak-top",
         "tinfoil-suit",
         "decorative-robe-top",
+        "charcoal-suit",
+        "silk-kimono",
+        "techwear-top",
+        "yellow-top",
+        "bush-top",
         "cashmere-turtleneck",
+        "puffy-parka",
+        "leather-jacket",
+        "barrel",
         "goose-corp-shirt",
         "goose-costume",
         "iron-armor",
-        "gold-trimmed-iron-armor"
+        "gold-trimmed-iron-armor",
+        ...DEFENSE_TORSOS
       ],
       value.torso
     ) ? value.torso : value.iceTop === true ? "ice-top" : value.cloakTop === true ? "black-cloak-top" : "shirt";
@@ -903,7 +1393,13 @@
         "ice-pants",
         "black-cloak-bottom",
         "decorative-robe-bottom",
-        "iron-armor-legs"
+        "yellow-pants",
+        "blue-jeans",
+        "techwear-bottoms",
+        "bush-legs",
+        "iron-armor-legs",
+        "gold-trimmed-iron-armor-legs",
+        ...DEFENSE_LEGS
       ],
       value.legs
     ) ? value.legs : value.icePants === true ? "ice-pants" : value.cloakBottom === true ? "black-cloak-bottom" : "trousers";
@@ -925,11 +1421,16 @@
     { value: "false", label: "No eyewear" },
     { value: "true", label: "Sunglasses" }
   ];
+  var defaultOptions = equipmentOptions(
+    { ownedEquipment: EQUIPMENT_IDS.filter((id) => baseWeaponId(id) === id), ownedHats: HAT_CATALOG.map((hat) => hat.id) },
+    { cape: true }
+  );
   var adminEquipmentOptions = {
-    ...equipmentOptions(
-      { ownedEquipment: [...EQUIPMENT_IDS], ownedHats: HAT_CATALOG.map((hat) => hat.id) },
-      { cape: true }
-    ),
+    ...defaultOptions,
+    weapon: [
+      ...defaultOptions.weapon,
+      ...[UPGRADED_RAILGUN, UPGRADED_AKIMBO].map((value) => ({ value, label: ITEM_STATS[value].name }))
+    ],
     sunglasses: eyewear
   };
   function unlockedEquipment({ inventory, quests }) {
@@ -961,11 +1462,18 @@
         const list = slot === "hat" ? "ownedHats" : "ownedEquipment";
         const item = slot === "boots" && value === "true" ? "combat-boots" : value;
         const owned = strings(economy[list]);
-        if (!owned.includes(item)) inventory.economy = { ...economy, [list]: [...owned, item] };
+        const base = baseEquipmentId(item);
+        if (base !== item) {
+          inventory.economy = {
+            ...economy,
+            [list]: [...owned.filter((id) => baseEquipmentId(id) !== base), item]
+          };
+        } else if (!equipmentOwned({ ownedEquipment: owned }, item))
+          inventory.economy = { ...economy, [list]: [...owned, item] };
       }
     }
     const appearance = { ...object(player.appearance) };
-    appearance[slot] = slot === "boots" ? normalizeBoots(value) : slot === "sunglasses" ? value === "true" : value;
+    appearance[slot] = slot === "boots" ? normalizeBoots(value) : slot === "sunglasses" ? value === "true" : baseWeaponId(value);
     if (slot === "torso" || slot === "legs") Object.assign(appearance, clothingSelection(appearance));
     if (slot === "back") appearance.cape = value === "cape";
     player.appearance = appearance;

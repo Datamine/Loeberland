@@ -1,7 +1,9 @@
 import { contentText } from './content-runtime.ts';
 import type { WorldPoint, Point } from './types/geometry.ts';
+import type { FishingSite, Site } from './types/world.ts';
 import { requiredValue } from './types/assert.ts';
 export interface FishingLocation {
+  id?: string;
   entry: Point;
   water: WorldPoint;
   base?: number;
@@ -15,6 +17,9 @@ import { WATER_LEVEL } from './water-tiles.ts';
 
 export const FISHING_DURATION = GAMEPLAY.fishingSeconds;
 export const FISHING_COOLDOWN_MS = 60_000;
+export const isFishingSite = (site: Partial<Site> | null | undefined): site is FishingSite =>
+  site?.kind === 'fishing' && !!site.entry && !!site.water && typeof site.base === 'number';
+
 export function createFishing(
   economy: Economy,
   { now = Date.now, readyAt = 0, onCooldown = (_readyAt: number) => {} } = {},

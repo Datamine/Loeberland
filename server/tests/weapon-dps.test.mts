@@ -69,6 +69,49 @@ test('the authoritative attack loop honors each weapon interval and Strength Lev
     }
 });
 
+test('range falloff uses server positions for public creatures and PvP', async () => {
+  const geometry = fixtureGeometry();
+  geometry.wilderness = { actors: [{ id: 'bear', combatKind: 'bear', x: 94, z: 120 }] };
+  let now = 1_000_000;
+  const game = await createGame({
+    geometry,
+    store: createMemoryStore(),
+    random: () => 0.6,
+    now: () => now,
+  });
+  try {
+    const a = await player(game, 41904, {
+      'sf-purse-v1': '{"ownedEquipment":["akibo"]}',
+      'sf-character-v1': '{"weapon":"akibo"}',
+    });
+    const range = ITEM_STATS.akibo.range;
+    for (const creature of [game.shared.cows[0], game.shared.wilderness.actors[0]]) {
+      const hp = creature.hp;
+      Object.assign(a.p, { x: creature.x - range + 0.1, z: creature.z, shotAt: 0 });
+      await command(game, a.p, 'attack', { id: creature.id, weapon: 'akibo', distance: 0 });
+      assert.equal(requiredResult(a.messages).ok, true);
+      assert.equal(creature.hp, hp);
+
+      Object.assign(a.p, { x: creature.x - 1, shotAt: 0 });
+      await command(game, a.p, 'attack', { id: creature.id, weapon: 'akibo', distance: range });
+      assert.ok(creature.hp < hp);
+    }
+    const b = await player(game, 41905);
+    Object.assign(a.p, { x: b.p.x - range + 0.1, z: b.p.z, y: b.p.y });
+    for (const participant of [a, b]) await command(game, participant.p, 'pvp', { enabled: true });
+    await command(game, a.p, 'pvpAttack', { id: b.p.id });
+    assert.equal(requiredResult(a.messages).ok, true);
+    game.tick(0.05);
+    assert.equal(b.p.hp, b.p.max);
+    a.p.x = b.p.x - 1;
+    now += 1000;
+    game.tick(0.05);
+    assert.ok(b.p.hp < b.p.max);
+  } finally {
+    await game.close();
+  }
+});
+
 test('neighbor labor pays one coin, animates, and keeps its three-minute cooldown across reconnects', async () => {
   const geometry = fixtureGeometry();
   geometry.merchants = [
@@ -134,19 +177,24 @@ test('PvP uses Fist when selected even if the player owns an equipped railgun', 
   }
 });
 
-test('spectres take bayonet damage and zero railgun damage when both weapons are owned', async () => {
+test('a level-six player can defeat a spectre with a bayonet and railgun shots deal zero damage', async () => {
   const geometry = fixtureGeometry();
   geometry.merchants = [
     { label: 'spectre', id: 'spectre', alienId: 'alien-civic', x: 92.7, z: 120, base: 1.15 },
   ];
   const game = await createGame({ geometry, store: createMemoryStore(), random: () => 0.5 });
   try {
+    const xp = STRENGTH_THRESHOLDS[5];
     const a = await player(game, 41903, {
+      'sf-strength-v1': JSON.stringify({ xp }),
+      'sf-hitpoints-v1': JSON.stringify({ xp }),
       'sf-sunglasses-v1': '{"owned":true}',
       'sf-character-v1': '{"weapon":"bayonet","sunglasses":true}',
       'sf-quests-v1': '{"theyLive":{"started":true,"evidence":true,"permit":true,"bayonet":true}}',
       'sf-expeditions-v1': '{"raptor":"completed","railgun":true,"equipped":true}',
     });
+    const spectator = await player(game, 41906);
+    game.broadcast();
     await command(game, a.p, 'playerAction', {
       verb: 'attackPersonal',
       id: 'spectre',
@@ -166,6 +214,18 @@ test('spectres take bayonet damage and zero railgun damage when both weapons are
     const hit = a.messages.filter((m) => m.type === 'sharedHit').at(-1);
     assert.equal(requiredFixture(hit).weapon, 'railgun');
     assert.equal(requiredFixture(hit).damage, 0);
+    await command(game, a.p, 'playerAction', {
+      verb: 'attackPersonal',
+      id: 'spectre',
+      weapon: 'bayonet',
+    });
+    for (let i = 0; i < 150 && a.p.personalBattle; i++) game.personal.tick(0.05);
+    assert.ok(a.p.profile.playerState.quests.theyLive.defeated.includes('alien-civic'));
+    assert.ok(a.p.hp > 0);
+    const seenHit = requiredFixture(spectator.messages.find((m) => m.type === 'playerHit'));
+    assert.equal(seenHit.target, a.p.id);
+    assert.ok(seenHit.damage > 0);
+    assert.equal(spectator.p.hp, spectator.p.max);
   } finally {
     await game.close();
   }

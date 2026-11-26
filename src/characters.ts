@@ -2,13 +2,21 @@ import type { SkinnedMesh } from './types/rendering.ts';
 import type { Appearance } from './types/content.ts';
 import { drawWearableAccessories } from './wearable-models.ts';
 import { hatById } from './hat-catalog.ts';
-import { ITEM_STATS, isIronArmorTorso } from './item-stats.ts';
+import { ITEM_STATS, isIronArmorLegs, isIronArmorTorso } from './item-stats.ts';
 import { IRON_ARMOR_COLORS } from './iron-armor-appearance.ts';
+import { isDefenseArmor, isDefenseLegArmor } from './config/defense-workshop.ts';
+import { LEATHER_JACKET } from './config/leather-jacket.ts';
 import { getHatGeometry } from './hat-models.ts';
 import type { Mesh } from './geometry.ts';
 import { rgb } from './geometry.ts';
 import { sampleForwardRoll } from './forward-roll.ts';
 import { rocketHopPose } from './rocket-hop.ts';
+import {
+  AKIMBO_MUZZLE,
+  AKIMBO_SHOT_GAP,
+  EMF_LIGHTNING_HAND,
+  FIRING_GESTURE_SECONDS,
+} from './ranged-weapon-mounts.ts';
 export interface CharacterFoot {
   point: number[];
   pitch: number;
@@ -42,10 +50,17 @@ export interface CharacterAppearance extends Appearance {
   chef?: boolean;
   backpack?: boolean;
   uniform?: boolean;
+  camouflage?: boolean;
+  onodaRifle?: boolean;
   alien?: boolean;
   bayonet?: boolean;
   battleaxe?: boolean;
+  combatLamp?: boolean;
+  katana?: boolean;
+  lightsaber?: boolean;
+  lightsaberColor?: import('./config/lightsaber.ts').LightsaberColor;
   rollingPin?: boolean;
+  bowlingBall?: boolean;
   crowbar?: boolean;
   trim?: string;
   bag?: string;
@@ -60,10 +75,14 @@ export interface CharacterAppearance extends Appearance {
   turtleneck?: boolean;
   gooseShirt?: boolean;
 }
+type EquipmentMeshPart = 'top' | 'legs' | 'boots' | 'tie' | 'phone' | 'backpack' | 'akimbo';
+
 export interface CharacterMesh extends SkinnedMesh {
   deformed: Float32Array;
+  equipmentParts: Partial<Record<EquipmentMeshPart, [number, number][]>>;
   headIndices?: number[];
   portraitIndices?: number[];
+  cloakIndices?: number[];
 }
 
 type Rig = number | ((p: number[]) => number[]);
@@ -81,6 +100,7 @@ export const CHARACTER_CLIPS = Object.freeze({
   surf: {},
   skate: { stride: 2.4 },
   motorcycle: {},
+  scooter: {},
   idle: {},
 });
 export const CHARACTER_BONES = Object.freeze({
@@ -138,7 +158,9 @@ const CHAR_SLOT = {
   phoneScreen: 15,
   phoneGlyph: 16,
   rainbow: 17,
+  legArmorTrim: 23,
 };
+const CAMOUFLAGE = ['#596444', '#454d36', '#828260', '#696049', '#373d31', '#77674b'];
 const CHAR_TAU = Math.PI * 2;
 const charClamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const charMix = (a: number, b: number, t: number) => a + (b - a) * t;
@@ -286,6 +308,61 @@ export function createCharacterPose(): CharacterPose {
   };
 }
 
+/** Rock on the feet, drop into a one-handed kick-through, then recover. */
+export function sampleBreakdancePose(phase: number, out = createCharacterPose()) {
+  const progress = (((phase / CHAR_TAU) % 1) + 1) % 1;
+  const floor = charEase((progress - 0.12) / 0.17) * (1 - charEase((progress - 0.75) / 0.18));
+  const beat = phase * 4;
+  const sway = Math.sin(beat);
+  const scissor = Math.sin(phase * 3);
+  const sweep = Math.cos(phase * 3);
+  const blend = (a: number[], b: number[]) => a.map((value, i) => charMix(value, b[i], floor));
+  const hips = blend([sway * 0.085, 0.79 + 0.035 * Math.cos(beat * 2), 0], [0.28, 0.61, 0]);
+  const bodyRoll = charMix(-0.08 * sway, 1.52 + sweep * 0.16, floor);
+  charFrame(out, 0, hips, charEuler(0.05, sway * 0.1, bodyRoll));
+  charChild(out, 1, 0, charEuler(0.12 * (1 - floor)));
+  charChild(out, 2, 1, charEuler(-0.09 * floor, -0.09 * sway));
+  charChild(out, 3, 2, charEuler(-0.08, 0.24, -0.2 * floor));
+
+  const feet: CharacterFoot[] = [];
+  for (const side of [0, 1]) {
+    const sign = side === 0 ? -1 : 1;
+    const ankle = blend(
+      [sign * 0.23, 0.095 + Math.max(0, sign * sway) ** 2 * 0.13, sign * 0.18 * sway],
+      side === 0
+        ? [0.76 - 0.16 * scissor, 0.43 + 0.23 * scissor, 0.26 + 0.24 * sweep]
+        : [0.9 + 0.08 * scissor, 0.91 - 0.28 * scissor, -0.18 - 0.24 * sweep],
+    );
+    const thigh = side === 0 ? CHARACTER_BONES.leftThigh : CHARACTER_BONES.rightThigh;
+    const hipOffset = charRotate(out.rotations[0], charSub(CHAR_BIND[thigh], CHAR_BIND[0]));
+    const hip = hips.map((value, i) => value + hipOffset[i]);
+    const leg = charIK(hip, ankle, 0.41, 0.38, [0, -0.24 * floor, 1]);
+    charSegment(out, thigh, hip, leg.knee);
+    charSegment(out, thigh + 1, leg.knee, leg.end);
+    charFrame(
+      out,
+      thigh + 2,
+      leg.end,
+      charEuler(0.12 * sign * sway, 0, (0.78 + 0.18 * sign * sweep) * floor),
+    );
+    feet.push({ point: ankle, pitch: 0, contact: floor === 0 && ankle[1] === 0.095 });
+
+    const arm = side === 0 ? CHARACTER_BONES.leftArm : CHARACTER_BONES.rightArm;
+    const shoulderOffset = charRotate(out.rotations[2], charSub(CHAR_BIND[arm], CHAR_BIND[2]));
+    const shoulder = charJoint(out, 2).map((value, i) => value + shoulderOffset[i]);
+    const wrist =
+      side === 0
+        ? blend([-0.36, 0.9 + 0.15 * sway, 0.12], [-0.48, 0.075, 0.14])
+        : blend([0.31, 1.01 + 0.035 * sway, 0.34], [0.13, 1.02, 0.4]);
+    const limb = charIK(shoulder, wrist, 0.31, 0.275, [sign, -0.5, -0.16]);
+    charSegment(out, arm, shoulder, limb.knee);
+    charSegment(out, arm + 1, limb.knee, limb.end);
+    charFrame(out, arm + 2, limb.end, charEuler(-Math.PI / 2, 0, 0));
+  }
+  out.feet = feet;
+  return out;
+}
+
 /** Feet are pose targets. Two-bone IK preserves limb lengths and planted
  * contacts, including on slopes, instead of stretching cylinders between tips. */
 export function sampleCharacterPose(
@@ -316,9 +393,20 @@ export function sampleCharacterPose(
     options.launcher && gesture === 'attack'
       ? charEase(gestureT / 0.14) * (1 - charEase((gestureT - 0.14) / 0.59))
       : 0;
-  const meleeSwing =
-    gesture === 'attack' &&
-    (options.bayonet || options.crowbar || options.battleaxe || options.rollingPin);
+  const fireAge = gesture === 'attack' ? gestureT * FIRING_GESTURE_SECONDS : -1;
+  const recoil = (delay: number) =>
+    charEase(charClamp((fireAge - delay) / 0.028, 0, 1)) *
+    (1 - charEase(charClamp((fireAge - delay - 0.028) / 0.15, 0, 1)));
+  const longGunKick = options.railgun ? recoil(0) : 0;
+  const usesMeleeGrip =
+    options.bayonet ||
+    options.crowbar ||
+    options.battleaxe ||
+    options.combatLamp ||
+    options.katana ||
+    options.lightsaber ||
+    options.rollingPin;
+  const meleeSwing = gesture === 'attack' && (usesMeleeGrip || options.bowlingBall);
   const swingLift = meleeSwing ? charEase(gestureT / 0.34) : 0,
     swingDown = meleeSwing ? charEase((gestureT - 0.34) / 0.25) : 0,
     swingBlend = swingLift * (1 - charEase((gestureT - 0.62) / 0.38)),
@@ -358,6 +446,11 @@ export function sampleCharacterPose(
       x = sign * 0.18;
       y = 0.16;
       z = 0.08;
+      pitch = 0;
+    } else if (mode === 'scooter') {
+      x = sign * 0.07;
+      y = 0.1;
+      z = side ? -0.2 : 0.12;
       pitch = 0;
     } else if (mode === 'sit') {
       y = 0.1;
@@ -452,6 +545,11 @@ export function sampleCharacterPose(
     hip = 0.6;
     rootZ = -0.09;
     lean = 0.24;
+  } else if (mode === 'scooter') {
+    const tuck = gesture === 'scooter-backflip' ? Math.sin(Math.PI * gestureT) : 0;
+    hip = 0.82 - tuck * 0.16;
+    rootZ = -0.055;
+    lean = 0.13 + tuck * 0.13;
   } else if (mode === 'sit') {
     hip = 0.57;
     lean = 0.035;
@@ -491,7 +589,7 @@ export function sampleCharacterPose(
     lean += run * motion * 0.14;
   }
   lean += 0.009 * Math.sin(time * 1.7) * (1 - motion);
-  lean -= 0.08 * launcherKick;
+  lean -= 0.08 * launcherKick + 0.06 * longGunKick;
   if (gesture === 'zombie') {
     lean += 0.13;
     roll += 0.055 * Math.sin(phase);
@@ -608,6 +706,7 @@ export function sampleCharacterPose(
       forearm = arm + 1,
       hand = arm + 2,
       sign = side ? 1 : -1;
+    const pistolKick = options.akibo ? recoil(side ? 0 : AKIMBO_SHOT_GAP) : 0;
     const shoulder = charRotate(out.rotations[2], charSub(CHAR_BIND[arm], CHAR_BIND[2])).map(
       (v, i) => v + out.joints[2 * 3 + i],
     );
@@ -638,6 +737,12 @@ export function sampleCharacterPose(
     else if (gesture === 'throw-explosive' && side) {
       const reach = Math.sin(Math.PI * gestureT);
       wrist = [0.29, charMix(1.58, 0.91, gestureT) + 0.12 * reach, 0.15 + 0.43 * reach];
+    } else if (gesture === 'emf-lightning') {
+      const [x, y, z] = EMF_LIGHTNING_HAND;
+      const settle = charClamp((gestureT - 0.48) / 0.52, 0, 1);
+      wrist = side
+        ? [x, charMix(y, 0.79, settle), charMix(z, 0.03, settle)]
+        : [-0.27, charMix(1.0, 0.8, settle), 0.1];
     } else if (gesture === 'bottle-post')
       wrist = side
         ? ([
@@ -716,14 +821,17 @@ export function sampleCharacterPose(
       const support = charRotate(launcherRotation, [-0.085, 0.068, 0.17]);
       wrist = side ? launcherGrip : launcherGrip.map((value, i) => value + support[i]);
       pole = [sign * 0.8, -0.62, -0.2];
-    } else if (options.akibo)
-      wrist = [sign * 0.24, 1.14, 0.46 - gestureWeight * 0.07] satisfies [number, number, number];
-    else if (options.railgun)
+    } else if (options.akibo) {
+      wrist = [sign * (0.27 + 0.018 * pistolKick), 1.15 + 0.048 * pistolKick, 0.47 - 0.085 * pistolKick];
+      pole = [sign * 0.82, -0.56, -0.18];
+    } else if (options.railgun)
       wrist = [
         side ? 0.11 : 0.02,
-        charMix(1.05, 0.6, mode === 'sit' ? 1 : restEase),
-        side ? 0.21 - gestureWeight * 0.06 : 0.49 - gestureWeight * 0.06,
+        charMix(1.05, 0.6, mode === 'sit' ? 1 : restEase) + 0.056 * longGunKick,
+        (side ? 0.21 : 0.49) - longGunKick * 0.09,
       ];
+    else if (side && options.bowlingBall && !meleeSwing && (mode === 'idle' || mode === 'move'))
+      wrist = [0.36, 0.87, 0.13];
     else if (side && options.phone && !meleeSwing)
       wrist = [0.23, 1.06, 0.24] satisfies [number, number, number];
     else if (!side && options.carryingFish)
@@ -752,6 +860,7 @@ export function sampleCharacterPose(
       ];
     else if (mode === 'motorcycle')
       wrist = [sign * 0.21, 0.83, 0.4] satisfies [number, number, number];
+    else if (mode === 'scooter') wrist = [sign * 0.21, 1.04, 0.36];
     else if (mode === 'cycle') wrist = [sign * 0.18, 0.73, 0.4] satisfies [number, number, number];
     else if (mode === 'rest')
       wrist = [
@@ -796,9 +905,11 @@ export function sampleCharacterPose(
         limb.end,
         launcherRotation && side
           ? launcherRotation
-          : options.railgun && side && !options.akibo
-            ? charEuler()
-            : charEuler(-1.05, 0, side ? 0.12 : -0.12),
+          : options.akibo
+            ? charEuler(-0.035 - 0.36 * pistolKick, -sign * 0.055, sign * 0.04)
+            : options.railgun && side
+              ? charEuler(-0.14 * longGunKick)
+              : charEuler(-1.05, 0, side ? 0.12 : -0.12),
       );
     } else {
       const swing = Math.cos(cycle * CHAR_TAU) * sign * charMix(walk.arm, jog.arm, run) * motion;
@@ -816,28 +927,41 @@ export function sampleCharacterPose(
         );
       if (swingBlend > 0) {
         const arc = 4 * swingDown * (1 - swingDown);
+        const meleeHand = side && usesMeleeGrip;
         const target = side
           ? [
-              charMix(0.36, 0.24, swingDown),
+              meleeHand ? charMix(0.5, 0.36, swingDown) : charMix(0.36, 0.24, swingDown),
               charMix(1.87, 1.06, swingDown) + 0.08 * arc,
               charMix(-0.11, 0.5, swingDown) + 0.26 * arc,
             ]
           : [charMix(-0.25, -0.42, swingDown), 1.1, charMix(0.23, 0.03, swingDown)];
         const goal = end.map((v, i) => charMix(v, target[i], swingBlend));
-        const limb = charIK(shoulder, goal, 0.31, 0.275, [
-          sign * 0.72,
-          -0.36,
-          -0.2,
-        ]);
+        const pole = meleeHand ? [0.1, -0.1, -1] : [sign * 0.72, -0.36, -0.2];
+        const limb = charIK(shoulder, goal, 0.31, 0.275, pole);
         charSegment(out, arm, shoulder, limb.knee);
         charSegment(out, forearm, limb.knee, limb.end);
-        const wristPitch = side ? charMix(-0.28, 2.26, swingDown) : -0.32;
-        charFrame(
-          out,
-          hand,
-          limb.end,
-          charMultiply(lower, charEuler(wristPitch * swingBlend)),
-        );
+        if (meleeHand) {
+          // Steer the swing while keeping the shaft perpendicular to the forearm.
+          const up = charUnit(charSub(limb.knee, limb.end));
+          const forward = charUnit(charCross(charRotate(lower, [1, 0, 0]), up));
+          const right = charCross(up, forward);
+          const grip = [
+            right[0],
+            up[0],
+            forward[0],
+            right[1],
+            up[1],
+            forward[1],
+            right[2],
+            up[2],
+            forward[2],
+          ];
+          const turn = 0.28 * swingLoad + 2.14 * swingImpact;
+          charFrame(out, hand, limb.end, charMultiply(grip, charEuler(0, turn)));
+        } else {
+          const wristPitch = side ? charMix(-0.28, 2.26, swingDown) : -0.32;
+          charFrame(out, hand, limb.end, charMultiply(lower, charEuler(wristPitch * swingBlend)));
+        }
       } else if (side === 1 && gesture === 'hammer') {
         const lift = (1 - Math.cos(time * 8)) / 2;
         const target = [0.19, 0.91 + lift * 0.42, 0.36 - lift * 0.14];
@@ -918,7 +1042,8 @@ class CharacterMeshBuilder {
   slots: number[];
   shades: number[];
   lookup: Map<string, number>;
-  constructor() {
+  equipmentParts: CharacterMesh['equipmentParts'] = {};
+  constructor(private camouflage = false) {
     this.vertices = [];
     this.indices = [];
     this.bonesA = [];
@@ -929,6 +1054,24 @@ class CharacterMeshBuilder {
     this.lookup = new Map();
   }
   tri(a: number[], b: number[], c: number[], slot: number, influence: Rig, tone = 1) {
+    if (this.camouflage && (slot === CHAR_SLOT.shirt || slot === CHAR_SLOT.pants ||
+      slot === CHAR_SLOT.shoe || slot === CHAR_SLOT.trim || slot === CHAR_SLOT.belt)) {
+      if (Math.max(Math.hypot(...charSub(a, b)), Math.hypot(...charSub(b, c)),
+        Math.hypot(...charSub(c, a))) > 0.19) {
+        const midpoint = (p: number[], q: number[]) => p.map((v, i) => (v + q[i]) * 0.5);
+        const ab = midpoint(a, b), bc = midpoint(b, c), ca = midpoint(c, a);
+        this.tri(a, ab, ca, slot, influence, tone);
+        this.tri(ab, b, bc, slot, influence, tone);
+        this.tri(ca, bc, c, slot, influence, tone);
+        this.tri(ab, bc, ca, slot, influence, tone);
+        return;
+      }
+      const [x, y, z] = a.map((v, i) => (v + b[i] + c[i]) / 3);
+      const patch = Math.floor(9 * x + Math.sin(17 * y) * 0.55) * 73856093 ^
+        Math.floor(10 * y + Math.sin(26 * z) * 0.5) * 19349663 ^
+        Math.floor(9 * z + Math.sin(31 * x) * 0.55) * 83492791;
+      slot = CHAR_SLOT.rainbow + (patch >>> 0) % CAMOUFLAGE.length;
+    }
     const normal = charUnit(charCross(charSub(b, a), charSub(c, a)));
     for (const p of [a, b, c]) {
       const rig =
@@ -964,7 +1107,15 @@ class CharacterMeshBuilder {
     this.tri(a, b, c, slot, rig, tone);
     this.tri(a, c, d, slot, rig, tone);
   }
-  loft(rings: number[][], slot: number, rig: Rig, segments = 8, cap = true) {
+  loft(
+    rings: number[][],
+    slot: number,
+    rig: Rig,
+    segments = 8,
+    cap = true,
+    stripe?: { side: number; slot: number },
+  ) {
+    const stripeFace = stripe ? segments * (stripe.side > 0 ? 0.25 : 0.75) - stripe.side : -2;
     const at = (r: number[], i: number) => {
       const a = (i * CHAR_TAU) / segments;
       return [r[0] + Math.sin(a) * r[3], r[1], r[2] + Math.cos(a) * r[4]] satisfies [
@@ -980,7 +1131,7 @@ class CharacterMeshBuilder {
           at(rings[j], i + 1),
           at(rings[j + 1], i + 1),
           at(rings[j + 1], i),
-          slot,
+          stripe && Math.abs(i + 0.5 - stripeFace) <= 1 ? stripe.slot : slot,
           rig,
         );
     if (cap)
@@ -1027,7 +1178,12 @@ class CharacterMeshBuilder {
       slots: new Uint8Array(this.slots),
       shades: new Float32Array(this.shades),
       deformed: new Float32Array(this.vertices.length),
+      equipmentParts: this.equipmentParts,
     };
+  }
+  recordEquipment(part: EquipmentMeshPart, start: number) {
+    const end = this.indices.length;
+    if (end > start) (this.equipmentParts[part] ??= []).push([start, end]);
   }
 }
 
@@ -1074,7 +1230,7 @@ function drawHumanSmile(m: CharacterMeshBuilder) {
   }
 }
 
-function drawSweptBackHair(m: CharacterMeshBuilder) {
+function drawSweptBackHair(m: CharacterMeshBuilder, foreheadRise = 0) {
   // Start at the forehead, tuck past each ear, and follow the nape in back.
   const hairline = [
     1.679, 1.675, 1.665, 1.643, 1.625, 1.601, 1.575, 1.516, 1.48, 1.461, 1.448, 1.443, 1.442,
@@ -1083,7 +1239,8 @@ function drawSweptBackHair(m: CharacterMeshBuilder) {
   const rings = [0, 0.26, 0.56, 0.81, 1].map((rise) =>
     Array.from({ length: segments }, (_, i) => {
       const angle = (i * CHAR_TAU) / segments;
-      const y = charMix(hairline[Math.min(i, segments - i)], 1.733, rise);
+      const forehead = foreheadRise * Math.max(0, Math.cos(angle)) ** 2;
+      const y = charMix(hairline[Math.min(i, segments - i)] + forehead, 1.733, rise);
       const match = headRings.findIndex((ring) => ring[1] >= y);
       const upper = match < 0 ? headRings.length : match;
       const a = headRings[Math.max(0, upper - 1)];
@@ -1127,6 +1284,101 @@ function drawSweptBackHair(m: CharacterMeshBuilder) {
   const crown = rings[rings.length - 1];
   for (let i = 0; i < segments; i++)
     m.tri([0, 1.779, -0.018], crown[i], crown[(i + 1) % segments], hair, head);
+}
+
+function drawEinsteinHair(m: CharacterMeshBuilder) {
+  const { head } = CHARACTER_BONES;
+  const { hair } = CHAR_SLOT;
+  // The crown lifts straight up while longer wisps flare behind the temples and ears.
+  const layers = [
+    { count: 9, y: 1.752, radius: 0.058, flare: 0.086, rise: 0.202, width: 0.042, gap: 0 },
+    { count: 13, y: 1.708, radius: 0.106, flare: 0.143, rise: 0.143, width: 0.05, gap: 0.62 },
+    { count: 13, y: 1.626, radius: 0.111, flare: 0.135, rise: 0.092, width: 0.047, gap: 0.94 },
+  ];
+  for (const [layer, { count, y, radius, flare, rise, width, gap }] of layers.entries()) {
+    for (let i = 0; i < count; i++) {
+      const variation = Math.sin(i * 4.8 + layer * 2.7);
+      const angle = gap + ((i + 0.25 + 0.15 * variation) * (CHAR_TAU - 2 * gap)) / count;
+      const height = rise * (0.88 + variation * 0.18);
+      const spread = flare * (0.83 + 0.16 * Math.cos(i * 3.45 + layer));
+      const bend = 0.32 * Math.sin(i * 5.1 + layer);
+      const rootY = y + 0.015 * Math.cos(i * 3.2 + layer);
+      const ring = (t: number, size: number) => {
+        const distance = radius + spread * t;
+        const direction = angle + bend * t * t;
+        return [
+          Math.sin(direction) * distance,
+          rootY + height * t,
+          -0.026 + Math.cos(direction) * distance * 0.86 - 0.038 * t * t,
+          width * size,
+          width * size * 0.76,
+        ];
+      };
+      m.loft([ring(0, 0.76), ring(0.21, 1), ring(0.62, 0.53), ring(1, 0.025)], hair, head, 6);
+    }
+  }
+}
+
+export function hasMargeCrown({ hairstyle, hat, cap, chef, topHat, tinfoil }: CharacterAppearance) {
+  return hairstyle === 'marge' && (!hat || hat === 'none') && !cap && !chef && !topHat && !tinfoil;
+}
+
+function drawMargeHair(m: CharacterMeshBuilder) {
+  const { head } = CHARACTER_BONES;
+  const { hair } = CHAR_SLOT;
+  const segments = 18;
+  // A rounded column of tight curls rises roughly the length of the torso.
+  const profile = [
+    [0, 1.716, -0.025, 0.111, 0.104],
+    [0, 1.753, -0.028, 0.132, 0.12],
+    [0.006, 1.804, -0.033, 0.145, 0.13],
+    [0.009, 1.853, -0.04, 0.153, 0.138],
+    [0.012, 1.903, -0.045, 0.157, 0.141],
+    [0.014, 1.953, -0.053, 0.161, 0.14],
+    [0.018, 2.005, -0.057, 0.165, 0.142],
+    [0.022, 2.057, -0.06, 0.164, 0.144],
+    [0.024, 2.109, -0.063, 0.162, 0.142],
+    [0.025, 2.16, -0.067, 0.159, 0.14],
+    [0.026, 2.212, -0.067, 0.153, 0.135],
+    [0.027, 2.261, -0.068, 0.141, 0.128],
+    [0.03, 2.306, -0.065, 0.123, 0.114],
+    [0.031, 2.348, -0.064, 0.098, 0.092],
+    [0.03, 2.378, -0.064, 0.066, 0.061],
+    [0.028, 2.396, -0.066, 0.031, 0.028],
+  ];
+  const rings = profile.map(([x, y, z, rx, rz], row) =>
+    Array.from({ length: segments }, (_, i) => {
+      const angle = ((i + (row % 2) * 0.38) * CHAR_TAU) / segments;
+      const radius = 1 + 0.045 * Math.sin(i * 4.7 + row * 3.9);
+      return [
+        x + Math.sin(angle) * rx * radius,
+        y + 0.007 * Math.sin(i * 3.4 + row * 2.6),
+        z + Math.cos(angle) * rz * radius,
+      ];
+    }),
+  );
+  for (let row = 0; row < rings.length - 1; row++) {
+    for (let i = 0; i < segments; i++) {
+      const next = (i + 1) % segments;
+      const a = rings[row][i],
+        b = rings[row][next],
+        c = rings[row + 1][next],
+        d = rings[row + 1][i];
+      const normal = charUnit(charCross(charSub(b, a), charSub(d, a)));
+      const curl = a.map(
+        (v, k) =>
+          (v + b[k] + c[k] + d[k]) / 4 + normal[k] * (0.013 + 0.004 * Math.sin(i + row * 2)),
+      );
+      const tone = 1 + 0.08 * Math.sin(i * 6.1 + row * 4.2);
+      m.tri(a, b, curl, hair, head, tone);
+      m.tri(b, c, curl, hair, head, tone);
+      m.tri(c, d, curl, hair, head, tone);
+      m.tri(d, a, curl, hair, head, tone);
+    }
+  }
+  const crown = rings[rings.length - 1];
+  for (let i = 0; i < segments; i++)
+    m.tri([0.027, 2.404, -0.067], crown[i], crown[(i + 1) % segments], hair, head);
 }
 
 function drawPonytail(m: CharacterMeshBuilder) {
@@ -1230,6 +1482,809 @@ function charTorsoRig(p: number[]) {
     ? charBlend(0, 1, (p[1] - 0.91) / 0.21)
     : charBlend(1, 2, (p[1] - 1.12) / 0.19);
 }
+const jacketDepth = [
+  [0.81, 0.139],
+  [0.95, 0.132],
+  [1.11, 0.145],
+  [1.25, 0.159],
+  [1.34, 0.135],
+  [1.405, 0.086],
+];
+function garmentFront(x: number, y: number, depth: number[][], lift = 0.006) {
+  const row = Math.max(
+    1,
+    depth.findIndex(([height]) => height >= y),
+  );
+  const [low, back] = depth[row - 1],
+    [high, front] = depth[row];
+  return [
+    x,
+    y,
+    charMix(back, front, charClamp((y - low) / (high - low), 0, 1)) - 0.11 * Math.abs(x) + lift,
+  ];
+}
+
+function drawLeatherJacket(m: CharacterMeshBuilder, waist: number, shoulder: number) {
+  const S = CHAR_SLOT;
+  const rings = [
+    [0.84, 0.18, 0.139],
+    [0.93, waist + 0.028, 0.141],
+    [1.1, waist + 0.043, 0.151],
+    [1.25, shoulder + 0.021, 0.167],
+    [1.34, shoulder + 0.012, 0.152],
+    [1.405, 0.105, 0.095],
+  ];
+  m.loft(rings.map(([y, width, depth]) => [0, y, 0, width - 0.015, depth - 0.021]),
+    S.eye, charTorsoRig, 16);
+  const opening = [0.53, 0.43, 0.33, 0.28, 0.36, 0.56];
+  const shell = (row: number, segment: number) => {
+    const [y, width, depth] = rings[row];
+    const angle = charMix(opening[row], CHAR_TAU - opening[row], segment / 16);
+    return [Math.sin(angle) * width, y, Math.cos(angle) * depth];
+  };
+  for (let row = 0; row < rings.length - 1; row++) {
+    for (let segment = 0; segment < 16; segment++)
+      m.quad(shell(row, segment), shell(row, segment + 1), shell(row + 1, segment + 1),
+        shell(row + 1, segment), S.shirt, charTorsoRig);
+    for (const segment of [0, 16]) {
+      const a = shell(row, segment), b = shell(row + 1, segment);
+      m.quad(a, [a[0], a[1], a[2] - 0.024], [b[0], b[1], b[2] - 0.024], b,
+        S.trim, charTorsoRig);
+    }
+  }
+  const at = (x: number, y: number, lift = 0.011) => {
+    const row = Math.max(1, rings.findIndex(([height]) => height >= y));
+    const [low, lowWidth, lowDepth] = rings[row - 1];
+    const [high, highWidth, highDepth] = rings[row];
+    const blend = (y - low) / (high - low);
+    const width = charMix(lowWidth, highWidth, blend);
+    const depth = charMix(lowDepth, highDepth, blend);
+    return [x, y, depth * Math.sqrt(Math.max(0, 1 - (x / width) ** 2)) + lift];
+  };
+  const pull = at(0.081, 1.073);
+  m.box(pull[0] - 0.006, pull[1] - 0.024, pull[2], 0.012, 0.025, 0.008, S.white, charTorsoRig, 0.56);
+  for (const side of [-1, 1]) {
+    const collar = [
+      at(side * 0.066, 1.4, 0.016),
+      at(side * 0.18, 1.33, 0.022),
+      at(side * 0.096, 1.265, 0.027),
+    ];
+    if (side > 0) collar.reverse();
+    m.tri(collar[0], collar[1], collar[2], S.shirt, charTorsoRig, 1.44);
+    const stud = at(side * 0.103, 1.307, 0.026);
+    m.box(stud[0] - 0.006, stud[1], stud[2], 0.012, 0.012, 0.008, S.white, charTorsoRig, 0.56);
+    const base = at(side * 0.082, 0.983);
+    const top = at(side * 0.166, 1.09);
+    m.quad(
+      base,
+      [base[0] + 0.012, base[1], base[2]],
+      [top[0] + 0.012, top[1], top[2]],
+      top,
+      S.trim,
+      charTorsoRig,
+      0.72,
+    );
+  }
+}
+
+function drawSuitFront(m: CharacterMeshBuilder) {
+  const S = CHAR_SLOT;
+  const at = (x: number, y: number, lift?: number) => garmentFront(x, y, jacketDepth, lift);
+  const shirtWidth = (y: number) => (y - 1.11) * 0.32;
+  for (const [y, top] of [
+    [1.11, 1.25],
+    [1.25, 1.34],
+    [1.34, 1.405],
+  ]) {
+    const a = shirtWidth(y),
+      b = shirtWidth(top);
+    m.quad(at(-a, y), at(a, y), at(b, top), at(-b, top), S.white, charTorsoRig);
+  }
+
+  for (const side of [-1, 1]) {
+    const p = (x: number, y: number, lift = 0.01) => at(side * x, y, lift);
+    // Two faces form each notched lapel. The fold follows the chest rig.
+    const lapel = [p(0.017, 1.115), p(0.108, 1.248), p(0.158, 1.322), p(0.083, 1.394)];
+    if (side < 0) lapel.reverse();
+    m.quad(lapel[0], lapel[1], lapel[2], lapel[3], S.shirt, charTorsoRig, 1.34);
+    m.tri(p(0.108, 1.248), p(0.123, 1.317), p(0.158, 1.322), S.shirt, charTorsoRig, 0.76);
+    m.tri(
+      p(0, 1.385, 0.012),
+      p(0.062, 1.404, 0.012),
+      p(0.044, 1.346, 0.015),
+      S.white,
+      charTorsoRig,
+      1.12,
+    );
+
+    const pocket = [p(0.082, 0.936), p(0.16, 0.947), p(0.16, 0.96), p(0.082, 0.95)];
+    if (side < 0) pocket.reverse();
+    m.quad(pocket[0], pocket[1], pocket[2], pocket[3], S.shirt, charTorsoRig, 1.27);
+  }
+  // A white pocket square and an angled top welt.
+  m.quad(
+    at(0.108, 1.213, 0.016),
+    at(0.17, 1.223, 0.015),
+    at(0.163, 1.252, 0.016),
+    at(0.122, 1.24, 0.016),
+    S.white,
+    charTorsoRig,
+  );
+  m.quad(
+    at(0.101, 1.209, 0.019),
+    at(0.176, 1.22, 0.019),
+    at(0.176, 1.229, 0.019),
+    at(0.101, 1.219, 0.019),
+    S.shirt,
+    charTorsoRig,
+    0.74,
+  );
+  for (const y of [0.93, 1.023, 1.108]) {
+    const z = at(0, y)[2];
+    m.box(-0.012, y, z, 0.024, 0.021, 0.009, S.eye, charTorsoRig, 0.63);
+  }
+}
+
+const shirtDepth = [
+  [0.96, 0.112],
+  [1.1, 0.125],
+  [1.25, 0.146],
+  [1.34, 0.115],
+  [1.39, 0.078],
+];
+function drawBlackTie(m: CharacterMeshBuilder, suit: boolean) {
+  const at = (x: number, y: number, fold = 0) =>
+    garmentFront(x, y, suit ? jacketDepth : shirtDepth, 0.026 + fold);
+  const slot = CHAR_SLOT.eye;
+  m.quad(
+    at(-0.023, 1.37),
+    at(-0.016, 1.337, 0.006),
+    at(0.016, 1.337, 0.006),
+    at(0.023, 1.37),
+    slot,
+    charTorsoRig,
+    0.74,
+  );
+  const blade = [
+    [1.342, 0.012],
+    [1.25, 0.015],
+    [1.13, 0.024],
+  ];
+  for (let i = 1; i < blade.length; i++) {
+    const [y, width] = blade[i - 1],
+      [top, spread] = blade[i];
+    m.quad(
+      at(-spread, top),
+      at(0, top, 0.008),
+      at(0, y, 0.006),
+      at(-width, y),
+      slot,
+      charTorsoRig,
+      0.53,
+    );
+    m.quad(
+      at(0, top, 0.008),
+      at(spread, top),
+      at(width, y),
+      at(0, y, 0.006),
+      slot,
+      charTorsoRig,
+      0.89,
+    );
+  }
+  m.tri(at(-0.024, 1.13), at(0, 1.097, 0.005), at(0.024, 1.13), slot, charTorsoRig, 0.7);
+}
+function drawDefenseArmor(m: CharacterMeshBuilder, torso: string, waist: number, shoulder: number) {
+  const S = CHAR_SLOT;
+  const chainmail = torso === 'steel-chainmail';
+  const icy = torso === 'icy-kevlar-vest';
+  const profile = [
+    [chainmail ? 0.81 : 0.902, waist + 0.038, 0.139],
+    [0.985, waist + 0.032, 0.145],
+    [1.17, shoulder + 0.016, 0.162],
+    [1.302, shoulder + 0.018, 0.147],
+    [1.382, shoulder * 0.79, 0.109],
+    [1.424, 0.094, 0.084],
+  ];
+  m.loft(
+    profile.map(([y, width, depth]) => [0, y, 0, width, depth]),
+    S.shirt,
+    charTorsoRig,
+    16,
+  );
+  const [hem, width, depth] = profile[0];
+  m.loft(
+    [
+      [0, hem + 0.004, 0, width + 0.009, depth + 0.009],
+      [0, hem + 0.028, 0, width + 0.008, depth + 0.01],
+    ],
+    S.belt,
+    charTorsoRig,
+    16,
+    false,
+  );
+  const point = (angle: number, y: number, rise: number) => {
+    const top = profile.findIndex(([height]) => height >= y);
+    const [loY, loW, loD] = profile[Math.max(0, top - 1)];
+    const [hiY, hiW, hiD] = profile[top < 0 ? profile.length - 1 : top];
+    const t = charClamp((y - loY) / (hiY - loY || 1), 0, 1);
+    return [
+      Math.sin(angle) * (charMix(loW, hiW, t) + rise),
+      y,
+      Math.cos(angle) * (charMix(loD, hiD, t) + rise),
+    ];
+  };
+  if (chainmail) {
+    const across = 22;
+    for (let row = 0; row < 10; row++)
+      for (let column = 0; column < across; column++) {
+        const a = ((column + (row % 2) * 0.5) * CHAR_TAU) / across;
+        const y = 0.868 + row * 0.05;
+        const ring = (i: number, scale: number) => {
+          const t = (i * CHAR_TAU) / 6;
+          return point(
+            a + Math.cos(t) * 0.149 * scale,
+            y + Math.sin(t) * 0.025 * scale,
+            0.006 + 0.006 * scale,
+          );
+        };
+        for (let i = 0; i < 6; i++)
+          m.quad(
+            ring(i, 0.59),
+            ring(i, 1),
+            ring(i + 1, 1),
+            ring(i + 1, 0.59),
+            (column + row + i) % 4 === 0 ? S.shirt : S.trim,
+            charTorsoRig,
+            i < 3 ? 1.03 : 0.76,
+          );
+      }
+    m.loft(
+      [
+        [0, 1.383, 0, 0.176, 0.111],
+        [0, 1.429, 0, 0.098, 0.09],
+      ],
+      S.belt,
+      charTorsoRig,
+      16,
+      false,
+    );
+    return;
+  }
+
+  for (const center of [0, Math.PI]) {
+    for (const side of [-1, 1]) {
+      const at = (a: number, y: number, rise = 0.02) => point(center + side * a, y, rise);
+      const panel = (
+        inner: number,
+        outer: number,
+        bottom: number,
+        top: number,
+        slot: number,
+        shade = 1,
+      ) => {
+        const vertices = [at(inner, bottom), at(outer, bottom), at(outer, top), at(inner, top)];
+        if (side < 0) vertices.reverse();
+        m.quad(vertices[0], vertices[1], vertices[2], vertices[3], slot, charTorsoRig, shade);
+      };
+      if (icy) {
+        const shoulderEdge = [at(0.32, 1.337), at(0.44, 1.235), at(1.06, 1.275),
+          at(1.22, 1.344), at(0.81, 1.402), at(0.36, 1.392)];
+        const ridge = at(0.7, 1.337, 0.045);
+        for (let i = 0; i < shoulderEdge.length; i++) {
+          const a = shoulderEdge[i], b = shoulderEdge[(i + 1) % shoulderEdge.length];
+          m.tri(side > 0 ? a : b, side > 0 ? b : a, ridge, i >= 3 ? S.trim : S.shirt,
+            charTorsoRig, i === 4 ? 1.15 : 0.85);
+        }
+        panel(0.41, 0.91, 1.248, 1.266, S.trim);
+      } else {
+        panel(0.37, 0.85, 1.2, 1.382, S.eye, 0.49);
+        panel(0.44, 0.77, 1.288, 1.307, S.eye, 0.79);
+      }
+      for (let i = 0; i < 3; i++) {
+        const y = 0.963 + i * 0.073;
+        if (!icy) {
+          panel(0.13, 1.09, y, y + 0.052, S.belt, 1.19);
+          for (const stitch of [0.21, 0.55, 0.89])
+            panel(stitch, stitch + 0.035, y + 0.011, y + 0.045, S.trim, 0.85);
+        } else {
+          const edge = [
+            at(0.07, y + 0.02),
+            at(0.84, y - 0.006),
+            at(1.15, y + 0.047),
+            at(0.91, y + 0.087),
+            at(0.16, y + 0.082),
+          ];
+          if (side < 0) edge.reverse();
+          const ridge = at(0.5, y + 0.044, 0.033);
+          for (let j = 0; j < edge.length; j++)
+            m.tri(
+              edge[j],
+              edge[(j + 1) % edge.length],
+              ridge,
+              j === 2 ? S.trim : S.shirt,
+              charTorsoRig,
+              0.72 + j * 0.085,
+            );
+        }
+      }
+    }
+    m.quad(
+      point(center - 0.035, 0.939, 0.031),
+      point(center + 0.035, 0.939, 0.031),
+      point(center + 0.035, 1.252, 0.027),
+      point(center - 0.035, 1.252, 0.027),
+      S.belt,
+      charTorsoRig,
+    );
+  }
+}
+
+function drawTechwearTop(m: CharacterMeshBuilder, waist: number, shoulder: number) {
+  const S = CHAR_SLOT;
+  const profile = [
+    [0.851, waist + 0.014, 0.121],
+    [0.944, waist - 0.005, 0.119],
+    [1.103, waist + 0.01, 0.133],
+    [1.248, shoulder - 0.016, 0.146],
+    [1.338, shoulder - 0.02, 0.125],
+    [1.409, 0.092, 0.079],
+  ];
+  m.loft(
+    profile.map(([y, width, depth]) => [0, y, 0, width, depth]),
+    S.shirt,
+    charTorsoRig,
+    16,
+  );
+  m.loft(
+    [
+      [0, 1.385, 0, 0.093, 0.087],
+      [0, 1.442, 0, 0.078, 0.073],
+    ],
+    S.belt,
+    2,
+    12,
+  );
+  function front(x: number, y: number, lift = 0.004) {
+    const row = Math.max(
+      1,
+      profile.findIndex(([height]) => height >= y),
+    );
+    const [low, narrow, shallow] = profile[row - 1];
+    const [high, wide, deep] = profile[row];
+    const t = charClamp((y - low) / (high - low), 0, 1);
+    const across = charClamp(x / charMix(narrow, wide, t), -1, 1);
+    return [x, y, charMix(shallow, deep, t) * Math.sqrt(1 - across * across) + lift];
+  }
+  // The segmented zipper follows the taper of the torso.
+  const zipper = [
+    [0.014, 0.861],
+    [0.012, 0.944],
+    [0.025, 1.103],
+    [0.054, 1.248],
+    [0.075, 1.338],
+    [0.057, 1.401],
+  ];
+  for (const [i, [x, y]] of zipper.slice(1).entries()) {
+    const [lowerX, lowerY] = zipper[i];
+    m.quad(
+      front(lowerX - 0.014, lowerY),
+      front(lowerX + 0.014, lowerY),
+      front(x + 0.014, y),
+      front(x - 0.014, y),
+      S.belt,
+      charTorsoRig,
+    );
+    m.quad(
+      front(lowerX - 0.003, lowerY, 0.008),
+      front(lowerX + 0.003, lowerY, 0.008),
+      front(x + 0.003, y, 0.008),
+      front(x - 0.003, y, 0.008),
+      S.metal,
+      charTorsoRig,
+      0.81,
+    );
+  }
+  m.box(0.051, 1.36, front(0.061, 1.36)[2] - 0.003, 0.019, 0.029, 0.016, S.metal, charTorsoRig);
+
+  const plates = [
+    [-0.149, -0.031, 1.278, 0.018],
+    [-0.14, -0.039, 1.224, 0.016],
+    [-0.128, -0.047, 1.169, 0.014],
+    [0.085, 0.155, 1.17, -0.022],
+    [0.064, 0.143, 1.111, -0.021],
+  ];
+  for (const [left, right, y, slope] of plates) {
+    m.quad(
+      front(left, y),
+      front(right, y + slope),
+      front(right, y + slope + 0.035),
+      front(left, y + 0.035),
+      S.belt,
+      charTorsoRig,
+    );
+    m.quad(
+      front(left + 0.012, y + 0.01, 0.011),
+      front(right - 0.012, y + slope + 0.01, 0.011),
+      front(right - 0.012, y + slope + 0.021, 0.011),
+      front(left + 0.012, y + 0.021, 0.011),
+      S.metal,
+      charTorsoRig,
+    );
+    const rivet = front(left + 0.014, y + 0.013);
+    m.box(
+      rivet[0] - 0.006,
+      rivet[1],
+      rivet[2] - 0.005,
+      0.012,
+      0.013,
+      0.016,
+      S.metal,
+      charTorsoRig,
+      1.28,
+    );
+  }
+  for (const side of [-1, 1]) {
+    const x = side * 0.104;
+    const anchors = [
+      front(x - 0.011, 0.929),
+      front(x + 0.011, 0.929),
+      front(x + 0.028, 1.012),
+      front(x + 0.006, 1.012),
+    ];
+    m.quad(anchors[0], anchors[1], anchors[2], anchors[3], S.belt, charTorsoRig);
+    m.box(x - 0.008, 0.95, front(x, 0.95)[2] - 0.003, 0.016, 0.02, 0.012, S.metal, charTorsoRig);
+  }
+}
+
+function drawTechwearCargo(m: CharacterMeshBuilder, x: number, rig: Rig) {
+  const S = CHAR_SLOT;
+  const side = Math.sign(x);
+  m.loft(
+    [
+      [x, 0.108, 0, 0.081, 0.088],
+      [x, 0.186, -0.003, 0.098, 0.104],
+      [x, 0.344, -0.009, 0.113, 0.115],
+      [x, 0.478, 0.003, 0.111, 0.124],
+      [x, 0.592, 0.009, 0.124, 0.128],
+      [x, 0.764, 0.003, 0.132, 0.131],
+      [x, 0.899, 0, 0.106, 0.111],
+    ],
+    S.pants,
+    rig,
+    12,
+  );
+  // Gusseted pockets project from the outside face of each thigh.
+  const pocket = x + side * 0.074;
+  m.loft(
+    [
+      [pocket, 0.535, 0.073, 0.057, 0.056],
+      [pocket + side * 0.008, 0.565, 0.071, 0.072, 0.076],
+      [pocket + side * 0.012, 0.712, 0.067, 0.076, 0.077],
+      [pocket, 0.75, 0.066, 0.062, 0.063],
+    ],
+    S.pants,
+    rig,
+    8,
+    true,
+  );
+  m.box(pocket - 0.056, 0.697, 0.104, 0.122, 0.043, 0.05, S.belt, rig);
+  for (const dx of [-0.034, 0.033]) {
+    const latch = pocket + dx;
+    m.box(latch - 0.013, 0.644, 0.121, 0.026, 0.07, 0.028, S.belt, rig);
+    m.box(latch - 0.017, 0.669, 0.149, 0.034, 0.026, 0.011, S.metal, rig);
+    m.box(latch - 0.009, 0.676, 0.159, 0.018, 0.011, 0.004, S.belt, rig);
+  }
+  for (const [y, width, depth] of [
+    [0.224, 0.106, 0.113],
+    [0.326, 0.117, 0.116],
+  ]) {
+    m.loft(
+      [
+        [x, y, -0.006, width, depth],
+        [x, y + 0.023, -0.006, width, depth],
+      ],
+      S.belt,
+      rig,
+      12,
+      false,
+    );
+    m.box(x + side * 0.029 - 0.018, y - 0.001, depth - 0.011, 0.036, 0.025, 0.016, S.metal, rig);
+  }
+}
+
+function drawSilkKimono(m: CharacterMeshBuilder, shoulder: number) {
+  const S = CHAR_SLOT;
+  const profile = [
+    [0.725, 0.234, 0.171],
+    [0.832, 0.225, 0.164],
+    [0.975, 0.184, 0.138],
+    [1.102, 0.197, 0.143],
+    [1.248, shoulder + 0.01, 0.154],
+    [1.344, shoulder + 0.012, 0.128],
+    [1.408, 0.105, 0.082],
+  ];
+  const depth = profile.map(([y, , z]) => [y, z]);
+  const at = (x: number, y: number, lift?: number) => garmentFront(x, y, depth, lift);
+  m.loft(
+    profile.map(([y, width, z]) => [0, y, 0, width, z]),
+    S.shirt,
+    charTorsoRig,
+    14,
+  );
+  m.loft(
+    [
+      [0, 0.726, 0, 0.236, 0.175],
+      [0, 0.754, 0, 0.237, 0.175],
+    ],
+    S.trim,
+    charTorsoRig,
+    14,
+    false,
+  );
+  m.loft(
+    [
+      [0, 0.891, 0, 0.215, 0.164],
+      [0, 0.916, 0, 0.213, 0.163],
+      [0, 0.981, 0, 0.197, 0.155],
+      [0, 1.005, 0, 0.197, 0.154],
+    ],
+    S.eye,
+    charTorsoRig,
+    14,
+    false,
+  );
+  for (const [y, width, z] of [
+    [0.899, 0.216, 0.166],
+    [0.982, 0.199, 0.156],
+  ])
+    m.loft(
+      [
+        [0, y, 0, width, z],
+        [0, y + 0.01, 0, width, z],
+      ],
+      S.trim,
+      charTorsoRig,
+      14,
+      false,
+    );
+  m.box(-0.049, 0.919, 0.161, 0.102, 0.047, 0.024, S.shirt, charTorsoRig, 1.25);
+  m.box(-0.018, 0.916, 0.182, 0.039, 0.052, 0.013, S.trim, charTorsoRig);
+
+  function binding(points: number[][], width: number, slot: number, shade = 1) {
+    for (let i = 1; i < points.length; i++) {
+      const [x, y] = points[i - 1];
+      const [u, v] = points[i];
+      m.quad(
+        at(u - width, v, 0.01),
+        at(u + width, v, 0.01),
+        at(x + width, y, 0.01),
+        at(x - width, y, 0.01),
+        slot,
+        charTorsoRig,
+        shade,
+      );
+    }
+  }
+  binding(
+    [
+      [0.078, 1.398],
+      [0.034, 1.314],
+      [-0.043, 1.199],
+    ],
+    0.026,
+    S.shirt,
+    0.58,
+  );
+  binding(
+    [
+      [-0.076, 1.398],
+      [-0.028, 1.311],
+      [0.035, 1.21],
+      [0.114, 1.094],
+      [0.127, 1.01],
+    ],
+    0.028,
+    S.shirt,
+    0.54,
+  );
+  binding(
+    [
+      [-0.066, 1.397],
+      [-0.019, 1.311],
+      [0.045, 1.21],
+      [0.124, 1.094],
+      [0.136, 1.009],
+    ],
+    0.0065,
+    S.trim,
+  );
+
+  for (const [x, y, size] of [
+    [-0.091, 1.138, 0.034],
+    [-0.13, 1.098, 0.02],
+    [0.088, 0.814, 0.035],
+    [0.135, 0.78, 0.023],
+  ]) {
+    const core = at(x, y, 0.012);
+    for (let petal = 0; petal < 5; petal++) {
+      const angle = (petal * Math.PI * 2) / 5;
+      const p = (radius: number, offset: number) =>
+        at(x + Math.cos(angle + offset) * radius, y + Math.sin(angle + offset) * radius, 0.012);
+      m.quad(
+        core,
+        p(size * 0.7, -0.37),
+        p(size, 0),
+        p(size * 0.7, 0.37),
+        S.trim,
+        charTorsoRig,
+        1.13,
+      );
+    }
+    m.box(
+      x - size * 0.14,
+      y - size * 0.14,
+      core[2],
+      size * 0.28,
+      size * 0.28,
+      0.007,
+      S.white,
+      charTorsoRig,
+    );
+  }
+}
+
+function drawBlueJeans(m: CharacterMeshBuilder, x: number, rig: Rig) {
+  const S = CHAR_SLOT;
+  const side = Math.sign(x);
+  m.loft(
+    [
+      [x, 0.103, -0.006, 0.069, 0.077],
+      [x, 0.183, -0.004, 0.082, 0.085],
+      [x, 0.372, -0.009, 0.086, 0.092],
+      [x, 0.509, 0.003, 0.087, 0.098],
+      [x, 0.665, 0.004, 0.105, 0.114],
+      [x, 0.803, 0.003, 0.111, 0.111],
+      [x, 0.9, 0, 0.105, 0.107],
+    ],
+    S.pants,
+    rig,
+    12,
+  );
+  m.loft(
+    [
+      [x, 0.111, -0.004, 0.073, 0.082],
+      [x, 0.156, -0.003, 0.08, 0.088],
+    ],
+    S.pants,
+    rig,
+    12,
+    false,
+  );
+  const seam = [
+    [0.16, 0.083],
+    [0.37, 0.087],
+    [0.51, 0.088],
+    [0.67, 0.106],
+    [0.81, 0.112],
+  ];
+  for (let i = 1; i < seam.length; i++) {
+    const [y, width] = seam[i - 1];
+    const [top, next] = seam[i];
+    m.quad(
+      [x + width * side, y, -0.012],
+      [x + width * side, y, 0.009],
+      [x + next * side, top, 0.009],
+      [x + next * side, top, -0.012],
+      S.pants,
+      rig,
+      0.65,
+    );
+    m.quad(
+      [x + width * side, y, 0.008],
+      [x + width * side, y, 0.013],
+      [x + next * side, top, 0.013],
+      [x + next * side, top, 0.008],
+      S.white,
+      rig,
+      0.7,
+    );
+  }
+  m.quad(
+    [x - 0.018, 0.415, 0.089],
+    [x + 0.028, 0.415, 0.089],
+    [x + 0.044, 0.598, 0.109],
+    [x - 0.036, 0.598, 0.109],
+    S.pants,
+    rig,
+    1.26,
+  );
+  m.quad(
+    [x - 0.036, 0.598, 0.109],
+    [x + 0.044, 0.598, 0.109],
+    [x + 0.024, 0.731, 0.117],
+    [x - 0.031, 0.728, 0.117],
+    S.pants,
+    rig,
+    1.18,
+  );
+  const pocket = x + side * 0.021;
+  m.quad(
+    [pocket + 0.051, 0.87, -0.108],
+    [pocket - 0.051, 0.87, -0.108],
+    [pocket - 0.037, 0.753, -0.111],
+    [pocket + 0.037, 0.75, -0.111],
+    S.pants,
+    rig,
+    0.79,
+  );
+  m.box(pocket - 0.043, 0.847, 0.106, 0.016, 0.016, 0.01, S.metal, rig);
+}
+
+function drawPuffyParka(m: CharacterMeshBuilder) {
+  const S = CHAR_SLOT;
+  // The narrower rings are the seams between quilted baffles.
+  const rings = [
+    [0, 0.785, 0, 0.21, 0.141],
+    [0, 0.837, 0, 0.243, 0.17],
+    [0, 0.895, 0, 0.226, 0.15],
+    [0, 0.956, 0, 0.249, 0.178],
+    [0, 1.01, 0, 0.228, 0.155],
+    [0, 1.075, 0, 0.266, 0.187],
+    [0, 1.13, 0, 0.249, 0.164],
+    [0, 1.192, 0, 0.284, 0.195],
+    [0, 1.24, 0, 0.266, 0.172],
+    [0, 1.296, 0, 0.29, 0.181],
+    [0, 1.35, 0, 0.262, 0.149],
+    [0, 1.4, 0, 0.112, 0.097],
+  ];
+  m.loft(rings, S.shirt, charTorsoRig, 12);
+  m.loft(
+    [
+      [0, 1.3, -0.123, 0.183, 0.112],
+      [0, 1.39, -0.12, 0.161, 0.12],
+      [0, 1.48, -0.101, 0.117, 0.081],
+    ],
+    S.shirt,
+    2,
+    12,
+  );
+  m.loft(
+    [
+      [0, 1.373, 0, 0.113, 0.105],
+      [0, 1.443, 0, 0.093, 0.09],
+    ],
+    S.trim,
+    2,
+    12,
+    false,
+  );
+  for (let i = 1; i < rings.length; i++) {
+    const [, y, , , z] = rings[i - 1],
+      [, top, , , end] = rings[i];
+    m.quad(
+      [-0.009, y, z + 0.004],
+      [0.009, y, z + 0.004],
+      [0.009, top, end + 0.004],
+      [-0.009, top, end + 0.004],
+      S.trim,
+      charTorsoRig,
+    );
+  }
+  m.box(-0.011, 1.329, 0.153, 0.022, 0.022, 0.011, S.metal, charTorsoRig);
+  for (const side of [-1, 1]) {
+    const near = side * 0.088,
+      far = side * 0.151;
+    m.quad(
+      [near, 1.047, 0.176],
+      [far, 0.936, 0.148],
+      [far, 0.953, 0.15],
+      [near, 1.064, 0.181],
+      S.trim,
+      charTorsoRig,
+    );
+  }
+}
 function charBuildMesh({
   female,
   longHair,
@@ -1241,6 +2296,7 @@ function charBuildMesh({
   backpack,
   coat,
   uniform,
+  camouflage,
   sunglasses,
   alien,
   akibo,
@@ -1256,16 +2312,42 @@ function charBuildMesh({
   robeBottom,
   turtleneck,
   gooseShirt,
+  neck,
   hat,
   phone,
 }: CharacterAppearance) {
-  const m = new CharacterMeshBuilder(),
+  const m = new CharacterMeshBuilder(camouflage),
     S = CHAR_SLOT,
     waist = female ? 0.142 : 0.164,
     shoulder = female ? 0.222 : 0.238,
+    parka = torso === 'puffy-parka',
+    leatherJacket = torso === LEATHER_JACKET.item,
+    defenseArmor = isDefenseArmor(torso),
+    formalSuit = torso === 'charcoal-suit',
+    techwearTop = torso === 'techwear-top',
+    techwearCargo = legs === 'techwear-bottoms',
+    kimono = torso === 'silk-kimono',
+    blueJeans = legs === 'blue-jeans',
+    formalTrousers = formalSuit && !legs && !icePants && !cloakBottom,
+    yellowTop = torso === 'yellow-top',
+    yellowPants = legs === 'yellow-pants',
     ironTop = isIronArmorTorso(torso),
-    ironLegs = legs === 'iron-armor-legs';
-  if (ironTop) {
+    ironLegs = isIronArmorLegs(legs);
+  let start = m.indices.length;
+  if (techwearTop) drawTechwearTop(m, waist, shoulder);
+  else if (kimono) drawSilkKimono(m, shoulder);
+  else if (parka) drawPuffyParka(m);
+  else if (leatherJacket) drawLeatherJacket(m, waist, shoulder);
+  else if (defenseArmor) drawDefenseArmor(m, torso, waist, shoulder);
+  else if (formalSuit) {
+    const widths = [0.179, waist + 0.02, waist + 0.031, shoulder + 0.015, shoulder, 0.102];
+    m.loft(
+      jacketDepth.map(([y, depth], i) => [0, y, 0, widths[i], depth]),
+      S.shirt,
+      charTorsoRig,
+      12,
+    );
+  } else if (ironTop) {
     m.loft(
       [
         [0, 0.86, 0, 0.185, 0.145],
@@ -1348,6 +2430,8 @@ function charBuildMesh({
       charTorsoRig,
       8,
     );
+  m.recordEquipment('top', start);
+  start = m.indices.length;
   m.loft(
     [
       [0, 0.82, 0, 0.167, 0.106] satisfies [number, number, number, number, number],
@@ -1358,7 +2442,7 @@ function charBuildMesh({
     0,
     8,
   );
-  if (!cloakBottom && !ironTop && !ironLegs) {
+  if (!cloakBottom && !ironTop && !ironLegs && !yellowPants && !formalSuit) {
     m.loft(
       [
         [0, 0.89, 0, 0.176, 0.121] satisfies [number, number, number, number, number],
@@ -1370,6 +2454,8 @@ function charBuildMesh({
     );
     m.box(-0.027, 0.897, 0.12, 0.054, 0.031, 0.012, S.metal, 0);
   }
+  if (!cloakBottom) m.recordEquipment('legs', start);
+  start = m.indices.length;
   if (robeTop)
     for (let i = 0; i < 6; i++) {
       const y = 0.723 + i * 0.012;
@@ -1385,7 +2471,40 @@ function charBuildMesh({
       );
     }
   // Collar, a placket and sleeve cuffs add readable clothing planes.
-  if (!cloakTop && !turtleneck && !gooseShirt && !ironTop) {
+  if (formalSuit) drawSuitFront(m);
+  else if (yellowTop) {
+    const zipper = [
+      [0.875, 0.122],
+      [0.96, 0.115],
+      [1.1, 0.128],
+      [1.25, 0.14],
+      [1.34, 0.118],
+      [1.39, 0.081],
+    ];
+    for (let i = 1; i < zipper.length; i++) {
+      const [y, z] = zipper[i - 1],
+        [top, front] = zipper[i];
+      m.quad(
+        [-0.009, y, z],
+        [0.009, y, z],
+        [0.009, top, front],
+        [-0.009, top, front],
+        S.eye,
+        charTorsoRig,
+      );
+    }
+    m.box(-0.012, 1.337, 0.12, 0.024, 0.027, 0.013, S.metal, charTorsoRig);
+  } else if (
+    !techwearTop &&
+    !kimono &&
+    !parka &&
+    !leatherJacket &&
+    !cloakTop &&
+    !turtleneck &&
+    !gooseShirt &&
+    !defenseArmor &&
+    !ironTop
+  ) {
     m.quad(
       [-0.1, 1.39, 0.07] satisfies [number, number, number],
       [0, 1.27, 0.14] satisfies [number, number, number],
@@ -1406,6 +2525,13 @@ function charBuildMesh({
     for (const y of [1.06, 1.15, 1.24] satisfies [number, number, number])
       m.box(-0.009, y, 0.143, 0.018, 0.018, 0.008, S.metal, charTorsoRig, 0.7);
   }
+  m.recordEquipment('top', start);
+  if (neck === 'black-tie') {
+    start = m.indices.length;
+    drawBlackTie(m, formalSuit);
+    m.recordEquipment('tie', start);
+  }
+  start = m.indices.length;
   if (gooseShirt) {
     const logo = (outline: number[][], slot: number) => {
       const [a, b, c, d] = outline.map(([x, y]) => [x, y, 0.138 - Math.abs(x) * 0.12]);
@@ -1448,6 +2574,7 @@ function charBuildMesh({
       S.rainbow + 1,
     );
   }
+  m.recordEquipment('top', start);
   m.loft(
     [
       [0, 1.37, 0, 0.061, 0.06] satisfies [number, number, number, number, number],
@@ -1458,6 +2585,7 @@ function charBuildMesh({
     8,
   );
   if (turtleneck) {
+    start = m.indices.length;
     const collarRig = (p: number[]) => charBlend(2, 3, (p[1] - 1.39) / 0.08);
     m.loft(
       [
@@ -1478,6 +2606,7 @@ function charBuildMesh({
       collarRig,
       12,
     );
+    m.recordEquipment('top', start);
   }
   for (let side = 0; side < 2; side++) {
     const x = side ? 0.11 : -0.11,
@@ -1485,20 +2614,49 @@ function charBuildMesh({
       shin = thigh + 1,
       foot = thigh + 2;
     const legRig = (p: number[]) => charBlend(thigh, shin, (0.55 - p[1]) / 0.15);
-    m.loft(
-      [
-        [x, 0.1, 0, 0.065, 0.075],
-        [x, 0.18, -0.005, 0.071, 0.077],
-        [x, 0.38, -0.006, 0.079, 0.087],
-        [x, 0.47, 0, 0.081, 0.092],
-        [x, 0.55, 0.008, 0.091, 0.106],
-        [x, 0.75, 0.003, 0.101, 0.108],
-        [x, 0.9, 0, 0.097, 0.099],
-      ],
-      S.pants,
-      legRig,
-      8,
-    );
+    start = m.indices.length;
+    if (techwearCargo) drawTechwearCargo(m, x, legRig);
+    else if (blueJeans) drawBlueJeans(m, x, legRig);
+    else
+      m.loft(
+        [
+          [x, 0.1, 0, 0.065, 0.075],
+          [x, 0.18, -0.005, 0.071, 0.077],
+          [x, 0.38, -0.006, 0.079, 0.087],
+          [x, 0.47, 0, 0.081, 0.092],
+          [x, 0.55, 0.008, 0.091, 0.106],
+          [x, 0.75, 0.003, 0.101, 0.108],
+          [x, 0.9, 0, 0.097, 0.099],
+        ].map(([x, y, z, width, depth]) =>
+          yellowPants ? [x, y, z, width * 0.91, depth * 0.94] : [x, y, z, width, depth],
+        ),
+        S.pants,
+        legRig,
+        yellowPants ? 20 : 8,
+        true,
+        yellowPants ? { side: side ? 1 : -1, slot: S.eye } : undefined,
+      );
+    if (formalTrousers) {
+      const seam = [
+        [0.12, 0.077],
+        [0.38, 0.084],
+        [0.55, 0.116],
+        [0.8, 0.11],
+      ];
+      for (let i = 1; i < seam.length; i++) {
+        const [y, front] = seam[i - 1],
+          [top, end] = seam[i];
+        m.quad(
+          [x - 0.004, y, front],
+          [x + 0.004, y, front],
+          [x + 0.004, top, end],
+          [x - 0.004, top, end],
+          S.pants,
+          legRig,
+          1.38,
+        );
+      }
+    }
     if (ironLegs) {
       m.loft(
         [
@@ -1528,7 +2686,38 @@ function charBuildMesh({
         S.metal,
         legRig,
       );
+      if (legs === 'gold-trimmed-iron-armor-legs')
+        for (const [y, width, depth, offset] of [
+          [0.78, 0.109, 0.126, 0.002], [0.528, 0.106, 0.133, 0.016],
+          [0.46, 0.091, 0.116, 0.054], [0.22, 0.086, 0.109, 0.012],
+        ])
+          m.loft([[x, y - 0.008, offset, width, depth], [x, y + 0.008, offset, width, depth]],
+            S.legArmorTrim, legRig);
     }
+    if (isDefenseLegArmor(legs)) {
+      const icy = legs === 'icy-kevlar-pants';
+      m.loft(
+        [
+          [x, 0.554, 0.022, 0.071, 0.093],
+          [x, 0.61, 0.02, 0.096, 0.109],
+          [x, 0.78, 0.013, 0.105, 0.111],
+          [x, 0.844, 0.012, 0.087, 0.094],
+        ],
+        S.pants, legRig, 10,
+      );
+      const rim = [[x - 0.055, 0.415, 0.092], [x + 0.048, 0.409, 0.094],
+        [x + 0.079, 0.502, 0.096], [x + 0.047, 0.574, 0.105],
+        [x - 0.052, 0.578, 0.106], [x - 0.078, 0.503, 0.101]];
+      for (let i = 0; i < rim.length; i++)
+        m.tri(rim[i], rim[(i + 1) % rim.length], [x, 0.503, 0.146],
+          icy && i !== 2 && i !== 3 ? S.pants : S.legArmorTrim, legRig);
+      const outer = x + (side ? 0.072 : -0.072);
+      m.quad([outer - 0.01, 0.617, 0.107], [outer + 0.01, 0.617, 0.107],
+        [outer + 0.007, 0.795, 0.11], [outer - 0.007, 0.795, 0.11],
+        S.legArmorTrim, legRig);
+    }
+    if (!cloakBottom) m.recordEquipment('legs', start);
+    start = m.indices.length;
     if (boots === true) {
       m.loft(
         [
@@ -1645,6 +2834,7 @@ function charBuildMesh({
     );
     m.box(x - 0.069, 0.013, -0.065, 0.138, 0.018, 0.25, S.belt, foot);
     m.box(x - 0.044, 0.113, 0.056, 0.088, 0.014, 0.042, S.trim, foot, 0.65);
+    if (boots) m.recordEquipment('boots', start);
     const arm = side ? 7 : 4,
       forearm = arm + 1,
       hand = arm + 2,
@@ -1653,36 +2843,96 @@ function charBuildMesh({
       p[1] > 1.27
         ? charBlend(arm, 2, (p[1] - 1.27) / 0.14)
         : charBlend(arm, forearm, (1.09 - p[1]) / 0.15);
-    m.loft(
-      cloakTop
-        ? [
-            [ax, 0.73, 0, 0.09, 0.105],
-            [ax, 0.86, 0, 0.115, 0.115],
-            [ax, 1.04, 0, 0.14, 0.135],
-            [ax, 1.22, 0, 0.15, 0.145],
-            [ax, 1.36, 0, 0.1, 0.095],
-          ]
-        : gooseShirt
+    start = m.indices.length;
+    if (leatherJacket)
+      m.loft(
+        [
+          [ax, 0.738, 0, 0.057, 0.068],
+          [ax, 0.805, -0.002, 0.063, 0.075],
+          [ax, 0.982, 0, 0.073, 0.077],
+          [ax, 1.071, 0.007, 0.076, 0.083],
+          [ax, 1.22, 0, 0.089, 0.095],
+          [ax, 1.326, 0, 0.096, 0.097],
+          [ax, 1.382, 0, 0.052, 0.063],
+        ],
+        S.shirt,
+        armRig,
+        12,
+      );
+    else if (parka)
+      m.loft(
+        [
+          [ax, 0.741, 0, 0.065, 0.074],
+          [ax, 0.829, 0, 0.098, 0.1],
+          [ax, 0.898, 0, 0.08, 0.085],
+          [ax, 0.987, 0, 0.107, 0.103],
+          [ax, 1.064, 0, 0.09, 0.095],
+          [ax, 1.153, 0, 0.117, 0.113],
+          [ax, 1.222, 0, 0.104, 0.103],
+          [ax, 1.311, 0, 0.12, 0.119],
+          [ax, 1.389, 0, 0.059, 0.063],
+        ],
+        S.shirt,
+        armRig,
+        10,
+      );
+    else if (kimono) {
+      m.loft(
+        [
+          [ax, 0.809, -0.015, 0.138, 0.144],
+          [ax, 0.88, -0.013, 0.147, 0.142],
+          [ax, 1.063, -0.01, 0.127, 0.13],
+          [ax, 1.249, 0.002, 0.103, 0.107],
+          [ax, 1.388, 0, 0.064, 0.073],
+        ],
+        S.shirt,
+        armRig,
+        12,
+      );
+      m.loft(
+        [
+          [ax, 0.809, -0.015, 0.141, 0.146],
+          [ax, 0.834, -0.015, 0.147, 0.149],
+        ],
+        S.trim,
+        armRig,
+        12,
+        false,
+      );
+    } else
+      m.loft(
+        cloakTop
           ? [
-              [ax, 1.152, 0, 0.079, 0.079],
-              [ax, 1.2, 0, 0.082, 0.081],
-              [ax, 1.32, 0, 0.09, 0.086],
-              [ax, 1.38, 0, 0.053, 0.056],
+              [ax, 0.73, 0, 0.09, 0.105],
+              [ax, 0.86, 0, 0.115, 0.115],
+              [ax, 1.04, 0, 0.14, 0.135],
+              [ax, 1.22, 0, 0.15, 0.145],
+              [ax, 1.36, 0, 0.1, 0.095],
             ]
-          : [
-              [ax, 0.75, 0, 0.052, 0.061],
-              [ax, 0.84, 0, 0.057, 0.063],
-              [ax, 0.98, 0, 0.066, 0.067],
-              [ax, 1.035, 0, 0.069, 0.072],
-              [ax, 1.2, 0, 0.082, 0.081],
-              [ax, 1.32, 0, 0.09, 0.086],
-              [ax, 1.38, 0, 0.053, 0.056],
-            ],
-      S.shirt,
-      armRig,
-      cloakTop ? 10 : 8,
-    );
-    if (gooseShirt)
+          : gooseShirt
+            ? [
+                [ax, 1.152, 0, 0.079, 0.079],
+                [ax, 1.2, 0, 0.082, 0.081],
+                [ax, 1.32, 0, 0.09, 0.086],
+                [ax, 1.38, 0, 0.053, 0.056],
+              ]
+            : [
+                [ax, 0.75, 0, 0.052, 0.061],
+                [ax, 0.84, 0, 0.057, 0.063],
+                [ax, 0.98, 0, 0.066, 0.067],
+                [ax, 1.035, 0, 0.069, 0.072],
+                [ax, 1.2, 0, 0.082, 0.081],
+                [ax, 1.32, 0, 0.09, 0.086],
+                [ax, 1.38, 0, 0.053, 0.056],
+              ],
+        defenseArmor && torso !== 'steel-chainmail' ? S.eye : S.shirt,
+        armRig,
+        yellowTop ? 20 : cloakTop ? 10 : 8,
+        true,
+        yellowTop ? { side: side ? 1 : -1, slot: S.eye } : undefined,
+      );
+    if (gooseShirt || kimono) {
+      m.recordEquipment('top', start);
       m.loft(
         [
           [ax, 0.731, 0, 0.039, 0.04],
@@ -1694,13 +2944,26 @@ function charBuildMesh({
         armRig,
         8,
       );
-    else
+      start = m.indices.length;
+    } else
       m.loft(
         [
-          [ax, 0.731, 0, cloakTop ? 0.09 : 0.055, cloakTop ? 0.105 : 0.063],
-          [ax, 0.77, 0, cloakTop ? 0.1 : 0.056, cloakTop ? 0.11 : 0.063],
+          [
+            ax,
+            0.731,
+            0,
+            cloakTop ? 0.09 : parka ? 0.067 : 0.055,
+            cloakTop ? 0.105 : parka ? 0.076 : 0.063,
+          ],
+          [
+            ax,
+            0.77,
+            0,
+            cloakTop ? 0.1 : parka ? 0.078 : 0.056,
+            cloakTop ? 0.11 : parka ? 0.085 : 0.063,
+          ],
         ],
-        cloakTop ? S.shirt : S.trim,
+        cloakTop ? S.shirt : formalSuit ? S.white : S.trim,
         forearm,
         8,
       );
@@ -1718,6 +2981,27 @@ function charBuildMesh({
           false,
         );
       }
+    if (techwearTop) {
+      for (const [y, radius] of [
+        [0.795, 0.061],
+        [0.888, 0.066],
+        [1.196, 0.087],
+      ]) {
+        m.loft(
+          [
+            [ax, y, 0, radius, radius + 0.005],
+            [ax, y + 0.024, 0, radius + 0.001, radius + 0.006],
+          ],
+          S.belt,
+          armRig,
+          12,
+          false,
+        );
+        m.box(ax - 0.021, y - 0.002, radius - 0.004, 0.042, 0.028, 0.017, S.metal, armRig);
+        m.box(ax - 0.011, y + 0.006, radius + 0.013, 0.022, 0.011, 0.004, S.belt, armRig);
+      }
+    }
+    if (!ironTop && (!defenseArmor || torso === 'steel-chainmail')) m.recordEquipment('top', start);
     m.loft(
       [
         [ax, 0.615, 0.016, 0.044, 0.037],
@@ -1842,11 +3126,15 @@ function charBuildMesh({
   }
   // Hair is a fitted polygon cap. Longer styles have side and back locks.
   const broccoli = hairstyle === 'broccoli',
+    einstein = hairstyle === 'einstein',
+    marge = hairstyle === 'marge',
     crop = hairstyle === 'crop' || broccoli;
-  if (hairstyle === 'ponytail' || hairstyle === 'braid') {
-    drawSweptBackHair(m);
+  if (hairstyle === 'ponytail' || hairstyle === 'braid' || marge || einstein) {
+    drawSweptBackHair(m, einstein ? 0.042 : 0);
     if (hairstyle === 'ponytail') drawPonytail(m);
-    else drawBraid(m);
+    else if (hairstyle === 'braid') drawBraid(m);
+    else if (einstein && !hat && !cap && !chef && !topHat && !tinfoil) drawEinsteinHair(m);
+    else if (hasMargeCrown({ hairstyle, hat, cap, chef, topHat, tinfoil })) drawMargeHair(m);
   } else {
     m.loft(
       [
@@ -2084,6 +3372,7 @@ function charBuildMesh({
     }
   }
   if (phone) {
+    start = m.indices.length;
     m.box(0.2, 0.64, 0.038, 0.09, 0.18, 0.016, S.phoneBody, 9);
     m.box(0.207, 0.656, 0.056, 0.076, 0.14, 0.004, S.phoneScreen, 9);
     for (let i = 0; i < 4; i++)
@@ -2098,8 +3387,10 @@ function charBuildMesh({
         9,
       );
     m.box(0.233, 0.787, 0.062, 0.026, 0.005, 0.002, S.phoneBody, 9);
+    m.recordEquipment('phone', start);
   }
   if (backpack) {
+    start = m.indices.length;
     m.loft(
       [
         [0, 1.0, -0.19, 0.145, 0.06] satisfies [number, number, number, number, number],
@@ -2113,17 +3404,29 @@ function charBuildMesh({
     for (const side of [-1, 1] satisfies [number, number])
       m.box(side * 0.147 - 0.017, 1.01, 0.116, 0.034, 0.27, 0.02, S.bag, charTorsoRig, 0.8);
     m.box(-0.09, 1.04, -0.294, 0.18, 0.1, 0.025, S.bag, 1, 0.85);
+    m.recordEquipment('backpack', start);
   }
-  if (akibo)
+  if (akibo) {
+    start = m.indices.length;
     for (const side of [-1, 1] satisfies [number, number]) {
-      const x = side * 0.245,
+      const [grip, barrel, muzzle] = AKIMBO_MUZZLE;
+      const x = side * grip,
         hand = side < 0 ? 6 : 9;
-      m.box(x - 0.036, 0.38, -0.03, 0.072, 0.32, 0.09, S.metal, hand);
-      m.box(x - 0.025, 0.56, -0.08, 0.05, 0.12, 0.08, S.belt, hand);
-      m.box(x - 0.025, 0.365, -0.02, 0.05, 0.028, 0.07, S.eye, hand);
-      m.box(x - 0.012, 0.36, 0.057, 0.024, 0.04, 0.01, S.white, hand);
+      m.box(x - 0.035, 0.627, -0.066, 0.07, 0.143, 0.082, S.belt, hand);
+      m.box(x - 0.051, 0.747, -0.102, 0.102, 0.089, 0.242, S.metal, hand);
+      m.box(x - 0.043, 0.82, -0.081, 0.086, 0.025, 0.2, S.belt, hand);
+      m.box(x - 0.034, barrel - 0.031, 0.124, 0.068, 0.062, muzzle - 0.124, S.belt, hand);
+      for (const rail of [-1, 1]) {
+        m.box(x + rail * 0.043 - 0.005, 0.775, 0.045, 0.01, 0.032, 0.19, S.metal, hand);
+        m.box(x + rail * 0.049 - 0.004, 0.782, 0.055, 0.008, 0.013, 0.17, S.eye, hand);
+      }
+      m.box(x - 0.024, barrel - 0.024, muzzle - 0.017, 0.048, 0.048, 0.017, S.metal, hand);
+      m.box(x - 0.013, barrel - 0.013, muzzle - 0.006, 0.026, 0.026, 0.007, S.eye, hand);
     }
+    m.recordEquipment('akimbo', start);
+  }
   if (cloakBottom) {
+    start = m.indices.length;
     const drape = (p: number[]) =>
       charBlend(0, p[0] < 0 ? 12 : 15, Math.max(0, Math.min(1, (0.86 - p[1]) / 0.79)));
     m.loft(
@@ -2152,8 +3455,10 @@ function charBuildMesh({
           false,
         );
       }
+    m.recordEquipment('legs', start);
   }
   if (tinfoil) {
+    start = m.indices.length;
     m.loft(
       [
         [0.015, 1.72, 0.012, 0.158, 0.138],
@@ -2195,8 +3500,10 @@ function charBuildMesh({
         );
       }
     }
+    m.recordEquipment('top', start);
   }
   if (iceTop) {
+    start = m.indices.length;
     m.loft(
       [
         [0, 0.97, 0, 0.17, 0.132] satisfies [number, number, number, number, number],
@@ -2237,8 +3544,10 @@ function charBuildMesh({
         S.white,
         2,
       );
+    m.recordEquipment('top', start);
   }
-  if (icePants)
+  if (icePants) {
+    start = m.indices.length;
     for (const side of [-1, 1] satisfies [number, number]) {
       const x = side * 0.11,
         rig = side > 0 ? 14 : 11;
@@ -2260,6 +3569,8 @@ function charBuildMesh({
         rig,
       );
     }
+    m.recordEquipment('legs', start);
+  }
   if (uniform) {
     m.box(-0.13, 1.214, 0.137, 0.071, 0.086, 0.018, S.metal, 2);
     m.box(0.07, 1.14, 0.14, 0.09, 0.065, 0.012, S.pants, 2, 0.8);
@@ -2280,13 +3591,34 @@ export function getCharacterMesh(appearance: CharacterAppearance = {}) {
     backpack: appearance.backpack !== false,
     coat: !!appearance.coat,
     uniform: !!appearance.uniform,
+    camouflage: !!appearance.camouflage,
     sunglasses: !!appearance.sunglasses,
     alien: !!appearance.alien,
     akibo: !!appearance.akibo,
     boots: appearance.boots || false,
     iceTop: !!appearance.iceTop,
-    torso: isIronArmorTorso(appearance.torso) ? 'iron-armor' : '',
-    legs: appearance.legs === 'iron-armor-legs' ? appearance.legs : '',
+    torso: isDefenseArmor(appearance.torso)
+      ? appearance.torso
+      : isIronArmorTorso(appearance.torso)
+        ? 'iron-armor'
+        : appearance.torso === 'yellow-top' ||
+            appearance.torso === 'charcoal-suit' ||
+            appearance.torso === 'techwear-top' ||
+            appearance.torso === 'silk-kimono' ||
+            appearance.torso === LEATHER_JACKET.item ||
+            appearance.torso === 'puffy-parka'
+          ? appearance.torso
+          : '',
+    legs:
+      isIronArmorLegs(appearance.legs) ||
+      isDefenseLegArmor(appearance.legs) ||
+      appearance.legs === 'yellow-pants' ||
+      appearance.legs === 'techwear-bottoms' ||
+      appearance.legs === 'blue-jeans' ||
+      (appearance.torso === 'charcoal-suit' && appearance.legs !== 'trousers')
+        ? appearance.legs || ''
+        : '',
+    neck: appearance.neck === 'black-tie' ? appearance.neck : '',
     tinfoil: !!appearance.tinfoil,
     icePants: !!appearance.icePants,
     cloakTop: !!appearance.cloakTop || appearance.torso === 'decorative-robe-top',
@@ -2308,62 +3640,105 @@ const charScratch = createCharacterPose(),
  * kind: 0 cloth/skin, 1 metal, 2 phone glow. Cache palettes separately. */
 export function characterPalette(appearance: CharacterAppearance, skin: string, shirt: string) {
   const hat = hatById(appearance.hat),
+    outerwear =
+      isDefenseArmor(appearance.torso) || appearance.torso === LEATHER_JACKET.item
+        ? ITEM_STATS[appearance.torso]
+        : null,
+    parka = appearance.torso === 'puffy-parka',
+    techwearTop = appearance.torso === 'techwear-top',
+    techwearCargo = appearance.legs === 'techwear-bottoms',
+    legArmor = isDefenseLegArmor(appearance.legs) ? ITEM_STATS[appearance.legs] : null,
+    kimono = appearance.torso === 'silk-kimono',
+    blueJeans = appearance.legs === 'blue-jeans',
+    techwear = techwearTop || techwearCargo,
+    formalSuit = appearance.torso === 'charcoal-suit',
+    formalTrousers = formalSuit && (!appearance.legs || appearance.legs === 'trousers'),
     ironTop = isIronArmorTorso(appearance.torso),
-    ironLegs = appearance.legs === 'iron-armor-legs',
+    ironLegs = isIronArmorLegs(appearance.legs),
+    trimmedIronLegs = appearance.legs === 'gold-trimmed-iron-armor-legs',
     colors = [
       appearance.alien ? '#a4b797' : skin,
-      ironTop
-        ? IRON_ARMOR_COLORS.plate
-        : appearance.tinfoil
-          ? '#c5d0d2'
-          : appearance.torso === 'decorative-robe-top'
-            ? '#e373a8'
-            : appearance.torso === 'cashmere-turtleneck'
-              ? '#efe1c3'
-              : appearance.torso === 'goose-corp-shirt'
-                ? '#292b32'
-                : appearance.cloakTop
-                  ? '#1b1e23'
-                  : appearance.iceTop
-                    ? ITEM_STATS['ice-top'].color
-                    : shirt,
-      ironLegs
-        ? IRON_ARMOR_COLORS.plate
-        : appearance.tinfoil
-          ? '#b1bec2'
-          : appearance.legs === 'decorative-robe-bottom'
-            ? '#e373a8'
-            : appearance.cloakBottom
-              ? '#181b20'
-              : appearance.icePants
-                ? ITEM_STATS['ice-pants'].color
-                : appearance.pants || '#626955',
+      outerwear
+        ? outerwear.color
+        : kimono
+          ? ITEM_STATS['silk-kimono'].color
+          : techwearTop
+            ? ITEM_STATS['techwear-top'].color
+            : parka
+              ? ITEM_STATS['puffy-parka'].color
+              : formalSuit
+                ? ITEM_STATS['charcoal-suit'].color
+                : ironTop
+                  ? IRON_ARMOR_COLORS.plate
+                  : appearance.torso === 'yellow-top'
+                    ? ITEM_STATS['yellow-top'].color
+                    : appearance.tinfoil
+                      ? '#c5d0d2'
+                      : appearance.torso === 'decorative-robe-top'
+                        ? '#e373a8'
+                        : appearance.torso === 'cashmere-turtleneck'
+                          ? '#efe1c3'
+                          : appearance.torso === 'goose-corp-shirt'
+                            ? '#292b32'
+                            : appearance.cloakTop
+                              ? '#1b1e23'
+                              : appearance.iceTop
+                                ? ITEM_STATS['ice-top'].color
+                                : shirt,
+      legArmor
+        ? legArmor.color
+        : blueJeans
+        ? ITEM_STATS['blue-jeans'].color
+        : techwearCargo
+          ? ITEM_STATS['techwear-bottoms'].color
+          : formalTrousers
+            ? ITEM_STATS['charcoal-suit'].color
+            : ironLegs
+              ? IRON_ARMOR_COLORS.plate
+              : appearance.legs === 'yellow-pants'
+                ? ITEM_STATS['yellow-pants'].color
+                : appearance.tinfoil
+                  ? '#b1bec2'
+                  : appearance.legs === 'decorative-robe-bottom'
+                    ? '#e373a8'
+                    : appearance.cloakBottom
+                      ? '#181b20'
+                      : appearance.icePants
+                        ? ITEM_STATS['ice-pants'].color
+                        : appearance.pants || '#626955',
       appearance.hair || '#453a30',
-      appearance.boots ? '#171a21' : appearance.shoes || '#3c3d36',
-      ironTop
-        ? appearance.torso === 'gold-trimmed-iron-armor'
-          ? '#dbab4c'
-          : IRON_ARMOR_COLORS.trim
-        : appearance.iceTop
-          ? ITEM_STATS['ice-top'].trim
-          : appearance.torso === 'cashmere-turtleneck'
-            ? '#e2d1ad'
-            : appearance.trim || '#c9c7b4',
+      appearance.boots || formalTrousers ? '#171a21' : appearance.shoes || '#3c3d36',
+      outerwear
+        ? outerwear.trim
+        : kimono
+          ? ITEM_STATS['silk-kimono'].trim
+          : techwearTop
+            ? '#4b606b'
+            : parka
+              ? ITEM_STATS['puffy-parka'].trim
+              : ironTop
+                ? appearance.torso === 'gold-trimmed-iron-armor'
+                  ? '#dbab4c'
+                  : IRON_ARMOR_COLORS.trim
+                : appearance.torso === 'yellow-top'
+                  ? ITEM_STATS['yellow-top'].trim
+                  : appearance.iceTop
+                    ? ITEM_STATS['ice-top'].trim
+                    : appearance.torso === 'cashmere-turtleneck'
+                      ? '#e2d1ad'
+                      : appearance.trim || '#c9c7b4',
       '#282c29',
       '#e1dfca',
-      ironLegs ? IRON_ARMOR_COLORS.knee : '#c7aa67',
+      ironLegs ? IRON_ARMOR_COLORS.knee : techwear ? '#a6b7c2' : '#c7aa67',
       '#45483c',
       appearance.bag || '#886d4b',
       ...(hat?.colors || (['#888888', '#aaaaaa', '#cccccc'] satisfies [string, string, string])),
       '#485961',
       '#91bdc5',
       '#e4ece1',
-      '#e94870',
-      '#ff9855',
-      '#f7d54a',
-      '#76d783',
-      '#64b5ef',
-      '#a789dc',
+      ...(appearance.camouflage ? CAMOUFLAGE :
+        ['#e94870', '#ff9855', '#f7d54a', '#76d783', '#64b5ef', '#a789dc']),
+      trimmedIronLegs ? '#dbab4c' : legArmor?.trim || '#a3e3eb',
     ];
   const key =
     colors.join('|') +
@@ -2372,6 +3747,8 @@ export function characterPalette(appearance: CharacterAppearance, skin: string, 
     Number(!!appearance.tinfoil) * 2 +
     Number(ironTop) * 4 +
     Number(ironLegs) * 8 +
+    Number(techwear) * 16 +
+    Number(appearance.torso === 'steel-chainmail') * 32 +
     '|' +
     Number(!!hat?.metal) +
     '|' +
@@ -2393,6 +3770,9 @@ export function characterPalette(appearance: CharacterAppearance, skin: string, 
         ).includes(slot)) ||
       (ironTop && (slot === CHAR_SLOT.shirt || slot === CHAR_SLOT.trim)) ||
       (ironLegs && (slot === CHAR_SLOT.pants || slot === CHAR_SLOT.metal)) ||
+      (trimmedIronLegs && slot === CHAR_SLOT.legArmorTrim) ||
+      (appearance.torso === 'steel-chainmail' && slot === CHAR_SLOT.trim) ||
+      (techwear && slot === CHAR_SLOT.metal) ||
       (hat &&
         ((slot === CHAR_SLOT.hat && hat.metal) ||
           (slot === CHAR_SLOT.hatTrim && hat.trimMetal) ||
@@ -2404,10 +3784,55 @@ export function characterPalette(appearance: CharacterAppearance, skin: string, 
   characterPalettes.set(key, palette);
   return palette;
 }
+
+/** Copy the equipped item's bind geometry and palette without the wearer. */
+export function characterEquipmentMesh(part: EquipmentMeshPart, appearance: CharacterAppearance) {
+  const look = { backpack: false, ...appearance };
+  const mesh = getCharacterMesh(look);
+  const palette = characterPalette(look, '#bd9369', '#707b4b');
+  const data: number[] = [];
+  for (const [start, end] of mesh.equipmentParts[part] ?? [])
+    for (let at = start; at < end; at++) {
+      const id = mesh.indices[at];
+      const i = id * 6;
+      const slot = mesh.slots[id] * 4;
+      const shade = mesh.shades[id];
+      const surface = palette[slot + 3];
+      data.push(
+        mesh.vertices[i],
+        mesh.vertices[i + 1],
+        mesh.vertices[i + 2],
+        mesh.vertices[i + 3],
+        mesh.vertices[i + 4],
+        mesh.vertices[i + 5],
+        palette[slot] * shade,
+        palette[slot + 1] * shade,
+        palette[slot + 2] * shade,
+        surface === 1 ? -1.4 : surface === 2 ? -1.25 : -1,
+        surface === 1 ? 0.4 : surface === 2 ? 0.22 : -1,
+      );
+    }
+  return data;
+}
+
 export function characterIndices(
   mesh: CharacterMesh,
   headOnly: CharacterAppearance['headOnly'] = false,
+  invisible = false,
 ) {
+  if (invisible && !headOnly) {
+    if (!mesh.cloakIndices) {
+      mesh.cloakIndices = [];
+      const { head, leftHand, rightHand, leftFoot, rightFoot } = CHARACTER_BONES;
+      const visibleBones: readonly number[] = [head, leftHand, rightHand, leftFoot, rightFoot];
+      for (let i = 0; i < mesh.indices.length; i += 3) {
+        const tri = mesh.indices.subarray(i, i + 3);
+        if (tri.every((id) => visibleBones.includes(mesh.bonesA[id]) &&
+          visibleBones.includes(mesh.bonesB[id]))) mesh.cloakIndices.push(...tri);
+      }
+    }
+    return mesh.cloakIndices;
+  }
   if (!headOnly) return mesh.indices;
   const { chest, head } = CHARACTER_BONES;
   const cache = headOnly === 'portrait' ? 'portraitIndices' : 'headIndices';
@@ -2447,16 +3872,7 @@ export function drawCharacter(
   // handlebars, ladder grips, exercise poses or board-balancing arms.
   if (
     (
-      ['cycle', 'motorcycle', 'skate', 'surf', 'surfboard', 'paddle', 'climb', 'swim'] satisfies [
-        string,
-        string,
-        string,
-        string,
-        string,
-        string,
-        string,
-        string,
-      ]
+      ['cycle', 'motorcycle', 'scooter', 'skate', 'surf', 'surfboard', 'paddle', 'climb', 'swim']
     ).includes(appearance.mode || '') ||
     (
       [
@@ -2478,18 +3894,30 @@ export function drawCharacter(
       launcher: false,
       akibo: false,
       battleaxe: false,
+      combatLamp: false,
+      katana: false,
+      lightsaber: false,
       rollingPin: false,
+      bowlingBall: false,
       bayonet: false,
       phone: false,
     };
-  if (appearance.railgun || appearance.launcher) {
+  if (appearance.railgun || appearance.launcher || appearance.akibo) {
     if (
-      appearance.carryingFish ||
-      ['caught', 'drink', 'eat', 'fish', 'work'].includes(appearance.action || '')
+      appearance.action !== 'attack' &&
+      (appearance.carryingFish || ['caught', 'drink', 'eat', 'fish', 'work'].includes(appearance.action || ''))
     )
-      appearance = { ...appearance, railgun: false, launcher: false };
-    else if (appearance.phone) appearance = { ...appearance, phone: false };
+      appearance = { ...appearance, railgun: false, launcher: false, akibo: false };
+    else if (appearance.phone || appearance.carryingFish)
+      appearance = { ...appearance, phone: false, carryingFish: false };
   }
+  if ((appearance.lightsaber || appearance.combatLamp) &&
+      ['caught', 'drink', 'eat', 'fish', 'work', 'swing'].includes(appearance.action || ''))
+    appearance = { ...appearance, lightsaber: false, combatLamp: false };
+  if (appearance.lightsaber && appearance.carryingFish)
+    appearance = { ...appearance, lightsaber: false };
+  if ((appearance.bowlingBall || appearance.lightsaber || appearance.combatLamp) && appearance.phone)
+    appearance = { ...appearance, phone: false };
   const mesh = getCharacterMesh(appearance),
     height = appearance.height || 1,
     co = Math.cos(angle),
@@ -2516,12 +3944,16 @@ export function drawCharacter(
           actionT: appearance.actionT,
           carryingFish: appearance.carryingFish,
           pushingStroller: appearance.pushingStroller,
-          railgun: appearance.railgun,
+          railgun: appearance.railgun || appearance.onodaRifle,
           launcher: appearance.launcher,
           akibo: appearance.akibo,
           bayonet: appearance.bayonet,
           battleaxe: appearance.battleaxe,
+          combatLamp: appearance.combatLamp,
+          katana: appearance.katana,
+          lightsaber: appearance.lightsaber,
           rollingPin: appearance.rollingPin,
+          bowlingBall: appearance.bowlingBall,
           crowbar: appearance.crowbar,
           phone: appearance.phone,
           ground,
@@ -2532,7 +3964,7 @@ export function drawCharacter(
     v = mesh.vertices,
     work = mesh.deformed;
   const palette = characterPalette(appearance, skin, shirt),
-    indices = characterIndices(mesh, appearance.headOnly);
+    indices = characterIndices(mesh, appearance.headOnly, appearance.back === 'invisibility-cloak');
   if (
     appearance.boots === 'party-boots' &&
     !appearance.headOnly &&
@@ -2543,7 +3975,8 @@ export function drawCharacter(
     appearance.cpuSkinning ||
     (['caught', 'forward-roll'] satisfies [string, string]).includes(appearance.action || '');
   if (m.characters && !cpu) {
-    m.characters.add(m, mesh, mat, palette, { x, z, base, angle, height, indices });
+    if (indices.length)
+      m.characters.add(m, mesh, mat, palette, { x, z, base, angle, height, indices });
     drawWearableAccessories(m, appearance, mat, {
       x,
       z,
@@ -2554,7 +3987,7 @@ export function drawCharacter(
     });
     return;
   }
-  for (let id = 0; id < mesh.bonesA.length; id++) {
+  for (let id = 0; indices.length && id < mesh.bonesA.length; id++) {
     const i = id * 6,
       a = mesh.bonesA[id] * 12,
       b = mesh.bonesB[id] * 12,

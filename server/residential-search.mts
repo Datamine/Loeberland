@@ -14,7 +14,8 @@ export function createResidentialSearch({
   geometry,
   now,
   dirty,
-}: Pick<SimulationServices, 'geometry' | 'now' | 'dirty'>) {
+  random,
+}: Pick<SimulationServices, 'geometry' | 'now' | 'dirty' | 'random'>) {
   const definitions = new Map(
     [...HOUSE_SEARCHES, CULTIST_WARDROBE, ...Object.values(BERKELEY_HOUSE_SEARCHES)].map((s) => [
       s.id,
@@ -81,24 +82,39 @@ export function createResidentialSearch({
         equipmentOwned(p.inventory.economy.state, reward.itemId || '');
     const result = duplicate ? { ok: true } : p.inventory.receive(reward);
     if (!result.ok) return result;
+    const bonus =
+      'bonus' in definition &&
+      definition.bonus &&
+      !equipmentOwned(p.inventory.economy.state, definition.bonus.item) &&
+      random() < definition.bonus.chance
+        ? itemLoot(definition.bonus.item)
+        : null;
+    const foundBonus = bonus && p.inventory.receive(bonus).ok;
     claimed.push(id);
     p.angle = Math.atan2(site.z - p.z, site.x - p.x);
     p.gesture = 'work';
     p.gestureUntil = now() + 1200;
     dirty(p);
+    const message = duplicate
+      ? contentText('world-message.server.residential-search.you-find-you-already-own-one', {
+          label: String(reward.label),
+        })
+      : contentText('world-message.server.residential-search.you-search-the-and-find', {
+          value1: String(site.label.toLowerCase()),
+          value2: String(
+            reward.lootKind === 'sandwich' ? reward.amount + ' sandwiches' : reward.label,
+          ),
+        });
     return {
       ok: true,
       inventory: p.inventory.snapshot(),
-      message: duplicate
-        ? contentText('world-message.server.residential-search.you-find-you-already-own-one', {
-            label: String(reward.label),
+      message: foundBonus
+        ? message +
+          ' ' +
+          contentText('world-message.server.residential-search.you-also-find', {
+            item: bonus.label.toLowerCase(),
           })
-        : contentText('world-message.server.residential-search.you-search-the-and-find', {
-            value1: String(site.label.toLowerCase()),
-            value2: String(
-              reward.lootKind === 'sandwich' ? reward.amount + ' sandwiches' : reward.label,
-            ),
-          }),
+        : message,
     };
   }
   function light(p: ServerPlayer) {

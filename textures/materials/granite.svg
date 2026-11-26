@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <title>Honed granite</title>
+  <desc>Fine, contrasting feldspar and mica flecks with a honed finish.</desc>
+  <defs>
+    <filter id="granite-mineral-grain" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency=".25" numOctaves="3" seed="37" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer>
+        <feFuncR type="discrete" tableValues=".37 .48 .64 .76 .87 .94 .99"/>
+        <feFuncG type="discrete" tableValues=".39 .50 .66 .77 .88 .94 .99"/>
+        <feFuncB type="discrete" tableValues=".43 .53 .68 .8 .89 .95 1"/>
+        <feFuncA type="linear" slope="0" intercept="1"/>
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect width="256" height="256" fill="#d3d8dc" filter="url(#granite-mineral-grain)"/>
+</svg>

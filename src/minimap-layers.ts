@@ -1,3 +1,9 @@
+import { FORMALWEAR_EXPERT } from './config/formalwear.ts';
+import { FANCY_DRESS } from './config/fancy-dress.ts';
+import { RICK } from './config/rick.ts';
+import { DEFENSE_WORKSHOP } from './config/defense-workshop.ts';
+import { SHRIMP_EXPERIMENT } from './config/shrimp-experiment.ts';
+import { BERKELEY_FISHING } from './config/berkeley-fishing.ts';
 import { BURNING_MAN, type BurningManStage } from './burning-man.ts';
 import { COIN_REWARD_TRADES } from './config/economy.ts';
 import { COFFEE_STALL_VENDOR, HARDWARE_CLERK, RICH_TABLE_CHEF } from './config/npcs.ts';
@@ -65,7 +71,14 @@ const shopKinds = new Set([
   'battery-seller',
   'goblin-industrialist',
   'goblin-scientist',
+  SHRIMP_EXPERIMENT.scientist,
+  BERKELEY_FISHING.vendor,
   'decorative-robe-seller',
+  'wedding-planner',
+  FORMALWEAR_EXPERT.id,
+  FANCY_DRESS.id,
+  RICK.id,
+  DEFENSE_WORKSHOP.manufacturer.id,
   'enterprising-industrialist',
 ]);
 const shopRoles = new Set(['armorer', 'square-coffee']);

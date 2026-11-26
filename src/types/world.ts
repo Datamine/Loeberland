@@ -72,7 +72,7 @@ export interface RuntimeDialogue extends ContentEntity, DialogueTextBindings {
   label?: string;
   intro?: string | (() => string);
   question?: string | (() => string);
-  decline?: string;
+  decline?: string | false;
   choices?: RuntimeChoice[];
   choice?: string | null;
   accept?: (() => ActionReceipt | Promise<ActionReceipt> | void) | null;
@@ -133,6 +133,11 @@ export interface Actor extends RuntimeDialogue {
   waiting?: boolean;
   speech?: string;
   speechUntil?: number;
+  speechEndsAt?: number;
+  speechLine?: string;
+  helpUntil?: number;
+  dispatchedFor?: string | number;
+  citationPending?: boolean;
   speechCue?: { text: string; until: number };
   index?: number;
   routeIndex?: number;
@@ -237,6 +242,7 @@ export interface Site {
   kind: string;
   label: string;
   entry: Point;
+  water?: WorldPoint;
   name?: string;
   description?: string;
   x?: number;
@@ -430,6 +436,7 @@ export interface LocalPlayer extends Point {
   benchSeat?: boolean;
   atvTravel?: number;
   motorcycleTrick?: Pick<import('./animation.ts').AnimationFrame, 'action' | 'actionT'>;
+  scooterTrick?: Pick<import('./animation.ts').AnimationFrame, 'action' | 'actionT'>;
   waymoCab?: import('../waymo-rental.ts').WaymoRentalView | null;
   serverWorking?: boolean;
   serverEating?: boolean;
@@ -441,7 +448,7 @@ export interface PositionedSite extends Site {
   x: number;
   z: number;
 }
-export interface FishingSite extends PositionedSite {
+export interface FishingSite extends Site {
   water: WorldPoint;
-  angle: number;
+  base: number;
 }

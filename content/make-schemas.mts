@@ -5,6 +5,8 @@ const properties = (schema: SchemaNode) =>
   requiredValue(schema.properties, 'Object schema properties');
 import { readFile, writeFile } from 'node:fs/promises';
 import { BURNING_MAN_STAGES } from '../src/burning-man.ts';
+import { SHRIMP_EXPERIMENT } from '../src/config/shrimp-experiment.ts';
+import { LIGHTSABER_COLORS, LIGHTSABER_STAGES } from '../src/config/lightsaber.ts';
 const id = 'https://loeber.land/schemas/';
 const str = { type: 'string' },
   bool = { type: 'boolean' },
@@ -290,6 +292,29 @@ const player = stateSchema(defaults);
 player.$schema = 'http://json-schema.org/draft-07/schema#';
 player.$id = id + 'player-state.schema.json';
 properties(player).schema = { const: 2 };
+properties(requiredValue(properties(player).progress, 'Progress schema')).gameCompletion = {
+  anyOf: [
+    { type: 'null' },
+    object(
+      { at: { type: 'integer', minimum: 0, maximum: 8640000000000000 }, recordedOnVerification: bool },
+      ['at', 'recordedOnVerification'],
+    ),
+  ],
+};
+properties(requiredValue(properties(player).progress, 'Progress schema')).goblinBushRewards = {
+  type: 'integer',
+  minimum: 0,
+  maximum: 3,
+};
+properties(requiredValue(properties(player).progress, 'Progress schema')).scientificExperiments = {
+  type: 'integer',
+  minimum: 0,
+  maximum: SHRIMP_EXPERIMENT.limit,
+};
+properties(requiredValue(properties(player).progress, 'Progress schema')).armorTrimmerPayments = {
+  type: 'integer',
+  minimum: 0,
+};
 properties(
   requiredValue(
     properties(requiredValue(properties(player).quests, 'Quest schema')).stochasticParrot,
@@ -304,6 +329,18 @@ properties(
     'Burning Man quest schema',
   ),
 ).stage = { enum: [...BURNING_MAN_STAGES] };
+Object.assign(
+  properties(
+    requiredValue(
+      properties(requiredValue(properties(player).quests, 'Quest schema')).lightsaber,
+      'Lightsaber quest schema',
+    ),
+  ),
+  {
+    stage: { enum: [...LIGHTSABER_STAGES] },
+    color: { enum: Object.keys(LIGHTSABER_COLORS) },
+  },
+);
 properties(
   requiredValue(
     properties(requiredValue(properties(player).quests, 'Quest schema')).monkey,

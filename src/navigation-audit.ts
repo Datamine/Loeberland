@@ -1,4 +1,5 @@
-import { inBerkeleyLab } from './berkeley-lab.ts';
+import { combatDungeonAt } from './combat-dungeons.ts';
+import { CHURCH_STAIRS_DOWN, CHURCH_STAIRS_UP, inChurchBasement } from './church-basement-layout.ts';
 import { requiredValue } from './types/assert.ts';
 import type { WorldModel } from './types/server.ts';
 import type { Point } from './types/geometry.ts';
@@ -7,6 +8,8 @@ import { auditNavigationGrid } from './navigation.ts';
 import { SOUTHERN_TRAILS } from './southern-layout.ts';
 import { SF_ZOO } from './zoo.ts';
 import { auditInteractionApproaches } from './interaction-audit.ts';
+import { ONODA, ONODA_DOCK } from './onoda-island.ts';
+import { GOBLIN_CATAPULT } from './config/goblin-catapult.ts';
 
 /** Contracts describe intended access, rather than recording positions from a
  * browser session. They are evaluated against a freshly built production map. */
@@ -26,10 +29,12 @@ export function auditWorldNavigation(world: WorldModel) {
   for (const s of world.sights)
     if (
       s.navigationAccess &&
-      !(['walk', 'observe-only'] satisfies [string, string]).includes(s.navigationAccess)
+      !(['walk', 'observe-only', 'windsurf'] satisfies [string, string, string]).includes(s.navigationAccess)
     )
       errors.push(s.id + ': unknown navigation access ' + s.navigationAccess);
-  const walkableSights = world.sights.filter((s) => s.navigationAccess !== 'observe-only');
+  const walkableSights = world.sights.filter(
+    (s) => s.navigationAccess !== 'observe-only' && s.navigationAccess !== 'windsurf',
+  );
   const destinations = [
     ...world.places.flatMap((p) => [
       { id: p.id + ':entrance', point: p.entry },
@@ -66,7 +71,7 @@ export function auditWorldNavigation(world: WorldModel) {
   }
   destinations.push(
     ...(world.wilderness?.actors || [])
-      .filter((n) => !inBerkeleyLab(n.x, n.z))
+      .filter((n) => !combatDungeonAt(n.x, n.z) && n.id !== ONODA.id)
       .map((n) => ({
         id: n.id + '-encounter',
         point: { x: n.x - 0.5, y: n.z - 0.5 },
@@ -136,11 +141,38 @@ export function auditWorldNavigation(world: WorldModel) {
       errors.push(id + ': route ends before its destination');
     routes.push({ id, waypoints: route.length, length: +length.toFixed(2) });
   }
+  const basementStairs = world.sights.find((s) => s.id === CHURCH_STAIRS_UP);
+  if (basementStairs && !world.sights.some((s) => s.id === CHURCH_STAIRS_DOWN))
+    errors.push('The church basement needs an entrance from the chapel.');
   for (const target of destinations) {
-    check('spawn -> ' + target.id, world.spawn, target.point);
-    check(target.id + ' -> spawn', target.point, world.spawn);
+    const local = inChurchBasement(target.point.x + 0.5, target.point.y + 0.5);
+    const from = local ? basementStairs?.entry : world.spawn;
+    if (!from) {
+      errors.push(target.id + ': missing church basement stairs');
+      continue;
+    }
+    const origin = local ? 'church basement stairs' : 'spawn';
+    check(origin + ' -> ' + target.id, from, target.point);
+    check(target.id + ' -> ' + origin, target.point, from);
+  }
+  const island = world.sights.find((s) => s.id === ONODA_DOCK.id);
+  if (island) {
+    if (
+      !island.launch ||
+      !world.surf.path(world.surf.state.launch, island.launch) ||
+      !world.surf.path(island.launch, world.surf.state.launch)
+    )
+      errors.push('Onoda Island needs a windsurf route in both directions');
+    const encounter = { x: ONODA.x - 0.5, y: ONODA.z - 0.5 };
+    check('Onoda Island landing -> encounter', island.entry, encounter);
+    check('Onoda encounter -> island landing', encounter, island.entry);
   }
   const city = walkableSights.filter((s) => world.navigation.cellAt(s.entry.x, s.entry.y) >= 0);
+  if (world.sights.some((site) => site.id === GOBLIN_CATAPULT.id) && world.esotericCampus) {
+    const { u, v } = GOBLIN_CATAPULT.landing;
+    const { x, z } = world.esotericCampus.point(u, v);
+    check('Berkeley experiment landing -> spawn', { x: x - 0.5, y: z - 0.5 }, world.spawn);
+  }
   const spawnRegion = world.navigation.regionAt(world.spawn.x, world.spawn.y);
   for (const s of city)
     if (world.navigation.regionAt(s.entry.x, s.entry.y) !== spawnRegion)

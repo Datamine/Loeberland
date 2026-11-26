@@ -142,15 +142,22 @@ test('the hiking hut clears both legs of the Tahoe road bend and has a reachable
   assert.ok(TAHOE_TREES.every((tree) => !road.targetAt(tree.x, tree.z)));
 });
 
-test('the gondola ascends and descends continuously to walkable stations', () => {
+test('the gondola is docked at the base between continuous rides to walkable stations', () => {
   const t = createTahoe();
+  const docked = t.gondolaCabin();
+  assert.deepEqual(docked.position, t.gondolaAt(0));
   assert.ok(t.gondola(true));
+  assert.deepEqual(t.gondolaCabin(), docked, 'boarding starts in the parked cabin');
   let previous = { ...t.state.position },
     summit = false;
   for (let i = 0; i < 1800; i++) {
     const event = t.update(1 / 60),
       p = t.state.position;
     assert.ok(p != null, 'Missing test fixture: p');
+    if (i === 600) {
+      assert.deepEqual(t.gondolaCabin().position, p);
+      assert.notDeepEqual(t.gondolaCabin().position, docked.position);
+    }
     assert.ok(
       Math.hypot(
         p.x - requiredFixture(previous.x),
@@ -166,14 +173,17 @@ test('the gondola ascends and descends continuously to walkable stations', () =>
   }
   assert.ok(summit);
   assert.equal(t.state.mode, 'ground');
+  assert.deepEqual(t.gondolaCabin(), docked);
   assert.ok(t?.state?.position != null, 'Missing test fixture: t.state.position');
   assert.ok(t.walkable(t.state.position.x, t.state.position.z));
   assert.ok(t.gondola(false));
+  assert.deepEqual(t.gondolaCabin().position, t.gondolaAt(1));
   for (let i = 0; i < 1800 && t.state.mode !== 'ground'; i++) t.update(1 / 60);
 
   assert.ok(
     Math.hypot(t.state.position.x - TAHOE.base.x, t.state.position.z - TAHOE.base.z) < 1e-7,
   );
+  assert.deepEqual(t.gondolaCabin(), docked);
 });
 
 test('the ski hut, including its roof and racks, clears the station and the entire gondola sweep', () => {

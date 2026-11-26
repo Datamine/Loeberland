@@ -10,7 +10,7 @@ Redis settings. Changes apply to the running game. Save in the browser, then
 press Ctrl+C in this terminal. Use --view for read-only inspection or --offline
 to stop the game for an offline editing session.
 
-ADMIN_USERNAME and ADMIN_PASSWORD are loaded from server/.env. ADMIN_ENV_FILE
+ADMIN_USERNAME and ADMIN_PASSWORD are loaded from deploy/.env.local-admin. ADMIN_ENV_FILE
 selects another credentials file; COMPOSE_ENV_FILE selects the Compose settings.
 
 ADMIN_PORT defaults to 8788. Run on the deployment host; for remote access:
@@ -38,19 +38,19 @@ if [[ ! $port =~ ^[0-9]{1,5}$ ]] || (( 10#$port < 1 || 10#$port > 65535 )); then
 fi
 port=$((10#$port))
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-auth_file=${ADMIN_ENV_FILE:-$script_dir/.env}
+auth_file=${ADMIN_ENV_FILE:-$script_dir/../deploy/.env.local-admin}
 if [[ ! -f $auth_file ]]; then
     echo "Admin credentials file not found: $auth_file. Set ADMIN_USERNAME and ADMIN_PASSWORD there first." >&2
     exit 2
 fi
 auth_file="$(cd -- "$(dirname -- "$auth_file")" && pwd)/$(basename -- "$auth_file")"
-compose=(docker compose -f "$script_dir/compose.yaml" --profile admin)
-env_file=${COMPOSE_ENV_FILE:-$script_dir/.env}
+env_file=${COMPOSE_ENV_FILE:-$script_dir/../deploy/.env.local}
 if [[ -n ${COMPOSE_ENV_FILE:-} && ! -f $env_file ]]; then
     echo "Compose environment file not found: $env_file" >&2
     exit 2
 fi
-if [[ -f $env_file ]]; then compose+=(--env-file "$env_file"); fi
+if [[ ! -f $env_file ]]; then env_file=/dev/null; fi
+compose=(docker compose --env-file "$env_file" -f "$script_dir/compose.yaml" --profile admin)
 admin_compose=("${compose[@]}" -f "$script_dir/admin.compose.yaml")
 "${compose[@]}" config --quiet
 if [[ -z $("${compose[@]}" images --quiet game) ]]; then

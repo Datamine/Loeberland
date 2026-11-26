@@ -1,7 +1,7 @@
 import { MISSILE_PRICE } from './item-stats.ts';
 
 export const COMBAT_SUPPLY_OFFERS = {
-  buyAmmo: { price: 5, units: 20, inventoryKey: 'akimboAmmo', item: 'Akimbo rounds' },
+  buyAmmo: { price: 45, units: 20, inventoryKey: 'akimboAmmo', item: 'Akimbo rounds' },
   buyMissile: {
     price: MISSILE_PRICE,
     units: 1,
@@ -10,7 +10,7 @@ export const COMBAT_SUPPLY_OFFERS = {
     singular: 'missile',
   },
   buyBattery: {
-    price: 20,
+    price: 50,
     units: 1,
     inventoryKey: 'railgunBatteries',
     item: 'railgun batteries',

@@ -9,6 +9,9 @@ import { createMemoryStore } from '../store.mts';
 
 import { bombTileArea, BOMB_FALL_MS, BOMB_COOLDOWN_MS } from '../../src/stealth-bomber.ts';
 import { MONSTER_STATS } from '../../src/monster-drops.ts';
+import { ITEM_STATS } from '../../src/item-stats.ts';
+import { PROGRESSION } from '../../src/config/progression.ts';
+import { SKILL_THRESHOLDS } from '../../src/progression.ts';
 
 async function setup(t: test.TestContext) {
   const geometry = fixtureGeometry();
@@ -67,6 +70,61 @@ async function act(
   await a.p.queue;
   return latestResult(a.messages);
 }
+
+test('prepared players beat the sea urchin and Madder Scientist with finite food on the server', async () => {
+  for (const [index, encounter] of [
+    {
+      kind: 'sea-urchin',
+      weapon: 'katana',
+      armor: { torso: 'iron-armor', legs: 'iron-armor-legs', boots: true },
+      equipment: ['iron-armor', 'iron-armor-legs', 'combat-boots'],
+      sandwiches: 5,
+    },
+    {
+      kind: 'madder-scientist',
+      weapon: 'railgun',
+      armor: { torso: 'ice-top', legs: 'ice-pants', boots: true },
+      equipment: ['ice-top', 'ice-pants', 'combat-boots', 'backpack'],
+      sandwiches: 20,
+    },
+  ].entries()) {
+    const geometry = fixtureGeometry();
+    geometry.wilderness = {
+      actors: [{ id: encounter.kind, combatKind: encounter.kind, x: 93, z: 120 }],
+    };
+    const level = Math.min(MONSTER_STATS[encounter.kind].level, PROGRESSION.maxLevel);
+    const xp = SKILL_THRESHOLDS[level - 1];
+    let time = 1_000_000;
+    const game = await createGame({ geometry, store: createMemoryStore(), now: () => time, random: () => 0.5 });
+    try {
+      const a = await player(game, 23200 + index, {
+        'sf-strength-v1': JSON.stringify({ xp }),
+        'sf-hitpoints-v1': JSON.stringify({ xp }),
+        'sf-purse-v1': JSON.stringify({ ownedEquipment: [...encounter.equipment, encounter.weapon] }),
+        'sf-character-v1': JSON.stringify({ weapon: encounter.weapon, ...encounter.armor }),
+        'sf-deli-v1': JSON.stringify({ sandwiches: encounter.sandwiches }),
+      });
+      const target = game.shared.wilderness.actors[0];
+      const ledger = a.p.inventory.meta;
+      assert.equal(a.p.level, level);
+      assert.equal(
+        (await act(game, a, 'attack', { id: target.id, weapon: encounter.weapon }))?.ok,
+        true,
+      );
+      for (let step = 0; step < 800 && target.hp > 0 && a.p.hp > 0; step++) {
+        if (a.p.max - a.p.hp >= ITEM_STATS.sandwich.healing && ledger.sandwiches)
+          assert.equal((await act(game, a, 'inventory', { op: 'eat' }))?.ok, true);
+        time += 50;
+        game.tick(0.05);
+      }
+      assert.equal(target.hp, 0, encounter.kind);
+      assert.ok(a.p.hp > 0 && ledger.sandwiches < encounter.sandwiches);
+      if (encounter.weapon === 'railgun') assert.ok(ledger.railgunCharge > 0);
+    } finally {
+      await game.close();
+    }
+  }
+});
 
 test('B-2 blasts damage cows, bears and both giant species, with normal shared drops, claim ownership and respawn', async (t) => {
   const { game, store } = await setup(t),

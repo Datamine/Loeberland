@@ -121,7 +121,7 @@ test('deadline expiry catches background time even without any rendering updates
 });
 
 test('wages pay once every two seconds inside, stop outside, and never pay an unemployed player', () => {
-  const economy = createEconomy(),
+  const economy = createEconomy({ coins: 25 }),
     job = createAILabJob({ economy });
   job.update(60, { inside: true });
   assert.equal(economy.state.coins, 25);
@@ -150,7 +150,7 @@ test('wages pay once every two seconds inside, stop outside, and never pay an un
 
 test('employment and best score survive reload without banking offline wages or duplicating a hiring award', () => {
   let saved;
-  const economy = createEconomy(),
+  const economy = createEconomy({ coins: 25 }),
     job = createAILabJob({ economy, onSave: (s) => (saved = s) }),
     { game, advance } = interview(40);
   advance(120000);

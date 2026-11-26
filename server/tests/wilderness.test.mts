@@ -21,10 +21,12 @@ import {
 } from '../../src/tahoe.ts';
 import { createWilderness, wildernessSpawns } from '../../src/wilderness.ts';
 import { rollMonsterDrops } from '../../src/monster-drops.ts';
+import { ITEM_STATS } from '../../src/item-stats.ts';
 import { TAHOE_PELTS, TAHOE_PELT_PRICES } from '../../src/config/tahoe-pelts.ts';
 import { ROBE_SELLER } from '../../src/goblin-industrialist.ts';
 import type { CombatPoint } from '../../src/combat-navigation.ts';
 import { combatLineClear } from '../../src/combat-navigation.ts';
+import { LAB_INSTANCE } from '../../src/berkeley-lab.ts';
 
 async function setup(random = () => 0) {
   let time = 1000000;
@@ -73,6 +75,62 @@ test('black bears and red foxes pursue and attack nearby players without provoca
     assert.equal(world.actors[0].enemy, player.id, combatKind);
     for (let i = 0; i < 15; i++) world.update(0.1, [player]);
     assert.ok(damage > 0, combatKind);
+  }
+});
+
+test('nearby spectators receive wildlife hits and misses on the correct player', async () => {
+  let roll = 0.99;
+  const { game, advance } = await setup(() => roll);
+  try {
+    const fighter = await player(game, 731);
+    const spectator = await player(game, 732);
+    const distant = await player(game, 733);
+    const otherInstance = await player(game, 734);
+    spectator.p.x += 4;
+    distant.p.x += 70;
+    otherInstance.p.instance = LAB_INSTANCE;
+    game.broadcast();
+    assert.ok(spectator.p.seen.has(fighter.p.id));
+
+    const bear = game.shared.wilderness.actors[0];
+    assert.equal(
+      requiredFixture(await act(game, fighter, 'attack', { id: bear.id, weapon: 'unarmed' })).ok,
+      true,
+    );
+    for (let i = 0; i < 20; i++) {
+      advance(50);
+      game.tick(0.05);
+    }
+    const damage = () => fighter.messages.filter((message) => message.type === 'damage');
+    assert.equal(requiredFixture(damage().at(-1)).damage, 0);
+    roll = 0.5;
+    for (let i = 0; i < 40; i++) {
+      advance(50);
+      game.tick(0.05);
+    }
+    assert.ok(requiredFixture(damage().at(-1)).damage > 0);
+
+    const hits = (a: TestPlayer) => a.messages.filter((message) => message.type === 'playerHit');
+    assert.deepEqual(
+      hits(spectator).map(({ target, attacker, damage, hp, max }) => ({
+        target,
+        attacker,
+        damage,
+        hp,
+        max,
+      })),
+      damage().map(({ attacker, damage, hp, max }) => ({
+        target: fighter.p.id,
+        attacker,
+        damage,
+        hp,
+        max,
+      })),
+    );
+    assert.equal(spectator.p.hp, spectator.p.max);
+    assert.equal(hits(fighter).length + hits(distant).length + hits(otherInstance).length, 0);
+  } finally {
+    await game.close();
   }
 });
 
@@ -132,7 +190,7 @@ test('Tahoe wildlife pelts are rare, collectible and sell only to the nearby rob
   }
 });
 
-test('the authoritative server accepts five-tile shots on Tahoe slopes and tree safespots without moving the player', async () => {
+test('the authoritative server accepts in-range shots on Tahoe slopes and tree safespots without moving the player', async () => {
   const tahoe = createTahoe(),
     geometry = fixtureGeometry(),
     spawn = wildernessSpawns({ marin: { x: 0, y: 0 }, tahoe: TAHOE.base })[1];
@@ -159,16 +217,16 @@ test('the authoritative server accepts five-tile shots on Tahoe slopes and tree 
     );
     assert.ok(giant.hp < giant.max);
     assert.deepEqual({ x: a.p.x, z: a.p.z }, before);
-    a.p.x = giant.x + 5.02;
+    a.p.x = giant.x + ITEM_STATS.railgun.range + 0.02;
     a.p.y = tahoeHeight(a.p.x, a.p.z);
     a.p.shotAt = 0;
     const hpAtEdge = giant.hp;
     assert.equal(
       requiredFixture(await act(game, a, 'attack', { id: giant.id, weapon: 'railgun' })).ok,
       true,
-      'an attack just outside five tiles starts an approach',
+      'an attack just outside maximum range starts an approach',
     );
-    assert.equal(giant.hp, hpAtEdge, 'five-tile range is still enforced before walking');
+    assert.equal(giant.hp, hpAtEdge, 'maximum range is still enforced before walking');
     const tree = TAHOE_TREES.find(
       (p) => Math.abs(p.x - TAHOE.base.x + 13) < 0.1 && Math.abs(p.z - TAHOE.base.z + 7) < 0.1,
     );
@@ -208,12 +266,15 @@ test('the authoritative server accepts five-tile shots on Tahoe slopes and tree 
     await game.close();
   }
 });
-test('both robots broadcast shots from range and only fire with a clear line', async () => {
-  const robots = [
+test('ranged enemies broadcast their shots and require a clear line', async () => {
+  const enemies = [
     { kind: 'terminator', weapon: 'akimbo', distance: 6 },
     { kind: 'robocop', weapon: 'robocop-laser', distance: 2.75 },
+    { kind: 'hiroo-onoda', weapon: 'onoda-rifle', distance: 13 },
+    { kind: 'emf-disciple', weapon: 'emf-lightning', distance: 5.3 },
+    { kind: 'senior-emf-disciple', weapon: 'emf-lightning', distance: 6.8 },
   ] as const;
-  for (const { kind, weapon, distance } of robots) {
+  for (const { kind, weapon, distance } of enemies) {
     let clear = false;
     const geometry = fixtureGeometry();
     geometry.lineClear = () => clear;
@@ -221,11 +282,11 @@ test('both robots broadcast shots from range and only fire with a clear line', a
     const game = await createGame({ geometry, store: createMemoryStore(), random: () => 0.15 });
     try {
       const a = await player(game, 781);
-      const robot = game.shared.wilderness.dispatch(
+      const enemy = game.shared.wilderness.dispatch(
         { id: kind, combatKind: kind, x: a.p.x + distance, z: a.p.z },
         a.p,
       );
-      const start = robot.x;
+      const start = enemy.x;
       const hp = a.p.hp;
       const shot = () => a.messages.find((message) => message.type === 'robotShot');
       for (let i = 0; i < 10; i++) game.tick(0.05);
@@ -237,7 +298,7 @@ test('both robots broadcast shots from range and only fire with a clear line', a
       assert.equal(projectile.weapon, weapon);
       assert.equal(projectile.to.x, a.p.x);
       assert.equal(projectile.to.z, a.p.z);
-      assert.equal(robot.x, start, kind + ' shoots without closing to melee range');
+      assert.equal(enemy.x, start, kind + ' shoots without closing to melee range');
       assert.equal(a.p.hp, hp, 'the shot is visible before damage lands');
       for (let i = 0; i < 5; i++) game.tick(0.05);
       assert.ok(a.p.hp < hp, kind + ' deals ranged damage');
@@ -247,7 +308,7 @@ test('both robots broadcast shots from range and only fire with a clear line', a
   }
 });
 
-test('a restored Mad Scientist retaliates on the new combat clock', async () => {
+test('a restored Mad Scientist throws a fixed blast that hits players inside at impact', async () => {
   const geometry = fixtureGeometry();
   const spawn = { id: 'berkeley-mad-scientist', combatKind: 'mad-scientist', x: 150, z: -7 };
   geometry.wilderness = { actors: [spawn] };
@@ -264,6 +325,9 @@ test('a restored Mad Scientist retaliates on the new combat clock', async () => 
   try {
     const scientist = game.shared.wilderness.actors[0];
     const a = await player(game, 782);
+    const bystander = await player(game, 783);
+    const outside = await player(game, 784);
+    const otherInstance = await player(game, 785);
     Object.assign(a.p, { x: 150, z: -6, y: scientist.base });
     assert.equal(scientist.hp, 500);
     const result = requiredFixture(
@@ -271,15 +335,29 @@ test('a restored Mad Scientist retaliates on the new combat clock', async () => 
     );
     assert.ok(result.ok && (result.damage ?? 0) > 0);
     for (let i = 0; i < 14; i++) game.tick(0.05);
-    assert.ok(a.messages.some((message) => message.type === 'scientistExplosive'));
+    const { to } = requiredFixture(
+      a.messages.find((message) => message.type === 'scientistExplosive'),
+    );
+    assert.deepEqual({ x: to.x, z: to.z }, { x: 150.5, z: -5.5 });
     assert.equal(a.p.hp, a.p.max, 'the explosive has not landed yet');
+    a.p.x = to.x + 2;
+    Object.assign(bystander.p, { x: to.x + 1.4, z: to.z - 1.4, y: a.p.y });
+    Object.assign(outside.p, { x: to.x + 1.5, z: to.z, y: a.p.y });
+    Object.assign(otherInstance.p, { x: to.x, z: to.z, y: a.p.y, instance: LAB_INSTANCE });
     for (let i = 0; i < 12; i++) game.tick(0.05);
-    assert.ok(a.p.hp < a.p.max, 'the first explosive damages the player after travel time');
+    assert.equal(a.p.hp, a.p.max, 'the target dodges out of the blast');
+    assert.ok(bystander.p.hp < bystander.p.max, 'a new arrival in the diagonal tile is hit');
+    assert.equal(outside.p.hp, outside.p.max, 'the next tile is outside the blast');
+    assert.equal(otherInstance.p.hp, otherInstance.p.max);
+    assert.equal(
+      bystander.messages.filter((m) => m.type === 'damage' && m.attacker === scientist.id).length,
+      1,
+    );
   } finally {
     await game.close();
   }
 });
-test('shared bear kill has one peptide roll, a first-claim owner and durable collection', async () => {
+test('shared bear loot includes first-claim peptides and a persistent Light crystal', async () => {
   const { game, store } = await setup(),
     a = await player(game, 701),
     b = await player(game, 702);
@@ -293,18 +371,24 @@ test('shared bear kill has one peptide roll, a first-claim owner and durable col
   );
   for (let i = 0; bear.hp && i < 20; i++) game.tick(0.8);
   assert.equal(bear.hp, 0);
-  assert.equal(game.shared.loot.size, 1);
-  const loot = [...game.shared.loot.values()][0];
-  assert.equal(loot.lootKind, 'peptides');
+  const drops = [...game.shared.loot.values()];
+  assert.equal(drops.length, 2);
+  const loot = requiredFixture(drops.find((item) => item.lootKind === 'peptides'));
+  const crystal = requiredFixture(drops.find((item) => item.lootKind === 'light-crystal'));
   assert.equal(requiredFixture(await act(game, b, 'collect', { id: loot.id })).ok, false);
   assert.equal(requiredFixture(await act(game, a, 'collect', { id: loot.id })).ok, true);
   assert.equal(a.p.inventory.meta.peptides, 1);
   assert.equal(requiredFixture(await act(game, a, 'collect', { id: loot.id })).ok, false);
+  Object.assign(b.p, { x: crystal.x, z: crystal.z, y: crystal.base });
+  assert.equal(requiredFixture(await act(game, b, 'collect', { id: crystal.id })).ok, false);
+  Object.assign(a.p, { x: crystal.x, z: crystal.z, y: crystal.base });
+  assert.equal(requiredFixture(await act(game, a, 'collect', { id: crystal.id })).ok, true);
+  assert.equal(requiredFixture(await act(game, a, 'collect', { id: crystal.id })).ok, false);
   await game.flush();
+  const stored = await storedPlayerFixture(store, 'player:' + a.p.owner);
+  assert.equal(requiredFixture(stored.playerState.inventory.ledger).peptides, 1);
   assert.equal(
-    requiredFixture(
-      (await storedPlayerFixture(store, 'player:' + a.p.owner)).playerState.inventory.ledger,
-    ).peptides,
+    requiredFixture(stored.playerState.inventory.ledger).lightCrystals,
     1,
   );
   await game.close();
@@ -477,7 +561,7 @@ test('saved monsters relocate when their authored spawn moves, retaining hitpoin
   }
 });
 
-test('saved landsharks adopt level-ten stats and the smaller territory without reviving dead encounters', async () => {
+test('saved landsharks adopt level-25 stats while preserving respawn timers and territory', async () => {
   const geometry = fixtureGeometry();
   geometry.wilderness = { actors: [{ id: 'landshark', combatKind: 'landshark', x: 94, z: 120 }] };
   const store = createMemoryStore();
@@ -490,9 +574,9 @@ test('saved landsharks adopt level-ten stats and the smaller territory without r
             {
               id: 'landshark',
               combatKind: 'landshark',
-              level: 20,
-              hp: 110,
-              max: 110,
+              level: 10,
+              hp: 50,
+              max: 50,
               x: 99,
               z: 120,
               home: { x: 94, z: 120 },
@@ -506,9 +590,9 @@ test('saved landsharks adopt level-ten stats and the smaller territory without r
   let game = await createGame({ geometry, store });
   try {
     const actor = game.shared.wilderness.actors[0];
-    assert.equal(actor.level, 10);
-    assert.equal(actor.hp, 50);
-    assert.equal(actor.max, 50);
+    assert.equal(actor.level, 25);
+    assert.equal(actor.hp, 250);
+    assert.equal(actor.max, 250);
     assert.deepEqual({ x: actor.x, z: actor.z }, actor.home);
     actor.hp = 0;
     actor.respawn = 4;

@@ -97,7 +97,7 @@ export function createTigerEncounter({
     });
     transition = 0;
     transitionStart = { x: tiger.x, y: tiger.y };
-    lastTarget = { x: player.x, y: player.y };
+    lastTarget = canPursue() ? { x: player.x, y: player.y } : exit;
     dispatched = false;
     tiger.path = [];
     tiger.repath = 0;

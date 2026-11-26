@@ -1,7 +1,7 @@
 import { requiredValue } from '../src/types/assert.ts';
 import { pathToFileURL } from 'node:url';
 import { writeFile } from 'node:fs/promises';
-import { ITEM_STATS } from '../src/item-stats.ts';
+import { ITEM_STATS, isProjectileWeapon, weaponAttackInterval } from '../src/item-stats.ts';
 import { weaponDamageRange, rollWeaponDamage } from '../src/combat.ts';
 
 export function combatRandomStream(seed = 123456789) {
@@ -16,9 +16,9 @@ export function combatRandomStream(seed = 123456789) {
 export function weaponExpectation(
   level: number | undefined,
   weapon: string | undefined,
-  { inebriation = 0, defense = 0 } = {},
+  { inebriation = 0, defense = 0, distance = 0 } = {},
 ) {
-  const { min, max, accuracy } = weaponDamageRange(level, weapon, inebriation),
+  const { min, max, accuracy } = weaponDamageRange(level, weapon, inebriation, distance),
     count = max - min + 1;
   let sum = 0,
     squares = 0;
@@ -35,7 +35,7 @@ export function weaponExpectation(
     accuracy,
     average,
     variance,
-    dps: average / requiredValue(ITEM_STATS[weapon ?? 'fists']?.interval, 'weapon attack interval'),
+    dps: average / weaponAttackInterval(weapon ?? 'unarmed', { ownedEquipment: [] }),
   };
 }
 export function combatReport({
@@ -43,17 +43,19 @@ export function combatReport({
   samples = 100000,
   inebriation = 0,
   defense = 0,
+  atMaxRange = false,
 } = {}) {
   return levels.flatMap((level) =>
     Object.entries(ITEM_STATS)
       .filter(([, item]) => item.slot === 'weapon')
       .map(([weapon, item], i) => {
-        const expected = weaponExpectation(level, weapon, { inebriation, defense }),
+        const distance = atMaxRange ? (item.range ?? 0) : 0;
+        const expected = weaponExpectation(level, weapon, { inebriation, defense, distance }),
           random = combatRandomStream(87654321 + level * 103 + i * 7919);
         let total = 0,
           hits = 0;
         for (let n = 0; n < samples; n++) {
-          const hit = rollWeaponDamage(level, weapon, random, inebriation);
+          const hit = rollWeaponDamage(level, weapon, random, inebriation, distance);
           if (hit) hits++;
           total += Math.max(0, hit - defense);
         }
@@ -65,6 +67,7 @@ export function combatReport({
           min: expected.min,
           max: expected.max,
           attackSeconds: item.interval,
+          distance,
           expectedAccuracy: expected.accuracy,
           observedAccuracy: hits / samples,
           expectedAverageDamage: expected.average,
@@ -79,14 +82,16 @@ export function combatReport({
   );
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const rows = combatReport();
+  const levels = [1, 5, 10, 25, 50];
+  const atMaxRange = process.argv.includes('--max-range');
+  const rows = combatReport({ levels, atMaxRange });
   console.table(
     rows
-      .filter((r) => ([1, 5, 10] satisfies [number, number, number]).includes(r.strengthLevel))
       .map((r) => ({
         weapon: r.weapon,
         strength: r.strengthLevel,
         damage: r.min + '–' + r.max,
+        distance: r.distance,
         accuracy: (r.expectedAccuracy * 100).toFixed(1) + '%',
         average: r.averageDamage.toFixed(3),
         DPS: r.observedDPS.toFixed(3),
@@ -95,12 +100,20 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   );
   const at = process.argv.indexOf('--output');
   if (at !== -1) {
+    const report = atMaxRange
+      ? rows
+      : [
+          ...rows,
+          ...combatReport({ levels, atMaxRange: true }).filter((row) =>
+            isProjectileWeapon(row.weaponId),
+          ),
+        ].sort((a, b) => a.strengthLevel - b.strengthLevel || a.distance - b.distance);
     const columns = Object.keys(rows[0]) as (keyof (typeof rows)[number])[];
     await writeFile(
       process.argv[at + 1],
       columns.join(',') +
         '\n' +
-        rows.map((row) => columns.map((key) => row[key]).join(',')).join('\n') +
+        report.map((row) => columns.map((key) => row[key]).join(',')).join('\n') +
         '\n',
     );
   }

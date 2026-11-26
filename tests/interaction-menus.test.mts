@@ -215,11 +215,9 @@ test('the PvP checkbox keeps its draft when multiplayer status updates', () => {
   const previous = globalThis.document;
   const checkbox = { checked: true };
   const grapple = { disabled: false, hidden: false };
-  const status = { textContent: '' };
   const nodes = {
     'sf-pvp-enabled': checkbox,
     'sf-grapple-button': grapple,
-    'sf-pvp-status': status,
   };
   globalThis.document = {
     getElementById: (id: keyof typeof nodes) => nodes[id],
@@ -230,7 +228,6 @@ test('the PvP checkbox keeps its draft when multiplayer status updates', () => {
     assert.equal(checkbox.checked, true);
     assert.equal(grapple.disabled, true);
     assert.equal(grapple.hidden, true);
-    assert.match(status.textContent, /apply when you save/);
     state.grapplingHook = true;
     settings.update();
     assert.equal(grapple.hidden, false);
@@ -242,6 +239,7 @@ test('the PvP checkbox keeps its draft when multiplayer status updates', () => {
     state.grapplingHook = false;
     settings.update();
     assert.equal(grapple.hidden, true);
+    assert.equal(checkbox.checked, true);
   } finally {
     globalThis.document = previous;
   }

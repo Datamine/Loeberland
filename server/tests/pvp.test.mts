@@ -15,6 +15,8 @@ import assert from 'node:assert/strict';
 import { createGame } from '../game.mts';
 import { createMemoryStore } from '../store.mts';
 import { decodePlayerFrame } from '../../src/multiplayer-protocol.ts';
+import { weaponDamageRange } from '../../src/combat.ts';
+import { ITEM_STATS } from '../../src/item-stats.ts';
 import type { ServerPlayer } from '../../src/types/server.ts';
 
 async function act(
@@ -95,7 +97,8 @@ test('PvP uses Strength for damage and publishes the composite player level', as
       random: () => 0,
     }),
     a = await player(game, 203, { 'sf-strength-v1': '{"xp":12000}', ...gear }),
-    b = await player(game, 204);
+    b = await player(game, 204),
+    spectator = await player(game, 209);
   assert.equal(requiredFixture(a.messages.find((m) => m.type === 'welcome')).level, 5);
   await enable(game, a, b);
   a.p.x = b.p.x + 8;
@@ -105,13 +108,18 @@ test('PvP uses Strength for damage and publishes the composite player level', as
   await act(game, a.p, 'pvpAttack', { id: b.p.id });
   assert.equal(requiredResult(a.messages).ok, true);
   game.tick(0.05);
-  assert.equal(b.p.hp, 20, 'Strength 10 deals 10 damage on the minimum railgun roll');
+  const min = weaponDamageRange(10, 'railgun').min;
+  assert.equal(b.p.hp, b.p.max - min, 'damage uses the Strength 10 minimum railgun roll');
+  const seenHit = requiredFixture(spectator.messages.find((m) => m.type === 'pvpHit'));
+  assert.equal(seenHit.target, b.p.id);
+  assert.equal(seenHit.damage, min);
+  assert.equal(spectator.p.hp, spectator.p.max);
   const after = b.p.hp;
   game.tick(0.05);
   assert.equal(b.p.hp, after, 'render/tick frequency cannot bypass attack cooldown');
-  time += 800;
+  time += ITEM_STATS.railgun.interval * 1000;
   game.tick(0.05);
-  assert.equal(b.p.hp, 10);
+  assert.equal(b.p.hp, after - min);
   game.broadcast();
   const frame = decodePlayerFrame(
     requiredFixture(b.messages.filter((m) => m instanceof ArrayBuffer).at(-1)),

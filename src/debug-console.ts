@@ -3,6 +3,12 @@ import type { Point } from './types/geometry.ts';
 import type { BuildInfo } from './types/network.ts';
 import type { ActionReceipt, LocalPlayer } from './types/world.ts';
 import { requiredValue } from './types/assert.ts';
+export interface DebugTeleportNPC {
+  id: string;
+  label: string;
+  x: number;
+  z: number;
+}
 interface DebugConsoleOptions {
   panel: HTMLElement;
   form: HTMLFormElement;
@@ -19,6 +25,7 @@ interface DebugConsoleOptions {
   getPerformance?: () => Record<string, string>;
   getPosition: () => Point;
   canTeleport: () => boolean;
+  getTeleportNPCs: () => readonly DebugTeleportNPC[];
   teleport: (x: number, y: number) => ActionReceipt;
   beforeOpen: () => void;
   onMessage: (message: string) => void;
@@ -35,7 +42,7 @@ export function parseWorldCommand(value: string): WorldCommand {
   if (/^:debug$/i.test(text)) return { type: 'debug' };
   const number = '([+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:e[+-]?\\d+)?)',
     match = text.match(new RegExp('^:tp\\s+' + number + '\\s*,\\s*' + number + '$', 'i'));
-  if (!match) return { error: 'Use :debug or :tp x,y. Press Enter to run the command.' };
+  if (!match) return { error: 'Use :debug or :tp x,y. For an NPC, type :tp and its name, then press Tab.' };
   const x = Number(match[1]),
     y = Number(match[2]);
   if (!Number.isFinite(x) || !Number.isFinite(y) || Math.abs(x) > 1e6 || Math.abs(y) > 1e6)
@@ -98,6 +105,7 @@ export function createDebugConsole({
   getPerformance = () => ({}),
   getPosition,
   canTeleport,
+  getTeleportNPCs,
   teleport,
   beforeOpen,
   onMessage,
@@ -108,8 +116,60 @@ export function createDebugConsole({
     panel.querySelector<HTMLButtonElement>('[data-debug-teleport]'),
     'Debug teleport button',
   );
+  const suggestions = requiredValue(form.querySelector<HTMLUListElement>('[data-command-npcs]'),
+    'NPC teleport suggestions');
   let historyIndex = 0,
-    draft = '';
+    draft = '',
+    matches: DebugTeleportNPC[] = [],
+    selected = 0;
+  const commandHint = 'Enter runs the command. Escape cancels.';
+  const matchText = (value: string) => value.toLowerCase().trim().replace(/[’']/g, '');
+  function chooseNPC(npc: DebugTeleportNPC) {
+    input.value = `:tp ${Number(npc.x.toFixed(4))},${Number(npc.z.toFixed(4))}`;
+    refreshSuggestions();
+    input.focus({ preventScroll: true });
+  }
+  function renderSuggestions() {
+    suggestions.replaceChildren();
+    const start = Math.min(Math.max(0, selected - 3), Math.max(0, matches.length - 8));
+    for (const [offset, npc] of matches.slice(start, start + 8).entries()) {
+      const row = document.createElement('li');
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.tabIndex = -1;
+      button.setAttribute('aria-current', String(start + offset === selected));
+      button.textContent = `${npc.label} (${npc.x.toFixed(1)}, ${npc.z.toFixed(1)})`;
+      button.addEventListener('click', () => chooseNPC(npc));
+      row.append(button);
+      suggestions.append(row);
+    }
+    suggestions.hidden = !matches.length;
+  }
+  function refreshSuggestions() {
+    const name = matchText(input.value.match(/^\s*:tp\s+(.+)$/i)?.[1] ?? '');
+    const search = canTeleport() && /[a-z]/.test(name) && !/^[+-]?(?:\d|\.)/.test(name);
+    const words = name.split(/\s+/);
+    const position = getPosition();
+    const distance = (npc: DebugTeleportNPC) => Math.hypot(npc.x - position.x, npc.z - position.y);
+    matches = search
+      ? [...new Map(getTeleportNPCs().map((npc) => [npc.id, npc])).values()]
+          .filter((npc) => {
+            const label = matchText(npc.label);
+            return isFiniteNumber(npc.x) && isFiniteNumber(npc.z) &&
+              words.every((word) => label.includes(word));
+          })
+          .sort((a, b) =>
+            Number(matchText(b.label).startsWith(name)) - Number(matchText(a.label).startsWith(name)) ||
+            a.label.localeCompare(b.label) ||
+            distance(a) - distance(b),
+          )
+      : [];
+    selected = 0;
+    renderSuggestions();
+    status.dataset.error = 'false';
+    status.textContent = matches.length ? 'Use arrows to select an NPC. Tab fills in the coordinates.'
+      : search ? 'No matching NPCs.' : commandHint;
+  }
   const editing = (target: EventTarget | null) =>
     isRecord(target) &&
     (target.isContentEditable === true ||
@@ -151,14 +211,15 @@ export function createDebugConsole({
   }
   function closeCommand(focus = true) {
     form.hidden = true;
+    matches = [];
+    suggestions.hidden = true;
     if (focus) focusWorld();
   }
   function openCommand(value = ':') {
     beforeOpen();
     form.hidden = false;
     input.value = value;
-    status.textContent = 'Enter runs the command. Escape cancels.';
-    status.dataset.error = 'false';
+    refreshSuggestions();
     historyIndex = history.length;
     draft = value;
     input.focus({ preventScroll: true });
@@ -206,6 +267,13 @@ export function createDebugConsole({
       if (event.key === 'Escape') {
         event.preventDefault();
         closeCommand();
+      } else if (matches.length && ['Tab', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
+        event.preventDefault();
+        if (event.key === 'Tab') chooseNPC(matches[selected]);
+        else {
+          selected = (selected + (event.key === 'ArrowUp' ? -1 : 1) + matches.length) % matches.length;
+          renderSuggestions();
+        }
       } else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
         event.preventDefault();
         if (historyIndex === history.length) draft = input.value;
@@ -214,6 +282,7 @@ export function createDebugConsole({
           Math.min(history.length, historyIndex + (event.key === 'ArrowUp' ? -1 : 1)),
         );
         input.value = history[historyIndex] ?? draft;
+        refreshSuggestions();
         input.setSelectionRange(input.value.length, input.value.length);
       }
       return true;
@@ -229,6 +298,7 @@ export function createDebugConsole({
     event.preventDefault();
     execute();
   });
+  input.addEventListener('input', refreshSuggestions);
   requiredValue(
     form.querySelector('[data-command-close]'),
     'Command close button',

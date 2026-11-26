@@ -23,6 +23,7 @@ export interface PlayerProfile {
   bank: PlayerDocument['finance']['bank'];
   growth: PlayerDocument['finance']['growth'];
   pvp: PlayerDocument['social']['pvp'];
+  tradeDuelEnabled: PlayerDocument['social']['tradeDuelEnabled'];
   houseSearches: PlayerDocument['progress']['houseSearches'];
   personalJailed: PlayerDocument['conditions']['jailed'];
   police: PlayerDocument['conditions']['police'];

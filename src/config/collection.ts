@@ -1,5 +1,7 @@
 import { ITEM_STATS } from './item-stats.ts';
 import { HAT_CATALOG } from './hats.ts';
+import { COLLECTION_HINTS } from './collection-hints.ts';
+import { requiredValue } from '../types/assert.ts';
 export const COLLECTION_GROUPS = {
   wearables: 'Wearables',
   quest: 'Quest items',
@@ -16,6 +18,7 @@ const questItems = new Set([
   'stochastic-parrot',
   'collatz-proof',
   'burning-man-water',
+  'light-crystal',
 ]);
 const wearables = new Set(['sunglasses', 'cape']);
 function collectionGroup(id: string, slot?: string): CollectionGroup {
@@ -60,5 +63,11 @@ export const COLLECTION_ITEMS = Object.freeze(
       'fuel-can': 'Fuel can',
       'grappling-hook': 'Grappling hook',
     }).map(([id, name]) => ({ id, name, group: collectionGroup(id) })),
-  ].map((value) => Object.freeze(value)),
+  ].map((value) =>
+    Object.freeze(
+      Object.assign(value, {
+        hint: requiredValue(COLLECTION_HINTS[value.id], 'Collection hint for ' + value.id),
+      }),
+    ),
+  ),
 );

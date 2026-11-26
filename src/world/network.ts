@@ -1,4 +1,5 @@
 import type { PersonalSnapshot } from '../types/network.ts';
+import { isFishingSite } from '../fishing.ts';
 import { requiredValue } from '../types/assert.ts';
 import { isFiniteNumber } from '../types/json.ts';
 import type { WorldContext } from './scene.ts';
@@ -17,6 +18,7 @@ import { MP_ENTITY_INTERPOLATION_MS } from '../multiplayer-protocol.ts';
 import { normalizeCharacter } from '../character-config.ts';
 import { POLICE_PURSUIT_SECONDS } from '../encounters.ts';
 import { chairForGesture } from '../goblin-town.ts';
+import { skillStatus } from '../progression.ts';
 
 /** Network services for the browser scene.
  * Dependencies are explicit live scene bindings, preserving initialization
@@ -174,6 +176,7 @@ export function createNetwork(context: WorldContext) {
       },
       signs: context.signs,
       actorInView: context.actorInView,
+      reducedMotion: context.reduced,
       refreshUI: () => {
         context.updateAdventureUI();
         context.updateAirshipButton();
@@ -187,7 +190,10 @@ export function createNetwork(context: WorldContext) {
         social: context.social,
         inebriation: context.inebriation,
         fishing: context.fishing,
-        fishingSite: context.fishingSite,
+        fishingSite: (id) => {
+          const site = id === undefined ? context.fishingSite : context.sightById(id);
+          return isFishingSite(site) ? site : undefined;
+        },
         expeditions: context.expeditions,
         motorcycle: context.motorcycle,
         health: context.health,
@@ -283,6 +289,7 @@ export function createNetwork(context: WorldContext) {
           motion: animation.motion,
           atvTravel: animation.atvTravel,
           motorcycleTrick: p.mode === 'motorcycle' ? animation : undefined,
+          scooterTrick: p.mode === 'scooter' ? animation : undefined,
           moving: !!p.moving,
           runBlend: animation.run,
           speed: p.moving ? context.WALK_SPEED : 0,
@@ -336,6 +343,7 @@ export function createNetwork(context: WorldContext) {
         }
         if (p.mode === 'ferrari' && context.ferrari) {
           context.ferrari.state.localPosition = { x: p.x, y: p.y, z: p.z, angle: p.angle };
+          context.ferrari.state.distance = context.ferrari.project(p.x, p.z);
           context.ferrari.state.speed = p.moving ? FERRARI_SPEED : 0;
         }
         if (
@@ -380,6 +388,10 @@ export function createNetwork(context: WorldContext) {
         if (isFiniteNumber(snapshot.hp)) {
           context.health.state.max = snapshot.max || context.health.state.max;
           context.health.state.hp = Math.max(0, Math.min(context.health.state.max, snapshot.hp));
+          if (isFiniteNumber(snapshot.hitpointsXP)) {
+            const { xp, level } = skillStatus(snapshot.hitpointsXP);
+            Object.assign(context.health.state, { xp, level });
+          }
           localStorage.setItem('sf-hitpoints-v1', JSON.stringify(context.health.state));
         }
         if (!ownedHat(context.economy.state.ownedHats, context.playerLook.hat)) {
@@ -409,6 +421,7 @@ export function createNetwork(context: WorldContext) {
         !context.motorcycle?.state.riding &&
         !context.ferrari?.state.riding &&
         !context.skateboard.riding &&
+        context.multiplayerWorld?.selfMode !== 'scooter' &&
         !context.training &&
         context.tahoe.state.mode === 'ground' &&
         !context.dialogue.active &&
@@ -446,6 +459,7 @@ export function createNetwork(context: WorldContext) {
         } else context.player.path = [];
       },
       preparePlayerAction: () => {
+        context.cancelMovingInteraction();
         context.setSitting(false);
         context.fishing.cancel();
         context.forwardRoll.cancel();
@@ -489,6 +503,25 @@ export function createNetwork(context: WorldContext) {
           return;
         }
         if (p.reason === 'rehabilitation') context.health.restore();
+        if (p.reason === 'churchStairs') {
+          context.hovered = null;
+          context.$('sf-hover').hidden = true;
+        }
+        if (p.reason === 'ferrariDismount' && context.ferrari) {
+          const car = context.ferrari;
+          Object.assign(car.state, {
+            distance: car.cityParking,
+            direction: -1,
+            riding: false,
+            speed: 0,
+            localPosition: null,
+            target: null,
+            destination: null,
+            resume: null,
+          });
+          context.carArrival = null;
+          context.updateAdventureUI();
+        }
         if (context.secretWorld?.bomber.state.active)
           context.secretWorld.bomber.state.position = { x: p.x, y: p.y, z: p.z };
         Object.assign(context.player, {

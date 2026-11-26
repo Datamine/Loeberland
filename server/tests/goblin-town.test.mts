@@ -2,12 +2,24 @@ import { requiredFixture } from '../../tests/helpers/required.mts';
 import { createWilderness } from '../../src/wilderness.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { fixture, player, command, latestResult, requiredResult } from './fixtures.mts';
+import {
+  fixture,
+  fixtureGeometry,
+  player,
+  command,
+  latestResult,
+  requiredResult,
+  storedPlayerFixture,
+} from './fixtures.mts';
 import { AIRSHIP_TERMINAL } from '../../src/airship.ts';
 import { MP_PROTOCOL } from '../../src/multiplayer-protocol.ts';
 import { FACTORY_CHAIRS } from '../../src/goblin-town.ts';
+import { ITEM_STATS, ownedEquipmentDefense } from '../../src/item-stats.ts';
+import { MONSTER_STATS, rollMonsterDrops } from '../../src/monster-drops.ts';
+import { createGame } from '../game.mts';
+import { createMemoryStore } from '../store.mts';
 
-test('a genuinely new profile gets 25 coins and cannot equip a railgun or boots from client preferences', async () => {
+test('a new profile gets starter supplies and cannot equip a railgun or boots from client preferences', async () => {
   const { game } = await fixture(),
     messages: import('../../src/types/network.ts').ServerEvent[] = [],
     p = await game.connect(
@@ -27,7 +39,8 @@ test('a genuinely new profile gets 25 coins and cannot equip a railgun or boots 
       },
     );
   try {
-    assert.equal(p.inventory.economy.state.coins, 25);
+    assert.equal(p.inventory.economy.state.coins, 100);
+    assert.equal(p.inventory.meta.tablets.downtown, 5);
     assert.equal(p.appearance.weapon, 'unarmed');
     assert.equal(p.appearance.boots, false);
     await command(game, p, 'equipAppearance', { look: { weapon: 'railgun', boots: true } });
@@ -72,6 +85,161 @@ test('each owned chair seats the player until they move', async () => {
   } finally {
     await game.close();
   }
+});
+
+test('a Bind Tablet holds nearby monsters for ten seconds with PvP off', async (t) => {
+  const geometry = fixtureGeometry();
+  geometry.wilderness = {
+    actors: [
+      { id: 'near-goblin', combatKind: 'goblin', x: 93, z: 120 },
+      { id: 'far-goblin', combatKind: 'goblin', x: 96, z: 120 },
+    ],
+  };
+  const game = await createGame({ geometry, store: createMemoryStore(), random: () => 0.5 });
+  t.after(() => game.close());
+  const a = await player(game, 99011);
+  const observer = await player(game, 99012);
+  const [near, far] = game.shared.wilderness.actors;
+  Object.assign(a.p, { x: 92, z: 120 });
+  const hp = a.p.hp;
+  assert.equal(a.p.inventory.receive({ lootKind: 'bind-tablet', amount: 1 }).ok, true);
+  game.receive(a.p, {
+    type: 'command',
+    request: 1,
+    action: 'breakBind',
+    inventoryEpoch: a.p.inventory.meta.epoch,
+  });
+  await a.p.queue;
+  assert.equal(requiredResult(a.messages).ok, true);
+  assert.equal(a.p.hp, hp - 10);
+  assert.equal(a.p.inventory.meta.bindTablets, 0);
+  assert.equal(observer.p.boundUntil, undefined);
+  assert.ok(observer.messages.some((event) => event.type === 'pvpBound' && event.target === near.id));
+  assert.ok(!observer.messages.some((event) => event.type === 'pvpBound' && event.target === far.id));
+  a.p.x = 90;
+  const tick = (frames: number) => {
+    for (let frame = 0; frame < frames; frame++) game.tick(0.05);
+  };
+  tick(199);
+  assert.deepEqual([near.x, near.z], [93, 120]);
+  assert.notDeepEqual([far.x, far.z], [96, 120]);
+  tick(4);
+  assert.notDeepEqual([near.x, near.z], [93, 120]);
+});
+
+test('secondary weapons must be owned and the swap persists across rejoining', async (t) => {
+  const { game } = await fixture();
+  t.after(() => game.close());
+  const account = 99013;
+  let a = await player(game, account);
+  const act = async (action: string, args: Record<string, unknown> = {}) => {
+    await command(game, a.p, action, args);
+    return requiredResult(a.messages);
+  };
+  a.p.inventory.receive({ lootKind: 'equipment', itemId: 'crowbar', amount: 1 });
+  await act('equipAppearance', { look: { weapon: 'crowbar', secondaryWeapon: 'katana' } });
+  assert.equal(a.p.appearance.secondaryWeapon, 'none');
+  assert.equal((await act('switchWeapon')).ok, false);
+  a.p.inventory.receive({ lootKind: 'equipment', itemId: 'katana', amount: 1 });
+  const loadout = { weapon: 'crowbar', secondaryWeapon: 'katana' };
+  await act('equipAppearance', { look: loadout });
+  assert.equal((await act('switchWeapon')).ok, true);
+  assert.equal(a.p.appearance.weapon, 'katana');
+  assert.equal(a.p.appearance.secondaryWeapon, 'crowbar');
+  await game.disconnect(a.p);
+  a = await player(game, account);
+  assert.equal(a.p.appearance.weapon, 'katana');
+  assert.equal((await act('switchWeapon')).ok, true);
+  assert.equal(a.p.appearance.weapon, loadout.weapon);
+  assert.equal(a.p.appearance.secondaryWeapon, loadout.secondaryWeapon);
+});
+
+test('the furniture maker sells the Combat Lamp, which reaches enemies beyond crowbar range', async (t) => {
+  const geometry = fixtureGeometry();
+  const id = 'combat-lamp';
+  const [maker, target] = [
+    { id: 'lamp-vendor', combatKind: 'goblin-maker', x: 94, z: 120 },
+    { id: 'lamp-target', combatKind: 'goblin', x: 100, z: 120 },
+  ];
+  geometry.wilderness = { actors: [maker, target] };
+  const store = createMemoryStore();
+  const game = await createGame({ geometry, store, random: () => 0.5 });
+  t.after(() => game.close());
+  const a = await player(game, 99009, {
+    'sf-purse-v1': JSON.stringify({ coins: ITEM_STATS[id].price + 10 }),
+  });
+  const purse = a.p.inventory.economy.state;
+  const buy = async () => {
+    game.receive(a.p, {
+      type: 'command',
+      request: Math.random(),
+      action: 'inventory',
+      inventoryEpoch: a.p.inventory.meta.epoch,
+      args: { op: 'trade', kind: id },
+    });
+    await a.p.queue;
+    return requiredResult(a.messages);
+  };
+  a.p.x = maker.x - 5;
+  assert.equal((await buy()).ok, false);
+  a.p.x = maker.x - 1;
+  const seller = requiredFixture(game.shared.wilderness.actors.find((actor) => actor.id === maker.id));
+  seller.enemy = a.p.id;
+  assert.equal((await buy()).ok, false);
+  seller.enemy = null;
+  assert.equal((await buy()).ok, true);
+  assert.equal((await buy()).ok, false);
+  assert.equal(purse.coins, 10);
+
+  await command(game, a.p, 'equipAppearance', { look: { weapon: id } });
+  assert.equal(a.p.appearance.weapon, id);
+  const victim = requiredFixture(game.shared.wilderness.actors.find((actor) => actor.id === target.id));
+  const hp = victim.hp;
+  a.p.x = target.x - 2;
+  await command(game, a.p, 'attack', { id: target.id, weapon: id });
+  assert.equal(requiredResult(a.messages).ok, true);
+  assert.ok(victim.hp < hp, 'the lamp lands a hit from two tiles away');
+  await game.flush();
+  const { playerState } = await storedPlayerFixture(store, 'player:' + a.p.owner);
+  assert.ok(playerState.inventory.economy.ownedEquipment.includes(id));
+  assert.ok(playerState.inventory.collection.includes(id));
+});
+
+test('selected mid-level enemies drop a Defence amulet that grants one point only when equipped', async (t) => {
+  const id = 'defence-amulet';
+  for (const kind of ['goblin-veteran', 'legacy-bug-20', 'emf-disciple']) {
+    const { level } = MONSTER_STATS[kind];
+    assert.ok(level >= 10 && level <= 30);
+    assert.ok(rollMonsterDrops(kind, () => 0.039).some((drop) => drop.itemId === id));
+    assert.ok(!rollMonsterDrops(kind, () => 0.04).some((drop) => drop.itemId === id));
+  }
+  assert.ok(!rollMonsterDrops('goblin', () => 0.039).some((drop) => drop.itemId === id));
+  const geometry = fixtureGeometry();
+  geometry.wilderness = { actors: [{ id: 'veteran', combatKind: 'goblin-veteran', x: 94, z: 120 }] };
+  const store = createMemoryStore();
+  const game = await createGame({ geometry, store, random: () => 0.039 });
+  t.after(() => game.close());
+  const a = await player(game, 99010);
+  const purse = a.p.inventory.economy.state;
+  const defense = () => ownedEquipmentDefense(purse, a.p.appearance);
+  const equip = (neck: string) => command(game, a.p, 'equipAppearance', { look: { neck } });
+  await equip(id);
+  assert.equal(a.p.appearance.neck, 'none');
+  const veteran = game.shared.wilderness.actors[0];
+  game.shared.wilderness.damage(veteran.id, veteran.hp, a.p);
+  const amulet = requiredFixture([...game.shared.loot.values()].find((drop) => drop.itemId === id));
+  Object.assign(a.p, { x: amulet.x, y: amulet.base, z: amulet.z });
+  await command(game, a.p, 'collect', { id: amulet.id });
+  assert.equal(requiredResult(a.messages).ok, true);
+  assert.equal(defense(), 0);
+  await equip(id);
+  assert.equal(a.p.appearance.neck, id);
+  assert.equal(defense(), 1);
+  await equip('none');
+  assert.equal(defense(), 0);
+  await game.flush();
+  const { playerState } = await storedPlayerFixture(store, 'player:' + a.p.owner);
+  assert.ok(playerState.inventory.collection.includes(id));
 });
 
 test('a passenger can climb up and down the deployed rope without a grappling hook', async () => {

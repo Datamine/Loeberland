@@ -1,6 +1,8 @@
 import type { Appearance } from './content.ts';
 import type { Actor } from './world.ts';
 import type { WorldPoint } from './geometry.ts';
+export type MonsterAttackEffect =
+  'bind' | 'explosive' | 'goblin-rock' | 'akimbo' | 'robocop-laser' | 'onoda-rifle' | 'emf-lightning';
 export interface MonsterStats {
   name: string;
   level: number;
@@ -13,6 +15,7 @@ export interface MonsterStats {
   leash?: number;
   roamRadius?: number;
   roamSpeed?: number;
+  recoverOnReturn?: boolean;
   height?: number;
   model?: string;
   appearance?: Appearance;
@@ -21,7 +24,8 @@ export interface MonsterStats {
   quest?: boolean;
   aggression?: number;
   attackRange?: number;
-  attackEffect?: 'bind' | 'explosive' | 'akimbo' | 'robocop-laser';
+  attackEffect?: MonsterAttackEffect;
+  rangedAttack?: { range: number; interval: number; damage: number; effect: MonsterAttackEffect };
   pursuit?: string;
   radius?: number;
   walkStride?: number;
@@ -43,9 +47,11 @@ export function defineMonsterStats<T extends Record<string, MonsterStats>>(
 export interface WildernessSpawn extends WorldPoint {
   id: string;
   combatKind: string;
+  level?: number;
 }
 export interface WildernessPerson extends WorldPoint {
   id: string | number;
+  appearance?: Pick<Appearance, 'back'>;
   owner?: string | null;
   y?: number;
   base?: number;
@@ -56,6 +62,7 @@ export interface WildernessPerson extends WorldPoint {
   level?: number;
   inebriation?: number;
   tinfoil?: boolean;
+  rerollMiss?: boolean;
   attack?: string | null;
 }
 export interface WildernessActor extends Actor {
@@ -76,11 +83,12 @@ export interface WildernessActor extends Actor {
   repath: number;
   attackAt: number;
   attackAnimation?: number;
+  rangedAnimation?: boolean;
+  rangedAttackAt?: number;
   affection: number;
   chaseUntil: number;
   enemyPosition?: WorldPoint;
   returning: boolean;
-  dispatchedFor?: string | number;
   lastCombatAt?: number;
   description: string;
 }

@@ -1,5 +1,7 @@
-import { ITEM_STATS, PLAYER_WEAPONS } from './item-stats.ts';
+import { ITEM_STATS, PLAYER_WEAPONS, weaponDisplayName, weaponOwned } from './item-stats.ts';
 import { HAT_CATALOG } from './hat-catalog.ts';
+import { DEFENSE_TORSOS, DEFENSE_LEGS } from './config/defense-workshop.ts';
+import { HIKING_BACKPACK, UPGRADED_HIKING_BACKPACK } from './config/hiking-backpack.ts';
 /** Wardrobe choices expose owned finds, never an unavailable-item checklist. */
 export function equipmentOptions(
   {
@@ -18,20 +20,25 @@ export function equipmentOptions(
     weapon: [
       option('unarmed', 'Fist'),
       ...PLAYER_WEAPONS.filter((id) => id !== 'unarmed')
-        .filter(owns)
-        .map((id) => option(id, ITEM_STATS[id].name)),
+        .filter((id) => weaponOwned({ ownedEquipment }, id))
+        .map((id) => option(id, weaponDisplayName(id, { ownedEquipment }))),
     ],
     back: [
       option('none', 'Nothing on back'),
-      ...(['backpack', 'new-year-rocket'] satisfies [string, string])
+      ...([HIKING_BACKPACK, UPGRADED_HIKING_BACKPACK, 'new-year-rocket', 'invisibility-cloak'] satisfies string[])
         .filter(owns)
         .map((id) => option(id, ITEM_STATS[id].name)),
       ...(progress.cape ? [option('cape', 'Kraken cape')] : []),
     ],
     neck: [
-      option('none', 'No necklace'),
+      option('none', 'Nothing on neck'),
+      ...(owns('black-tie') ? [option('black-tie', ITEM_STATS['black-tie'].name)] : []),
+      ...(owns('white-scarf') ? [option('white-scarf', ITEM_STATS['white-scarf'].name)] : []),
       ...(owns('recoil-amulet') ? [option('recoil-amulet', ITEM_STATS['recoil-amulet'].name)] : []),
+      ...(owns('defence-amulet') ? [option('defence-amulet', ITEM_STATS['defence-amulet'].name)] : []),
+      ...(owns('goblin-charm') ? [option('goblin-charm', ITEM_STATS['goblin-charm'].name)] : []),
       ...(owns('clock-amulet') ? [option('clock-amulet', ITEM_STATS['clock-amulet'].name)] : []),
+      ...(owns('albatross') ? [option('albatross', ITEM_STATS.albatross.name)] : []),
     ],
     torso: [
       option('shirt', 'Regular shirt'),
@@ -41,11 +48,20 @@ export function equipmentOptions(
           'black-cloak-top',
           'tinfoil-suit',
           'decorative-robe-top',
+          'charcoal-suit',
+          'silk-kimono',
+          'techwear-top',
+          'yellow-top',
+          'bush-top',
           'cashmere-turtleneck',
+          'puffy-parka',
+          'leather-jacket',
+          'barrel',
           'goose-corp-shirt',
           'goose-costume',
           'iron-armor',
           'gold-trimmed-iron-armor',
+          ...DEFENSE_TORSOS,
         ] as const
       )
         .filter(owns)
@@ -53,7 +69,20 @@ export function equipmentOptions(
     ],
     legs: [
       option('trousers', 'Regular trousers'),
-      ...(['ice-pants', 'black-cloak-bottom', 'decorative-robe-bottom', 'iron-armor-legs'] as const)
+      ...(
+        [
+          'ice-pants',
+          'black-cloak-bottom',
+          'decorative-robe-bottom',
+          'yellow-pants',
+          'blue-jeans',
+          'techwear-bottoms',
+        'bush-legs',
+          'iron-armor-legs',
+          'gold-trimmed-iron-armor-legs',
+          ...DEFENSE_LEGS,
+        ] as const
+      )
         .filter(owns)
         .map((id) => option(id, ITEM_STATS[id].name)),
     ],

@@ -2,7 +2,14 @@ import type { BattleEvent } from '../src/combat.ts';
 import { requiredFixture } from './helpers/required.mts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createHitpoints, createAlienBattle, combatStats, MAX_HITPOINTS } from '../src/combat.ts';
+import {
+  createHitpoints,
+  createAlienBattle,
+  combatStats,
+  MAX_HITPOINTS,
+  damageAfterDefense,
+  rollEnemyDamage,
+} from '../src/combat.ts';
 import { createDeli, drawDeliveryCooler } from '../src/deli.ts';
 import { createDeliveryPresentation } from '../src/multiplayer-actions.ts';
 import { createEconomy } from '../src/economy.ts';
@@ -40,6 +47,14 @@ test('spectres require a bayonet; gym strength improves armed combat', () => {
   }
 });
 
+test('negative defense adds damage to successful attacks and keeps misses at zero', () => {
+  assert.equal(damageAfterDefense(7, -1), 8);
+  assert.equal(damageAfterDefense(0, -1), 0);
+  const unarmored = rollEnemyDamage(7, 1, () => 0);
+  assert.equal(rollEnemyDamage(7, 1, () => 0, -1), unarmored + 1);
+  assert.equal(rollEnemyDamage(7, 1, () => 1, -1), 0);
+});
+
 test('health survives reloads, healing clamps, and a resolved fight cannot deal more damage', () => {
   let saved;
   const hp = createHitpoints({}, (s) => (saved = s));
@@ -74,7 +89,7 @@ test('legal spectre victories survive quest reload; permits still gate attacks',
 });
 
 const setupDeli = (saved: { pending?: boolean } | undefined = {}) => {
-  const economy = createEconomy(),
+  const economy = createEconomy({ coins: 25 }),
     health = createHitpoints(),
     savedStates: { sandwiches: number; pending: boolean }[] = [],
     messages: string[] = [];

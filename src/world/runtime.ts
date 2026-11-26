@@ -1,5 +1,9 @@
-import { LAB_FLOOR, LAB_NAV } from '../berkeley-lab.ts';
+import { combatDungeon } from '../combat-dungeons.ts';
+import { CHURCH_BASEMENT_ID } from '../church-basement-layout.ts';
+import { ONODA, raycastOnodaIsland } from '../onoda-island.ts';
+import { isFishingSite } from '../fishing.ts';
 import { DYNAMITE_DEPOT } from '../config/dynamite-depot.ts';
+import { GOBLIN_CATAPULT } from '../config/goblin-catapult.ts';
 import { contentText } from '../content-runtime.ts';
 import type { PickTarget } from '../types/scene-state.ts';
 import type { StreamRange } from '../types/world-stream.ts';
@@ -65,14 +69,21 @@ export function createRuntime(context: WorldContext) {
     const angle = Math.PI / 4 + context.camera.yaw,
       sa = Math.sin(angle),
       ca = Math.cos(angle),
+      catapult = context.multiplayerWorld?.selfMode === GOBLIN_CATAPULT.mode,
       launchHeight =
-        context.multiplayerWorld?.selfMode === 'depotLaunch'
+        catapult || context.multiplayerWorld?.selfMode === 'depotLaunch'
           ? Math.max(
               0,
-              context.playerGround() - context.characterGround(DYNAMITE_DEPOT.x, DYNAMITE_DEPOT.z),
+              context.playerGround() -
+                (catapult
+                  ? context.characterGround(context.player.x + 0.5, context.player.y + 0.5)
+                  : context.characterGround(DYNAMITE_DEPOT.x, DYNAMITE_DEPOT.z)),
             )
           : 0,
-      aerial = Math.min(1, launchHeight / DYNAMITE_DEPOT.height),
+      aerial = Math.min(
+        1,
+        launchHeight / (catapult ? GOBLIN_CATAPULT.flightRise : DYNAMITE_DEPOT.height),
+      ),
       pitch = context.camera.pitch + (Math.PI / 3 - context.camera.pitch) * aerial,
       sp = Math.sin(pitch),
       cp = Math.cos(pitch),
@@ -451,11 +462,12 @@ export function createRuntime(context: WorldContext) {
   }
 
   function terrainIntersection(ray: Ray, maxDistance = rayLimit(ray)) {
-    if (context.secretWorld?.kind === 'berkeley-lab') {
-      const t = (LAB_FLOOR + 0.025 - ray.origin[1]) / ray.dir[1];
+    const dungeon = combatDungeon(context.secretWorld?.kind);
+    if (dungeon) {
+      const t = (dungeon.floor - ray.origin[1]) / ray.dir[1];
       if (t <= 0 || t >= maxDistance || !Number.isFinite(t)) return null;
       const point = ray.origin.map((v, i) => v + ray.dir[i] * t);
-      return LAB_NAV.free(point[0] - 0.5, point[2] - 0.5) ? { point, distance: t } : null;
+      return dungeon.nav.free(point[0] - 0.5, point[2] - 0.5) ? { point, distance: t } : null;
     }
     if (context.secretWorld?.kind === 'illuminati' || context.secretWorld?.kind === 'kraken') {
       const floor =
@@ -475,6 +487,11 @@ export function createRuntime(context: WorldContext) {
         ? { point: ray.origin.map((v, i) => v + ray.dir[i] * t), distance: t }
         : null;
     }
+    const room = context.activeInstituteRoom();
+    if (room?.id === CHURCH_BASEMENT_ID) {
+      const hit = raycastInstituteFloor(room, ray);
+      return hit && hit.distance <= maxDistance ? hit : null;
+    }
     const countrysideHit = context.countryside?.raycast(ray, maxDistance),
       marinHit = context.marinLand?.raycast(ray),
       campusHit = context.esotericCampus?.raycast(ray),
@@ -483,12 +500,13 @@ export function createRuntime(context: WorldContext) {
       clubHit = context.nightclub
         ? raycastNightlife(ray, context.nightclub, context.terrainHeight)
         : null,
-      instituteHit = context.activeInstituteRoom()
-        ? raycastInstituteFloor(context.activeInstituteRoom()!, ray)
-        : null,
+      instituteHit = room ? raycastInstituteFloor(room, ray) : null,
       southHit = context.southernTerrain?.raycast(ray, maxDistance),
       tahoeHit = nearTahoe(context.player.x + 0.5, context.player.y + 0.5, 500)
         ? raycastTahoe(ray, maxDistance)
+        : null,
+      islandHit = Math.hypot(context.player.x + 0.5 - ONODA.x, context.player.y + 0.5 - ONODA.z) < 60
+        ? raycastOnodaIsland(ray, maxDistance)
         : null;
     // Traverse terrain grid cells and intersect the actual rendered triangles.
     // This remains exact at shorelines and steep hills, where ray marching can skip a ridge.
@@ -509,6 +527,7 @@ export function createRuntime(context: WorldContext) {
       instituteHit,
       southHit,
       tahoeHit,
+      islandHit,
     ])
       if (hit && hit.distance < best) best = hit.distance;
     const result = () =>
@@ -789,7 +808,7 @@ export function createRuntime(context: WorldContext) {
           o.sight?.kind || '',
         )
       ) {
-        const fishing = o.sight?.kind === 'fishing' ? context.fishingSite : null;
+        const fishing = isFishingSite(o.sight) ? o.sight : null;
         const anchors = fishing
           ? ([
               [

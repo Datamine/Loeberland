@@ -5,6 +5,7 @@ const lunges: Readonly<Record<string, { duration: number; impact: number; reach:
   'tahoe-fox': { duration: 700, impact: 0.45, reach: 1.15 },
   coyote: { duration: 740, impact: 0.45, reach: 1.25 },
   seagull: { duration: 730, impact: 0.46, reach: 1.05 },
+  'sea-urchin': { duration: 620, impact: 0.54, reach: 1.6 },
 };
 
 export function creatureLunge(kind: string) {

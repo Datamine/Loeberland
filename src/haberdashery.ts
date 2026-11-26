@@ -3,6 +3,7 @@ import type { Economy } from './types/controllers.ts';
 import { contentText } from './content-runtime.ts';
 import { configuredDialogue } from './dialogue-config.ts';
 import { HAT_CATALOG } from './hat-catalog.ts';
+import type { HatDefinition } from './config/hats.ts';
 import type { Actor } from './types/world.ts';
 
 export function haberdasherDialogue(
@@ -12,7 +13,9 @@ export function haberdasherDialogue(
 ) {
   return {
     ...configuredDialogue('haberdasher', npc),
-    choices: HAT_CATALOG.filter((h) => !h.dropOnly).map((h) => ({
+    choices: HAT_CATALOG.filter(
+      (h): h is Extract<HatDefinition, { price: number }> => !h.dropOnly && !h.seller,
+    ).map((h) => ({
       label: contentText('haberdashery.haberdasherDialogue.label-3', {
         v0: h.name,
         v1: economy.state.ownedHats.includes(h.id)

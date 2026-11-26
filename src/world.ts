@@ -1,6 +1,7 @@
 import { requiredValue } from './types/assert.ts';
 import { createSFWorld } from './world/scene.ts';
 import { createLoadingScreen } from './loading-screen.ts';
+import { createAdvisoryDancer } from './ui/advisory-dancer.ts';
 import { bootMultiplayer } from './multiplayer-client.ts';
 import { refreshWorldMap } from './world-stream.ts';
 export { createWorldModel } from './world/model.ts';
@@ -47,17 +48,24 @@ if (
     'Minimum screen size',
   );
   if (!mobile) {
-    size.textContent =
-      `Resize your browser window to at least ${minimum.width} × ${minimum.height} pixels to play.`;
+    size.textContent = `Resize your browser window to at least ${minimum.width} × ${minimum.height} pixels to play.`;
     size.hidden = false;
   }
+  const dancerCanvas = requiredValue(
+    notice.querySelector<HTMLCanvasElement>('.sf-screen-dancer'),
+    'Screen advisory illustration',
+  );
+  let dancer: ReturnType<typeof createAdvisoryDancer> | undefined;
   let started = false;
   function updateScreen() {
     if (mobile || !viewport.matches) {
       if (!notice.open) notice.showModal();
+      if (dancer === undefined) dancer = createAdvisoryDancer(dancerCanvas);
+      dancer?.start();
       return;
     }
     if (notice.open) notice.close();
+    dancer?.stop();
     if (!started) {
       started = true;
       startGame();

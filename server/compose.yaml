@@ -40,7 +40,7 @@ services:
     restart: unless-stopped
     init: true
     env_file:
-      - path: ${ADMIN_ENV_FILE:-.env}
+      - path: ${ADMIN_ENV_FILE:-../deploy/.env.local-admin}
         required: false
     environment:
       ADMIN_ENV_FILE: ''

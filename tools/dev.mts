@@ -41,6 +41,8 @@ createServer(async (req, res) => {
     const local = relative(root, file);
     if (
       local.startsWith('..') ||
+      /^(?:deploy|server[\\/](?:deploy|data|backups))[\\/]/.test(local) ||
+      /\.(?:tfstate|tfvars)(?:\.|$)/.test(local) ||
       local.split(/[\\/]/).some((part) => part.startsWith('.')) ||
       !types[extname(file)]
     ) {

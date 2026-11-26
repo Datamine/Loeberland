@@ -4,6 +4,7 @@ import { sameMapInstance } from '../src/map-instances.ts';
 import { isRecord, isSafeInteger } from '../src/types/json.ts';
 import type { ServerPlayer, SimulationServices } from '../src/types/server.ts';
 import type { TradeLine, TradeView } from '../src/types/trade.ts';
+import { playersWithinReach } from './player-proximity.mts';
 import {
   describeTradeItem,
   swapHoldings,
@@ -13,7 +14,6 @@ import {
 } from './trade-inventory.mts';
 
 const timeout = 120_000;
-const range = 4;
 interface Trade {
   id: string;
   a: ServerPlayer;
@@ -25,21 +25,18 @@ interface Trade {
   growthPhases: [string | undefined, string | undefined];
   confirmed: [boolean, boolean];
 }
-export const TRADE_ACTIONS = new Set([
-  'tradeRequest',
-  'tradeJoin',
-  'tradeOffer',
-  'tradeConfirm',
-  'tradeCancel',
-]);
+export const TRADE_ACTIONS = new Set(['tradeJoin', 'tradeOffer', 'tradeConfirm', 'tradeCancel']);
 const text = (key: string) => contentText('world-message.player-trade.' + key);
 const no = (key: string) => ({ ok: false, message: text(key) });
+const disabledMessage = (p: ServerPlayer) =>
+  contentText('world-message.player-requests.disabled', { name: p.name });
 export function createPlayerTrades({
+  geometry,
   players,
   send,
   now,
   commit,
-}: Pick<SimulationServices, 'players' | 'send' | 'now'> & {
+}: Pick<SimulationServices, 'geometry' | 'players' | 'send' | 'now'> & {
   commit: (
     a: ServerPlayer,
     b: ServerPlayer,
@@ -68,11 +65,7 @@ export function createPlayerTrades({
     !p.grappling &&
     ['walk', 'sit', 'bench'].includes(p.mode);
   const available = (a: ServerPlayer, b: ServerPlayer) =>
-    eligible(a) &&
-    eligible(b) &&
-    sameMapInstance(a, b) &&
-    Math.hypot(a.x - b.x, a.z - b.z) <= range &&
-    Math.abs(a.y - b.y) <= 1.5;
+    eligible(a) && eligible(b) && playersWithinReach(geometry, a, b);
   function publish(t: Trade) {
     const owners = [t.a, t.b] as const;
     const stock = owners.map(holdings);
@@ -94,8 +87,7 @@ export function createPlayerTrades({
       send(p, { type: 'tradeView', trade });
     }
   }
-  function close(t: Trade, reason: string, completed = false) {
-    const message = text(reason);
+  function close(t: Trade, message: string, completed = false) {
     for (const p of [t.a, t.b]) {
       if (sessions.get(p.id) === t) sessions.delete(p.id);
       if (players.get(p.id) === p)
@@ -113,8 +105,43 @@ export function createPlayerTrades({
     }
   }
   function expire() {
-    for (const t of sessions.values())
-      if (t.expires <= now() || !available(t.a, t.b)) close(t, 'expired');
+    for (const [id, trade] of sessions)
+      if (id === trade.a.id && (trade.expires <= now() || !available(trade.a, trade.b)))
+        close(trade, text('expired'));
+  }
+  function requestError(p: ServerPlayer, target: ServerPlayer | undefined) {
+    if (
+      !target ||
+      target.owner === p.owner ||
+      !eligible(p) ||
+      !eligible(target) ||
+      !sameMapInstance(p, target)
+    )
+      return text('nearby');
+    if (target.profile.tradeDuelEnabled === false) return disabledMessage(target);
+    if (sessions.has(p.id) || sessions.has(target.id)) return text('busy');
+    return '';
+  }
+  function request(p: ServerPlayer, target: ServerPlayer) {
+    expire();
+    const error = requestError(p, target);
+    if (error) return { ok: false, message: error };
+    if (!playersWithinReach(geometry, p, target)) return no('nearby');
+    const t: Trade = {
+      id: randomUUID(),
+      a: p,
+      b: target,
+      phase: 'invited',
+      revision: 0,
+      expires: now() + timeout,
+      offers: [[], []],
+      growthPhases: [undefined, undefined],
+      confirmed: [false, false],
+    };
+    sessions.set(p.id, t);
+    sessions.set(target.id, t);
+    publish(t);
+    return { ok: true };
   }
   function readOffer(raw: unknown, stock: TradeHoldings) {
     if (!Array.isArray(raw) || raw.length > 96) return null;
@@ -135,30 +162,10 @@ export function createPlayerTrades({
   }
   async function command(p: ServerPlayer, action: string, args: Record<string, unknown>) {
     expire();
-    if (action === 'tradeRequest') {
-      const b = typeof args.id === 'number' ? players.get(args.id) : null;
-      if (!b || b.owner === p.owner || !available(p, b)) return no('nearby');
-      if (sessions.has(p.id) || sessions.has(b.id)) return no('busy');
-      const t: Trade = {
-        id: randomUUID(),
-        a: p,
-        b,
-        phase: 'invited',
-        revision: 0,
-        expires: now() + timeout,
-        offers: [[], []],
-        growthPhases: [undefined, undefined],
-        confirmed: [false, false],
-      };
-      sessions.set(p.id, t);
-      sessions.set(b.id, t);
-      publish(t);
-      return { ok: true };
-    }
     const t = sessions.get(p.id);
     if (!t || t.id !== args.trade) return no('expired');
     if (action === 'tradeCancel') {
-      close(t, 'cancelled');
+      close(t, text('cancelled'));
       return { ok: true };
     }
     if (args.revision !== t.revision) return no('changed');
@@ -201,10 +208,10 @@ export function createPlayerTrades({
             await commit(t.a, t.b, draft);
           } catch (error) {
             console.error('Trade persistence:', error);
-            close(t, 'save-failed');
+            close(t, text('save-failed'));
             return no('save-failed');
           }
-          close(t, 'complete', true);
+          close(t, text('complete'), true);
           return { ok: true };
         }
       } else return no('expired');
@@ -215,10 +222,16 @@ export function createPlayerTrades({
   }
   return {
     command,
+    request,
+    requestError,
     tick: expire,
+    declineIncoming(p: ServerPlayer) {
+      const trade = sessions.get(p.id);
+      if (trade?.b === p && trade.phase === 'invited') close(trade, disabledMessage(p));
+    },
     remove(p: ServerPlayer) {
       const t = sessions.get(p.id);
-      if (t) close(t, 'expired');
+      if (t) close(t, text('expired'));
     },
   };
 }

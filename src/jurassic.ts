@@ -16,12 +16,21 @@ import type {
   ExpeditionOptions,
   ExpeditionLoot,
   ExpeditionEvent,
+  KrakenAnimation,
 } from './types/expeditions.ts';
 // CONTENT-BINDINGS-MIGRATED
 import { contentText } from './content-runtime.ts';
 import { MONSTER_STATS, rollMonsterDrops } from './monster-drops.ts';
-import { ITEM_STATS, weaponOwned, isProjectileWeapon, weaponAttackInterval } from './item-stats.ts';
-import { ENERGY_BOLT_SECONDS, MISSILE_EFFECT_SECONDS } from './config/gameplay.ts';
+import {
+  ITEM_STATS,
+  itemLoot,
+  weaponOwned,
+  isProjectileWeapon,
+  weaponAttackInterval,
+} from './item-stats.ts';
+import { LIGHT_CRYSTAL } from './config/lightsaber.ts';
+import { projectileEffect } from './projectile-models.ts';
+import { SHOT_BODY_HEIGHT } from './ranged-weapon-mounts.ts';
 import { JURASSIC, cowSpawns, PEQUOD, KRAKEN_CAPE_TEXT } from './jurassic-layout.ts';
 import { rollWeaponDamage, rollEnemyDamage } from './combat.ts';
 import { groundItemDeadline, groundItemExpired } from './ground-items.ts';
@@ -61,10 +70,13 @@ export function createExpeditions({
   health,
   economy,
   food = () => {},
+  receiveCrystal = () => ({ ok: true }),
   level = () => 1,
   defense = () => 0,
   reflect = () => 0,
   inebriation = () => 0,
+  rerollMiss = () => false,
+  hiddenFromMonsters = () => false,
   sharedWorld = () => false,
   player = () => ({ x: 0, z: 0, base: 0, eligible: true }),
   pedestrians = () => [],
@@ -90,6 +102,7 @@ export function createExpeditions({
       saved.krakenStarted === true || saved.krakenDefeated === true || saved.krakenReward === true,
     krakenDefeated: saved.krakenDefeated === true,
     krakenReward: saved.krakenReward === true,
+    krakenCrystalPending: saved.krakenCrystalPending === true,
     equipped: saved.equipped !== false,
     target: null,
     clock: 0,
@@ -167,7 +180,14 @@ export function createExpeditions({
     attackIn: 3.5,
     aboard: false,
   };
-  const kraken: Actor & { hp: number; max: number; visible: boolean; enraged: boolean } = {
+  const kraken: Actor & {
+    hp: number;
+    max: number;
+    visible: boolean;
+    enraged: boolean;
+    animation: KrakenAnimation;
+    animationSample?: { clock: number; time: number };
+  } = {
     id: 'pacific-kraken',
     combatKind: 'kraken',
     label: contentText('jurassic.createExpeditions.label-4', {}),
@@ -178,7 +198,10 @@ export function createExpeditions({
     max: MONSTER_STATS.kraken.hp,
     visible: false,
     enraged: false,
+    animation: { strikes: 0 },
   };
+  let krakenProvoked = false;
+  const krakenCanAttack = () => krakenProvoked || !hiddenFromMonsters();
   let serial = 0;
   const save = () =>
     onSave({
@@ -190,50 +213,43 @@ export function createExpeditions({
       krakenStarted: state.krakenStarted,
       krakenDefeated: state.krakenDefeated,
       krakenReward: state.krakenReward,
+      krakenCrystalPending: state.krakenCrystalPending,
     });
   const event = (
     type: string,
     message: string | null,
     extra: Omit<ExpeditionEvent, 'type' | 'message'> = {},
   ) => onEvent({ type, message, ...extra });
-  const drop = (kind: string, x: number, z: number, amount = 1) => {
-    const item = {
+  const drop = (loot: ReturnType<typeof itemLoot>, x: number, z: number, base?: number) => {
+    state.loot.push({
       id: 'expedition-loot-' + ++serial,
       kind: 'loot',
-      lootKind: kind,
-      label:
-        kind === 'coins'
-          ? contentText('jurassic.drop.label-6.yes', { v0: amount })
-          : kind === 'sandwich'
-            ? contentText('jurassic.drop.label-6.no.yes', {})
-            : kind === 'raptor'
-              ? contentText('jurassic.drop.label-6.no.no.yes', {})
-              : contentText('jurassic.drop.label-6.no.no.no', {}),
+      ...loot,
       x,
       z,
-      amount,
+      base,
       ...groundItemDeadline(state.clock, now()),
-      description:
-        kind === 'raptor'
-          ? 'The emergency recovery protocol is now considerably less mobile.'
-          : kind === 'sandwich'
-            ? 'A sandwich. Store it in your food bag and eat it to recover hitpoints.'
-            : kind === 'kraken'
-              ? KRAKEN_CAPE_TEXT
-              : 'Loose coins, awaiting a less theoretical owner.',
-    };
-    state.loot.push(item);
-    return item;
+    });
   };
   function dropMonster(kind: string, x: number, z: number) {
-    // Keep the hunt reward on the open deck beside the hunter. At the
-    // ship's center the mast hides the tiny loot mesh from the camera.
-    if (kind === 'kraken') {
-      x -= 0.8;
-      z -= 0.6;
-    }
-    for (const record of rollMonsterDrops(kind, random))
-      Object.assign(drop(record.lootKind, x, z, record.amount), record);
+    for (const record of rollMonsterDrops(kind, random)) drop(record, x, z);
+  }
+  function placeKrakenLoot() {
+    // Place both rewards on open deck where the mast cannot hide them.
+    if (!state.krakenReward && !state.loot.some((item) => item.lootKind === 'kraken'))
+      drop(itemLoot('kraken'), ship.x - 0.8, ship.z - 0.6, PEQUOD.deck);
+    if (state.krakenCrystalPending && !state.loot.some((item) => item.lootKind === LIGHT_CRYSTAL))
+      drop(itemLoot(LIGHT_CRYSTAL), ship.x - 0.95, ship.z + 0.45, PEQUOD.deck);
+  }
+  function claimKrakenCrystal() {
+    const result = receiveCrystal();
+    if (!result.ok) return result;
+    state.krakenCrystalPending = false;
+    state.loot = state.loot.filter(
+      (item) => item.lootKind !== LIGHT_CRYSTAL || item.base !== PEQUOD.deck,
+    );
+    save();
+    return { ok: true, message: 'You collect a Light crystal.' };
   }
   function markRaptorDefeated() {
     if (state.raptor !== 'escaped' || state.raptorDefeated) return false;
@@ -352,6 +368,8 @@ export function createExpeditions({
     ship.attackIn = 3.5;
     kraken.hp = MONSTER_STATS.kraken.hp;
     kraken.enraged = false;
+    kraken.animation = { strikes: 0 };
+    krakenProvoked = false;
     state.target = null;
     event(
       'boarded',
@@ -378,17 +396,28 @@ export function createExpeditions({
     kraken.visible = false;
     state.target = null;
   }
-  function collect(item: ExpeditionLoot) {
+  function collect(item: ExpeditionLoot): ActionReceipt {
     if (!state.loot.includes(item) || groundItemExpired(item, state.clock, now()))
       return {
         ok: false,
         message: contentText('world-message.src.jurassic.that-loot-has-already-been-collected'),
       };
     if (item.lootKind === 'raptor') return recover();
+    if (item.lootKind === LIGHT_CRYSTAL) {
+      if (item.base === PEQUOD.deck) return claimKrakenCrystal();
+      const result = receiveCrystal();
+      if (result.ok) state.loot.splice(state.loot.indexOf(item), 1);
+      return result.ok ? { ok: true, message: 'You collect a Light crystal.' } : result;
+    }
     if (item.lootKind === 'coins') economy!.credit(item.amount);
     if (item.lootKind === 'sandwich') food(1);
     if (item.lootKind === 'kraken') {
       if (state.krakenReward) return { ok: false };
+      if (state.krakenCrystalPending) {
+        const crystal = claimKrakenCrystal();
+        if (!crystal.ok) return crystal;
+        event('loot', crystal.message ?? null);
+      }
       economy!.credit(ITEM_STATS.kraken.coins);
       state.krakenReward = true;
       state.cape = true;
@@ -468,29 +497,29 @@ export function createExpeditions({
       state.target = null;
       return supply;
     }
+    if (target === kraken) krakenProvoked = true;
     state.weapon = weapon;
     state.cooldown = weaponAttackInterval(weapon, economy!.state) + Math.min(0, state.cooldown);
     const kind = target.combatKind || 'pedestrian',
       damage = (['spectre', 'pedestrian'] satisfies [string, string]).includes(kind)
         ? 0
-        : Math.min(target.hp!, rollWeaponDamage(level(), weapon, random, inebriation()));
-    if (isProjectileWeapon(weapon))
-      state.beams.push({
-        weapon,
-        from: { x: origin.x, y: (origin.base || 0) + 1.14, z: origin.z },
-        to: {
-          x: target.x,
-          y: (target.base || 0) + (target.combatKind === 'kraken' ? 1.35 : 0.9),
-          z: target.z,
-        },
-        ttl: weapon === 'missile-launcher' ? MISSILE_EFFECT_SECONDS : ENERGY_BOLT_SECONDS,
-      });
+        : Math.min(
+            target.hp!,
+            rollWeaponDamage(level(), weapon, random, inebriation(), distance(origin, target),
+              rerollMiss()),
+          );
+    const from = { x: origin.x, y: (origin.base || 0) + SHOT_BODY_HEIGHT, z: origin.z };
+    const to = { x: target.x, y: (target.base || 0) + (kind === 'kraken' ? 1.35 : 0.9), z: target.z };
+    if (isProjectileWeapon(weapon) && !sharedWorld())
+      state.beams.push(projectileEffect(weapon, from, to));
     state.splats.push({ target, damage, ttl: 0.8 });
     event('shot', null, {
       target,
       damage,
       hp: isFiniteNumber(target.hp) ? target.hp! - damage : 1,
       max: target.max || target.hp || 1,
+      from,
+      to,
     });
     if (kind === 'pedestrian') {
       state.target = null;
@@ -514,6 +543,7 @@ export function createExpeditions({
   }
   function damageTarget(target: Actor, damage: number) {
     target.hp! -= damage;
+    if (target === kraken && damage > 0) kraken.animation.hitAt = state.clock;
     if (!target.hp) {
       if (target === raptor) killRaptor();
       else if (target.combatKind === 'cow') {
@@ -524,9 +554,14 @@ export function createExpeditions({
       } else if (target === kraken) {
         state.target = null;
         ship.phase = 'victory';
+        kraken.animation.defeatedAt = state.clock;
+        kraken.animation.strikeAt = undefined;
         state.krakenDefeated = true;
+        state.krakenCrystalPending = rollMonsterDrops('kraken', random).some(
+          (item) => item.lootKind === LIGHT_CRYSTAL,
+        );
         save();
-        dropMonster('kraken', ship.x, ship.z);
+        placeKrakenLoot();
         event(
           'kraken-dead',
           contentText(
@@ -598,21 +633,19 @@ export function createExpeditions({
           ship.progress = 1;
           ship.phase = state.krakenDefeated ? 'victory' : 'fighting';
           kraken.visible = !state.krakenDefeated;
-          kraken.x = ship.x - 4.4;
+          kraken.x = ship.x - PEQUOD.krakenDistance;
           kraken.z = ship.z;
-          if (
-            state.krakenDefeated &&
-            !state.krakenReward &&
-            !state.loot.some((l) => l.lootKind === 'kraken')
-          )
-            dropMonster('kraken', ship.x, ship.z);
-          if (!state.krakenDefeated)
+          if (state.krakenDefeated) placeKrakenLoot();
+          if (!state.krakenDefeated) {
+            kraken.animation.emergedAt = state.clock;
+            if (krakenCanAttack()) kraken.animation.strikeAt = state.clock + ship.attackIn;
             event(
               'kraken-arrived',
               contentText(
                 'world-message.src.jurassic.click-the-kraken-to-fire-stronger-hunters-hit-harder',
               ),
             );
+          }
         }
       } else if (ship.phase === 'inbound') {
         ship.progress = Math.min(1, ship.progress + dt / 5);
@@ -625,11 +658,14 @@ export function createExpeditions({
             contentText('world-message.src.jurassic.the-pequod-returns-you-to-the-beach'),
           );
         }
-      } else if (ship.phase === 'fighting' && p.eligible) {
-        const stats = MONSTER_STATS.kraken;
+      } else if (ship.phase === 'fighting' && p.eligible && krakenCanAttack()) {
+        const stats = MONSTER_STATS.kraken,
+          animation = kraken.animation;
         if (!kraken.enraged && kraken.hp <= kraken.max * stats.enrageAt) {
           kraken.enraged = true;
           ship.attackIn = Math.min(ship.attackIn, stats.enrageInterval);
+          animation.enragedAt = state.clock;
+          animation.strikeAt = state.clock - dt + ship.attackIn;
           event(
             'kraken-enraged',
             contentText(
@@ -637,11 +673,17 @@ export function createExpeditions({
             ),
           );
         }
+        animation.strikeAt ??= state.clock - dt + ship.attackIn;
         ship.attackIn -= dt;
         if (ship.attackIn <= 1e-8) {
           ship.attackIn += kraken.enraged ? stats.enrageInterval : stats.interval;
+          animation.lastStrike = { at: state.clock, enraged: kraken.enraged };
+          animation.strikes++;
+          animation.strikeAt = state.clock + ship.attackIn;
           damagePlayer(stats.damage + (kraken.enraged ? stats.enrageDamageBonus : 0), kraken);
         }
+      } else if (ship.phase === 'fighting') {
+        kraken.animation.strikeAt = undefined;
       }
     }
     if (
@@ -680,6 +722,9 @@ export function createExpeditions({
     if (raptor.phase !== 'loose') return;
     raptor.replan -= dt;
     raptor.attackIn = Math.max(0, raptor.attackIn - dt);
+    const canHuntPlayer = p.eligible && !ship.aboard &&
+      (state.target === raptor || !hiddenFromMonsters());
+    if (raptor.prey?.isPlayer && !canHuntPlayer) raptor.replan = 0;
     if (raptor.replan <= 0) {
       raptor.replan = 0.6;
       const citizens = pedestrians().filter(
@@ -687,7 +732,7 @@ export function createExpeditions({
       );
       citizens.sort((a, b) => distance(a, raptor) - distance(b, raptor));
       const candidates = [...citizens.slice(0, 4)];
-      const nearbyPlayer = p.eligible && !ship.aboard && distance(p, raptor) < 8 ? [p] : [];
+      const nearbyPlayer = canHuntPlayer && distance(p, raptor) < 8 ? [p] : [];
       raptor.prey = null;
       raptor.path = [];
       for (const candidate of [...candidates, ...nearbyPlayer]) {
@@ -730,14 +775,16 @@ export function createExpeditions({
       return;
     raptor.attackIn = MONSTER_STATS.raptor.interval;
     if (prey === p || prey.isPlayer) {
-      if (p.eligible && !ship.aboard && distance(raptor, p) < 1.3)
+      if (canHuntPlayer && distance(raptor, p) < 1.3)
         damagePlayer(MONSTER_STATS.raptor.damage, raptor);
     } else {
       prey.expeditionDead = true;
       prey.recoverAt = state.clock + 35;
       prey.hold = 35;
       state.victims.push({ npc: prey, until: prey.recoverAt });
-      drop('coins', prey.x, prey.z, 3 + Math.floor(random() * 5));
+      const coins = itemLoot('coins', 3 + Math.floor(random() * 5));
+      coins.label = contentText('jurassic.drop.label-6.yes', { v0: coins.amount });
+      drop(coins, prey.x, prey.z);
       event(
         'citizen-down',
         contentText(

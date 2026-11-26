@@ -6,6 +6,10 @@ import type { DuelOffer } from '../src/types/finance.ts';
 import { randomInt, randomUUID } from 'node:crypto';
 import { DUEL_ARENA, atDuelArena } from '../src/duel-layout.ts';
 import { DUEL_RULES } from '../src/config/finance.ts';
+
+const disabledMessage = (p: ServerPlayer) =>
+  contentText('world-message.player-requests.disabled', { name: p.name });
+
 export function createDuels({
   players,
   send,
@@ -53,6 +57,8 @@ export function createDuels({
             'world-message.server.duels.both-players-must-stand-at-the-duel-arena-out-of-combat',
           ),
         };
+      if (to.profile.tradeDuelEnabled === false)
+        return { ok: false, message: disabledMessage(to) };
       if (!isSafeInteger(stake) || stake < 1 || stake > DUEL_RULES.maxStake)
         return {
           ok: false,
@@ -157,6 +163,10 @@ export function createDuels({
   return {
     command,
     tick: expire,
+    declineIncoming(p: ServerPlayer) {
+      const offer = offers.get(busy.get(p.id) || '');
+      if (offer?.to === p.id) release(offer, disabledMessage(p));
+    },
     remove: (p: Pick<ServerPlayer, 'id'>) => {
       const o = offers.get(busy.get(p.id) || '');
       if (o) release(o, 'A player left. No coins changed hands.');

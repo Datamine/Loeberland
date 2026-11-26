@@ -12,8 +12,23 @@ import { inEstateDistrict } from '../src/estate-layout.ts';
 import { SALT_PONDS } from '../src/salt-layout.ts';
 import { onSouthBeachPier } from '../src/south-beach.ts';
 import { isGlassVertex, meshGlassTriangles } from '../src/glazing.ts';
-import { rayTriangle } from '../src/geometry.ts';
+import { Mesh, rayTriangle } from '../src/geometry.ts';
+import { drawConservatory, drawDeYoungMuseum } from '../src/golden-gate-park-landmarks.ts';
 import { instituteWindowOpenings } from '../src/institute-interiors.ts';
+import { CEDAR_SAUNA, SAUNA_GUEST } from '../src/cedar-sauna.ts';
+import {
+  BASEMENT_CHURCHGOERS,
+  BASEMENT_FURNITURE,
+  CHURCH_BASEMENT,
+  CHURCH_BASEMENT_ID,
+  CHURCH_STAIRS_DOWN,
+  CHURCH_STAIRS_UP,
+  churchBasementPoint,
+} from '../src/church-basement-layout.ts';
+import { WAYWARD_CAMP } from '../src/config/wayward-camp.ts';
+import { CULTIST_HOME } from '../src/search-houses.ts';
+import { BOLINAS, BOLINAS_HOMES, BOLINAS_LIFE_ROUTES } from '../src/bolinas.ts';
+import { npcOffersAttack } from '../src/npc-interactions.ts';
 import { TWITTER_HQ, SALES_CONFERENCE, inStreamCulvert } from '../src/social-layout.ts';
 import { streamSample } from '../src/bottle-post.ts';
 import test from 'node:test';
@@ -30,7 +45,7 @@ import {
   navigationObstacles,
   auditNavigationGrid,
 } from '../src/navigation.ts';
-import { marinElevation } from '../src/geography.ts';
+import { eastBayShoreX, marinElevation } from '../src/geography.ts';
 import { marketSide } from '../src/downtown.ts';
 import {
   forwardRollTarget,
@@ -56,7 +71,7 @@ import {
 } from '../src/southern-countryside-layout.ts';
 import { RESEARCH_CAMPUSES } from '../src/research-layout.ts';
 import { SETTLEMENT_PARCELS } from '../src/southern-settlement-layout.ts';
-import { OUTLAW_SITE, LOST_PIRATE_SITE, LANDSHARK_SITE } from '../src/wilderness-sites.ts';
+import { OUTLAW_SITE, OUTLAW_COMPANION, LOST_PIRATE_SITE, LANDSHARK_SITE } from '../src/wilderness-sites.ts';
 import type { StreetLamp } from '../src/types/world.ts';
 import type { Point } from '../src/types/geometry.ts';
 import type { Parcel } from '../src/types/parcels.ts';
@@ -83,6 +98,30 @@ test('renamed destinations have facade meshes mapped to their editable signs', (
     for (let i = 0; i < mesh.data.length; i += 11)
       if (corners.some(([u, v]) => mesh.data[i + 9] === u && mesh.data[i + 10] === v)) vertices++;
     assert.equal(vertices, 12, slot + ' has a front and side plaque');
+  }
+});
+
+test('the park landmarks expose a solid model and a reachable entrance', () => {
+  for (const [id, draw] of [
+    ['deyoung', drawDeYoungMuseum],
+    ['conservatory', drawConservatory],
+  ] as const) {
+    const sight = requiredFixture(world.sights.find((site) => site.id === id));
+    const model = requiredFixture(sight.object);
+    assert.ok(model.solid, id);
+    assert.equal(model.w, 2);
+    assert.equal(model.d, 1);
+    assert.ok(isFiniteNumber(model.x) && isFiniteNumber(model.y), id);
+    assert.equal(
+      world.landClearAt(model.x + model.w / 2 - 0.5, model.y + model.d / 2 - 0.5),
+      false,
+    );
+    assert.ok(world.pathTo(sight.entry.x, sight.entry.y, world.spawn)?.length, id);
+    const mesh = new Mesh();
+    draw(mesh, new Map(), 0, 0, 0);
+    assert.ok(requiredFixture(model.count) >= mesh.data.length / 11);
+    assert.ok(mesh.data.length && mesh.data.every(Number.isFinite), id);
+    if (id === 'conservatory') assert.ok(meshGlassTriangles(mesh.data).length > 0);
   }
 });
 
@@ -134,7 +173,7 @@ test('the landshark, woodland outlaw, secluded pirate beach and wreck have nativ
     'Missing test fixture: wreck.object.navigationPolygons',
   );
   assert.ok(wreck.object.navigationPolygons.length === 3);
-  for (const site of [OUTLAW_SITE, LOST_PIRATE_SITE, LANDSHARK_SITE]) {
+  for (const site of [OUTLAW_SITE, OUTLAW_COMPANION, LOST_PIRATE_SITE, LANDSHARK_SITE]) {
     const actor = world.wilderness.actors.find((a) => a.id === site.id);
     assert.ok(actor);
     assert.ok(world.landClearAt(site.x - 0.5, site.z - 0.5));
@@ -165,7 +204,7 @@ test('Mount Tam goblins, the lost goblin and all waterfront and Presidio seagull
     'seagull',
   ]);
   const creatures = world.wilderness.actors.filter((a) => kinds.has(a.combatKind));
-  assert.equal(creatures.length, 25);
+  assert.equal(creatures.length, 29);
   const lost = creatures.find((actor) => actor.id === 'south-lost-goblin');
   assert.deepEqual(lost?.home, { x: 78, z: 185 });
   assert.equal(creatures.filter((actor) => actor.id.startsWith('presidio-seagull-')).length, 3);
@@ -848,11 +887,11 @@ test('the fishing spot faces open water and connects to the roaming Cotogna chef
   }
 });
 
-test('the Ferrari can leave the Bay Bridge, drive through SF, park, and return to the dealership', () => {
+test('the Ferrari parks at the SF end of the Bay Bridge with a walkable route into the city', () => {
   const car = world.ferrari,
-    saved = { ...car.state, localPath: [...car.state.localPath] },
+    saved = { ...car.state },
     dealer = car.sample(car.dealer);
-  const finish = () => {
+  const finish = (expected: 'city-limit' | 'arrived') => {
     for (let frame = 0; frame < 5000; frame++) {
       const previous = car.position,
         event = car.update(0.025),
@@ -866,28 +905,31 @@ test('the Ferrari can leave the Bay Bridge, drive through SF, park, and return t
         'the car must remain on connected dry ground',
       );
       assert.ok(
-        world.regionalRoad.contains(at.x, at.z) || world.groundSurfaceAt(at.x, at.z) === 'road',
-        'the car must remain on the actual road surface',
+        world.regionalRoad.contains(at.x, at.z),
+        'the car stays on the regional road',
       );
-      if (event === 'arrived') return;
-      if (event === 'empty') assert.fail('a city trip should fit in the tank');
+      if (event) {
+        assert.equal(event, expected);
+        return;
+      }
     }
     assert.fail('Ferrari never arrived');
   };
   try {
-    const goal = car.destinationFor(world.spawn.x + 0.5, world.spawn.y + 0.5);
+    const parking = car.sample(car.cityParking);
     car.mount();
     assert.ok(car.driveTo(world.spawn.x + 0.5, world.spawn.y + 0.5));
-    finish();
-    assert.ok(goal != null, 'Missing test fixture: goal');
-    assert.ok(Math.hypot(car.position.x - goal.x, car.position.z - goal.z) < 1e-7);
-    car.park();
+    finish('city-limit');
+    assert.equal(car.position.x, parking.x);
+    assert.equal(car.position.z, parking.z);
     assert.equal(car.state.riding, false);
-    assert.ok(car.state.localPosition, 'parking in SF must retain the city position');
+    const onFoot = { x: parking.x - 0.5, y: parking.z - 0.5 };
+    assert.ok(world.pathTo(world.spawn.x, world.spawn.y, onFoot));
+    assert.ok(world.pathTo(onFoot.x, onFoot.y, world.spawn));
     car.mount();
     assert.ok(car.driveTo(dealer.x, dealer.z));
-    finish();
-    assert.equal(car.state.localPosition, null);
+    finish('arrived');
+    assert.equal(car.state.riding, true);
     assert.ok(Math.abs(car.state.distance - car.dealer) < 1e-7);
   } finally {
     Object.assign(car.state, saved);
@@ -951,6 +993,16 @@ test('They Live characters stand on connected ground and the Berkeley courtyard 
   }
   const c = world.esotericCampus;
   const church = requiredFixture(world.sights.find((s) => s.id === 'unusual-church'));
+  const [insideChurchgoer, outsideChurchgoer] = c.churchgoers;
+  assert.equal(world.instituteRoomAt(insideChurchgoer.x, insideChurchgoer.z)?.id, church.id);
+  assert.ok(world.clearAt(insideChurchgoer.x - 0.5, insideChurchgoer.z - 0.5));
+  assert.equal(insideChurchgoer.roam, undefined);
+  assert.equal(world.instituteRoomAt(outsideChurchgoer.x, outsideChurchgoer.z), null);
+  const churchgoerApproach = requiredFixture(world.approaches.merchant(insideChurchgoer));
+  assert.equal(
+    world.instituteRoomAt(churchgoerApproach.x + 0.5, churchgoerApproach.y + 0.5)?.id,
+    church.id,
+  );
   for (const target of [
     church.entry,
     ...c.churchgoers.map((npc) => requiredFixture(world.approaches.merchant(npc))),
@@ -971,8 +1023,12 @@ test('They Live characters stand on connected ground and the Berkeley courtyard 
         origin: [p.x, 20, p.z],
         dir: [0, -1, 0] satisfies [number, number, number],
       });
-    assert.ok(hit);
-    assert.ok(Math.abs(hit.point[1] - world.characterGround(p.x, p.z)) < 1e-7);
+    assert.ok(hit, 'missing Berkeley ground pick at ' + JSON.stringify([u, v]));
+    const walkingHeight = world.characterGround(p.x, p.z);
+    assert.ok(
+      Math.abs(hit.point[1] - walkingHeight) < 1e-7,
+      'Berkeley ground pick at ' + JSON.stringify({ u, v, picked: hit.point[1], walkingHeight }),
+    );
     for (const [a, b] of [
       [world.spawn, target],
       [target, world.spawn],
@@ -993,6 +1049,55 @@ test('They Live characters stand on connected ground and the Berkeley courtyard 
     true,
     'the countryside surrounding the campus is walkable grass',
   );
+});
+
+test('the open Cedar Sauna has a walkable doorway and a seated guest', () => {
+  const campus = world.esotericCampus;
+  const sauna = requiredFixture(world.sights.find((site) => site.id === CEDAR_SAUNA.id));
+  const guest = requiredFixture(world.merchants.find((npc) => npc.id === SAUNA_GUEST.id));
+  const approach = requiredFixture(world.approaches.merchant(guest));
+  assert.equal(guest.siteId, sauna.id);
+  assert.ok(guest.seated && guest.stationary);
+  assert.equal(npcOffersAttack(guest), false);
+  assert.deepEqual(approach, sauna.entry);
+  assert.ok(Math.hypot(approach.x + 0.5 - guest.x, approach.y + 0.5 - guest.z) < 1.8);
+  assert.ok(world.pathTo(approach.x, approach.y, campus.gate));
+
+  const inside = campus.point(CEDAR_SAUNA.x, CEDAR_SAUNA.z + 0.2);
+  assert.ok(world.canTravel(approach.x, approach.y, inside.x - 0.5, inside.z - 0.5));
+  assert.equal(world.clearAt(guest.x - 0.5, guest.z - 0.5), false, 'the bench is solid');
+  const throughWall = campus.point(CEDAR_SAUNA.x, CEDAR_SAUNA.z - CEDAR_SAUNA.d / 2 - 0.4);
+  assert.equal(
+    world.canTravel(inside.x - 0.5, inside.z - 0.5, throughWall.x - 0.5, throughWall.z - 0.5),
+    false,
+  );
+});
+
+test('the Unusual Church basement is shared ground with routes from its own stairs', () => {
+  const sight = (id: string) => requiredFixture(world.sights.find((site) => site.id === id));
+  const down = sight(CHURCH_STAIRS_DOWN);
+  const up = sight(CHURCH_STAIRS_UP);
+  assert.equal(world.instituteRoomAt(down.entry.x + 0.5, down.entry.y + 0.5)?.id, 'unusual-church');
+  assert.equal(world.instituteRoomAt(up.entry.x + 0.5, up.entry.y + 0.5)?.id, CHURCH_BASEMENT_ID);
+  assert.ok(world.pathTo(down.entry.x, down.entry.y, world.spawn), 'stairs are reachable from outside');
+  assert.equal(world.pathTo(up.entry.x, up.entry.y, down.entry), null, 'floors connect through the stairs action');
+  for (const prop of ['church-basement-gym', 'church-basement-blueprint', 'church-basement-supplies']) {
+    const model = sight(prop);
+    assert.ok(requiredFixture(model.object?.count) > 0, prop + ' has a visible examine target');
+    assert.ok(world.pathTo(model.entry.x, model.entry.y, up.entry), prop + ' has a reachable approach');
+  }
+  assert.equal(sight('church-basement-gym').description, "Someone's Getting Strong?");
+  for (const [left, back, right, front] of Object.values(BASEMENT_FURNITURE)) {
+    const { x, z } = churchBasementPoint((left + right) / 2, (back + front) / 2);
+    assert.equal(world.landClearAt(x - 0.5, z - 0.5), false);
+  }
+  assert.equal(BASEMENT_CHURCHGOERS.length, 3);
+  for (const spawn of BASEMENT_CHURCHGOERS) {
+    const actor = requiredFixture(world.wilderness.actors.find((npc) => npc.id === spawn.id));
+    assert.equal(actor.base, CHURCH_BASEMENT.floor + 0.015);
+    assert.equal(actor.level, 35);
+    assert.ok(world.pathTo(actor.x - 0.5, actor.z - 0.5, up.entry), actor.id + ' is reachable');
+  }
 });
 
 test('the Berkeley chapel and East Bay neighborhood connect to the bridge and populate the new streets', () => {
@@ -1057,6 +1162,95 @@ test('the Berkeley village and shore paths connect to three direct highway cross
       from = to;
     }
     assert.deepEqual(from, village);
+  }
+});
+
+test('the Berkeley west avenue connects directly to the shore grass', () => {
+  const avenue = { x: 120.5, y: -7.5 };
+  const north = { x: 120.5, y: -9.5 };
+  const seam = { x: 117.5, y: -9.5 };
+  const shore = { x: 117, y: -9.5 };
+  assert.ok(world.esotericCampus.coversGround(avenue.x + 0.5, avenue.y + 0.5), 'avenue ground');
+  assert.equal(world.esotericCampus.coversGround(seam.x + 0.5, seam.y + 0.5), false);
+  assert.ok(world.countryside.contains(shore.x + 0.5, shore.y + 0.5), 'countryside beyond the seam');
+  for (const destination of [north, seam, shore]) {
+    assert.ok(
+      world.canTravel(avenue.x, avenue.y, destination.x, destination.y),
+      'direct travel to ' + JSON.stringify(destination),
+    );
+    assert.deepEqual(world.pathTo(destination.x, destination.y, avenue), [destination]);
+    assert.deepEqual(world.pathTo(avenue.x, avenue.y, destination), [avenue]);
+  }
+  const waterX = eastBayShoreX(-9) - 0.55;
+  assert.equal(world.landClearAt(waterX - 0.5, -9.5), false);
+  for (const at of [seam, shore]) {
+    const x = at.x + 0.5;
+    const z = at.y + 0.5;
+    assert.equal(world.groundSurfaceAt(x, z), 'grass');
+    assert.ok(
+      Math.abs(world.characterGround(x, z) - world.countryside.height(x, z)) < 0.05,
+      'shore walking height at ' + JSON.stringify(at),
+    );
+  }
+});
+
+test('the Wayward Camp has reachable combatants and an examinable sleeping horse', () => {
+  const sites = Object.values(WAYWARD_CAMP).map((prop) => {
+    const site = requiredFixture(world.sights.find((candidate) => candidate.id === prop.id));
+    assert.ok(requiredFixture(site.object?.count) > 0, prop.id + ' has a model');
+    assert.equal(world.landClearAt(prop.x - 0.5, prop.z - 0.5), false, prop.id + ' is solid');
+    assert.ok(world.pathTo(site.entry.x, site.entry.y, world.spawn), prop.id + ' is reachable');
+    return site;
+  });
+  assert.equal(
+    sites.find(({ id }) => id === WAYWARD_CAMP.horse.id)?.description,
+    "It's tired of everyone else's nonsense. This horse isn't going any further and that's that.",
+  );
+  const from = requiredFixture(sites.find(({ id }) => id === WAYWARD_CAMP.fire.id)).entry;
+  for (const [label, levels] of [
+    ["Ne'er-Do-Well", [5, 11, 17, 25]],
+    ['Wayward Goblin', [8, 10, 12, 15, 18]],
+  ] as const) {
+    const actors = world.wilderness.actors.filter((actor) => actor.label === label);
+    assert.deepEqual(actors.map(({ level }) => level).sort((a, b) => a - b), levels);
+    for (const actor of actors)
+      assert.ok(world.approaches.combat(actor, 'unarmed', from), actor.id + ' has a combat approach');
+  }
+});
+
+test('Berkeley residential streets connect to the far side of Wayward Camp', () => {
+  const street = { x: 120.5, y: -7.5 };
+  const residential = requiredFixture(
+    world.sights.find(({ id }) => id === BERKELEY_VILLAGE_HOMES[0].id),
+  ).entry;
+  const camp = { x: 130, y: -20 };
+  const beyondCamp = { x: 133, y: -25 };
+  assert.equal(world.esotericCampus.contains(beyondCamp.x + 0.5, beyondCamp.y + 0.5), false);
+  assert.ok(world.countryside.contains(beyondCamp.x + 0.5, beyondCamp.y + 0.5));
+  for (const start of [street, residential])
+    for (const end of [camp, beyondCamp])
+      for (const [a, b] of [[start, end], [end, start]]) {
+        let current = a;
+        let distance = 0;
+        const route = requiredFixture(world.pathTo(b.x, b.y, a));
+        for (const p of route) {
+          assert.ok(world.canTravel(current.x, current.y, p.x, p.y));
+          distance += Math.hypot(p.x - current.x, p.y - current.y);
+          current = p;
+        }
+        assert.deepEqual(current, b);
+        assert.ok(distance < Math.hypot(b.x - a.x, b.y - a.y) * 1.65);
+      }
+});
+
+test('the shrimp lab hydroponics and feed have separate examine targets', () => {
+  const tank = requiredFixture(world.sights.find(({ id }) => id === 'shrimp-welfare-tank'));
+  const feed = requiredFixture(world.sights.find(({ id }) => id === 'shrimp-feed'));
+  assert.equal(tank.description, 'Their utility is being maximized.');
+  assert.match(feed.description || '', /algae pellets/);
+  for (const site of [tank, feed]) {
+    assert.ok(requiredFixture(site.object?.count) > 0);
+    assert.ok(world.pathTo(site.entry.x, site.entry.y, world.spawn)?.length);
   }
 });
 
@@ -2766,6 +2960,57 @@ test('Marin hills have connected native walking routes, matching terrain picks a
     world.wilderness.sync(saved);
   }
 });
+test('Bolinas cottage floor clears the rendered hillside and meets the doorway approach', () => {
+  const { id, entry, inside, approach, parcel } = CULTIST_HOME;
+  const cottage = requiredFixture(world.places.find((place) => place.id === id));
+  const base = requiredFixture(cottage.object?.base);
+  assert.ok(base > world.terrainHeight(parcel.x, parcel.z), 'foundation sits above the terrain');
+  const door = parcel.z + parcel.d / 2;
+  for (const [x, z] of [
+    [-4.5, -46],
+    [-4, -45.5],
+    [parcel.x, door - 0.09],
+    [parcel.x, door + 0.09],
+    [approach.x + 0.5, approach.y + 0.5],
+  ]) {
+    const hit = requiredFixture(world.marinLand.raycast({ origin: [x, 100, z], dir: [0, -1, 0] }));
+    const feet = world.characterGround(x, z);
+    assert.ok(feet > hit.point[1] && feet - hit.point[1] < 0.1, `walking height at ${x}, ${z}`);
+  }
+  assert.ok(world.pathTo(inside.x, inside.y, entry)?.length, 'the cottage is reachable');
+  assert.ok(world.pathTo(approach.x, approach.y, entry)?.length, 'the wardrobe is reachable');
+});
+
+test('Bolinas has examinable cottages and connected routes for walkers and cyclists', () => {
+  for (const home of BOLINAS_HOMES) {
+    const site = requiredFixture(world.sights.find((sight) => sight.id === home.id));
+    const object = requiredFixture(site.object);
+    const entry = requiredFixture(site.entry);
+    assert.equal(site.description, home.description);
+    assert.ok(object.count && object.solid, home.label);
+    assert.equal(world.landClearAt(home.x - 0.5, home.z - 0.5), false, home.label);
+    assert.ok(world.pathTo(entry.x, entry.y, BOLINAS.entry)?.length, home.label);
+  }
+
+  const residents = BOLINAS_LIFE_ROUTES.map((route) => {
+    const person = requiredFixture(
+      world.cityLife.people.find((npc) => npc.id === 'citizen-' + route.id),
+    );
+    assert.equal(person.rider, route.role === 'cyclist');
+    for (let i = 1; i < route.points.length; i++) {
+      const [ax, az] = route.points[i - 1];
+      const [bx, bz] = route.points[i];
+      assert.ok(world.canTravel(ax - 0.5, az - 0.5, bx - 0.5, bz - 0.5), route.id);
+    }
+    return person;
+  });
+  for (const riding of [false, true]) {
+    const group = residents.filter((person) => person.rider === riding);
+    assert.equal(group.length, riding ? 2 : 4);
+    assert.deepEqual(new Set(group.map((person) => person.label)), new Set(['Man', 'Woman']));
+  }
+});
+
 test('the wizard is inside a reachable house and tablet arrivals connect to the real ground graph', () => {
   const npc = world.tabletWizard,
     house = world.places.find((p) => p.id === 'orin-house');

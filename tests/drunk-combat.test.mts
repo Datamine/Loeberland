@@ -11,6 +11,7 @@ import {
 import { createExpeditions } from '../src/jurassic.ts';
 import { createWilderness } from '../src/wilderness.ts';
 import { createEconomy } from '../src/economy.ts';
+import { ITEM_STATS } from '../src/item-stats.ts';
 
 test('inebriation progressively reduces hit chance for every weapon while retaining strength and successful-hit damage', () => {
   for (const weapon of ['unarmed', 'bayonet', 'battleaxe', 'railgun'] satisfies [
@@ -66,7 +67,7 @@ test('expedition and wilderness attacks use the same current inebriation penalty
     origin = { x: cow.x, z: cow.z, base: 0 };
   assert.equal(expedition.shoot(cow, origin).damage, 0);
   percent = 0;
-  expedition.update(0.9);
+  expedition.update(ITEM_STATS.railgun.interval + 0.05);
   assert.ok(requiredFixture(expedition.shoot(cow, origin).damage) > 0);
   const wild = createWilderness({
       spawns: [{ id: 'bear', combatKind: 'bear', x: 0, z: 0 }],

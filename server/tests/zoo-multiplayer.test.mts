@@ -36,6 +36,28 @@ test('the loose tiger can catch bystanders immediately after catching the player
   }
 });
 
+test('the loose tiger pursues a visible player past a closer player in an invisibility cloak', async (t) => {
+  const { game } = await fixture();
+  t.after(() => game.close());
+  const hidden = await player(game, 42006, {
+    'sf-purse-v1': JSON.stringify({ ownedEquipment: ['invisibility-cloak'] }),
+    'sf-character-v1': '{"back":"invisibility-cloak"}',
+  });
+  const releaser = await player(game, 42007);
+  Object.assign(releaser.p, { x: 16, z: 90.5 });
+  await command(game, releaser.p, 'releaseTiger');
+  assert.equal(requiredResult(releaser.messages).ok, true);
+  const { tiger } = game.shared;
+  for (let i = 0; i < 40 && !tiger.dangerous; i++) game.shared.tick(0.05);
+  assert.ok(tiger.dangerous);
+  const { x, y } = tiger.state.tiger;
+  Object.assign(hidden.p, { x: x + 0.5, z: y + 0.5 });
+  Object.assign(releaser.p, { x: x + 3.5, z: y + 0.5 });
+  game.shared.tick(0.05);
+  assert.equal(game.shared.snapshot(hidden.p).tiger?.targetId, releaser.p.id);
+  assert.equal(caughtByTiger(hidden), false);
+});
+
 test('Animal Control stays visible to watchers near the officers even when the tiger is far away', async () => {
   const { game } = await fixture();
   try {

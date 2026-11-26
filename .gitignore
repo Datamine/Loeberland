@@ -1,8 +1,15 @@
 node_modules/
 server/node_modules/
 server/data/
-server/.env
+.env
+.env.*
+!.env.example
+!.env.*.example
 .build/
 /world-cache/
 /.deploy/
 *.pem
+*.tfvars
+*.tfvars.json
+*.tfstate
+*.tfstate.*

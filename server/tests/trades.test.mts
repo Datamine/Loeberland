@@ -11,6 +11,7 @@ import {
 } from './fixtures.mts';
 import { hydratePlayerProfile } from '../../src/player-document.ts';
 import { isRecord } from '../../src/types/json.ts';
+import { PLAYER_INTERACTION_RANGE } from '../player-proximity.mts';
 
 let request = 0;
 async function act(game: TestGame, player: TestPlayer, action: string, args: object) {
@@ -41,6 +42,98 @@ const offer = (game: TestGame, p: TestPlayer, items: { id: string; quantity: num
   act(game, p, 'tradeOffer', { trade: view(p).id, revision: view(p).revision, items });
 const confirm = (game: TestGame, p: TestPlayer, revision = view(p).revision) =>
   act(game, p, 'tradeConfirm', { trade: view(p).id, revision });
+
+test('trade follows the moving target and sends the invitation only within reach', async () => {
+  const game = await createGame({ geometry: fixtureGeometry(), store: createMemoryStore() });
+  try {
+    const a = await player(game, 77007);
+    const b = await player(game, 77008);
+    b.p.x += 3;
+    const distance = () => Math.hypot(a.p.x - b.p.x, a.p.z - b.p.z);
+    const invited = (p: TestPlayer) => p.messages.some((message) => message.type === 'tradeView');
+    assert.equal((await act(game, b, 'moveTo', { x: b.p.x + 14, z: b.p.z })).ok, true);
+    assert.equal((await act(game, a, 'tradeRequest', { id: b.p.id })).ok, true);
+    assert.ok(!invited(a) && !invited(b));
+    for (let i = 0; i < 60 && !invited(b); i++) {
+      game.tick(0.05);
+      if (distance() > PLAYER_INTERACTION_RANGE) assert.ok(!invited(a) && !invited(b));
+    }
+    assert.equal(view(b).phase, 'invited');
+    assert.ok(b.p.moving);
+    assert.equal(a.p.moving, false);
+    assert.equal(a.p.following, null);
+    assert.ok(distance() <= PLAYER_INTERACTION_RANGE);
+    const { id, revision } = view(b);
+    assert.equal((await act(game, b, 'tradeJoin', { trade: id, revision })).ok, true);
+    assert.equal(view(a).phase, 'open');
+  } finally {
+    await game.close();
+  }
+});
+
+test('trade paths around a wall before sending an invitation to a nearby player', async () => {
+  const geometry = fixtureGeometry();
+  let wall = { x: 0, y: 0 };
+  geometry.canTravel = (ax, ay, bx, by) => {
+    if ((ax < wall.x) === (bx < wall.x)) return true;
+    const crossing = ay + ((by - ay) * (wall.x - ax)) / (bx - ax);
+    return Math.abs(crossing - wall.y) > 1;
+  };
+  geometry.pathTo = (x, y, from) => {
+    if (!from) return [{ x, y }];
+    const bypass = wall.y + 1.5;
+    return [
+      { x: from.x, y: bypass },
+      { x, y: bypass },
+      { x, y },
+    ];
+  };
+  const game = await createGame({ geometry, store: createMemoryStore() });
+  try {
+    const a = await player(game, 77009);
+    const b = await player(game, 77010);
+    b.p.x += 1.4;
+    wall = { x: (a.p.x + b.p.x) / 2 - 0.5, y: a.p.z - 0.5 };
+    const invited = () => b.messages.some((message) => message.type === 'tradeView');
+    assert.equal((await act(game, a, 'tradeRequest', { id: b.p.id })).ok, true);
+    assert.ok(!invited());
+    for (let i = 0; i < 30 && !invited(); i++) game.tick(0.05);
+    assert.ok(a.p.x - 0.5 > wall.x);
+    assert.equal(view(b).phase, 'invited');
+  } finally {
+    await game.close();
+  }
+});
+
+test('opting out during a trade approach declines before any invitation goes out', async () => {
+  const game = await createGame({ geometry: fixtureGeometry(), store: createMemoryStore() });
+  try {
+    const a = await player(game, 77011);
+    const b = await player(game, 77012);
+    b.p.x += 3;
+    assert.ok((await act(game, a, 'tradeRequest', { id: b.p.id })).ok);
+    assert.ok(game.following.owns(a.p));
+    assert.ok(
+      (await act(game, b, 'saveCharacter', {
+        look: b.p.appearance,
+        name: b.p.name,
+        pvp: false,
+        phone: false,
+        tradeDuelEnabled: false,
+      })).ok,
+    );
+    game.tick(0.05);
+    assert.ok(!game.following.owns(a.p));
+    assert.ok(!b.messages.some((m) => m.type === 'tradeView'));
+    assert.ok(
+      a.messages.some(
+        (m) => m.type === 'notice' && /has trade and duel requests disabled/.test(m.message),
+      ),
+    );
+  } finally {
+    await game.close();
+  }
+});
 
 test('players see private stock, blocked quest gear, separate equity and an atomic exchange', async () => {
   const store = createMemoryStore();
@@ -156,10 +249,10 @@ test('stock changes, moving away and storage failure leave both inventories inta
     a.p.inventory.economy.state.coins = 10;
     assert.equal((await confirm(game, a)).ok, false);
     assert.equal(b.p.inventory.economy.state.coins, 25);
-    b.p.x += 5;
+    b.p.x += 2;
     game.tick(0.05);
     assert.equal((await act(game, a, 'tradeCancel', { trade })).ok, false);
-    b.p.x -= 5;
+    b.p.x -= 2;
     trade = await open(game, a, b);
     assert.equal((await offer(game, a, [{ id: 'coins', quantity: 6 }])).ok, true);
     assert.equal((await confirm(game, a)).ok, true);

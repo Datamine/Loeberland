@@ -1,9 +1,18 @@
-import { inBerkeleyLab, LAB_ENTRANCE, LAB_INSTANCE, LAB_MAP } from '../berkeley-lab.ts';
+import { inBerkeleyLab, LAB_ENTRANCE, LAB_INSTANCE, LAB_MAP, labTileWalkable } from '../berkeley-lab.ts';
+import { INCUBATOR_CAVE, INCUBATOR_ENTRANCE, INCUBATOR_TILES } from '../goblin-incubator-cave.ts';
+import {
+  BASEMENT_FURNITURE,
+  BASEMENT_LANDING,
+  CHURCH_BASEMENT,
+  CHURCH_BASEMENT_ID,
+  basementFootprint,
+} from '../church-basement-layout.ts';
 import type { Point } from '../types/geometry.ts';
 import { isPickTarget, hasPhysicalBounds } from '../picking.ts';
 import { requiredValue } from '../types/assert.ts';
 import type { WorldContext } from './scene.ts';
 import { BOLINAS_PATH, BOLINAS_COTTAGES } from '../bolinas.ts';
+import { ONODA_SHORE } from '../onoda-island.ts';
 import {
   minimapActors,
   minimapShopMarkers,
@@ -33,7 +42,6 @@ import {
   AIRPORT_TERMINAL_BUILDING,
   AIRPORT_RUNWAY,
   SPACEPORT_PIER,
-  STARTUP_HQ,
   airportRoadTiles,
 } from '../airship.ts';
 import { TAX_HQ, SF_SPACEPORT, SPACEPORT_HOUSES, RAIL_PIT } from '../southern-district.ts';
@@ -258,6 +266,7 @@ export function createMinimap(context: WorldContext) {
         project(context.mapPolygon(points));
     context.southernTerrain.drawMinimap(c, context.mapArtPoint);
     poly(c, project(context.MARIN), '#748b53', '#d2c49d');
+    poly(c, project(ONODA_SHORE), '#687c4c', '#d2c49d');
     poly(
       c,
       project(
@@ -452,8 +461,8 @@ export function createMinimap(context: WorldContext) {
       if (
         hasPhysicalBounds(o) &&
         o.y >= context.N &&
-        o.arch &&
-        !(['terminal', 'regional'] satisfies [string, string]).includes(o.arch)
+        (o.sight?.id === 'startup-hq' ||
+          (o.arch && !(['terminal', 'regional'] satisfies [string, string]).includes(o.arch)))
       )
         poly(c, project(context.objectFootprint(o)), MINIMAP_BUILDING);
     for (const site of context.southernNeighborhood.craftSites)
@@ -656,16 +665,6 @@ export function createMinimap(context: WorldContext) {
       '#bfc5af',
       4,
     );
-    poly(
-      c,
-      project([
-        [STARTUP_HQ.x - 1.7, 133.1] satisfies [number, number],
-        [STARTUP_HQ.x + 1.7, 133.1] satisfies [number, number],
-        [STARTUP_HQ.x + 1.7, 135.9] satisfies [number, number],
-        [STARTUP_HQ.x - 1.7, 135.9] satisfies [number, number],
-      ]),
-      '#e88440',
-    );
     const mooring = context.mapArtPoint(
       AIRSHIP_TERMINAL.boarding.x + 0.5,
       AIRSHIP_TERMINAL.boarding.y + 0.5,
@@ -707,8 +706,9 @@ export function createMinimap(context: WorldContext) {
 
   function miniProjection() {
     const lab = context.secretWorld?.kind === LAB_INSTANCE.kind;
+    const basement = context.activeInstituteRoom()?.id === CHURCH_BASEMENT_ID;
     return createMinimapProjection(
-      lab ? 17 : context.secretWorld?.kind === 'illuminati' ? 28 : context.N,
+      lab ? 24 : basement ? 17 : context.secretWorld?.kind === 'illuminati' ? 28 : context.N,
       context.map.width,
       context.map.height,
       context.camera.yaw,
@@ -720,7 +720,9 @@ export function createMinimap(context: WorldContext) {
   function renderMinimap() {
     if (
       context.secretWorld?.kind === LAB_INSTANCE.kind ||
-      context.secretWorld?.kind === 'illuminati'
+      context.secretWorld?.kind === INCUBATOR_CAVE.kind ||
+      context.secretWorld?.kind === 'illuminati' ||
+      context.activeInstituteRoom()?.id === CHURCH_BASEMENT_ID
     )
       return drawCaveMinimap();
     if (context.secretWorld?.kind === 'kraken') return drawHuntMinimap();
@@ -977,13 +979,28 @@ export function createMinimap(context: WorldContext) {
     context.mc.fillStyle = '#28342d';
     context.mc.fillRect(0, 0, context.map.width, context.map.height);
     const lab = context.secretWorld?.kind === LAB_INSTANCE.kind;
-    const tiles = lab
+    const incubator = context.secretWorld?.kind === INCUBATOR_CAVE.kind;
+    const basement = context.activeInstituteRoom()?.id === CHURCH_BASEMENT_ID;
+    if (basement) {
+      const { west, east, north, south } = CHURCH_BASEMENT;
+      poly(context.mc, basementFootprint([0, 0, east - west, south - north]).map(([x, z]) => m.point(x, z)), '#a89985');
+      for (const rect of Object.values(BASEMENT_FURNITURE))
+        poly(context.mc, basementFootprint(rect).map(([x, z]) => m.point(x, z)), '#66564f');
+    }
+    const tiles = basement ? [] : incubator
+      ? INCUBATOR_TILES.map(({ x, z, walkable }) => ({
+          x: INCUBATOR_CAVE.bounds.west + x,
+          z: INCUBATOR_CAVE.bounds.north + z,
+          type: 'stone',
+          walkable,
+        }))
+      : lab
       ? LAB_MAP.flatMap((row, z) =>
           Array.from(row, (tile, x) => ({
             x: LAB_INSTANCE.bounds.west + x,
             z: LAB_INSTANCE.bounds.north + z,
             type: tile === '#' ? 'rock' : 'laboratory',
-            walkable: tile !== 'v' && tile !== 'b',
+            walkable: labTileWalkable(tile),
           })),
         )
       : CAVE_TILES;
@@ -1005,8 +1022,9 @@ export function createMinimap(context: WorldContext) {
       [6, 2] satisfies [number, number],
       [0, 1] satisfies [number, number],
     ].map(([x, z]) => m.point(ILLUMINATI_CAVE.bomber.x + x, ILLUMINATI_CAVE.bomber.z + z));
-    if (!lab) poly(context.mc, wing, '#c4cdb9');
-    const entry = lab ? LAB_ENTRANCE : ILLUMINATI_CAVE.entrance;
+    if (!lab && !basement && !incubator) poly(context.mc, wing, '#c4cdb9');
+    const entry = basement ? BASEMENT_LANDING : incubator ? INCUBATOR_ENTRANCE :
+      lab ? LAB_ENTRANCE : ILLUMINATI_CAVE.entrance;
     const stairs = m.point(entry.x, entry.z);
     for (let i = 0; i < 3; i++)
       line(

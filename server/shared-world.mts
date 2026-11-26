@@ -1,16 +1,19 @@
+import { GOBLIN_BUSH, GOBLIN_BUSH_AMBUSH, GOBLIN_BUSH_REWARDS, isGoblinBushAmbusher } from '../src/goblin-bush.ts';
+import { combatDungeon, combatDungeonAt } from '../src/combat-dungeons.ts';
+import { FIREWORK_ENFORCEMENT } from '../src/config/fireworks.ts';
+import { WEAPON_UPGRADE_KIT } from '../src/config/weapon-upgrades.ts';
+import { inSanFrancisco } from '../src/coastline.ts';
 import {
-  inBerkeleyLab,
-  labSegment,
-  LAB_FLOOR,
-  LAB_INSTANCE,
-  LAB_NAV,
-} from '../src/berkeley-lab.ts';
+  GOBLIN_KING, GOBLIN_ROCK, INCUBATOR_CAVE, INCUBATOR_DEATH_LINES, INCUBATOR_GUARD,
+  INCUBATOR_GUARD_LINES, INCUBATOR_VETERAN,
+} from '../src/goblin-incubator-cave.ts';
 import { isYardFighter } from '../src/fighter-yard-layout.ts';
 import { hasFighterYardPass } from './fighter-yard.mts';
 import { contentText } from '../src/content-runtime.ts';
-import { GAMEPLAY, monsterProjectileFlight } from '../src/config/gameplay.ts';
+import { GAMEPLAY, BIND_DURATION_MS, SCIENTIST_EXPLOSIVE, monsterProjectileFlight } from '../src/config/gameplay.ts';
+import { EMF_LIGHTNING_HAND, SHOT_BODY_HEIGHT } from '../src/ranged-weapon-mounts.ts';
 import { isFiniteNumber } from '../src/types/json.ts';
-import type { WildernessPerson, WildernessActor } from '../src/types/monsters.ts';
+import type { MonsterAttackEffect, WildernessPerson, WildernessActor } from '../src/types/monsters.ts';
 import type { CommandResult, AirshipSnapshot } from '../src/types/network.ts';
 import type { Point, WorldPoint } from '../src/types/geometry.ts';
 import type {
@@ -24,6 +27,7 @@ import type { Actor } from '../src/types/world.ts';
 import type { ServerPlayer } from '../src/types/server.ts';
 import {
   consumeWeaponShot,
+  spendLightsaberHit,
   advanceAttackDeadline,
   railgunRestriction,
 } from './combat-supplies.mts';
@@ -53,8 +57,11 @@ import {
   weaponAttackInterval,
   itemLoot,
   equipmentOwned,
+  upgradeKitRequirement,
   ownedEquipmentDefense,
   recoilDamage,
+  goblinCharmEquipped,
+  invisibilityCloakEquipped,
   weaponOwned,
 } from '../src/item-stats.ts';
 import { MONSTER_STATS, rollMonsterDrops } from '../src/monster-drops.ts';
@@ -89,6 +96,7 @@ export function createSharedWorld({
   routes,
   players,
   send,
+  publishPlayerHit,
   dirty,
   random = Math.random,
   now = Date.now,
@@ -107,13 +115,15 @@ export function createSharedWorld({
     passengers = new Set<number>();
   let robocopSerial = 0;
   let investigatorSerial = 0;
-  const projectileImpacts: {
+  let citationSerial = 0;
+  type ProjectileImpact = {
     at: number;
-    target: ServerPlayer;
     instanceId: string;
     actor: WildernessActor;
     amount: number;
-  }[] = [];
+    effect: MonsterAttackEffect | undefined;
+  } & ({ center: WorldPoint } | { target: ServerPlayer });
+  const projectileImpacts: ProjectileImpact[] = [];
   const approachAt = new WeakMap<ServerPlayer, number>();
   let captain: number | null = null,
     clock = Number(saved.clock) || 0,
@@ -176,7 +186,12 @@ export function createSharedWorld({
       item.wallExpiresAt === undefined
         ? restoredAt + Math.round((expires - clock) * 1000)
         : item.wallExpiresAt - Math.round((item.expires - expires) * 1000);
-    const restored = { ...item, expires, wallExpiresAt };
+    const restored = {
+      ...item,
+      ...(item.itemId === WEAPON_UPGRADE_KIT ? itemLoot(WEAPON_UPGRADE_KIT, item.amount) : {}),
+      expires,
+      wallExpiresAt,
+    };
     if (!groundItemExpired(restored, clock, restoredAt)) loot.set(item.id, restored);
   }
   for (const cow of cows) {
@@ -313,9 +328,11 @@ export function createSharedWorld({
     saved: saved.airshipLease,
   });
   const publicPlayer = (p: ServerPlayer) => (p.instance?.kind || 'world') === 'world';
-  const labPlayer = (p: ServerPlayer) => p.instance?.kind === LAB_INSTANCE.kind;
+  const dungeonPlayer = (p: ServerPlayer) => combatDungeon(p.instance?.kind);
+  const inCombatMap = (p: ServerPlayer, target: WorldPoint) =>
+    (p.instance?.id || 'world') === (combatDungeonAt(target.x, target.z)?.instance.id ?? 'world');
   const eligible = (p: ServerPlayer) =>
-    (publicPlayer(p) || labPlayer(p)) &&
+    (publicPlayer(p) || dungeonPlayer(p)) &&
     p.hp > 0 &&
     !p.personalJailed &&
     !p.detainAt &&
@@ -341,18 +358,33 @@ export function createSharedWorld({
   npcIndex.rebuild(npcList);
   const level = (p: ServerPlayer) => strengthStatus(p.profile.playerState.skills.strength.xp).level;
   const creatureGround = (x: number, z: number) =>
-    inBerkeleyLab(x, z) ? LAB_FLOOR + 0.025 : geometry.characterGround(x, z);
-  const creatureSegment = (a: { x: number; z: number }, b: { x: number; z: number }) =>
-    inBerkeleyLab(a.x, a.z) || inBerkeleyLab(b.x, b.z)
-      ? labSegment(a, b)
+    combatDungeonAt(x, z)?.floor ?? geometry.characterGround(x, z);
+  const logical = ({ x, z }: WorldPoint) => ({ x: x - 0.5, y: z - 0.5 });
+  function creatureSegment(a: WorldPoint, b: WorldPoint) {
+    const from = combatDungeonAt(a.x, a.z), to = combatDungeonAt(b.x, b.z);
+    if (from !== to) return false;
+    return from ? from.nav.segment(logical(a), logical(b))
       : geometry.canTravel!(a.x - 0.5, a.z - 0.5, b.x - 0.5, b.z - 0.5, true);
+  }
+  const incubatorGuard = (actor: WildernessActor) =>
+    actor.hp > 0 && (actor.combatKind === INCUBATOR_GUARD || actor.combatKind === INCUBATOR_VETERAN);
+  let nextIncubatorSpeech = 0;
+  function actorSpeaks(actor: WildernessActor, line: string, seconds: number) {
+    actor.speechLine = line;
+    actor.speechEndsAt = now() + seconds * 1000;
+  }
+  const pick = <T,>(options: readonly T[]) =>
+    options[Math.min(options.length - 1, Math.floor(random() * options.length))];
+  const bushAmbushes = new WeakMap<ServerPlayer, WildernessActor[]>();
+  const creatureBindings = new WeakMap<SharedCow | SharedRaptor, number>();
+  let bushAmbushSerial = 0;
   const wilderness = createWilderness<ServerPlayer>({
     spawns: geometry.wilderness?.actors || [],
     ground: creatureGround,
     canTravel: creatureSegment,
     canShoot: (actor, target) =>
-      inBerkeleyLab(actor.x, actor.z)
-        ? labSegment(actor, target)
+      combatDungeonAt(actor.x, actor.z)
+        ? creatureSegment(actor, target)
         : (geometry.lineClear?.(actor, target) ?? creatureSegment(actor, target)),
     route: (actor, goal) => {
       // A small idle shuffle blocked by a tree should wait for the next
@@ -360,55 +392,99 @@ export function createSharedWorld({
       // and returning from a distant chase still use the full route planner.
       if (!actor.enemy && Math.hypot(actor.x - goal.x, actor.z - goal.z) < 3)
         return creatureSegment(actor, goal) ? [goal] : [];
-      if (inBerkeleyLab(actor.x, actor.z))
-        return LAB_NAV.path(
-          { x: actor.x - 0.5, y: actor.z - 0.5 },
-          { x: goal.x - 0.5, y: goal.z - 0.5 },
-        )?.map(({ x, y }) => ({ x: x + 0.5, z: y + 0.5 }));
+      const dungeon = combatDungeonAt(actor.x, actor.z);
+      if (dungeon)
+        return dungeon.nav.path(logical(actor), logical(goal))
+          ?.map(({ x, y }) => ({ x: x + 0.5, z: y + 0.5 }));
       return pathTo(actor, goal);
     },
     random,
-    onHit: ({ actor, attacker, damage }) =>
-      broadcastHit(attacker, actor, damage, attacker.weapon || 'unarmed'),
-    onDrop: (record, attacker) =>
+    onHit: ({ actor, attacker, damage }) => {
+      broadcastHit(attacker, actor, damage, attacker.weapon || 'unarmed');
+      if (!actor.hp && actor.combatKind === GOBLIN_KING) {
+        const guards = wilderness.actors.filter(incubatorGuard)
+          .sort((a, b) => near(a, actor) - near(b, actor)).slice(0, 12);
+        const lines = [...INCUBATOR_DEATH_LINES];
+        while (guards.length && lines.length) {
+          const guard = pick(guards);
+          const line = pick(lines);
+          guards.splice(guards.indexOf(guard), 1);
+          lines.splice(lines.indexOf(line), 1);
+          actorSpeaks(guard, line, 7);
+        }
+        nextIncubatorSpeech = clock + 7;
+      }
+      if (actor.hp || !isGoblinBushAmbusher(actor.combatKind) ||
+          typeof actor.dispatchedFor !== 'number') return;
+      const player = players.get(actor.dispatchedFor);
+      if (!player) return;
+      const ambush = bushAmbushes.get(player);
+      if (!ambush?.includes(actor) || ambush.some((goblin) => goblin.hp > 0)) return;
+      player.profile.playerState.progress.goblinBushRewards = 0;
+      bushAmbushes.delete(player);
+      dirty(player);
+    },
+    onDrop: (record, attacker) => {
+      const hunter = typeof attacker.id === 'number' ? players.get(attacker.id) : undefined;
+      if (upgradeKitRequirement(record.lootKind, hunter?.inventory.economy.state)) return;
       Object.assign(
         drop(record.lootKind, record.x, record.z, attacker.owner, record.amount),
         record,
-      ),
-    onDamage: (p: ServerPlayer, amount: number, actor: WildernessActor) => {
+      );
+    },
+    onDamage: (p, amount, actor, mode) => {
       if (amount <= 0) return;
-      const effect = MONSTER_STATS[actor.combatKind].attackEffect;
+      const effect = mode ?? MONSTER_STATS[actor.combatKind].attackEffect;
       const flight = monsterProjectileFlight(effect);
       if (!flight) {
         hitFromWilderness(p, amount, actor);
         return;
       }
-      const explosive = effect === 'explosive';
-      const impact = {
+      const explosive = effect === 'explosive' || effect === 'goblin-rock';
+      const to = explosive
+        ? { x: Math.floor(p.x) + 0.5, y: p.y + 0.1, z: Math.floor(p.z) + 0.5 }
+        : { x: p.x, y: p.y + 0.9, z: p.z };
+      const impact: ProjectileImpact = {
         at: clock + flight,
-        target: p,
+        ...(explosive ? { center: to } : { target: p }),
         instanceId: p.instance.id,
         actor,
         amount,
+        effect,
       };
       const before = projectileImpacts.findIndex((pending) => pending.at > impact.at);
       projectileImpacts.splice(before < 0 ? projectileImpacts.length : before, 0, impact);
-      const wrist = effect === 'robocop-laser';
-      const forward = explosive ? 0.28 : wrist ? 0.64 : 0.52;
-      const side = wrist ? 0.29 : 0;
+      const [right, height, forward] =
+        effect === 'emf-lightning'
+          ? EMF_LIGHTNING_HAND
+          : explosive
+            ? [0, 1.48, 0.28]
+            : effect === 'robocop-laser'
+              ? [-0.29, 1.29, 0.65]
+              : [0, 1.19, effect === 'onoda-rifle' ? 0.94 : 0.52];
       const cos = Math.cos(actor.angle);
       const sin = Math.sin(actor.angle);
       const from = {
-        x: actor.x + cos * forward - sin * side,
-        y: actor.base + (explosive ? 1.48 : wrist ? 1.29 : 1.19),
-        z: actor.z + sin * forward + cos * side,
+        x: actor.x + cos * forward + sin * right,
+        y: actor.base + height,
+        z: actor.z + sin * forward - cos * right,
       };
-      const to = { x: p.x, y: p.y + (explosive ? 0.1 : 0.9), z: p.z };
       for (const observer of players.values()) {
         if (observer.instance.id !== p.instance.id || near(observer, actor) >= 45) continue;
-        if (explosive) send(observer, { type: 'scientistExplosive', from, to });
-        else if (effect === 'akimbo' || effect === 'robocop-laser')
-          send(observer, { type: 'robotShot', weapon: effect, from, to });
+        if (explosive) send(observer, { type: effect === 'goblin-rock' ? 'goblinRock' : 'scientistExplosive', from, to });
+        else if (
+          effect === 'akimbo' ||
+          effect === 'robocop-laser' ||
+          effect === 'onoda-rifle' ||
+          effect === 'emf-lightning'
+        )
+          send(observer, {
+            type: 'robotShot',
+            weapon: effect,
+            from,
+            to,
+            shooter: { x: actor.x, y: actor.base, z: actor.z },
+          });
       }
     },
     onReflect: (attacker, amount, actor) => {
@@ -417,40 +493,81 @@ export function createSharedWorld({
         applyPlayerDamage(player, amount, actor.label, actor);
     },
   });
-  function hitFromWilderness(p: ServerPlayer, amount: number, actor: WildernessActor) {
-    const damage = hitPlayer(p, amount, actor.label, actor);
+  function bindNearbyMonsters(p: ServerPlayer) {
+    if (!eligible(p) || !['walk', 'sit', 'bench', 'dance', 'train', 'construction'].includes(p.mode))
+      return null;
+    const targets = [...wilderness.actors, ...cows, ...(raptor.phase === 'loose' ? [raptor] : [])]
+      .filter((actor) => actor.hp > 0 && inCombatMap(p, actor) &&
+        Math.max(Math.abs(Math.floor(actor.x) - Math.floor(p.x)), Math.abs(Math.floor(actor.z) - Math.floor(p.z))) <= 1 &&
+        Math.abs(p.y - creatureGround(actor.x, actor.z)) < 1.35 && creatureSegment(p, actor) &&
+        (!isYardFighter(actor.combatKind) || hasFighterYardPass(p)) &&
+        (!('citationPending' in actor) || !actor.citationPending));
+    for (const actor of targets) {
+      const seconds = BIND_DURATION_MS / 1000;
+      if ('attackAt' in actor) wilderness.bind(actor, seconds);
+      else creatureBindings.set(actor, clock + seconds);
+      if ('motion' in actor) actor.motion = 0;
+      for (const observer of players.values())
+        if (observer.instance.id === p.instance.id && near(observer, actor) < 42)
+          send(observer, { type: 'pvpBound', target: actor.id, duration: BIND_DURATION_MS });
+    }
+    return targets.length;
+  }
+  function hitFromWilderness(p: ServerPlayer, amount: number, actor: WildernessActor,
+    effect = MONSTER_STATS[actor.combatKind].attackEffect) {
+    const damage = hitPlayer(p, amount, actor.label, actor,
+      effect === 'explosive' || effect === 'goblin-rock');
     if (damage === undefined) return;
-    if (p.hp > 0 && MONSTER_STATS[actor.combatKind].attackEffect === 'bind' && random() < 1 / 8)
-      onBind(p);
+    if (p.hp > 0 && effect === 'bind' && random() < 1 / 8) onBind(p);
     const reflected = recoilDamage(p.inventory.economy.state, p.appearance, damage);
     if (reflected)
       wilderness.damage(
         actor.id,
         reflected,
         { ...p, weapon: 'unarmed', tinfoil: p.appearance.tinfoil },
-        true,
+        !invisibilityCloakEquipped(p.appearance),
       );
   }
-  function dispatchSecuritiesInvestigator(p: ServerPlayer) {
+  function responderSpawn(p: ServerPlayer, radius: number) {
     const from = { x: p.x - 0.5, y: p.z - 0.5 };
     const reachable = (x: number, y: number) =>
       Math.hypot(x - from.x, y - from.y) >= 1.2 && creatureSegment(p, { x: x + 0.5, z: y + 0.5 });
     const spawn =
-      geometry.airship?.nearest(from.x, from.y, 3.5, reachable) ??
-      geometry.nearestNavigation?.(from.x, from.y, 3.5, reachable) ??
+      geometry.airship?.nearest(from.x, from.y, radius, reachable) ??
+      geometry.nearestNavigation?.(from.x, from.y, radius, reachable) ??
       NAVIGATION_DIRECTIONS.map(({ dx, dz }) => ({
         x: from.x + dx * 1.25,
         y: from.y + dz * 1.25,
       })).find(({ x, y }) => reachable(x, y));
+    return spawn ? { x: spawn.x + 0.5, z: spawn.y + 0.5 } : { x: p.x, z: p.z };
+  }
+  function dispatchSecuritiesInvestigator(p: ServerPlayer) {
     return wilderness.dispatch(
       {
         id: 'securities-investigator-' + ++investigatorSerial,
         combatKind: 'securities-investigator',
-        x: spawn ? spawn.x + 0.5 : p.x,
-        z: spawn ? spawn.y + 0.5 : p.z,
+        ...responderSpawn(p, 3.5),
       },
       p,
     );
+  }
+  function dispatchFireworkOfficer(p: ServerPlayer) {
+    if (!publicPlayer(p) || !inSanFrancisco(p.x, p.z) || random() >= FIREWORK_ENFORCEMENT.chance)
+      return;
+    const kind = FIREWORK_ENFORCEMENT.kind;
+    const officer = wilderness.dispatch(
+      {
+        id: kind + '-' + ++citationSerial,
+        combatKind: kind,
+        ...responderSpawn(p, FIREWORK_ENFORCEMENT.talkRange - 0.15),
+      },
+      p,
+      false,
+    );
+    officer.citationPending = true;
+    officer.angle = Math.atan2(p.z - officer.z, p.x - officer.x);
+    actorSpeaks(officer, 'Fireworks without a permit! That’s a 100-coin fine.', 6);
+    return officer.id;
   }
   wilderness.sync(
     (saved.wilderness || []).map((n) => {
@@ -508,21 +625,30 @@ export function createSharedWorld({
       hp: target.hp,
       max: target.max,
       weapon,
-      from: { x: p.x, y: (p.y ?? p.base ?? 0) + 1.14, z: p.z },
+      from: { x: p.x, y: (p.y ?? p.base ?? 0) + SHOT_BODY_HEIGHT, z: p.z },
       to: { x: target.x, y: creatureGround(target.x, target.z) + 0.9, z: target.z },
     };
     for (const observer of players.values())
       if (
-        (inBerkeleyLab(target.x, target.z) ? labPlayer(observer) : publicPlayer(observer)) &&
+        inCombatMap(observer, target) &&
         near(observer, target) < 45
       )
         send(observer, event);
   }
-  function monsterDrops(kind: string, target: WorldPoint, owner: string | null | undefined) {
-    for (const record of rollMonsterDrops(kind, random))
-      Object.assign(drop(record.lootKind, target.x, target.z, owner, record.amount), record, {
-        base: geometry.characterGround(target.x, target.z) + 0.025,
+  function monsterDrops(
+    kind: string,
+    target: WorldPoint,
+    owner: string | null | undefined,
+    level?: number,
+  ) {
+    const records = rollMonsterDrops(kind, random, level);
+    for (const [i, record] of records.entries()) {
+      const beside = { x: target.x + 0.55, z: target.z };
+      const at = i > 0 && creatureSegment(target, beside) ? beside : target;
+      Object.assign(drop(record.lootKind, at.x, at.z, owner, record.amount), record, {
+        base: creatureGround(at.x, at.z) + 0.025,
       });
+    }
   }
   function freeDeckSpot() {
     const spots = Array.from({ length: 16 }, (_, i) => ({
@@ -561,12 +687,15 @@ export function createSharedWorld({
     amount: number,
     source: string,
     attacker: { id: string | number } | null,
+    guaranteedHit = false,
   ) {
     if (!eligible(p)) return;
-    const damage = Math.max(
-      0,
-      rollEnemyDamage(amount, level(p), random) -
-        ownedEquipmentDefense(p.inventory.economy.state, p.appearance),
+    const damage = rollEnemyDamage(
+      amount,
+      attacker?.id === GOBLIN_KING ? 1 : level(p),
+      random,
+      ownedEquipmentDefense(p.inventory.economy.state, p.appearance),
+      guaranteedHit,
     );
     return applyPlayerDamage(p, damage, source, attacker);
   }
@@ -588,6 +717,7 @@ export function createSharedWorld({
       source,
       attacker: attacker?.id,
     });
+    publishPlayerHit(p, damage, attacker?.id);
     if (!p.hp) {
       p.respawnAllowed = true;
       p.attack = null;
@@ -597,9 +727,8 @@ export function createSharedWorld({
     return damage;
   }
   function clearShot(p: ServerPlayer, target: { x: number; z: number }, range = 5) {
-    const lab = inBerkeleyLab(target.x, target.z);
-    if (lab !== labPlayer(p)) return false;
-    if (lab) return near(p, target) <= range && labSegment(p, target);
+    if (!inCombatMap(p, target)) return false;
+    if (dungeonPlayer(p)) return near(p, target) <= range && creatureSegment(p, target);
     if (
       range <= 1.5 &&
       !geometry.canTravel!(p.x - 0.5, p.z - 0.5, target.x - 0.5, target.z - 0.5, true)
@@ -643,14 +772,28 @@ export function createSharedWorld({
         tinfoil: p.appearance.tinfoil && equipmentOwned(p.inventory.economy.state, 'tinfoil-suit'),
         weapon,
         inebriation: p.profile.playerState.conditions.inebriation,
+        rerollMiss: goblinCharmEquipped(p.inventory.economy.state, p.appearance),
       });
+      if ('damage' in result && spendLightsaberHit(p, weapon, result.damage ?? 0))
+        send(p, { type: 'inventory', inventory: p.inventory.snapshot() });
       dirty(p);
       return result;
     }
     const damage = Math.min(
       target.hp,
-      rollWeaponDamage(level(p), weapon, random, p.profile.playerState.conditions.inebriation),
+      rollWeaponDamage(
+        level(p),
+        weapon,
+        random,
+        p.profile.playerState.conditions.inebriation,
+        near(p, target),
+        goblinCharmEquipped(p.inventory.economy.state, p.appearance),
+      ),
     );
+    if (spendLightsaberHit(p, weapon, damage)) {
+      send(p, { type: 'inventory', inventory: p.inventory.snapshot() });
+      dirty(p);
+    }
     damageCreature(p, target, damage, weapon);
     return { ok: true, damage };
   }
@@ -665,6 +808,7 @@ export function createSharedWorld({
     if (!target.hp) {
       p.attack = null;
       if (target === raptor) {
+        creatureBindings.delete(raptor);
         raptor.phase = 'dead';
         raptor.path = [];
         raptor.prey = null;
@@ -672,6 +816,7 @@ export function createSharedWorld({
         onRaptorDefeated(p);
         monsterDrops('raptor', target, p.owner);
       } else {
+        creatureBindings.delete(target as SharedCow);
         (target as SharedCow).respawn = MONSTER_STATS.cow.respawn;
         monsterDrops('cow', target, p.owner);
       }
@@ -711,6 +856,15 @@ export function createSharedWorld({
     });
   }
   function leave(p: ServerPlayer) {
+    const ambush = bushAmbushes.get(p);
+    if (ambush) {
+      for (const actor of ambush) wilderness.despawn(actor);
+      bushAmbushes.delete(p);
+    }
+    for (const actor of wilderness.actors.filter(
+      (n) => n.combatKind === FIREWORK_ENFORCEMENT.kind && n.dispatchedFor === p.id,
+    ))
+      wilderness.despawn(actor);
     removePassenger(p);
     p.grappling = null;
     if (
@@ -805,6 +959,53 @@ export function createSharedWorld({
         });
       }
   }
+  function takeGoblinBush(p: ServerPlayer) {
+    if (!eligible(p) || p.mode !== 'walk' ||
+        near(p, GOBLIN_BUSH) > GAMEPLAY.interactionRange || !creatureSegment(p, GOBLIN_BUSH))
+      return {
+        ok: false,
+        message: contentText('world-message.goblin-bush.approach'),
+      };
+    const progress = p.profile.playerState.progress;
+    const collected = progress.goblinBushRewards;
+    if (collected === undefined) {
+      const fighting = bushAmbushes.get(p)?.filter(
+        (goblin) => goblin.hp > 0 && wilderness.actors.includes(goblin),
+      );
+      if (fighting?.length) {
+        for (const goblin of fighting) wilderness.provoke(goblin, p);
+      } else {
+        const serial = ++bushAmbushSerial;
+        const ambush = Object.entries(GOBLIN_BUSH_AMBUSH).map(([combatKind, { x, z }]) => {
+          const actor = wilderness.dispatch({ id: combatKind + '-' + serial, combatKind, x, z }, p);
+          actor.speechEndsAt = now() + 6500;
+          return actor;
+        });
+        bushAmbushes.set(p, ambush);
+      }
+      return { ok: true, message: contentText('world-message.goblin-bush.defeat') };
+    }
+    const item = GOBLIN_BUSH_REWARDS[collected];
+    if (!item) return { ok: false, message: contentText('world-message.goblin-bush.empty') };
+    const reward = itemLoot(item);
+    const alreadyOwned = reward.hatId
+      ? p.inventory.economy.state.ownedHats.includes(reward.hatId)
+      : equipmentOwned(p.inventory.economy.state, item);
+    const receipt = alreadyOwned
+      ? { ok: true, inventory: p.inventory.snapshot() }
+      : p.inventory.receive(reward);
+    if (!receipt.ok) return receipt;
+    progress.goblinBushRewards = collected + 1;
+    dirty(p);
+    return {
+      ...receipt,
+      message: contentText(
+        alreadyOwned ? 'world-message.goblin-bush.owned' : 'world-message.goblin-bush.reward',
+        { item: reward.label },
+      ),
+    };
+  }
+
   function command(p: ServerPlayer, action: string, args: Record<string, unknown> = {}) {
     airshipRental.tick();
     if (action === 'stopAttack') {
@@ -812,7 +1013,7 @@ export function createSharedWorld({
       movement?.stopCombatRoute(p);
       return { ok: true };
     }
-    if (!publicPlayer(p) && !(labPlayer(p) && (action === 'attack' || action === 'collect')))
+    if (!publicPlayer(p) && !(dungeonPlayer(p) && (action === 'attack' || action === 'collect')))
       return {
         ok: false,
         message: contentText(
@@ -821,6 +1022,34 @@ export function createSharedWorld({
       };
     if (action === 'airshipStatus' || action === 'airshipRecall')
       return airshipRental.command(p, action, args);
+    if (action === 'takeGoblinBush') return takeGoblinBush(p);
+    if (action === 'fireworkCitation') {
+      const officer = wilderness.actors.find(
+        (actor) =>
+          actor.id === args.id &&
+          actor.combatKind === FIREWORK_ENFORCEMENT.kind &&
+          actor.dispatchedFor === p.id &&
+          actor.citationPending &&
+          actor.hp > 0,
+      );
+      if (!officer) return { ok: false, message: 'That citation is no longer available to you.' };
+      if (!eligible(p) || near(p, officer) > FIREWORK_ENFORCEMENT.talkRange || !creatureSegment(p, officer))
+        return { ok: false, message: 'Walk up to the officer to respond to the citation.' };
+      if (args.decision === 'fight') {
+        officer.citationPending = false;
+        actorSpeaks(officer, 'Resisting a citation? Have it your way.', 4);
+        wilderness.provoke(officer, p);
+        return { ok: true, message: 'The Municipal Code Enforcement Officer attacks!' };
+      }
+      if (args.decision !== 'pay') return { ok: false };
+      const purse = p.inventory.economy.state;
+      if (purse.coins < FIREWORK_ENFORCEMENT.fine)
+        return { ok: false, message: 'You need 100 coins to pay the fine.' };
+      purse.coins -= FIREWORK_ENFORCEMENT.fine;
+      p.inventory.save();
+      wilderness.despawn(officer);
+      return { ok: true, message: 'You pay the 100-coin fireworks fine.', inventory: p.inventory.snapshot() };
+    }
     if (action === 'talkCultist' || action === 'confrontPastor') {
       const pastor = action === 'confrontPastor';
       const kind = pastor ? 'unusual-pastor' : 'bolinas-cultist';
@@ -861,7 +1090,7 @@ export function createSharedWorld({
       if (restriction) return { ok: false, message: restriction };
       if (
         !target?.hp ||
-        inBerkeleyLab(target.x, target.z) !== labPlayer(p) ||
+        !inCombatMap(p, target) ||
         (target === raptor && raptor.phase !== 'loose')
       )
         return {
@@ -870,6 +1099,12 @@ export function createSharedWorld({
         };
       if (isYardFighter(target.combatKind) && !hasFighterYardPass(p))
         return { ok: false, message: contentText('world-message.fighter-yard.admission-required') };
+      if (target.combatKind === FIREWORK_ENFORCEMENT.kind) {
+        if (target.dispatchedFor !== p.id)
+          return { ok: false, message: 'The officer is dealing with someone else.' };
+        if (target.citationPending)
+          return { ok: false, message: 'Speak to the officer to pay or refuse the fine.' };
+      }
       if (blockedByStatic(p, target))
         return {
           ok: false,
@@ -925,7 +1160,7 @@ export function createSharedWorld({
           Math.hypot(x + 0.5 - p.x, z + 0.5 - p.z) >= 1.35 &&
           creatureSegment(p, { x: x + 0.5, z: z + 0.5 }),
       );
-      wilderness.dispatch(
+      const officer = wilderness.dispatch(
         {
           id: 'robocop-' + ++robocopSerial,
           combatKind: 'robocop',
@@ -934,6 +1169,8 @@ export function createSharedWorld({
         },
         p,
       );
+      officer.speechLine = random() < 0.5 ? 'Unlawful action detected' : 'Jurisprudence mode activated';
+      officer.speechEndsAt = now() + 5000;
       p.gesture = 'attack';
       p.gestureUntil = now() + 450;
       return {
@@ -1019,7 +1256,7 @@ export function createSharedWorld({
       }
       if (
         !(eligible(p) || (p.hp > 0 && p.airship && item.ship)) ||
-        inBerkeleyLab(item.x, item.z) !== labPlayer(p) ||
+        !inCombatMap(p, item) ||
         Math.abs(p.y - (item.base ?? p.y)) > 2.5
       )
         return {
@@ -1347,9 +1584,23 @@ export function createSharedWorld({
   function tick(dt: number) {
     clock += dt;
     while (projectileImpacts.length && projectileImpacts[0].at <= clock + 1e-8) {
-      const { target, instanceId, actor, amount } = projectileImpacts.shift()!;
-      if (players.get(target.id) === target && target.instance.id === instanceId)
-        hitFromWilderness(target, amount, actor);
+      const impact = projectileImpacts.shift()!;
+      const { instanceId, actor, amount, effect } = impact;
+      if ('center' in impact) {
+        const half = (effect === 'goblin-rock' ? GOBLIN_ROCK.width : SCIENTIST_EXPLOSIVE.width) / 2;
+        for (const p of players.values()) {
+          if (p.instance.id !== instanceId) continue;
+          const dx = p.x - impact.center.x;
+          const dz = p.z - impact.center.z;
+          if (dx >= -half && dx < half && dz >= -half && dz < half)
+            hitFromWilderness(p, amount, actor, effect);
+        }
+      } else if (
+        players.get(impact.target.id) === impact.target &&
+        impact.target.instance.id === instanceId
+      ) {
+        hitFromWilderness(impact.target, amount, actor, effect);
+      }
     }
     geometry.streetTraffic?.update?.(dt);
     airshipRental.tick();
@@ -1375,7 +1626,7 @@ export function createSharedWorld({
     for (const p of players.values()) if (p.attack) engaged.add(p.attack);
     for (const cow of cows)
       updateGrazingCow(cow, dt, {
-        blocked: engaged.has(cow.id),
+        blocked: engaged.has(cow.id) || (creatureBindings.get(cow) ?? 0) > clock,
         clear: geometry.landClearAt,
         travel: geometry.canTravel,
       });
@@ -1391,6 +1642,7 @@ export function createSharedWorld({
         !target ||
         !target.hp ||
         !eligible(p) ||
+        !inCombatMap(p, target) ||
         !weaponOwned(p.inventory.economy.state, weapon) ||
         (isYardFighter(target.combatKind) && !hasFighterYardPass(p)) ||
         (target === raptor && raptor.phase !== 'loose')
@@ -1521,13 +1773,25 @@ export function createSharedWorld({
     }
     const combatants = [...players.values()].filter(eligible);
     wilderness.update(dt, combatants);
+    if (clock >= nextIncubatorSpeech) {
+      const visitors = combatants.filter((p) => p.instance?.id === INCUBATOR_CAVE.id);
+      if (visitors.length) {
+        const guards = wilderness.actors.filter((actor) =>
+          incubatorGuard(actor) && (actor.speechEndsAt ?? 0) <= now() &&
+          visitors.some((p) => near(p, actor) < 11 && creatureSegment(actor, p)),
+        );
+        if (guards.length) actorSpeaks(pick(guards), pick(INCUBATOR_GUARD_LINES), 4);
+      }
+      nextIncubatorSpeech = clock + 2 + (visitors.length ? random() * 1.4 : 0);
+    }
     const available = combatants.filter(publicPlayer);
     focus = null;
     if (tiger.dangerous) {
       const position = { x: tiger.state.tiger.x + 0.5, z: tiger.state.tiger.y + 0.5 };
       let nearest = Infinity;
       for (const p of available) {
-        if (p.respawnAllowed || (tigerGrace.get(p) || 0) > clock) continue;
+        if (p.respawnAllowed || invisibilityCloakEquipped(p.appearance) ||
+            (tigerGrace.get(p) || 0) > clock) continue;
         const distance = near(p, position);
         if (distance < nearest) {
           focus = p;
@@ -1560,13 +1824,17 @@ export function createSharedWorld({
     } else if (raptor.phase === 'loose') {
       raptor.repath -= dt;
       raptor.attackIn -= dt;
+      const canHunt = (p: ServerPlayer) =>
+        p.attack === raptor.id || !invisibilityCloakEquipped(p.appearance);
+      const playerPrey = typeof raptor.prey?.id === 'number' ? players.get(raptor.prey.id) : undefined;
+      if (playerPrey && !canHunt(playerPrey)) raptor.repath = 0;
       if (raptor.repath <= 0) {
         raptor.repath = 0.75;
         const candidates = npcList.filter((n) => near(n, raptor) <= 30 && raptorCivilian(n, clock));
         candidates.sort((a, b) => near(a, raptor) - near(b, raptor));
         raptor.prey = null;
         raptor.path = [];
-        const nearbyPlayers = available.filter((p) => near(p, raptor) < 8);
+        const nearbyPlayers = available.filter((p) => canHunt(p) && near(p, raptor) < 8);
         for (const target of [...candidates.slice(0, 8), ...nearbyPlayers]) {
           const path = pathTo(raptor, target);
           if (path) {
@@ -1576,7 +1844,7 @@ export function createSharedWorld({
           }
         }
       }
-      let budget = dt * 5.1;
+      let budget = (creatureBindings.get(raptor) ?? 0) > clock ? 0 : dt * 5.1;
       while (budget > 0 && raptor.path.length) {
         const target = raptor.path[0],
           distance = near(raptor, target),
@@ -1695,13 +1963,15 @@ export function createSharedWorld({
     for (const actor of wilderness.actors)
       if (
         (!isYardFighter(actor.combatKind) || hasFighterYardPass(pilot)) &&
+        (actor.combatKind !== FIREWORK_ENFORCEMENT.kind ||
+          (actor.dispatchedFor === pilot?.id && !actor.citationPending)) &&
         monsterInBombArea(actor, bomb)
       )
         wilderness.damage(actor.id, BOMB_DAMAGE, attacker);
   }
   function snapshot(observer?: ServerPlayer) {
     const npcs = observer ? npcIndex.near(observer.x, observer.z, 38, 32) : npcList;
-    const lootTime = now();
+    const serverTime = now();
     return {
       clock,
       peptideSpawnAt: nextPeptideAt,
@@ -1738,7 +2008,7 @@ export function createSharedWorld({
       loot: [...loot.values()]
         .filter(
           (item) =>
-            !groundItemExpired(item, clock, lootTime) && (!observer || near(observer, item) < 45),
+            !groundItemExpired(item, clock, serverTime) && (!observer || near(observer, item) < 45),
         )
         .slice(0, observer ? 64 : Infinity)
         .map((item) => {
@@ -1757,7 +2027,8 @@ export function createSharedWorld({
         elapsed: n.elapsed,
         hold: n.hold || 0,
         showStartedAt: n.showStartedAt,
-        bicycleTaken: n.rider ? (n.bicycleTakenUntil || 0) > now() : undefined,
+        bicycleTaken: n.rider ? (n.bicycleTakenUntil || 0) > serverTime : undefined,
+        helpUntil: (n.helpUntil || 0) > serverTime ? n.helpUntil : undefined,
         expeditionDead: !!n.expeditionDead,
       })),
     };
@@ -1765,7 +2036,9 @@ export function createSharedWorld({
   airshipRental.tick();
   return {
     command,
+    bindNearbyMonsters,
     dispatchSecuritiesInvestigator,
+    dispatchFireworkOfficer,
     tick,
     snapshot,
     leave,
@@ -1780,6 +2053,7 @@ export function createSharedWorld({
     tiger,
     loot,
     npcById,
+    monsterDrops,
     get clock() {
       return clock;
     },

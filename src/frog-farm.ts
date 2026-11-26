@@ -6,9 +6,10 @@ export const FROG_FARM = {
   id: 'goblin-frog-farm',
   name: 'Goblin Frog Farm',
   x: 47,
-  z: -22,
+  // Extend north so the south gate and the path to the scientist stay in place.
+  z: -23.1,
   w: 5,
-  d: 4.4,
+  d: 6.6,
   entry: { x: 46.5, y: -19.4 },
   farmer: { id: 'goblin-frog-farmer', x: 48.45, z: -19 },
 };
@@ -25,13 +26,15 @@ const rails = [
   [west, south, farm.x - 0.88, south],
   [farm.x + 0.88, south, east, south],
 ] as const;
-const trough = { x: 47, z: -23.72, w: 1.32, d: 0.58 };
+const trough = { x: farm.x, z: north + 0.48, w: 1.32, d: 0.58 };
 
 export const FROG_SPAWNS = [
   [45.65, -23.14],
   [48.35, -23.14],
   [45.65, -20.93],
   [48.35, -20.93],
+  [45.65, -25.03],
+  [48.35, -25.03],
 ].map(([x, z], i) => ({ id: 'farm-frog-' + (i + 1), combatKind: 'frog', x, z }));
 
 export function inFrogFarm(x: number, z: number, margin = 0) {
@@ -118,10 +121,10 @@ export function drawFrogFarm(
   drawPlaque(mesh, signs, farm.name, signX, signY + 0.84, south + 0.08, 1.09, 0.19);
 
   const bushes = [
-    [43.8, -24.77, 0.51],
-    [45.9, -25.1, 0.56],
-    [48.15, -25.12, 0.45],
-    [50.17, -24.2, 0.61],
+    [43.8, north - 0.57, 0.51],
+    [45.9, north - 0.9, 0.56],
+    [48.15, north - 0.92, 0.45],
+    [50.17, north, 0.61],
     [50.21, -21.7, 0.46],
     [49.9, -18.95, 0.49],
     [44.72, -18.44, 0.47],
@@ -159,8 +162,8 @@ export function drawFrogFarm(
     }
   }
   for (const [cx, cz] of [
-    [46.15, -23.73],
-    [47.83, -23.8],
+    [trough.x - 0.85, trough.z - 0.01],
+    [trough.x + 0.83, trough.z - 0.08],
     [49.16, -21.12],
     [44.94, -22.55],
   ]) {

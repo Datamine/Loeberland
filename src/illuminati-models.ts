@@ -509,9 +509,10 @@ export function drawBombEffect(
     t = Math.max(0, Math.min(1, elapsed / 1500)),
     y = bomb.from.y + (ground - bomb.from.y) * t * t;
   if (elapsed < 1500) {
-    m.sphere(bomb.x, y, bomb.z, 0.12, 0.35, 0.12, '#354446', 12, 8);
+    m.sphere(bomb.x, y, bomb.z, 0.12, 0.35, 0.12, '#c92236', 12, 8);
+    m.cylinder(bomb.x, y - 0.105, bomb.z, 0.116, 0.096, '#fff4e7', 12, 0.122);
     for (const side of [-1, 1] satisfies [number, number])
-      m.box(bomb.x + side * 0.13, y + 0.16, bomb.z - 0.04, 0.03, 0.15, 0.08, '#71807d');
+      m.box(bomb.x + side * 0.13, y + 0.16, bomb.z - 0.04, 0.03, 0.15, 0.08, '#fff4e7');
   } else if (elapsed < 2200) {
     const a = (elapsed - 1500) / 700,
       r = 0.3 + a * 1.8;

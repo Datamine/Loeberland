@@ -10,7 +10,7 @@ interface CollectionMenuOptions {
 }
 import { COLLECTION_GROUPS, COLLECTION_ITEMS } from './config/collection.ts';
 
-/** A record of discoveries, without revealing their locations. */
+/** A record of discoveries, with source hints for items still to find. */
 export function createCollectionMenu({
   element,
   content,
@@ -37,6 +37,11 @@ export function createCollectionMenu({
         if (owned) discovered++;
         row.dataset.found = String(owned);
         row.textContent = owned ? '✓ ' + item.name : '○ Undiscovered';
+        if (!owned) {
+          const hint = document.createElement('small');
+          hint.textContent = item.hint;
+          row.append(hint);
+        }
         list.append(row);
       }
       heading.textContent = name + ' · ' + discovered + ' / ' + items.length;

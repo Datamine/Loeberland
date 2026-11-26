@@ -1,3 +1,5 @@
+import { STARTING_POSITION } from '../config/gameplay.ts';
+import { LIGHTSABER_SCIENTIST, LIGHTSABER_STEPS, LIGHTSABER_TITLE } from '../config/lightsaber.ts';
 import { bindTabs } from '../ui/tabs.ts';
 import { bindActionChoices } from '../ui/action-choices.ts';
 import { bindHighScores } from '../high-scores.ts';
@@ -104,7 +106,8 @@ import '../teleport-models.ts';
 import '../marin-land.ts';
 import '../countryside.ts';
 import { createDebugConsole, debugMapPosition, createFrameMeter } from '../debug-console.ts';
-import '../item-stats.ts';
+import { combatDungeonAt } from '../combat-dungeons.ts';
+import { goblinCharmEquipped, invisibilityCloakEquipped } from '../item-stats.ts';
 import '../wilderness.ts';
 import '../wilderness-sites.ts';
 import '../ferrari-roads.ts';
@@ -254,6 +257,7 @@ import '../zoo-animals.ts';
 
 import { ZOO_PATHS } from '../zoo.ts';
 import { WINDSURF_LAUNCH, createWindsurfing } from '../windsurfing.ts';
+import { ONODA_SHORE } from '../onoda-island.ts';
 import { createSurfing } from '../surfing.ts';
 import { createDetentionSite } from '../encounters.ts';
 import {
@@ -1921,6 +1925,7 @@ export function createSFWorld({
     performSurfTrick,
     useSurf,
     arrestPlayer,
+    openFireworkCitation,
     debugTeleport,
     walkTo,
     goToPlace,
@@ -2128,8 +2133,8 @@ export function createSFWorld({
   const player: LocalPlayer = {
     sitting: false,
     sitBlend: 0,
-    x: mapTile(45),
-    y: mapTile(29),
+    x: STARTING_POSITION.x - 0.5,
+    y: STARTING_POSITION.z - 0.5,
     path: [] as Point[],
     moving: false,
     angle: Math.PI / 2,
@@ -2449,6 +2454,8 @@ export function createSFWorld({
       economy,
       level: () => strength.status.level,
       inebriation: () => inebriation.state.percent,
+      rerollMiss: () => goblinCharmEquipped(economy.state, playerLook),
+      hiddenFromMonsters: () => invisibilityCloakEquipped(playerLook),
       sharedWorld: () => !!multiplayer,
       food: (n: number | undefined) => deli?.storeSandwich(n),
       player: (): { x: number; z: number; base: number; isPlayer: boolean; eligible: boolean } => ({
@@ -2552,7 +2559,27 @@ export function createSFWorld({
       button: $('sf-quests-button'),
       shade: $('sf-reader-shade'),
       canvas,
-      quests,
+      quests: {
+        entries: () => {
+          const entries = quests.entries();
+          const stage = multiplayer?.state.playerState?.quests.lightsaber?.stage;
+          if (!stage || stage === 'not-started') return entries;
+          return [
+            ...entries,
+            {
+              id: 'lightsaber',
+              title: LIGHTSABER_TITLE,
+              stage,
+              status: stage === 'completed' ? 'Complete' : 'In progress',
+              description:
+                stage === 'completed'
+                  ? 'The Defense Manufacturer built your lightsaber.'
+                  : LIGHTSABER_STEPS[stage].objective,
+              rewardLabel: 'Lightsaber',
+            },
+          ];
+        },
+      },
       beforeOpen: () => {
         collectionMenu?.close();
         closeCharacter();
@@ -2629,6 +2656,17 @@ export function createSFWorld({
         }),
         getPosition: () => debugMapPosition(player),
         canTeleport: () => multiplayer?.state.debug === true,
+        getTeleportNPCs: () => [
+          ...merchants,
+          ...(cityLife?.people ?? []),
+          ...(southernLife?.people ?? []),
+          ...(squareLife?.people ?? []),
+          ...(noeValleyLife?.people ?? []),
+          ...(esotericCampus?.life?.people ?? []),
+          ...(socialLife?.people ?? []),
+          ...parrots,
+          ...(wilderness?.actors ?? []),
+        ].filter((npc) => !combatDungeonAt(npc.x, npc.z)),
         teleport: debugTeleport,
         beforeOpen: () => {
           keys.clear();
@@ -2715,12 +2753,14 @@ export function createSFWorld({
     );
   const surf = createWindsurfing({
       scale: MAP_SCALE,
+      isSea: (x, z) => !esotericCampus?.coversGround(x, z),
       obstacles: [
         sailingCoast,
         MARIN,
         islandOutline(...islandCenter, 3.25, 2.8),
         islandOutline(islandCenter[0] + 1.1, islandCenter[1] - 0.8, 2.1, 2.1),
         islandOutline(PROMETHEUS.x, PROMETHEUS.z, 3.15, 3.15),
+        ONODA_SHORE,
       ],
     }),
     detention = createDetentionSite(MAP_SCALE);
@@ -3686,7 +3726,10 @@ export function createSFWorld({
       combat,
     });
   const npcPrimary = (npc: import('../types/world.ts').ActorMetadata) =>
-    npcPrimaryVerb(npc, npcRevealed(npc));
+    npc.id === LIGHTSABER_SCIENTIST &&
+    multiplayer?.state.playerState?.quests.lightsaber?.stage === 'research'
+      ? 'talk'
+      : npcPrimaryVerb(npc, npcRevealed(npc), multiplayer?.state.id);
 
   let worldTiles: WorldTileMap | null = null;
   // BEGIN TILE BUILDER
@@ -4039,9 +4082,11 @@ export function createSFWorld({
     driveFerrari(p.x - 0.5, p.z - 0.5);
   });
   $('sf-charge-railgun').addEventListener('click', () =>
-    context.multiplayer.command('inventory', { op: 'chargeRailgun' }).then((result) => {
-      if (result.message) announce(result.message, 'You');
-    }),
+    context.multiplayer
+      .command('inventory', { op: playerWeapon() === 'lightsaber' ? 'chargeLightsaber' : 'chargeRailgun' })
+      .then((result) => {
+        if (result.message) announce(result.message, 'You');
+      }),
   );
   $('sf-order-doordash').addEventListener('click', orderDoorDash);
   $('sf-stop-construction').addEventListener('click', () =>
@@ -4068,6 +4113,14 @@ export function createSFWorld({
   });
   $('sf-bike-button').addEventListener('click', useBike);
   $('sf-skateboard-button').addEventListener('click', useSkateboard);
+  $('sf-scooter-button').addEventListener('click', () =>
+    multiplayerWorld?.command('activity', {
+      mode: multiplayerWorld.selfMode === 'scooter' ? 'walk' : 'scooter',
+    }),
+  );
+  $('sf-scooter-backflip').addEventListener('click', () =>
+    multiplayerWorld?.command('travel', { kind: 'scooterBackflip' }),
+  );
   for (const button of world.querySelectorAll<HTMLButtonElement>('[data-skate-trick]'))
     button.addEventListener('click', () => performSkateTrick(button.dataset.skateTrick || ''));
   const motorcycleTricks = [
@@ -4093,6 +4146,7 @@ export function createSFWorld({
       }),
     );
   $('sf-wave-catch').addEventListener('click', catchPacificaWave);
+  $('sf-surf-return').addEventListener('click', () => useSurf());
   for (const button of world.querySelectorAll<HTMLButtonElement>('[data-surf-trick]'))
     button.addEventListener('click', () => performSurfTrick(button.dataset.surfTrick || ''));
   $('sf-map-button').addEventListener('click', (e) =>
@@ -4246,6 +4300,21 @@ export function createSFWorld({
     },
   ]);
   $('sf-character-button').addEventListener('click', showCharacter);
+  let switchingWeapon = false;
+  const switchWeapon = $('sf-switch-weapon');
+  switchWeapon.addEventListener('click', async () => {
+    if (switchingWeapon || switchWeapon.hidden || switchWeapon.disabled) return;
+    switchingWeapon = true;
+    try {
+      const result = await multiplayerWorld?.command('switchWeapon');
+      if (result?.ok && result.appearance) {
+        playerLook = normalizeCharacter(result.appearance);
+        updateAdventureUI();
+      }
+    } finally {
+      switchingWeapon = false;
+    }
+  });
   bindTabs($('sf-character-tabs'));
   $('sf-character-done').addEventListener('click', saveCharacter);
   $('sf-light-decorative-rocket').addEventListener('click', lightDecorativeRocket);
@@ -4273,7 +4342,9 @@ export function createSFWorld({
       const op = button.dataset.inventoryAction;
       if (op === 'breakBind') multiplayerWorld?.command('breakBind');
       else {
-        const result = await multiplayerWorld?.command('inventory', { op });
+        const args = op === 'upgradeWeapon' ? { op, weapon: button.dataset.weapon } : { op };
+        const result = await multiplayerWorld?.command('inventory', args);
+        if (result?.fireworkCitation) openFireworkCitation(result.fireworkCitation);
         if (result?.ok && result.appearance) {
           playerLook = normalizeCharacter(result.appearance);
           updateAdventureUI();
@@ -4415,12 +4486,11 @@ export function createSFWorld({
     )
       closeMenu();
   });
-  const useCommandForGroundItems = /Mac/i.test(navigator.platform);
+  const onMac = /Mac/i.test(navigator.platform);
+  const shortcutKey = onMac ? 'control' : 'alt';
+  let shortcutPressed = false;
   const updateGroundItemModifier = (e: KeyboardEvent) =>
-    world.toggleAttribute(
-      'data-show-ground-items',
-      useCommandForGroundItems ? e.metaKey : e.altKey,
-    );
+    world.toggleAttribute('data-show-ground-items', onMac ? e.metaKey : e.altKey);
   const shortcutMenu = $('sf-shortcut-menu');
   const shortcutList = $('sf-shortcut-list');
   const shortcutActions = requiredValue(
@@ -4458,14 +4528,16 @@ export function createSFWorld({
         });
     };
     control('c', 'sf-character-button', 'Character');
+    control('w', 'sf-switch-weapon', 'Switch weapons');
     control('q', 'sf-quests-button', 'Quests');
-    control('l', 'sf-collection-button', 'Collection log');
+    control('l', 'sf-collection-button', 'Item Log');
     control('h', 'sf-help-button', 'Help');
     control('x', 'sf-sit-button', 'Sit or stand');
     control('d', 'sf-dance-button', 'Dance');
     control('v', 'sf-roll-button', 'Forward roll');
     control('b', 'sf-bike-button', 'Bicycle');
     control('k', 'sf-skateboard-button', 'Skateboard');
+    control('u', 'sf-scooter-button', 'Scooter');
     control('j', 'sf-rocket-hop', 'Rocket hop');
     const mode = multiplayerWorld?.selfMode;
     if (mode === 'streetcar') control('e', 'sf-exit-streetcar', streetcarExit.label);
@@ -4479,7 +4551,7 @@ export function createSFWorld({
     entries.set('-', { label: 'Zoom out', run: () => setZoom(zoom - 0.1) });
     if (motorcycle?.state.rented)
       entries.set('m', { label: 'Motorcycle', run: () => useMotorcycle() });
-    if (surf.state.riding) entries.set('f', { label: 'Return to shore', run: () => useSurf() });
+    control('f', 'sf-surf-return', $('sf-surf-return').textContent?.trim() || 'Surf Back to Shore');
     if (ferrari?.state.riding) entries.set('r', { label: 'Park Ferrari', run: () => useFerrari() });
     for (const group of [
       $('sf-bomber-controls'),
@@ -4496,6 +4568,7 @@ export function createSFWorld({
         entries.set(key === 'space' ? ' ' : key, { label, button, run: () => button.click() });
       }
     }
+    control('1', 'sf-scooter-backflip', 'Backflip');
     control('t', 'sf-teleport-button', 'Teleport');
     if (!entries.has('t') && multiplayer?.state.debug)
       entries.set('t', {
@@ -4517,14 +4590,11 @@ export function createSFWorld({
     let focusTarget: HTMLButtonElement | undefined;
     for (const [key, { label, button }] of entries) {
       const item = document.createElement('li');
-      const prefix = document.createElement('kbd');
       const cap = document.createElement('kbd');
       const name = document.createElement('span');
-      prefix.className = cap.className = 'sf-key';
-      prefix.textContent = 'Esc';
+      cap.className = 'sf-key';
       cap.textContent = key === ' ' ? 'Space' : key.toUpperCase();
       name.textContent = label;
-      if (key !== 'j') item.append(prefix);
       item.append(cap, name);
       shortcutList.append(item);
       if (button) {
@@ -4562,7 +4632,6 @@ export function createSFWorld({
     shortcutFrame = requestAnimationFrame(refreshShortcuts);
   }
   function showShortcuts() {
-    canvas.focus({ preventScroll: true });
     expandActions(true);
     actionsPanel.querySelector<HTMLButtonElement>('#sf-you-tab[aria-selected="false"]')?.click();
     shortcutMenu.hidden = false;
@@ -4571,6 +4640,7 @@ export function createSFWorld({
   document.addEventListener(
     'pointerdown',
     (event) => {
+      shortcutPressed = false;
       if (!(event.target instanceof Node) || !actionsPanel.contains(event.target))
         closeShortcutMenu();
     },
@@ -4620,10 +4690,21 @@ export function createSFWorld({
     return true;
   }
   document.addEventListener('keydown', (e) => {
-    if (active && built && !loading?.visible) {
-      updateGroundItemModifier(e);
-      if (!useCommandForGroundItems && e.key === 'Alt' && !e.ctrlKey) e.preventDefault();
+    const key = e.key.toLowerCase();
+    const quickSwitch =
+      key === 'w' &&
+      shortcutPressed &&
+      (onMac ? e.ctrlKey && !e.altKey : e.altKey && !e.ctrlKey) &&
+      !e.shiftKey &&
+      !e.metaKey &&
+      !(e.target instanceof HTMLElement && e.target.closest('input, textarea, select, [contenteditable]')) &&
+      !switchWeapon.hidden &&
+      !switchWeapon.disabled;
+    if (key !== shortcutKey && shortcutPressed && !quickSwitch) {
+      shortcutPressed = false;
+      closeShortcutMenu();
     }
+    if (active && built && !loading?.visible) updateGroundItemModifier(e);
     if (e.defaultPrevented || tradePanel.open || chatUnlockDialog.open) {
       closeShortcutMenu();
       return;
@@ -4636,7 +4717,33 @@ export function createSFWorld({
       tabletService?.state.active
     )
       return;
-    const key = e.key.toLowerCase();
+    if (quickSwitch) {
+      e.preventDefault();
+      closeShortcutMenu();
+      if (!e.repeat) switchWeapon.click();
+      return;
+    }
+    if (key === shortcutKey && !e.metaKey && !e.shiftKey && !(onMac ? e.altKey : e.ctrlKey)) {
+      e.preventDefault();
+      const blocked =
+        collectionMenu?.active ||
+        bankMenu?.active ||
+        questMenu?.active ||
+        context.dialogue.active ||
+        context.aiInterview.visible ||
+        !$('sf-character').hidden ||
+        !$('sf-help').hidden ||
+        !$('sf-reader').hidden ||
+        !$('sf-context').hidden ||
+        capture.state.active ||
+        rehabilitation.state.active;
+      if (!e.repeat && !blocked && !e.isComposing && document.hasFocus()) {
+        shortcutPressed = true;
+        if (shortcutMenu.hidden) showShortcuts();
+        else closeShortcutMenu();
+      }
+      return;
+    }
     if (e.target === chatDraft) {
       closeShortcutMenu();
       if (!e.isComposing && key === 'enter') {
@@ -4646,7 +4753,7 @@ export function createSFWorld({
       }
       if (key === 'escape' && !e.isComposing && !e.repeat) {
         e.preventDefault();
-        showShortcuts();
+        canvas.focus({ preventScroll: true });
       }
       return;
     }
@@ -4733,7 +4840,6 @@ export function createSFWorld({
         ferrari.state.target = null;
         ferrari.state.speed = 0;
         destination = null;
-        showShortcuts();
         return;
       }
       if (context.dialogue.active) {
@@ -4744,12 +4850,11 @@ export function createSFWorld({
       else if (fishing.state.active) {
         fishing.cancel();
         announce(contentText('world-message.src.world.scene.you-reel-in-your-line'), 'Fishing');
-      } else if (sutroClimb.state.active) showShortcuts();
+      } else if (sutroClimb.state.active) return;
       else if (airship.state.active) {
         airship.stop();
         destination = null;
         updateAirshipButton();
-        showShortcuts();
       } else {
         cancelMovingInteraction();
         player.path = [];
@@ -4757,7 +4862,6 @@ export function createSFWorld({
         action = null;
         destination = null;
         drawMini();
-        showShortcuts();
       }
       return;
     }
@@ -4834,10 +4938,17 @@ export function createSFWorld({
     startTyping(e);
   });
   document.addEventListener('keyup', (e) => {
+    const key = e.key.toLowerCase();
     updateGroundItemModifier(e);
-    keys.delete(e.key.toLowerCase());
+    keys.delete(key);
+    if (key !== shortcutKey || !shortcutPressed) return;
+    shortcutPressed = false;
+    if (e.defaultPrevented || !document.hasFocus() || !serverConnected(multiplayer)) return;
+    e.preventDefault();
+    if (!shortcutMenu.hidden) canvas.focus({ preventScroll: true });
   });
   window.addEventListener('blur', () => {
+    shortcutPressed = false;
     closeShortcutMenu();
     world.removeAttribute('data-show-ground-items');
     keys.clear();
